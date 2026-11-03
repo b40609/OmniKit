@@ -1,2 +1,2 @@
-# hook 是 sh 腳本，被轉成 CRLF 會在 Git Bash 執行失敗
-.githooks/* text eol=lf
+# 文字檔一律用 LF：各台電腦一致，hook 的 sh 腳本也不會因為 CRLF 執行失敗
+* text=auto eol=lf
