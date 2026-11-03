@@ -1,0 +1,2 @@
+# hook 是 sh 腳本，被轉成 CRLF 會在 Git Bash 執行失敗
+.githooks/* text eol=lf

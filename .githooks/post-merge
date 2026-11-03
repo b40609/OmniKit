@@ -1,0 +1,2 @@
+#!/bin/sh
+git diff --name-only ORIG_HEAD HEAD | "$(dirname "$0")/sync-rules.sh"

@@ -1,0 +1,6 @@
+# 過渡期草稿：步驟 4 轉成 data/ 之後刪除，不進版本紀錄
+drafts/
+
+# Python
+__pycache__/
+.venv/
