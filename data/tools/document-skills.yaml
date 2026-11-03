@@ -1,0 +1,14 @@
+id: document-skills
+name: document-skills
+kind: plugin
+slots:
+- docs-output
+status: pending
+url: https://github.com/anthropics/skills
+works_with:
+- claude
+- codex
+sources:
+- 桌機盤點
+notes: Anthropic 的 docx、pdf、pptx、xlsx skills。
+added: '2026-11-04'

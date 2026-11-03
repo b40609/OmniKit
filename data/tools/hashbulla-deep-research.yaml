@@ -1,0 +1,10 @@
+id: hashbulla-deep-research
+name: deep-research（hashbulla）
+slots:
+- product-research
+status: pending
+url: https://github.com/hashbulla/deep-research
+sources:
+- RIA:C017
+- RIA:C051
+added: '2026-11-04'

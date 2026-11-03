@@ -1,0 +1,15 @@
+id: native-memory
+name: 原生記憶
+kind: native
+slots:
+- memory
+status: default
+works_with:
+- claude
+- codex
+decided_at: '2026-11-04'
+reason: 還沒有第三方預設，先用原生功能當比較基準。
+sources:
+- 訪談
+notes: Claude 的 auto memory（預設開）；Codex 的 memories（預設關）；兩邊不互通。
+added: '2026-11-04'

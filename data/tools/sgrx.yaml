@@ -1,0 +1,8 @@
+id: sgrx
+name: SGRX
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C025
+added: '2026-11-04'

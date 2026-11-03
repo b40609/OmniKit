@@ -1,0 +1,11 @@
+id: mattpocock-grill-me
+name: grill-me（mattpocock）
+kind: skill
+slots:
+- dev-workflow
+status: pending
+url: https://github.com/mattpocock/skills
+sources:
+- 訪談
+notes: 有感。
+added: '2026-11-04'

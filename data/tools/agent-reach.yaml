@@ -1,0 +1,12 @@
+id: agent-reach
+name: Agent-Reach
+kind: skill
+slots:
+- product-research
+status: pending
+url: https://github.com/Panniantong/Agent-Reach
+sources:
+- 桌機盤點
+- Codex 使用紀錄
+notes: 不用付費 API 就能讀取、搜尋網頁、YouTube、GitHub、Reddit 等。Codex 讀取 8 次。
+added: '2026-11-04'

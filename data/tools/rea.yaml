@@ -1,0 +1,18 @@
+id: rea
+name: REA（Reverse Engineer Anything）
+kind: mcp
+slots:
+- reverse-engineering
+status: default
+url: https://github.com/morluto/rea
+works_with:
+- claude
+- codex
+decided_at: '2026-11-04'
+reason: 訪談：有感。
+sources:
+- 訪談
+- 桌機盤點
+- Codex 使用紀錄
+notes: Codex 近 60 天 MCP 呼叫 4 次。
+added: '2026-11-04'

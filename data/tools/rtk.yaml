@@ -1,0 +1,14 @@
+id: rtk
+name: RTK（Rust Token Killer）
+kind: cli
+slots:
+- output-compression
+status: pending
+url: https://github.com/rtk-ai/rtk
+works_with:
+- claude
+- codex
+sources:
+- 訪談
+notes: 用 hook 把 shell 指令交給 rtk 執行，壓縮輸出後再給 agent。
+added: '2026-11-04'

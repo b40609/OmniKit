@@ -1,0 +1,9 @@
+id: gpt-researcher
+name: GPT Researcher
+kind: app
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C015
+added: '2026-11-04'

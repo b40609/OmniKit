@@ -1,0 +1,9 @@
+id: agent-os
+name: agent-os
+slots:
+- dev-workflow
+status: pending
+sources:
+- RIA:C040
+notes: 規格驅動系列。
+added: '2026-11-04'

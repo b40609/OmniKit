@@ -1,0 +1,14 @@
+id: i-have-adhd
+name: i-have-adhd
+kind: skill
+slots:
+- concise-output
+status: pending
+url: https://github.com/ayghri/i-have-adhd
+works_with:
+- claude
+- codex
+sources:
+- 訪談
+notes: Codex 上跟 caveman 同時裝，分不出效果；桌機沒裝。
+added: '2026-11-04'

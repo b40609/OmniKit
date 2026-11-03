@@ -1,0 +1,10 @@
+id: deerflow
+name: DeerFlow github-deep-research
+kind: app
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C011
+- RIA:C054
+added: '2026-11-04'

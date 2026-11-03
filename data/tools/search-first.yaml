@@ -1,0 +1,12 @@
+id: search-first
+name: search-first（ECC）
+kind: skill
+slots:
+- product-research
+status: pending
+url: https://github.com/affaan-m/ecc
+sources:
+- RIA:C024
+- RIA:C041
+notes: 對應痛點「不主動查業界做法」。
+added: '2026-11-04'

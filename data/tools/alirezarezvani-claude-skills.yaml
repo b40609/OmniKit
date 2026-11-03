@@ -1,0 +1,10 @@
+id: alirezarezvani-claude-skills
+name: claude-skills（alirezarezvani）
+kind: collection
+slots: []
+status: pending
+url: https://github.com/alirezarezvani/claude-skills
+sources:
+- RIA:C032
+- RIA:C064
+added: '2026-11-04'

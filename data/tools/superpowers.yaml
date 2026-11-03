@@ -1,0 +1,15 @@
+id: superpowers
+name: superpowers
+kind: collection
+slots:
+- dev-workflow
+status: pending
+url: https://github.com/obra/superpowers
+works_with:
+- claude
+- codex
+sources:
+- 訪談
+- RIA:C027
+notes: 以前跟其他 skill 同時裝，分不出效果。
+added: '2026-11-04'

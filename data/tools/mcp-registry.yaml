@@ -1,0 +1,11 @@
+id: mcp-registry
+name: 官方 MCP Registry
+kind: service
+slots:
+- tool-discovery
+status: pending
+url: https://registry.modelcontextprotocol.io
+sources:
+- RIA:C042
+notes: 還在 preview。
+added: '2026-11-04'

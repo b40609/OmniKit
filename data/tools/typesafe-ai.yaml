@@ -1,0 +1,10 @@
+id: typesafe-ai
+name: typesafe-ai
+kind: skill
+slots: []
+status: pending
+url: https://github.com/typesafe-ai/skills
+sources:
+- 桌機盤點
+notes: 串接 TypeSafe 的 System One API。
+added: '2026-11-04'

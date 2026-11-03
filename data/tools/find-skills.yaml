@@ -1,0 +1,8 @@
+id: find-skills
+name: find-skills
+slots:
+- tool-discovery
+status: pending
+sources:
+- RIA:C013
+added: '2026-11-04'

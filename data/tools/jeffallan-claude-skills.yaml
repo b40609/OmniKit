@@ -1,0 +1,10 @@
+id: jeffallan-claude-skills
+name: claude-skills（Jeffallan）
+kind: collection
+slots: []
+status: pending
+url: https://github.com/Jeffallan/claude-skills
+sources:
+- RIA:C033
+- RIA:C065
+added: '2026-11-04'

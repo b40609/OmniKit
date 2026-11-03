@@ -1,0 +1,16 @@
+id: caveman
+name: caveman
+kind: skill
+slots:
+- concise-output
+status: pending
+url: https://github.com/JuliusBrussee/caveman
+works_with:
+- claude
+- codex
+sources:
+- 訪談
+- 桌機盤點
+- Codex 使用紀錄
+notes: Codex 上有感（讀取 13 次），但跟 i-have-adhd 同時裝，分不出效果；換到 Claude 後還沒用。英文電報式語氣，用在繁中要實測。
+added: '2026-11-04'

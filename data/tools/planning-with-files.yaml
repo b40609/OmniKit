@@ -1,0 +1,14 @@
+id: planning-with-files
+name: planning-with-files
+kind: skill
+slots:
+- memory
+status: pending
+url: https://github.com/OthmanAdi/planning-with-files
+works_with:
+- claude
+- codex
+sources:
+- 訪談
+notes: 計畫、發現、進度寫成檔案，每輪重新注入。以前跟其他 skill 同時裝，分不出效果。
+added: '2026-11-04'

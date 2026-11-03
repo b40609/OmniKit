@@ -1,0 +1,8 @@
+id: hyperresearch
+name: hyperresearch
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C019
+added: '2026-11-04'

@@ -1,0 +1,13 @@
+id: ecc
+name: ECC
+kind: collection
+slots: []
+status: pending
+url: https://github.com/affaan-m/ecc
+works_with:
+- claude
+- codex
+sources:
+- 訪談
+notes: 大而全的方法論；當零件庫，從中挑個別 skill。你想體驗。
+added: '2026-11-04'

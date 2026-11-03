@@ -1,0 +1,11 @@
+id: phuryn-pm-skills
+name: pm-skills（phuryn）
+kind: collection
+slots:
+- product-research
+status: pending
+url: https://github.com/phuryn/pm-skills
+sources:
+- RIA:C031
+- RIA:C063
+added: '2026-11-04'

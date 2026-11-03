@@ -1,0 +1,14 @@
+id: codegraph
+name: CodeGraph
+kind: mcp
+slots:
+- code-understanding
+status: pending
+url: https://github.com/colbymchenry/codegraph
+works_with:
+- claude
+- codex
+sources:
+- 訪談
+notes: 預先建好符號圖與呼叫圖，查影響範圍。沒用過。
+added: '2026-11-04'

@@ -1,0 +1,10 @@
+id: wshobson-agents
+name: agents（wshobson）
+kind: collection
+slots: []
+status: pending
+url: https://github.com/wshobson/agents
+sources:
+- RIA:C034
+- RIA:C066
+added: '2026-11-04'

@@ -1,0 +1,9 @@
+id: mirothinker
+name: MiroThinker
+kind: app
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C021
+added: '2026-11-04'

@@ -1,0 +1,10 @@
+id: claudekit-skills
+name: ClaudeKit skills（mrgoonie）
+kind: collection
+slots: []
+status: pending
+url: https://github.com/mrgoonie/claudekit-skills
+sources:
+- RIA:C035
+- RIA:C068
+added: '2026-11-04'

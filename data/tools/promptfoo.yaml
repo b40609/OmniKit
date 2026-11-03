@@ -1,0 +1,9 @@
+id: promptfoo
+name: promptfoo
+kind: app
+slots:
+- skill-authoring
+status: pending
+sources:
+- RIA:C061
+added: '2026-11-04'

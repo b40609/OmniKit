@@ -1,0 +1,8 @@
+id: chinese-pm-skills
+name: chinese-pm-skills
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C004
+added: '2026-11-04'

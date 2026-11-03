@@ -1,0 +1,8 @@
+id: deepgit
+name: DeepGit
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C009
+added: '2026-11-04'

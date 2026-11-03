@@ -1,0 +1,17 @@
+id: skill-creator
+name: skill-creator
+kind: skill
+slots:
+- skill-authoring
+status: default
+url: https://github.com/anthropics/skills/tree/main/skills/skill-creator
+works_with:
+- claude
+decided_at: '2026-11-04'
+reason: 常用。
+sources:
+- 訪談
+- Codex 使用紀錄
+- RIA:C060
+notes: 附帶 evals（RIA 候選表另列為 C060）。Codex 內建的 $skill-creator 是 OpenAI 自己的版本。
+added: '2026-11-04'

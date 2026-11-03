@@ -1,0 +1,11 @@
+id: ce-handoff
+name: ce-handoff（Compound Engineering）
+kind: skill
+slots:
+- memory
+status: pending
+url: https://github.com/EveryInc/compound-engineering-plugin
+sources:
+- 方法論筆記
+notes: Compound Engineering 裡的交接 skill：交接檔不可變、只放指標，接手時先停下確認。
+added: '2026-11-04'

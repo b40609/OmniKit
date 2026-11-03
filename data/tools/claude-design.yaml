@@ -1,0 +1,13 @@
+id: claude-design
+name: Claude Code /design
+kind: native
+slots:
+- frontend-design
+status: pending
+url: https://code.claude.com/docs/en/commands
+works_with:
+- claude
+sources:
+- 查證
+notes: research preview，在畫布上出設計稿；限 Pro、Max、Team、Enterprise。
+added: '2026-11-04'

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OmniKit 槽位",
+  "description": "槽位是一種能力，例如前端設計、程式碼審查；每個槽位只留一個預設。",
+  "type": "object",
+  "required": ["slots"],
+  "additionalProperties": false,
+  "properties": {
+    "slots": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/slot" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "slot": {
+      "type": "object",
+      "required": ["id", "name", "focus", "scenarios"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1 },
+        "focus": {
+          "description": "active：主動找更好的工具，每週的深度評估額度只用在這些槽位；watch：有新工具進來才做免費初篩；frozen：不評估、不動預設",
+          "enum": ["active", "watch", "frozen"]
+        },
+        "scenarios": {
+          "description": "評估工具時用的真實情境",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "text"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "pattern": "^[A-Z][0-9]+$" },
+              "text": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

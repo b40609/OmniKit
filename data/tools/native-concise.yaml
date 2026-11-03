@@ -1,0 +1,15 @@
+id: native-concise
+name: 原生精簡輸出
+kind: native
+slots:
+- concise-output
+status: default
+works_with:
+- claude
+- codex
+decided_at: '2026-11-04'
+reason: 還沒有第三方預設，先用原生功能當比較基準。
+sources:
+- 訪談
+notes: Claude Code 的 Concise 輸出風格；Codex 的 model_verbosity。
+added: '2026-11-04'

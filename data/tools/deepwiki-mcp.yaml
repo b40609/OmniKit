@@ -1,0 +1,9 @@
+id: deepwiki-mcp
+name: DeepWiki MCP（hosted）
+kind: mcp
+slots:
+- code-understanding
+status: pending
+sources:
+- RIA:C046
+added: '2026-11-04'

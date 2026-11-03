@@ -1,0 +1,11 @@
+id: dzhng-deep-research
+name: deep-research（dzhng）
+kind: app
+slots:
+- product-research
+status: pending
+url: https://github.com/dzhng/deep-research
+sources:
+- RIA:C012
+- RIA:C050
+added: '2026-11-04'

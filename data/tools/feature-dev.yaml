@@ -1,0 +1,9 @@
+id: feature-dev
+name: feature-dev（Anthropic）
+kind: plugin
+slots:
+- dev-workflow
+status: pending
+sources:
+- RIA:C038
+added: '2026-11-04'

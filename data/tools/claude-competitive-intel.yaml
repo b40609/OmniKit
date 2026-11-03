@@ -1,0 +1,8 @@
+id: claude-competitive-intel
+name: claude-competitive-intel
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C005
+added: '2026-11-04'

@@ -1,0 +1,11 @@
+id: gstack
+name: gstack
+kind: collection
+slots:
+- dev-workflow
+status: pending
+url: https://github.com/garrytan/gstack
+sources:
+- RIA:C030
+- RIA:C062
+added: '2026-11-04'

@@ -1,0 +1,8 @@
+id: haonan-product-research
+name: HaoNan product-research
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C016
+added: '2026-11-04'

@@ -1,0 +1,11 @@
+id: aihot
+name: aihot
+kind: skill
+slots:
+- tool-discovery
+status: pending
+url: https://github.com/KKKKhazix/khazix-skills
+sources:
+- 桌機盤點
+notes: 查即時的中文 AI 新聞、熱點與日報。
+added: '2026-11-04'

@@ -1,0 +1,9 @@
+id: hn-algolia
+name: HN Algolia API
+kind: service
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C045
+added: '2026-11-04'

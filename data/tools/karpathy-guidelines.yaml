@@ -1,0 +1,11 @@
+id: karpathy-guidelines
+name: Karpathy 風格準則（multica-ai）
+kind: rules
+slots:
+- behavior-rules
+status: pending
+sources:
+- RIA:C022
+- RIA:C056
+notes: 第三方整理，不是 Karpathy 官方。
+added: '2026-11-04'

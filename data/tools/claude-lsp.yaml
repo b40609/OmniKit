@@ -1,0 +1,12 @@
+id: claude-lsp
+name: Claude 官方 LSP plugin
+kind: plugin
+slots:
+- code-understanding
+status: pending
+works_with:
+- claude
+sources:
+- 訪談
+notes: 跳到定義、找參照；Codex 沒有對應。沒用過。
+added: '2026-11-04'

@@ -1,0 +1,10 @@
+id: claudex-loop
+name: claudex-loop
+slots:
+- review
+status: pending
+url: https://github.com/chaseai-yt/claudex-loop
+sources:
+- RIA:ADD-01
+notes: Claude 與 Codex 交叉審查加有界迭代；RIA 只查過來源，沒有試跑。原版的 Codex sandbox 設定要再調整。
+added: '2026-11-04'

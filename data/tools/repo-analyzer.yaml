@@ -1,0 +1,8 @@
+id: repo-analyzer
+name: repo-analyzer
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C023
+added: '2026-11-04'

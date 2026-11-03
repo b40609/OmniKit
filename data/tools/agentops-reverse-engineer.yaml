@@ -1,0 +1,8 @@
+id: agentops-reverse-engineer
+name: agentops reverse-engineer
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C001
+added: '2026-11-04'

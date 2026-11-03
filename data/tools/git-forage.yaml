@@ -1,0 +1,8 @@
+id: git-forage
+name: Git Forage（matcluck）
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C014
+added: '2026-11-04'

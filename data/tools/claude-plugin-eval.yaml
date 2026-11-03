@@ -1,0 +1,12 @@
+id: claude-plugin-eval
+name: claude plugin eval
+kind: native
+slots:
+- skill-authoring
+status: pending
+works_with:
+- claude
+sources:
+- RIA:C059
+notes: 官方的 plugin 評估指令。
+added: '2026-11-04'

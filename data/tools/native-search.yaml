@@ -1,0 +1,15 @@
+id: native-search
+name: 原生搜尋
+kind: native
+slots:
+- code-understanding
+status: default
+works_with:
+- claude
+- codex
+decided_at: '2026-11-04'
+reason: 還沒有第三方預設，先用原生功能當比較基準。
+sources:
+- 訪談
+notes: agent 內建的 grep、glob 搜尋。
+added: '2026-11-04'

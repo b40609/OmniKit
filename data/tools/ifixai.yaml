@@ -1,0 +1,9 @@
+id: ifixai
+name: iFixAi
+slots: []
+status: pending
+url: https://github.com/ifixai-ai/iFixAi
+sources:
+- 訪談
+notes: 稽核 agent 有沒有守本分、有沒有越權。你只是好奇，槽位之後再定。
+added: '2026-11-04'

@@ -1,0 +1,11 @@
+id: stanford-storm
+name: Stanford STORM
+kind: app
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C026
+- RIA:C053
+notes: 論文是 arXiv 2402.14207。
+added: '2026-11-04'

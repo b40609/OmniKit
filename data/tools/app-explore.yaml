@@ -1,0 +1,10 @@
+id: app-explore
+name: App 內探索工具
+kind: native
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C043
+notes: 比較基準。
+added: '2026-11-04'

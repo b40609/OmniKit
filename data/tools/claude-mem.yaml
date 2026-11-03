@@ -1,0 +1,15 @@
+id: claude-mem
+name: claude-mem
+kind: plugin
+slots:
+- memory
+status: pending
+url: https://github.com/thedotmack/claude-mem
+works_with:
+- claude
+- codex
+sources:
+- 桌機盤點
+- Codex 使用紀錄
+notes: 記錄工具使用、壓縮成摘要，下次 session 再注入。舊桌機的現任：Claude 用量紀錄 46 次，Codex 也掛了它的 hooks。
+added: '2026-11-04'

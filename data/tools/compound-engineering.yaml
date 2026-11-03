@@ -1,0 +1,11 @@
+id: compound-engineering
+name: Compound Engineering
+kind: collection
+slots:
+- dev-workflow
+status: pending
+url: https://github.com/EveryInc/compound-engineering-plugin
+sources:
+- RIA:C008
+- 方法論筆記
+added: '2026-11-04'

@@ -1,0 +1,8 @@
+id: superclaude
+name: SuperClaude
+slots:
+- dev-workflow
+status: pending
+sources:
+- RIA:C039
+added: '2026-11-04'

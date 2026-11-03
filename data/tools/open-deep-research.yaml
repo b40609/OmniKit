@@ -1,0 +1,10 @@
+id: open-deep-research
+name: LangChain Open Deep Research
+kind: app
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C020
+- RIA:C049
+added: '2026-11-04'

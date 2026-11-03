@@ -1,0 +1,10 @@
+id: tongyi-deepresearch
+name: Alibaba Tongyi DeepResearch
+kind: app
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C002
+- RIA:C052
+added: '2026-11-04'

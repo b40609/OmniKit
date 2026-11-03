@@ -1,0 +1,11 @@
+id: anthropic-skills
+name: Anthropic skills
+kind: collection
+slots: []
+status: pending
+url: https://github.com/anthropics/skills
+sources:
+- RIA:C029
+- RIA:C067
+notes: frontend-design、skill-creator、document-skills 都出自這裡。
+added: '2026-11-04'

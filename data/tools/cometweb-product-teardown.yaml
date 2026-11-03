@@ -1,0 +1,8 @@
+id: cometweb-product-teardown
+name: CometWeb product-teardown
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C006
+added: '2026-11-04'

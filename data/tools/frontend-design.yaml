@@ -1,0 +1,15 @@
+id: frontend-design
+name: frontend-design
+kind: skill
+slots:
+- frontend-design
+status: default
+url: https://github.com/anthropics/skills/tree/main/skills/frontend-design
+works_with:
+- claude
+decided_at: '2026-11-04'
+reason: 訪談：有感；但沒解決 CatOS 前端的核心痛點，這個槽位要主動找替代。
+sources:
+- 訪談
+- 桌機盤點
+added: '2026-11-04'

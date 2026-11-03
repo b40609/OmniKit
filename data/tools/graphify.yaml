@@ -1,0 +1,14 @@
+id: graphify
+name: graphify
+kind: skill
+slots:
+- code-understanding
+status: pending
+url: https://github.com/Graphify-Labs/graphify
+works_with:
+- claude
+- codex
+sources:
+- 桌機盤點
+notes: 用 tree-sitter 把程式碼和文件建成知識圖譜，agent 改查圖譜。舊桌機兩邊都裝，舊規則有專節；Codex 端要開 multi_agent。
+added: '2026-11-04'

@@ -1,0 +1,12 @@
+id: codex-security
+name: codex-security
+kind: plugin
+slots:
+- review
+status: pending
+works_with:
+- codex
+sources:
+- 桌機盤點
+notes: OpenAI 精選 plugin。
+added: '2026-11-04'

@@ -1,0 +1,15 @@
+id: impeccable
+name: impeccable
+kind: skill
+slots:
+- frontend-design
+status: pending
+url: https://github.com/pbakaus/impeccable
+works_with:
+- claude
+- codex
+sources:
+- 桌機盤點
+- Codex 使用紀錄
+notes: 給 agent 一套設計詞彙與指令，用來打磨、評析 UI，抓出 AI 味的套版設計。Codex 讀取 1 次。
+added: '2026-11-04'

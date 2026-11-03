@@ -1,0 +1,10 @@
+id: tavily
+name: Tavily
+kind: service
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C048
+notes: 付費搜尋 API。
+added: '2026-11-04'

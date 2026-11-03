@@ -1,0 +1,6 @@
+#!/bin/sh
+# 名冊或 schema 有變動才驗證，不通過就擋下 commit
+if git diff --cached --name-only | grep -qE '^(data/|engine/schema/)'; then
+  uv=$(command -v uv || echo "$LOCALAPPDATA/Programs/uv/uv.exe")
+  "$uv" run --quiet engine/scripts/validate.py || exit 1
+fi

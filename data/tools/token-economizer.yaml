@@ -1,0 +1,14 @@
+id: token-economizer
+name: TokenEconomizer
+kind: plugin
+slots:
+- output-compression
+status: pending
+url: https://github.com/microsoft/TokenEconomizer
+works_with:
+- claude
+- codex
+sources:
+- 訪談
+notes: Microsoft 的成本控制 plugin，2026-10 才建立。
+added: '2026-11-04'

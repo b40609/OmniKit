@@ -1,0 +1,10 @@
+id: context7
+name: Context7
+kind: mcp
+slots:
+- code-understanding
+status: pending
+sources:
+- RIA:C047
+notes: 查函式庫的最新文件。
+added: '2026-11-04'

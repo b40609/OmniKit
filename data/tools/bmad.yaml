@@ -1,0 +1,18 @@
+id: bmad
+name: BMAD-METHOD
+kind: collection
+slots:
+- product-research
+- dev-workflow
+status: default
+url: https://github.com/bmad-code-org/BMAD-METHOD
+works_with:
+- claude
+- codex
+decided_at: '2026-11-04'
+reason: 第一輪既定的預設；RIA 的評估結果出來之前不變。
+sources:
+- 訪談
+- RIA:C003
+notes: 你目前實際用過。
+added: '2026-11-04'

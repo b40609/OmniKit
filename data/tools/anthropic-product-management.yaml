@@ -1,0 +1,9 @@
+id: anthropic-product-management
+name: Anthropic Product Management
+kind: plugin
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C028
+added: '2026-11-04'

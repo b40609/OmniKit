@@ -1,0 +1,15 @@
+id: ponytail
+name: ponytail
+kind: plugin
+slots:
+- behavior-rules
+status: pending
+url: https://github.com/DietrichGebert/ponytail
+works_with:
+- claude
+- codex
+sources:
+- 桌機盤點
+- Codex 使用紀錄
+notes: 用 hooks 注入提示，要 agent 只寫需要的程式碼，但不省驗證、錯誤處理與安全。舊桌機兩邊都掛了 hooks。
+added: '2026-11-04'

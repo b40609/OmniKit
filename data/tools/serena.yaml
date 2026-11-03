@@ -1,0 +1,15 @@
+id: serena
+name: Serena
+kind: mcp
+slots:
+- code-understanding
+status: pending
+url: https://github.com/oraios/serena
+works_with:
+- claude
+- codex
+sources:
+- 訪談
+- RIA:ADD-02
+notes: RIA 在 2026-10-31 實測 34 次：沒證明品質優勢；不強制時 agent 0/6 次主動呼叫；Python 變快、TypeScript 變慢，還會把 LF 改成 CRLF。RIA 的結論是不預設掛載。
+added: '2026-11-04'

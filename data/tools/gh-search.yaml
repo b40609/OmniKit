@@ -1,0 +1,10 @@
+id: gh-search
+name: GitHub 搜尋（gh）
+kind: cli
+slots:
+- product-research
+status: pending
+sources:
+- RIA:C044
+notes: 比較基準。
+added: '2026-11-04'

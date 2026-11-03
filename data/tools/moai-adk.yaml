@@ -1,0 +1,10 @@
+id: moai-adk
+name: moai-adk
+slots:
+- dev-workflow
+status: pending
+sources:
+- RIA:C040
+- RIA:C058
+notes: 規格驅動系列；RIA 另外列了它的 philosopher。
+added: '2026-11-04'
