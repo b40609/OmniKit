@@ -1,0 +1,14 @@
+id: craft-anything
+name: Craft Anything（ArtCraft）
+kind: app
+slots:
+- reverse-engineering
+status: pending
+url: https://github.com/storytold/craft-anything
+works_with:
+- claude
+- codex
+sources:
+- 使用者提出
+notes: 純 Rust 的逆向工程引擎加「研究原版→叫 coding agent 重做→跟原版比對→修正」流程，有桌面 app、CLI 與 MCP server（320 個工具）。第 0 層（2026-11-04，commit b6f61d1）：9.2k 星、1.5k fork、Apache-2.0（README 寫 MIT 或 Apache-2.0 擇一）、最新 v0.3.0（2026-11-02）；2026-10-31 才建立，4 天出了 3 版，熱度數字參考就好。skill 掃描只找到 crates/setup/src，等級 INFO；這是整支程式不是 skill，掃描涵蓋不到主程式。第 1 層：對上 X1（APK、.NET、Electron），自稱 early alpha。跟現任 REA 的差異：REA 是一個 npm 安裝的 MCP，原生程式要靠外部的 Hopper、Ghidra 或 IDA；Craft Anything 內建解碼器、反組譯器與反編譯器，不裝外部程式也能看原生程式（有 Ghidra 會用），另外多了重做流程，但要裝桌面程式（Windows 有 MSI，README 說有簽章，沒驗證）或用 Rust 1.97 自己編。Claude Code 當 builder 時用 claude -p 加自家的 permission-prompt-tool 審核動作；Codex 當 builder 還沒在真實環境驗證過，Codex 只能先接它的 MCP。另外 setup 指令會改 agent 的設定，選「npm 一律允許」後所有 npm 指令都不再詢問。它的網站重做流程是照原版重建，跟 F1「不能照抄」方向相反，所以不放前端設計。建議先收著：這個槽位是 watch，REA 在 Codex 近 60 天只被呼叫 4 次，需求不大；而且專案才建立 4 天、還在 alpha。等穩定（例如出到 v0.5 或滿一個月）或真的有逆向任務時，再拿同一個 .NET／Electron 目標跟 REA 跑第 2 層。
+added: '2026-11-04'
