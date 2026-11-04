@@ -1,0 +1,14 @@
+id: herdr
+name: Herdr 桌面版
+kind: app
+slots:
+- permissions
+status: pending
+url: https://github.com/herdrdev/herdr-app
+works_with:
+- claude
+- codex
+sources:
+- 使用者提出
+notes: 在一個視窗裡管理多個終端和 coding agent，用 space、tab、pane 排版；側邊欄依 Working、Blocked、Done、Idle 列出各 agent，點一下可以 peek；可以透過 SSH 管遠端機器。終端由背景的 herdr-core 執行，關掉視窗也不會停（重開機或 core 當機後，pane 只會拿到新的 shell，原本的程式不會恢復）。另有命令面板、keys.json、layouts，以及沒有沙箱的 JavaScript mods。第 0 層（2026-11-04）：桌面版 herdrdev/herdr-app 1,876 星、Apache-2.0，2026-10-16 才建立，GitHub 上還沒有 release（Homebrew cask 是 0.1.9），每天都有更新；核心 herdrdev/herdr 47,931 星、v0.9.5（2026-10-14）。正式版預設開啟每日匿名使用報告，依隱私頁的說法不含終端內容、檔名與 prompt，可以在 Settings → Privacy 關掉。Windows 風險：TUI 版官方寫原生 Windows「generally available」，但 plugins 還是 preview；桌面版的 issue 有 85 筆提到 Windows，近兩天還開著的有 #491（Windows 上從 New 或終端分頁開的 Codex，訊息送不出去）、#407（本機 Codex 按 Ctrl+J 不會換行）、#464（解除安裝失敗）、#441（點網址開到檔案總管），剛好落在 Windows 加 Codex 的組合。第 1 層：跟現任（原生權限與通知）比，它補的是 W1 的「不用一直盯、卡住或做完看得到」：多個 agent 的狀態集中在一處，還有系統通知；權限提示一個都不會少。它跑的是終端裡的 CLI agent，不能接管 Claude Code 桌面 app 的 session，而桌面 app 本身就有 session 側邊欄和通知，重疊不少。論壇評價沒有查到具體討論串，只看到星數和新聞稿。建議先收著；等 #491、#407 修好，而且要同時開好幾個 CLI agent 時再跑第 2 層。
+added: '2026-11-04'
