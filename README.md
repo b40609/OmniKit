@@ -103,7 +103,7 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
 | 檢查 | Claude Code | Codex | Antigravity |
 |---|---|---|---|
 | 規則 | 問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的「規則版本」一樣，profile 是你選的 | 同左 | 同左 |
-| skill | 輸入 `/omnikit`，選單裡會出現 `omnikit-setup` 與 `omnikit-eval` | 輸入 `$omnikit`，或用 `/skills` 列出來 | 問「你可用的 skill 有哪些？」，會列出這兩個 |
+| skill | 輸入 `/omnikit`，選單裡會出現 `omnikit-setup` 與 `omnikit-eval`（訪談選了不評估新工具的，只有 `omnikit-setup`） | 輸入 `$omnikit`，或用 `/skills` 列出來 | 問「你可用的 skill 有哪些？」，會列出這兩個 |
 | MCP | 終端機跑 `claude mcp get chrome_devtools`，狀態是 Connected | 終端機跑 `codex mcp list`，`chrome_devtools` 是 enabled | 終端機跑 `agy mcp list`，`chrome_devtools` 是 enabled |
 
 終端機跑 `uv run engine/scripts/agents.py status`，可以看到這台接上了哪些 agent、OmniKit 管了哪些 skills 與 MCP。
@@ -145,6 +145,7 @@ OmniKit 規則版本與 profile 是什麼？
 | agent 可以自己做到哪 | 每步先問：改檔案、執行指令前先列計畫等你同意。專案內直接做（建議）：下載安裝、改專案以外的才先問。大多放手：下載安裝也直接做 |
 | 最想改善的習慣 | 例如「常改太多」變成「只改需求相關的地方，其他想改的先列出來問你」 |
 | 要評估新工具 | 情境範本裡的 `<你的專案>` 換成你的專案，評估工具時拿來當考題 |
+| 不評估新工具 | 不裝 `omnikit-eval`（評估工具與每週彙整都在這個 skill 裡）；已經裝了的會拿掉。之後改主意，重新訪談選「要」就會裝回來 |
 
 規則檔與情境檔都由 `engine/scripts/profile_new.py` 依固定範本產生、驗證，agent 只負責問問題；寫入後可以直接改。重新訪談時會帶入上次的答案，舊檔先備份成 `.bak`；手寫的 profile 不會被覆蓋。安全底線不能從 profile 放寬。
 
@@ -241,7 +242,7 @@ uv run engine/scripts/profiles.py --show          # 這台現在用哪個
 uv run engine/scripts/profiles.py --set <名稱>    # 換成 data/profiles/<名稱>，接上的 agent 一起換
 ```
 
-換完開新的 session 才生效。還沒選過的電腦會一直用 `default`，並在安裝與同步時提醒。想重新訪談、改掉原本的答案，說「幫我設定 OmniKit」就好。
+換完開新的 session 才生效。skills 也會跟著同步：換到訪談選了不評估新工具的 profile，`omnikit-eval` 會拿掉，換回來再裝上。還沒選過的電腦會一直用 `default`，並在安裝與同步時提醒。想重新訪談、改掉原本的答案，說「幫我設定 OmniKit」就好。
 
 ### 評估新工具
 

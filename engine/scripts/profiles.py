@@ -22,7 +22,7 @@ agent 讀到的規則是兩層接在一起：
 
 用法：
   uv run engine/scripts/profiles.py                 用目前的 profile 重新接上
-  uv run engine/scripts/profiles.py --set <名稱>    換 profile 並接上
+  uv run engine/scripts/profiles.py --set <名稱>    換 profile 並接上（skills 也跟著同步）
   uv run engine/scripts/profiles.py --show          只印出目前的 profile 名稱
   uv run engine/scripts/profiles.py --selftest
 """
@@ -31,6 +31,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from datetime import datetime
@@ -55,6 +56,8 @@ BEGIN, END = "<!-- omnikit:rules:begin -->", "<!-- omnikit:rules:end -->"
 BLOCK = re.compile(re.escape(BEGIN) + r".*?" + re.escape(END), re.S)
 HEADER = "<!-- 由 OmniKit 產生，不要手改："
 CODEX_EXTRA = re.compile(r"(?m)^\s*- name: rules-codex\s*$")
+# 訪談答案（answers.json）裡某題答 false 就不裝的 OmniKit skill：skill → （答案欄位, 說明）
+OPTIONAL_SKILLS = {"omnikit-eval": ("evaluate_tools", "不評估新工具")}
 
 
 def text(path):
@@ -125,6 +128,18 @@ def resolve(data, state, wanted=None):
 
 def rules_files(data, name):
     return data / "rules" / "baseline.md", data / "profiles" / name / "AGENTS.md"
+
+
+def skipped_skills(data, name):
+    """這個 profile 不裝的 OmniKit skill：{skill: 說明}。只看訪談產生的 answers.json；
+    手寫的 profile（沒有 answers.json）或檔案讀不懂時全部都裝，跟以前一樣。"""
+    try:
+        answers = json.loads(text(data / "profiles" / name / "answers.json"))
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(answers, dict):
+        return {}
+    return {skill: why for skill, (key, why) in OPTIONAL_SKILLS.items() if answers.get(key) is False}
 
 
 def compose(data, name):
@@ -258,6 +273,18 @@ def apply(data, state, paths=None, wanted=None, agents=None, take_over=False, sk
     return lines
 
 
+def sync_skills(run=subprocess.run):
+    """換 profile 後重新同步 skills：不同 profile 裝的可能不同（例如不評估工具就不裝 omnikit-eval）。
+    agents.py 要用 pyyaml，這支沒有相依套件，所以交給 uv 另外跑。"""
+    uv = shutil.which("uv") or str(LOCAL / "Programs" / "uv" / "uv.exe")
+    sys.stdout.flush()
+    try:
+        code = run([uv, "run", "--quiet", str(Path(__file__).resolve().parent / "agents.py"), "sync", "--skills"]).returncode
+    except OSError:
+        code = None
+    return [] if code == 0 else ["skills 沒有跟著 profile 同步，請在 repo 根目錄跑：uv run engine/scripts/agents.py sync --skills"]
+
+
 def fallback_notice(data):
     return (f"這台還沒選 profile，先用 {DEFAULT}（下載、安裝前會先問）。要建立自己的：開新 session 說"
             f"「幫我設定 OmniKit」；用現有的：uv run engine/scripts/profiles.py --set <名稱>，"
@@ -378,6 +405,27 @@ def selftest():
         disconnect_gemini(fresh)
         check("OmniKit 建的 GEMINI.md：移除時整個刪掉", not fresh.exists())
 
+        calls = []
+
+        def fake_run(code):
+            def run_(cmd):
+                calls.append(cmd)
+                if code is None:
+                    raise OSError("找不到 uv")
+                return subprocess.CompletedProcess(cmd, code)
+            return run_
+
+        check("換 profile 後同步 skills：交給 agents.py sync --skills",
+              sync_skills(fake_run(0)) == [] and calls[-1][-3:] == [str(Path(__file__).resolve().parent / "agents.py"), "sync", "--skills"])
+        check("skills 同步失敗：印出手動指令", "agents.py sync --skills" in sync_skills(fake_run(1))[0])
+        check("找不到 uv：印出手動指令，不中斷", "agents.py sync --skills" in sync_skills(fake_run(None))[0])
+
+        write(data / "profiles" / "x" / "answers.json", json.dumps({"evaluate_tools": False}))
+        write(data / "profiles" / "y" / "answers.json", "﻿" + json.dumps({"evaluate_tools": True}))
+        check("訪談答不評估工具：不裝 omnikit-eval；答要或手寫的 profile：全部都裝",
+              set(skipped_skills(data, "x")) == {"omnikit-eval"} and skipped_skills(data, "y") == {}
+              and skipped_skills(data, "default") == {})
+
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0
 
@@ -396,6 +444,9 @@ def main():
         return 0
     for line in apply(DATA, STATE, wanted=args.wanted):
         print(line)
+    if args.wanted:
+        for line in sync_skills():
+            print(line)
     return 0
 
 

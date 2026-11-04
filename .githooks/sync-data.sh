@@ -4,6 +4,7 @@
 #     （Claude 的 import 路徑、Codex 的 AGENTS.md、Antigravity 的 GEMINI.md 區塊）
 #   data/mcp/：把 MCP server 同步到接上的 agent
 #   engine/skills/：同步 skills（Claude 用連結，內容改動本來就會反映；Codex 與 Antigravity 用複製品，要重新複製）
+#   data/profiles/：也同步 skills（訪談答案決定裝哪些，例如不評估工具就不裝 omnikit-eval）
 #   agents.py：skills 與 MCP 都重新同步
 #   data/harness/、claude_allow.py、session_nudge.py：把權限規則與開新對話提醒補進 Claude Code 的使用者設定
 #   codex_hooks.py、claude_allow.py、session_nudge.py：把開新對話提醒補進 Codex 的 config.toml
@@ -28,7 +29,7 @@ fi
 
 skills=0
 mcp=0
-printf '%s\n' "$changed" | grep -qE '^(engine/skills/|engine/scripts/agents\.py$)' && skills=1
+printf '%s\n' "$changed" | grep -qE '^(engine/skills/|data/profiles/|engine/scripts/(agents|profiles)\.py$)' && skills=1
 printf '%s\n' "$changed" | grep -qE '^(data/mcp/|engine/scripts/agents\.py$)' && mcp=1
 if [ $skills = 1 ] && [ $mcp = 1 ]; then
   run "skills 與 MCP 同步" engine/scripts/agents.py sync

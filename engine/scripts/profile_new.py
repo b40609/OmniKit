@@ -254,7 +254,8 @@ def write_profile(folder, files):
 
 
 def apply_real(name):
-    return profiles.apply(profiles.DATA, profiles.STATE, wanted=name)
+    # 第 5 題答「不要」就不裝 omnikit-eval：規則接上之後，skills 也照這份 profile 同步
+    return profiles.apply(profiles.DATA, profiles.STATE, wanted=name) + profiles.sync_skills()
 
 
 def run(answers_path, data, write=False, apply=False, force=False, apply_fn=apply_real, today=None):
@@ -279,6 +280,9 @@ def run(answers_path, data, write=False, apply=False, force=False, apply_fn=appl
         for name, text in files.items():
             if name != "answers.json":
                 print(f"\n----- {name} -----\n{text.rstrip()}")
+        skip = {s: why for s, (key, why) in profiles.OPTIONAL_SKILLS.items() if a.get(key) is False}
+        if skip:
+            print(f"\n套用時不裝 {'、'.join(skip)}（選了{'、'.join(dict.fromkeys(skip.values()))}）；已經裝了的會拿掉。")
         if problem:
             print(f"\n不能寫入：{problem}")
             return 1
@@ -365,6 +369,9 @@ def selftest():
         check("加 --force：覆蓋並備份舊檔", code == 0 and (alice / "AGENTS.md.bak").exists()
               and "下載、安裝套件可以直接做" in (alice / "AGENTS.md").read_text(encoding="utf-8"))
 
+        code, out = quiet(answers_file("bob", evaluate_tools=False, projects=None), data)
+        check("不評估工具：預覽說明不裝 omnikit-eval", code == 0 and "套用時不裝 omnikit-eval" in out)
+        check("要評估工具：預覽不提", "套用時不裝" not in quiet(answers_file("alice"), data)[1])
         code, out = quiet(answers_file("bob", evaluate_tools=False, projects=None), data, write=True)
         errors, roster = validate.check(data, profile="bob")
         f1 = next(s for s in roster["slots"] if s["id"] == "frontend-design")["scenarios"][0]["text"]

@@ -11,7 +11,7 @@
 git hook 與 agent 在背景同步時常失敗。支援的 agent 固定是這三個，所以改由這支腳本自己接。
 
 - 規則：交給 profiles.py（Claude 用 import，Codex 整份複製，Antigravity 在 GEMINI.md 加受管區塊）
-- skills：engine/skills 的每個 skill
+- skills：engine/skills 的每個 skill，profile 的訪談答案不要的除外（見 profiles.OPTIONAL_SKILLS）
   - Claude Code：~/.claude/skills/<名稱> 用資料夾連結，改完馬上生效；建不起來就改用複製
   - Codex 與 Antigravity 共用 ~/.agents/skills/<名稱>，用複製：Antigravity 不跟隨資料夾連結。
     複製品裡放 .omnikit.json，記來源、repo 位置與內容雜湊；內容變了才重新複製
@@ -310,9 +310,22 @@ def target_label(key, agents):
     return "、".join(NAMES[a] for a in ("codex", "antigravity") if a in agents)
 
 
-def sync_skills(env, agents, rec):
-    names = skill_names(env.skills_src)
+def profile_skips(env, profile=None):
+    """（profile 名稱, 不裝的 skill）。找不到 profile 時全部都裝：少裝比多裝難察覺。"""
+    try:
+        name, _ = profiles.resolve(env.data, env.state, profile)
+    except SystemExit:
+        return None, {}
+    return name, profiles.skipped_skills(env.data, name)
+
+
+def sync_skills(env, agents, rec, profile=None):
+    profile_name, skip = profile_skips(env, profile)
+    names = [n for n in skill_names(env.skills_src) if n not in skip]
     lines = []
+    if skip:
+        why = "、".join(dict.fromkeys(skip.values()))
+        lines.append(f"skills：profile {profile_name} 選了{why}，不裝 {'、'.join(sorted(skip))}")
     for key in skill_targets(agents):
         folder, mode = env.skill_dirs[key]
         folder.mkdir(parents=True, exist_ok=True)
@@ -330,7 +343,7 @@ def sync_skills(env, agents, rec):
             entry = folder / name
             if present(entry) and owned(entry, env, recorded):
                 remove_owned(entry)
-                lines.append(f"skills：拿掉已經刪除的 {name}（{folder}）")
+                lines.append(f"skills：拿掉{'這個 profile 不裝' if name in skip else '已經刪除'}的 {name}（{folder}）")
         rec["skills"][key] = placed
         how = "連結" if mode == "link" else "複製"
         lines.append(f"skills：{target_label(key, agents)} {len(placed)} 個（{how}，{folder}）")
@@ -630,7 +643,7 @@ def connect(env, profile=None, agents=None):
     rec["agents"] = list(agents)
     lines = profiles.apply(env.data, env.state, env.rules, wanted=profile, agents=agents, take_over=True,
                            skillshare_config=env.skillshare / "config.yaml")
-    lines += sync_skills(env, agents, rec)
+    lines += sync_skills(env, agents, rec, profile)
     lines += sync_mcp(env, agents, rec)
     save_record(env, rec)
     lines += release_skillshare(env)
@@ -839,6 +852,36 @@ def selftest():
         sync(env, mcp=False)
         check("刪掉 skill：兩邊都拿掉", not present(home / ".claude" / "skills" / "gamma")
               and not present(home / ".agents" / "skills" / "gamma"))
+
+        # 訪談第 5 題答「不要」（answers.json 的 evaluate_tools 是 false）：不裝 omnikit-eval
+        put(src / "omnikit-eval" / "SKILL.md", "---\nname: omnikit-eval\n---\n")
+        put(repo / "data" / "profiles" / "bob" / "AGENTS.md", "# bob\n")
+        bob_answers = repo / "data" / "profiles" / "bob" / "answers.json"
+        put(bob_answers, json.dumps({"name": "bob", "evaluate_tools": False}))
+        claude_eval, shared_eval = home / ".claude" / "skills" / "omnikit-eval", home / ".agents" / "skills" / "omnikit-eval"
+        sync(env, mcp=False)
+        check("還沒選 bob：omnikit-eval 兩邊都裝", is_link(claude_eval) and (shared_eval / MARKER).exists())
+        lines = connect(env, profile="bob")
+        rec = load_record(env)
+        check("換成不評估工具的 profile：omnikit-eval 兩邊都拿掉，其他 skill 照裝",
+              not present(claude_eval) and not present(shared_eval) and is_link(claude_alpha)
+              and "omnikit-eval" not in rec["skills"]["claude-code"] + rec["skills"]["shared"]
+              and any("不裝 omnikit-eval" in line for line in lines))
+        sync(env, mcp=False)
+        check("之後的同步（git hook）照選的 profile，不會裝回來", not present(claude_eval) and not present(shared_eval))
+        put(shared_eval / "SKILL.md", "---\nname: omnikit-eval\n---\n使用者自己的\n")
+        sync(env, mcp=False)
+        check("同名但不是 OmniKit 的 omnikit-eval 不動", (shared_eval / "SKILL.md").exists())
+        shutil.rmtree(shared_eval)
+        put(bob_answers, "{壞掉")
+        sync(env, mcp=False)
+        check("answers.json 讀不懂：全部都裝", is_link(claude_eval) and (shared_eval / MARKER).exists())
+        put(bob_answers, json.dumps({"name": "bob", "evaluate_tools": False}))
+        connect(env, profile="default")
+        check("換回手寫的 profile（沒有 answers.json）：omnikit-eval 裝回來",
+              is_link(claude_eval) and (shared_eval / MARKER).exists())
+        shutil.rmtree(src / "omnikit-eval")
+        sync(env, mcp=False)
 
         put(servers_yaml, "servers:\n  devtools:\n    command: cmd\n    args: [/c, node, y.js]\n"
                           "    env:\n      MODE: test\n    targets: [claude, codex, antigravity]\n"

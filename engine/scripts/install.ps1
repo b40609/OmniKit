@@ -346,7 +346,15 @@ function Show-InstallPlan {
   }
   if ($Fresh) { $plan += '  ~/.claude/CLAUDE.md：受管區塊以外的舊規則先備份成 CLAUDE.md.pre-omnikit，再移除' }
 
-  $skills = (Get-ChildItem -Directory (Join-Path $Repo 'engine\skills') | Where-Object { Test-Path (Join-Path $_.FullName 'SKILL.md') }).Name -join '、'
+  # 跟 profiles.py 的 OPTIONAL_SKILLS 一樣：訪談第 5 題答「不要」（evaluate_tools 是 false）就不裝 omnikit-eval
+  $answersFile = Join-Path $Repo "data\profiles\$name\answers.json"
+  $skip = @()
+  if (Test-Path $answersFile) {
+    try { if ((Get-FileText $answersFile | ConvertFrom-Json).evaluate_tools -eq $false) { $skip = @('omnikit-eval') } } catch { }
+  }
+  $skills = (Get-ChildItem -Directory (Join-Path $Repo 'engine\skills') |
+    Where-Object { (Test-Path (Join-Path $_.FullName 'SKILL.md')) -and $_.Name -notin $skip }).Name -join '、'
+  if ($skip) { $plan += "  skills：profile「$name」選了不評估新工具，不裝 $($skip -join '、')" }
   if ($agents -contains 'claude-code') { $plan += "  skills：$skills 連到 ~/.claude/skills" }
   $shared = @($agents | Where-Object { $_ -in 'codex', 'antigravity' } | ForEach-Object { $AgentNames[$_] })
   if ($shared) { $plan += "  skills：$skills 複製到 ~/.agents/skills（給 $($shared -join '、')）" }
@@ -382,7 +390,9 @@ function Show-NextSteps {
   $text = [IO.File]::ReadAllText((Join-Path $Repo 'data\rules\baseline.md'), [Text.Encoding]::UTF8)
   $version = if ($text -match '規則版本：(\S+)') { $Matches[1] } else { 'data/rules/baseline.md 開頭的版本' }
   $name = & (Get-Uv) run --quiet $ProfilesPy --show
-  $connected = try { @(([IO.File]::ReadAllText($AgentsFile) | ConvertFrom-Json).agents | ForEach-Object { $AgentNames[$_] }) } catch { @() }
+  $record = try { [IO.File]::ReadAllText($AgentsFile) | ConvertFrom-Json } catch { $null }
+  $connected = @($record.agents | Where-Object { $_ } | ForEach-Object { $AgentNames[$_] })
+  $hasEval = @($record.skills.PSObject.Properties.Value | ForEach-Object { $_ }) -contains 'omnikit-eval'
   Write-Host ''
   Write-Host "OmniKit 已接上 $($connected -join '、')（profile：$name），開新的 session 才會生效："
   Write-Host "  - 問「OmniKit 規則版本與 profile 是什麼？」，應該回答 $version 與 $name"
@@ -392,7 +402,9 @@ function Show-NextSteps {
     Write-Host '  - 重新設定 profile：開新 session 說「幫我設定 OmniKit」'
   }
   Write-Host '  - 換 profile：重跑 install.ps1 -ProfileName <名稱>，或 uv run engine/scripts/profiles.py --set <名稱>'
-  Write-Host '  - 評估新工具：說「幫我評估」加上 GitHub 連結（Claude Code 也可以輸入 /omnikit-eval，Codex 輸入 $omnikit-eval）'
+  if ($hasEval) {
+    Write-Host '  - 評估新工具：說「幫我評估」加上 GitHub 連結（Claude Code 也可以輸入 /omnikit-eval，Codex 輸入 $omnikit-eval）'
+  }
   Write-Host '  - 預設 plugin 不會自動安裝；安裝方式與其他說明見 README 的「裝好之後」'
 }
 
