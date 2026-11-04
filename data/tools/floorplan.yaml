@@ -1,0 +1,14 @@
+id: floorplan
+name: Floorplan
+kind: plugin
+slots:
+- code-understanding
+status: pending
+url: https://github.com/haydenschmitty/floorplan
+works_with:
+- claude
+- codex
+sources:
+- 使用者提出
+notes: 讓 agent 掃描程式碼後畫出可互動的架構地圖（部分、檔案、endpoint、畫面，含跨 repo 的前後端請求對應），每張卡片配白話說明，另有健康檢查（寫死的金鑰、沒驗證的 endpoint 等）、最近改動標示與地圖上提問。第 0 層（2026-11-04，commit 70be3f4）：2,678 星、MIT、v0.6.3（2026-11-02），2026-10-27 才建立，更新很快；CI 有跑 Windows。skill 掃描標出 7 個 CRITICAL，人工看過都是誤判或設計需要：child_process 都是 execFileSync／spawn 帶陣列參數、不經 shell，只跑 git、自己的腳本、where/which，以及 `claude -p`（工具限 Read、Grep、Glob 和 node floorplan/query.mjs）與 `codex exec --sandbox read-only`；serve.mjs:189 的 new Function 載入的是它自己產生的 floorplan/query.mjs；extract.mjs:351、scan.mjs:146 只是註解。唯一的對外請求是自願登記的 waitlist（POST 到 Cloud Run，設 FLOORPLAN_NO_PROMPTS=1 可關提示）；本機伺服器只聽 127.0.0.1，有 token 與 Host 檢查防 DNS rebinding。沒有 hook、MCP 或相依套件。第 1 層：跟現任（原生搜尋）比，它補的是「架構全貌」與「前端請求對到哪個後端 endpoint」，但粒度到檔案與 endpoint，沒有函式層級的呼叫者查詢（query.mjs 只有 overview、find、show、path），C1 的「找所有呼叫者」還是要靠 grep 或 CodeGraph、Serena、LSP；C2 拿到的是地圖不是附行號的筆記，而且第一次要替每個檔案寫說明，深讀第三方 repo 很花 token。預設寫給不讀程式碼的人看，可切換開發者視角。同槽位的 graphify（知識圖譜）定位接近。建議先收著；想看 CatOS 前端與 OmniKeep 後端怎麼串時再拿來試，C1 的第 2 層優先評 CodeGraph、Serena 或 LSP。
+added: '2026-11-04'
