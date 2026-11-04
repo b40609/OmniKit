@@ -26,6 +26,8 @@ jobs:
       - run: uv run engine/scripts/codex_hooks.py --selftest
       # 規則分層（安全底線 + profile）的自我測試
       - run: uv run engine/scripts/profiles.py --selftest
+      # 接上三個 agent（規則、skills、MCP，以及從舊版 skillshare 接手）的自我測試
+      - run: uv run engine/scripts/agents.py --selftest
       # 訪談建立 profile：掃描、依答案產生 profile，以及 skill 入口能找到 repo
       - run: uv run engine/scripts/scan.py --selftest
       - run: uv run engine/scripts/profile_new.py --selftest

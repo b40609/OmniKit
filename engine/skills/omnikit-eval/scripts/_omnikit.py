@@ -6,10 +6,18 @@ from pathlib import Path
 
 
 def repo_root():
-    """skill 經 skillshare 以 junction 連到各 agent，resolve 之後就回到 repo 裡；找不到再看 OMNIKIT_HOME。"""
-    for parent in Path(__file__).resolve().parents:
+    """找 OmniKit repo：Claude Code 用資料夾連結，resolve 之後就回到 repo 裡；Codex 與 Antigravity 用的是複製品，
+    看 skill 資料夾裡 agents.py 寫的 .omnikit.json；都找不到再看 OMNIKIT_HOME。"""
+    here = Path(__file__).resolve()
+    for parent in here.parents:
         if (parent / "data" / "omnikit.yaml").exists():
             return parent
+    try:
+        repo = Path(json.loads((here.parents[1] / ".omnikit.json").read_text(encoding="utf-8"))["repo"])
+        if (repo / "data" / "omnikit.yaml").exists():
+            return repo
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
     env = os.environ.get("OMNIKIT_HOME")
     if env and (Path(env) / "data" / "omnikit.yaml").exists():
         return Path(env)

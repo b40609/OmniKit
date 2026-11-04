@@ -5,7 +5,7 @@
 # [tool.uv]
 # exclude-newer = "2026-11-01T00:00:00Z"
 # ///
-"""驗證 OmniKit 名冊：data/omnikit.yaml、data/slots.yaml、data/tools/*.yaml 與 data/profiles/。
+"""驗證 OmniKit 名冊：data/omnikit.yaml、data/slots.yaml、data/tools/*.yaml、data/profiles/ 與 data/mcp/servers.yaml。
 
 除了 JSON Schema，還檢查跨檔規則：檔名等於 id、id 不重複、槽位存在、
 每個槽位最多一個預設、replaces 指向存在的工具；規則有安全底線，profile 有 default、
@@ -126,6 +126,10 @@ def check(data, profile=None):
         errors.append(f"{show(config_path)}: 找不到公開設定檔")
     else:
         errors += schema_errors(validator("omnikit.schema.json"), config, config_path)
+
+    mcp_path = data / "mcp" / "servers.yaml"
+    if mcp_path.exists():
+        errors += schema_errors(validator("mcp.schema.json"), load_yaml(mcp_path), mcp_path)
 
     slots_path = data / "slots.yaml"
     slots_doc = load_yaml(slots_path)

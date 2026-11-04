@@ -27,26 +27,29 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import profiles  # noqa: E402  這台選的 profile
 
-# OmniKit 目前接得上的 agent（install.ps1 會設定的）；其他的只回報有沒有裝
-SUPPORTED = {"claude-code", "codex"}
+# OmniKit 接得上的 agent（agents.py 會設定的）；其他的只回報有沒有裝
+SUPPORTED = {"claude-code", "codex", "antigravity"}
 
-# id、名稱、設定目錄（相對家目錄）、指令
+# id、名稱、設定目錄（相對家目錄，任一個存在就算）、指令（任一個在 PATH 上就算）
 AGENTS = [
-    ("claude-code", "Claude Code", ".claude", "claude"),
-    ("codex", "Codex", ".codex", "codex"),
-    ("gemini-cli", "Gemini CLI", ".gemini", "gemini"),
-    ("copilot-cli", "GitHub Copilot CLI", ".copilot", "copilot"),
-    ("cursor", "Cursor", ".cursor", "cursor"),
-    ("windsurf", "Windsurf", ".codeium/windsurf", "windsurf"),
-    ("opencode", "OpenCode", ".config/opencode", "opencode"),
-    ("kiro", "Kiro", ".kiro", "kiro"),
+    ("claude-code", "Claude Code", (".claude",), ("claude",)),
+    ("codex", "Codex", (".codex",), ("codex",)),
+    ("antigravity", "Antigravity", (".gemini/config", ".gemini/antigravity"), ("agy", "antigravity")),
+    ("gemini-cli", "Gemini CLI", (".gemini",), ("gemini",)),
+    ("copilot-cli", "GitHub Copilot CLI", (".copilot",), ("copilot",)),
+    ("cursor", "Cursor", (".cursor",), ("cursor",)),
+    ("windsurf", "Windsurf", (".codeium/windsurf",), ("windsurf",)),
+    ("opencode", "OpenCode", (".config/opencode",), ("opencode",)),
+    ("kiro", "Kiro", (".kiro",), ("kiro",)),
 ]
 
-# 各 agent 的全域規則檔（相對家目錄）
-RULES = {"claude-code": ".claude/CLAUDE.md", "codex": ".codex/AGENTS.md", "gemini-cli": ".gemini/GEMINI.md"}
+# 各 agent 的全域規則檔（相對家目錄）；Antigravity 與 Gemini CLI 共用 GEMINI.md
+RULES = {"claude-code": ".claude/CLAUDE.md", "codex": ".codex/AGENTS.md", "antigravity": ".gemini/GEMINI.md",
+         "gemini-cli": ".gemini/GEMINI.md"}
 
-# 各 agent 的全域 skills 資料夾（相對家目錄）
-SKILLS = {"claude-code": [".claude/skills"], "codex": [".agents/skills", ".codex/skills"]}
+# 各 agent 讀的全域 skills 資料夾（相對家目錄）；~/.agents/skills 是 Codex 與 Antigravity 共用的
+SKILLS = {"claude-code": [".claude/skills"], "codex": [".agents/skills", ".codex/skills"],
+          "antigravity": [".gemini/config/skills", ".agents/skills"]}
 
 TOOLS = ["git", "node", "uv", "gh", "pwsh"]
 
@@ -103,9 +106,10 @@ def mcp_names(agent, home):
         if agent == "codex":
             path = home / ".codex" / "config.toml"
             return sorted(tomllib.loads(path.read_text(encoding="utf-8")).get("mcp_servers", {})) if path.exists() else []
-        if agent == "gemini-cli":
-            path = home / ".gemini" / "settings.json"
-            return sorted(json.loads(path.read_text(encoding="utf-8")).get("mcpServers", {})) if path.exists() else []
+        if agent in ("antigravity", "gemini-cli"):
+            rel = "config/mcp_config.json" if agent == "antigravity" else "settings.json"
+            path = home / ".gemini" / rel
+            return sorted(json.loads(path.read_bytes().decode("utf-8-sig")).get("mcpServers", {})) if path.exists() else []
     except (OSError, ValueError, tomllib.TOMLDecodeError, AttributeError):
         return {"error": "讀不到或格式不對"}
     return None
@@ -132,24 +136,26 @@ def omnikit_state(data, state):
         previous = json.loads(answers_path.read_text(encoding="utf-8")) if answers_path.exists() else None
     except (OSError, ValueError):
         previous = None
+    try:
+        connected = json.loads((state / "agents.json").read_text(encoding="utf-8")).get("agents", [])
+    except (OSError, ValueError, AttributeError):
+        connected = []
     return {
         "root": str(data.parent),
         "profile": current,
         "profile_chosen": chosen is not None,
         "profiles": available,
+        "connected_agents": connected,
         "answers_file": str(state / "setup-answers.json"),
         "previous_answers": previous,
     }
 
 
-def scan(home, data, state, local, which=shutil.which, run=run_version, login=None, git_name=None):
+def scan(home, data, state, which=shutil.which, run=run_version, login=None, git_name=None):
     agents = []
-    for agent_id, name, folder, command in AGENTS:
-        evidence = []
-        if (home / folder).is_dir():
-            evidence.append(f"~/{folder}")
-        if which(command):
-            evidence.append(f"{command} 在 PATH 上")
+    for agent_id, name, folders, commands in AGENTS:
+        evidence = [f"~/{f}" for f in folders if (home / f).is_dir()]
+        evidence += [f"{c} 在 PATH 上" for c in commands if which(c)]
         entry = {"id": agent_id, "name": name, "found": bool(evidence), "evidence": evidence,
                  "omnikit_supported": agent_id in SUPPORTED}
         if evidence:
@@ -167,14 +173,6 @@ def scan(home, data, state, local, which=shutil.which, run=run_version, login=No
         path = which(tool)
         version, error = run(path) if path else (None, None)
         tools[tool] = {"found": bool(path), "version": version, **({"error": error} if error else {})}
-
-    skillshare = local / "Programs" / "skillshare" / "skillshare.exe"
-    if skillshare.exists():
-        version, error = run(skillshare)
-        tools["skillshare"] = {"found": True, "runs": error is None, "version": version,
-                               **({"error": error, "hint": "可能被防毒擋下，見 README 常見問題"} if error else {})}
-    else:
-        tools["skillshare"] = {"found": False}
 
     omnikit = omnikit_state(data, state)
     return {
@@ -196,7 +194,7 @@ def selftest():
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
-        home, data, state, local = tmp / "home", tmp / "repo" / "data", tmp / "state", tmp / "local"
+        home, data, state = tmp / "home", tmp / "repo" / "data", tmp / "state"
 
         def write(path, text):
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -209,7 +207,9 @@ def selftest():
         write(home / ".codex" / "config.toml",
               '[mcp_servers.m2]\ncommand = "x"\n[mcp_servers.m2.env]\nKEY = "s3cret-codex"\n')
         (home / ".agents" / "skills" / "okx").mkdir(parents=True)
-        (home / ".gemini").mkdir(parents=True)
+        (home / ".gemini" / "config" / "skills" / "search-first").mkdir(parents=True)
+        write(home / ".gemini" / "config" / "mcp_config.json", '﻿{"mcpServers": {"m3": {"command": "x"}}}')
+        write(home / ".gemini" / "GEMINI.md", "# 共用的規則\n")
         write(home / ".gemini" / "settings.json", "{壞掉的 JSON")
         write(data / "profiles" / "default" / "AGENTS.md", "# default\n")
         write(data / "profiles" / "ryan" / "AGENTS.md", "# ryan\n")
@@ -220,15 +220,20 @@ def selftest():
         def fake_run(path, *args):
             return ("v22.0.0", None) if "node" in str(path) else ("git version 2.50", None)
 
-        result = scan(home, data, state, local, which=paths.get, run=fake_run, login="user", git_name="Kai Chen")
+        result = scan(home, data, state, which=paths.get, run=fake_run, login="user", git_name="Kai Chen")
         text = json.dumps(result, ensure_ascii=False)
         by_id = {a["id"]: a for a in result["agents"]}
 
         check("找到 Claude Code（設定目錄與 PATH）", by_id["claude-code"]["evidence"] == ["~/.claude", "claude 在 PATH 上"])
-        check("找到 Codex 與 Gemini CLI", by_id["codex"]["found"] and by_id["gemini-cli"]["found"])
+        check("找到 Codex、Antigravity 與 Gemini CLI",
+              by_id["codex"]["found"] and by_id["antigravity"]["found"] and by_id["gemini-cli"]["found"])
         check("沒裝的 agent 標成沒找到", not by_id["cursor"]["found"] and "skills" not in by_id["cursor"])
-        check("標出 OmniKit 接得上的 agent",
-              by_id["codex"]["omnikit_supported"] and not by_id["gemini-cli"]["omnikit_supported"])
+        check("標出 OmniKit 接得上的 agent：Claude Code、Codex、Antigravity",
+              all(by_id[a]["omnikit_supported"] for a in ("claude-code", "codex", "antigravity"))
+              and not by_id["gemini-cli"]["omnikit_supported"])
+        check("Antigravity：skills 含共用的 ~/.agents/skills，MCP 讀 config/mcp_config.json（有 BOM 也讀得到）",
+              by_id["antigravity"]["skills"] == ["okx", "search-first"] and by_id["antigravity"]["mcp"] == ["m3"]
+              and by_id["antigravity"]["rules"]["exists"])
         check("規則檔只回報行數與 OmniKit 標記",
               by_id["claude-code"]["rules"]["lines"] == 4 and by_id["claude-code"]["rules"]["omnikit"])
         check("skills 只列名稱，略過 . 開頭", by_id["claude-code"]["skills"] == ["caveman"]
@@ -237,7 +242,7 @@ def selftest():
         check("設定檔壞掉時回報錯誤，不中斷", by_id["gemini-cli"]["mcp"] == {"error": "讀不到或格式不對"})
         check("不輸出金鑰的值", "s3cret" not in text)
         check("工具版本", result["tools"]["node"]["version"] == "v22.0.0" and not result["tools"]["uv"]["found"])
-        check("沒有 skillshare 就標成沒找到", result["tools"]["skillshare"] == {"found": False})
+        check("不再檢查 skillshare", "skillshare" not in result["tools"])
         check("建議的 profile 名稱來自 git 名字", result["suggested_profile"] == "kai-chen")
         check("沒選過 profile：目前是 default", result["omnikit"]["profile"] == "default"
               and not result["omnikit"]["profile_chosen"] and result["omnikit"]["profiles"] == ["default", "ryan"])
@@ -245,15 +250,11 @@ def selftest():
         check("撞到現有 profile 就改用登入帳號", suggest_name("Ryan", "alice", {"ryan"}) == "alice")
 
         write(state / "profile.json", '{"profile": "ryan"}')
-        again = scan(home, data, state, local, which=paths.get, run=fake_run, login="user", git_name=None)
+        write(state / "agents.json", '{"agents": ["claude-code", "antigravity"]}')
+        again = scan(home, data, state, which=paths.get, run=fake_run, login="user", git_name=None)
         check("選過 profile：帶出上次的訪談答案", again["omnikit"]["profile"] == "ryan"
               and again["omnikit"]["previous_answers"] == {"name": "ryan"})
-
-        exe = local / "Programs" / "skillshare" / "skillshare.exe"
-        write(exe, "")
-        blocked = scan(home, data, state, local, which=paths.get, run=lambda p, *a: (None, "[WinError 5] 存取被拒"))
-        check("skillshare 跑不動時提示可能被防毒擋", blocked["tools"]["skillshare"]["runs"] is False
-              and "防毒" in blocked["tools"]["skillshare"]["hint"])
+        check("列出已經接上的 agent", again["omnikit"]["connected_agents"] == ["claude-code", "antigravity"])
 
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0
@@ -265,7 +266,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.selftest:
         return selftest()
-    result = scan(Path.home(), profiles.DATA, profiles.STATE, profiles.LOCAL, git_name=git_user_name())
+    result = scan(Path.home(), profiles.DATA, profiles.STATE, git_name=git_user_name())
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

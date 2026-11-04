@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OmniKit MCP server",
+  "description": "data/mcp/servers.yaml：agents.py 依這份把 MCP server 寫進 Claude Code、Codex 與 Antigravity。",
+  "type": "object",
+  "required": ["servers"],
+  "additionalProperties": false,
+  "properties": {
+    "servers": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[A-Za-z0-9_-]+$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["command", "targets"],
+        "additionalProperties": false,
+        "properties": {
+          "command": { "type": "string", "minLength": 1 },
+          "args": { "type": "array", "items": { "type": "string" } },
+          "env": {
+            "description": "環境變數；金鑰不要寫在這裡",
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          },
+          "targets": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "enum": ["claude", "codex", "antigravity"] }
+          },
+          "options": {
+            "description": "各 agent 額外的設定，原樣寫進該 agent 的這個 server",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "claude": { "type": "object" },
+              "codex": { "type": "object" },
+              "antigravity": { "type": "object" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

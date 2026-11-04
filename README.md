@@ -18,7 +18,7 @@
   <img alt="OmniKit 槽位看板：試用中的工具、預設 plugin 的安裝指令與最近的決定" src=".github/assets/board-light.png">
 </picture>
 
-Claude Code 與 Codex 的 plugin、skill、MCP 每週都有新的，裝了一堆之後，很難說清楚哪個真的有用、當初為什麼選它。
+Claude Code、Codex 與 Antigravity 的 plugin、skill、MCP 每週都有新的，裝了一堆之後，很難說清楚哪個真的有用、當初為什麼選它。
 
 OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是一個**槽位**，配上幾個真實的工作情境；每個工具一張**卡片**，記下狀態、日期與理由。新工具進來時，拿槽位的情境跟現任比，比贏了才換，換的理由也會留下來。
 
@@ -26,7 +26,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 - **每個決定都有理由**：卡片記下狀態（預設、試用、待評估、拒絕、退役）、決定日期與理由，過了半年還查得到當初為什麼選它。
 - **用真實情境比，不看星數**：每個槽位配幾個你實際會遇到的情境，評估新工具就拿這些當考題。
-- **一份設定，兩個 agent**：規則、skills、MCP、權限只寫一次，同步到 Claude Code 與 Codex。
+- **一份設定，三個 agent**：規則、skills、MCP 只寫一次，接到 Claude Code、Codex 與 Antigravity；全由 OmniKit 自己的腳本接，不依賴第三方同步工具。
 - **名冊是唯一來源**：看板與兩份 plugin marketplace 都由名冊產生，CI 會檢查它們跟名冊一致。
 - **評估分層、有額度**：第 0 層免費、第 1 層便宜、第 2 層實測；每週的實測次數有上限，不會一直燒 token。
 - **安全的預設**：工具固定版本並比對 SHA256、commit 前用 gitleaks 掃金鑰、安裝第三方 skill 前先掃描、權限規則只增不刪。
@@ -35,7 +35,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經整理好的 100 多張工具卡，可以直接當起點。
 
-**需要：** Windows 11、[Git](https://git-scm.com/download/win)、[Node.js LTS](https://nodejs.org/)（MCP 用）、Claude Code 或 Codex、GitHub 帳號。
+**需要：** Windows 11、[Git](https://git-scm.com/download/win)、[Node.js LTS](https://nodejs.org/)（MCP 用）、Claude Code、Codex、Antigravity 至少一個（裝了的都會接上）、GitHub 帳號。
 
 1. **Fork 並開啟看板。** 按本頁右上角的 **Fork**，接著在你的 fork 上：
    - **Actions** 分頁：fork 的 workflow 預設是關的，按 **I understand my workflows, go ahead and enable them**。
@@ -96,24 +96,26 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
 
 ## 裝好之後
 
-安裝不會在 Claude Code 或 Codex 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了兩個 skill、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
+安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了兩個 skill、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
 
 ### 確認接上了
 
-| 檢查 | Claude Code | Codex |
-|---|---|---|
-| 規則 | 問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的「規則版本」一樣，profile 是你選的 | 同左 |
-| skill | 輸入 `/omnikit`，選單裡會出現 `omnikit-setup` 與 `omnikit-eval` | 輸入 `$omnikit`，或用 `/skills` 列出來 |
-| MCP | 終端機跑 `claude mcp get chrome_devtools`，狀態是 Connected | 終端機跑 `codex mcp list`，`chrome_devtools` 是 enabled |
+| 檢查 | Claude Code | Codex | Antigravity |
+|---|---|---|---|
+| 規則 | 問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的「規則版本」一樣，profile 是你選的 | 同左 | 同左 |
+| skill | 輸入 `/omnikit`，選單裡會出現 `omnikit-setup` 與 `omnikit-eval` | 輸入 `$omnikit`，或用 `/skills` 列出來 | 問「你可用的 skill 有哪些？」，會列出這兩個 |
+| MCP | 終端機跑 `claude mcp get chrome_devtools`，狀態是 Connected | 終端機跑 `codex mcp list`，`chrome_devtools` 是 enabled | 終端機跑 `agy mcp list`，`chrome_devtools` 是 enabled |
+
+終端機跑 `uv run engine/scripts/agents.py status`，可以看到這台接上了哪些 agent、OmniKit 管了哪些 skills 與 MCP。
 
 ### 安裝前後差在哪
 
-| 項目 | 會有什麼不同 | Claude Code 與 Codex 的差別 |
+| 項目 | 會有什麼不同 | 三個 agent 的差別 |
 |---|---|---|
-| 規則（`data/rules/baseline.md` + `data/profiles/<名稱>/AGENTS.md`） | 安全底線所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問 | Claude Code 直接讀 repo 裡這兩份，改完開新 session 就生效。Codex 讀的是兩份接在一起的副本，改完要 commit，git hook 才會同步過去 |
-| `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 兩邊說「幫我設定 OmniKit」都會自動觸發；要手動叫，Claude Code 輸入 `/omnikit-setup`，Codex 輸入 `$omnikit-setup` |
-| `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡 | 兩邊說「幫我評估」都會自動觸發；要手動叫，Claude Code 輸入 `/omnikit-eval`，Codex 輸入 `$omnikit-eval` |
-| `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 已加進免問清單，Codex 設成自動核准，兩邊都不會跳權限確認 |
+| 規則（`data/rules/baseline.md` + `data/profiles/<名稱>/AGENTS.md`） | 安全底線所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問 | Claude Code 直接讀 repo 裡這兩份，改完開新 session 就生效。Codex 與 Antigravity 讀的是兩份接在一起的內容，改完要 commit，git hook 才會同步過去 |
+| `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 三邊說「幫我設定 OmniKit」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-setup`，Codex 輸入 `$omnikit-setup` |
+| `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval`，Codex 輸入 `$omnikit-eval`。Codex 與 Antigravity 用的是複製品，skill 改完要 commit 才會更新 |
+| `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 已加進免問清單，Codex 設成自動核准，兩邊都不會跳權限確認；Antigravity 照它自己的權限設定 |
 | 開新對話提醒 | 每回合結束時檢查一次：上下文每跨過 100k tokens、或這一回合成功 `git push`，就跳一行提醒你考慮開新對話。只提醒，不會自己換對話 | Claude Code 裝好就生效。Codex 多看一項：對話累計第 1、3、9、27… 次自動壓縮時也提醒（Codex 常在 100k 前就壓縮）；新 hook 要先信任才會跑，CLI 輸入 `/hooks`、桌面版到設定的 Hooks 按信任；OmniKit 搬位置或原本那支 uv 不在了，指令會改，要再信任一次 |
 | git hooks | 只作用在 OmniKit repo：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、MCP、權限時自動同步 | 跟 agent 無關 |
 
@@ -136,7 +138,7 @@ OmniKit 規則版本與 profile 是什麼？
 1. **掃描**：列出這台裝了哪些 agent、目前的規則、skills 與 MCP（只看名稱與版本，不讀金鑰）。
 2. **訪談**：最多 6 題，大多是選擇題：主要用途、最想改善的習慣、回覆的語言與詳略、agent 可以自己做到哪、要不要評估新工具、主要專案。
 3. **預覽**：先給你看產生的規則，同意才寫入。
-4. **建立並套用**：寫進 `data/profiles/<名稱>/`，接上 Claude Code 與 Codex，開新 session 生效。
+4. **建立並套用**：寫進 `data/profiles/<名稱>/`，接上這台接好的 agent，開新 session 生效。
 
 | 你選的 | 規則裡寫成 |
 |---|---|
@@ -178,13 +180,14 @@ flowchart LR
   M --> I
   I --> C["Claude Code"]
   I --> X["Codex"]
+  I --> G["Antigravity"]
   K --> C
   K --> X
 ```
 
 1. **評估**：把工具的 GitHub 連結貼給 agent，`omnikit-eval` 會查 GitHub 現況、對照槽位情境，寫成一張工具卡。
 2. **產生**：commit 時 git hook 驗證名冊並重新產生 marketplace 清單；推到 main 之後，GitHub Actions 重建看板。
-3. **同步**：`install.ps1` 把規則（安全底線 + 你選的 profile）、skills、MCP、權限接到 Claude Code 與 Codex；之後 commit 或 pull 動到這些檔案時，git hook 會自動再同步。
+3. **同步**：`install.ps1` 把規則（安全底線 + 你選的 profile）、skills、MCP 接到 Claude Code、Codex 與 Antigravity（`engine/scripts/agents.py`），權限與提醒 hook 接到 Claude Code 與 Codex；之後 commit 或 pull 動到這些檔案時，git hook 會自動再同步。
 
 想看每個部分、每個檔案在做什麼，打開[互動架構地圖](https://b40609.github.io/OmniKit/map.html)：每個檔案都有白話說明，另有 3 條逐步導覽（評估新工具、改規則、第一次安裝）。建議用電腦開。
 
@@ -199,16 +202,19 @@ flowchart LR
 
 | 位置 | 做什麼 |
 |---|---|
-| `%LOCALAPPDATA%\Programs\` | 安裝固定版本的 skillshare、uv、gh、gitleaks；比對 SHA256，不改 PATH。這台已經有 uv、gh 就沿用 |
+| `%LOCALAPPDATA%\Programs\` | 安裝固定版本的 uv、gh、gitleaks；比對 SHA256，不改 PATH。這台已經有 uv、gh 就沿用 |
 | `data/omnikit.yaml` | fork 出來的 repo，改成你的 `repo`、`owner`、`marketplace`，`profile` 改回 `default`，並重新產生 marketplace 清單 |
 | `~/.claude/CLAUDE.md` | 在開頭加一段受管區塊，import `data/rules/baseline.md` 與你選的 `data/profiles/<名稱>/AGENTS.md`；其他內容不動 |
-| `~/.codex/AGENTS.md` | 換成底線與 profile 接在一起的副本；第一次接上時，原本的內容先備份成 `AGENTS.md.pre-omnikit` |
-| `%LOCALAPPDATA%\omnikit\` | `profile.json` 記這台選的 profile；`rules\AGENTS.md` 是給 Codex 的副本，由 `engine/scripts/profiles.py` 產生 |
-| `~/.claude/skills`、`~/.agents/skills` | 由 skillshare 同步 `engine/skills` 裡的 skills |
-| `~/.claude.json`、`~/.codex/config.toml` | 合併寫入 `data/mcp/servers.yaml` 的 MCP server，不動其他設定；`config.toml` 結尾另加一段 `[[hooks.Stop]]` 開新對話提醒，寫入前驗證其他設定沒被動到 |
+| `~/.codex/AGENTS.md` | 換成底線與 profile 接在一起的內容；第一次接上時，原本的內容先備份成 `AGENTS.md.pre-omnikit`。之後被手動換掉的話，同步時不覆蓋 |
+| `~/.gemini/GEMINI.md` | Antigravity 的規則：在開頭加一段受管區塊，放底線與 profile 接在一起的內容；原本的先備份成 `GEMINI.md.pre-omnikit`。原地改寫，這個檔案跟其他工具共用（硬連結）時，其他名字會一起更新，連結不會斷 |
+| `~/.claude/skills` | `engine/skills` 的每個 skill 用資料夾連結接上，改完馬上生效 |
+| `~/.agents/skills` | Codex 與 Antigravity 共用：`engine/skills` 的每個 skill 複製一份（Antigravity 不跟隨資料夾連結），裡面的 `.omnikit.json` 記來源；同名但不是 OmniKit 的不碰 |
+| `~/.claude.json`、`~/.codex/config.toml`、`~/.gemini/config/mcp_config.json` | 寫入 `data/mcp/servers.yaml` 的 MCP server，只動這些 server。Claude 用 `claude mcp add-json`；Codex 寫入前驗證其他設定沒被動到；Antigravity 不寫 BOM（它讀到 BOM 會整份失敗）。`config.toml` 結尾另加一段 `[[hooks.Stop]]` 開新對話提醒 |
+| `%LOCALAPPDATA%\omnikit\` | `profile.json` 記這台選的 profile；`agents.json` 記接上了哪些 agent、OmniKit 管了哪些 skills 與 MCP；`rules\AGENTS.md` 是底線與 profile 接在一起的內容（移除時比對用） |
+| 舊版的 skillshare | 以前用 skillshare 接的電腦，重跑 `install.ps1` 會改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分；skillshare 本身不刪 |
 | npm 全域套件 | 安裝 `data/mcp/packages.txt` 指定的固定版本 |
 | `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪；在 `hooks.Stop` 加上開新對話提醒（`engine/scripts/session_nudge.py`） |
-| 這個 repo | `core.hooksPath` 指到 `.githooks`：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、MCP、權限、提醒 hook 時自動同步 |
+| 這個 repo | `core.hooksPath` 指到 `.githooks`：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、skills、MCP、權限、提醒 hook 時自動同步 |
 | `%LOCALAPPDATA%\omnikit\install-record.json` | 安裝紀錄：記下這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，移除時只動這些 |
 
 加上 `-Fresh` 會把 `~/.claude/CLAUDE.md` 受管區塊以外的舊規則移除（先備份成 `CLAUDE.md.pre-omnikit`），適合想讓 OmniKit 的規則完全取代舊規則的人。
@@ -221,7 +227,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\uninstall.ps1
 
 會先列出要做的事，確認後才動手：
 
-- 規則、skills、MCP、權限、git hook 還原成安裝前的樣子，安裝前的備份會放回原位。
+- 三個 agent 的規則、skills、MCP，以及權限、git hook 還原成安裝前的樣子，安裝前的備份會放回原位；只拿掉 OmniKit 的，其他的不碰。
 - 只移除安裝紀錄裡、由 OmniKit 裝上的工具與 npm 套件；安裝前就有的都保留。
 - 加 `-KeepTools` 只還原設定、保留工具；加 `-Yes` 不詢問直接移除。
 - repo 資料夾不會刪，不需要的話自己刪掉即可。
@@ -232,7 +238,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\uninstall.ps1
 
 ```powershell
 uv run engine/scripts/profiles.py --show          # 這台現在用哪個
-uv run engine/scripts/profiles.py --set <名稱>    # 換成 data/profiles/<名稱>，Claude Code 與 Codex 一起換
+uv run engine/scripts/profiles.py --set <名稱>    # 換成 data/profiles/<名稱>，接上的 agent 一起換
 ```
 
 換完開新的 session 才生效。還沒選過的電腦會一直用 `default`，並在安裝與同步時提醒。想重新訪談、改掉原本的答案，說「幫我設定 OmniKit」就好。
@@ -301,7 +307,7 @@ data/                        資料：fork 後換成你的
   evals/                     實測紀錄
 engine/                      引擎：不用改
   schema/                    名冊與槽位的 JSON Schema
-  scripts/                   安裝、掃描、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒（Claude Code 與 Codex）
+  scripts/                   安裝、接上三個 agent、掃描、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒
   site/                      看板的樣式與程式，以及匯出的架構地圖（map.html）
   skills/omnikit-setup/      訪談建立個人 profile 的 skill
   skills/omnikit-eval/       評估新工具的 skill
@@ -321,7 +327,7 @@ engine/                      引擎：不用改
 <details>
 <summary><b>會不會蓋掉我原本的設定？</b></summary>
 
-不會直接蓋掉。`~/.claude/CLAUDE.md` 只加一段受管區塊；`~/.codex/AGENTS.md` 第一次接上時會先備份；MCP 與權限都是合併寫入。只有加上 `-Fresh` 才會移除 CLAUDE.md 的其他內容，而且也會先備份。完整清單見[安裝會改動哪些地方](#安裝會改動哪些地方)，不想用了隨時可以[移除](#移除)。
+不會直接蓋掉。`~/.claude/CLAUDE.md` 與 `~/.gemini/GEMINI.md` 只加一段受管區塊；`~/.codex/AGENTS.md` 第一次接上時會先備份；MCP 與權限都是合併寫入，同名但不是 OmniKit 的 skill 也不碰。只有加上 `-Fresh` 才會移除 CLAUDE.md 的其他內容，而且也會先備份。完整清單見[安裝會改動哪些地方](#安裝會改動哪些地方)，不想用了隨時可以[移除](#移除)。
 
 </details>
 
@@ -340,14 +346,18 @@ engine/                      引擎：不用改
 </details>
 
 <details>
-<summary><b>公司電腦執行 skillshare 時「存取被拒」？</b></summary>
+<summary><b>為什麼不用 skillshare 了？</b></summary>
 
-公司的防毒可能擋下 `%LOCALAPPDATA%\Programs\skillshare\skillshare.exe`。例如 Trend Micro 的「新出現的程式」偵測：從網路下載、很少人用或剛發布的程式，執行前會先跳通知要你確認，沒人按就擋下。skillshare 用的人少、新版本出得又快，所以會被攔。被擋時 Codex 的規則、skills 與 MCP 都同步不了；Claude Code 的規則直接 import repo 裡的檔案，不受影響。
+以前規則、skills 與 MCP 是靠 [skillshare](https://github.com/runkids/skillshare) 同步。公司電腦的防毒（例如 Trend Micro 的「新出現的程式」偵測）會擋下從網路下載、很少人用或剛發布的程式：執行前跳通知要你按允許，要剛好盯著畫面才按得到，錯過就擋下。git hook 與 agent 在背景同步時常沒人看畫面，同步就失敗，放行之後也可能又被擋。
 
-- **安裝或移除時被擋**：`install.ps1` 與 `uninstall.ps1` 一開始會先試跑 skillshare，被擋就停下來，印出原因、檔案路徑與 SHA256。跳出防毒通知就選允許，再重跑一次。
-- **裝好之後才被擋**：可能第一次能跑，幾小時後才開始擋。commit 或 pull 時 git hook 印出「skillshare … 失敗」或「無法執行」，就是這個情況；agent 在背景跑的時候，通知沒人按，也可能被擋。放行之後重跑 `install.ps1`，把漏掉的同步補上。
-- **沒有通知可按，或允許之後又被擋**：請 IT 把這個檔案加進例外，附上 `install.ps1` 印出的 SHA256。
-- **升級 skillshare 之後**：新版本是新的檔案，可能要再放行一次。
+OmniKit 只支援 Claude Code、Codex 與 Antigravity 三個 agent，所以改由自己的 Python 腳本（`engine/scripts/agents.py`）直接接，用的是 uv 與 Python，不再需要另外放行。以前用 skillshare 接的電腦，重跑一次 `install.ps1` 就會改由 OmniKit 接手；skillshare 本身留著，不需要的話可以自己移除。
+
+</details>
+
+<details>
+<summary><b>Antigravity 看不到 OmniKit 的 skill？</b></summary>
+
+Antigravity 不跟隨資料夾連結，所以 OmniKit 把 skill 複製到 `~/.agents/skills`（Codex 也讀這裡）。改了 `engine/skills` 裡的 skill 要 commit，git hook 才會重新複製；也可以跑 `uv run engine/scripts/agents.py sync --skills`。同名的資料夾已經存在、而且不是 OmniKit 的，OmniKit 不會覆蓋，同步時會印出來。
 
 </details>
 
@@ -364,7 +374,7 @@ engine/                      引擎：不用改
 
 ## 致謝
 
-OmniKit 建立在這些專案上：[skillshare](https://github.com/runkids/skillshare)（同步規則、skills 與 MCP）、[uv](https://github.com/astral-sh/uv)（執行 Python 腳本）、[gitleaks](https://github.com/gitleaks/gitleaks)（掃描金鑰）、[GitHub CLI](https://github.com/cli/cli)、[Floorplan](https://github.com/haydenschmitty/floorplan)（產生架構地圖）。
+OmniKit 建立在這些專案上：[uv](https://github.com/astral-sh/uv)（執行 Python 腳本）、[gitleaks](https://github.com/gitleaks/gitleaks)（掃描金鑰）、[GitHub CLI](https://github.com/cli/cli)、[Floorplan](https://github.com/haydenschmitty/floorplan)（產生架構地圖）。
 
 ## 授權
 

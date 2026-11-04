@@ -1,11 +1,11 @@
 ---
 name: omnikit-setup
-description: 用簡短訪談建立或重新設定使用者自己的 OmniKit profile（回覆語言與詳略、agent 可以自己做到哪、想改善的習慣、評估工具用的情境），並接上 Claude Code 與 Codex。使用者說「幫我設定 OmniKit」「設定我的 profile」「重新設定 OmniKit」「OmniKit 裝好了然後呢」時使用。Interviews the user and creates their personal OmniKit profile.
+description: 用簡短訪談建立或重新設定使用者自己的 OmniKit profile（回覆語言與詳略、agent 可以自己做到哪、想改善的習慣、評估工具用的情境），並接上 Claude Code、Codex 與 Antigravity。使用者說「幫我設定 OmniKit」「設定我的 profile」「重新設定 OmniKit」「OmniKit 裝好了然後呢」時使用。Interviews the user and creates their personal OmniKit profile.
 ---
 
 # OmniKit 設定訪談
 
-目標：依這台電腦和使用者的需求，產生他自己的 profile（`data/profiles/<名稱>/`），並接上 Claude Code 與 Codex。下面的指令路徑都相對於這個 skill 的資料夾；`uv` 不在 PATH 時，用 `%LOCALAPPDATA%\Programs\uv\uv.exe`。
+目標：依這台電腦和使用者的需求，產生他自己的 profile（`data/profiles/<名稱>/`），並接上這台接好的 agent（Claude Code、Codex、Antigravity）。下面的指令路徑都相對於這個 skill 的資料夾；`uv` 不在 PATH 時，用 `%LOCALAPPDATA%\Programs\uv\uv.exe`。
 
 原則：
 
@@ -22,9 +22,8 @@ uv run scripts/setup.py scan
 
 用 3 到 5 行告訴使用者看到什麼：
 
-- 裝了哪些 agent。`omnikit_supported` 是 false 的，說明 OmniKit 目前只接 Claude Code 與 Codex，其他的之後再支援，這次不處理。
+- 裝了哪些 agent。OmniKit 接的是 Claude Code、Codex 與 Antigravity（`omnikit_supported`）；已經接上的列在 `omnikit.connected_agents`。有裝、但不在 `connected_agents` 裡的，提醒在 repo 根目錄重跑 `install.ps1` 接上；其他 agent 不在支援範圍，這次不處理。
 - 目前的 profile（`omnikit.profile`）；`profile_chosen` 是 false 表示還在用預設的 default（下載、安裝前會先問）。
-- `tools.skillshare.runs` 是 false：Codex 的規則、skills、MCP 會同步不了。提醒看 README 常見問題「公司電腦執行 skillshare 時「存取被拒」？」，訪談照常進行。
 - `omnikit.previous_answers` 不是 null：那是上次訪談的答案。下面每一題的預設就照它帶入，使用者只改想改的。
 
 ## 2. 訪談
@@ -101,4 +100,4 @@ uv run scripts/setup.py profile --answers <answers_file> --write --apply
 - 開新的 session 才會生效。確認方式：問「OmniKit 規則版本與 profile 是什麼？」
 - 依第 2 題給一個試試看的例子，例如選了 `scope-creep`：請它改一個小地方，看它會不會順手改別的。
 - profile 存在這台電腦的 OmniKit repo（`data/profiles/<名稱>/`），不會上傳。之後想手動改，直接改那裡的 `AGENTS.md`；想換別的 profile，在 repo 根目錄跑 `uv run engine/scripts/profiles.py --set <名稱>`。
-- 套用時出現跟防毒有關的錯誤：Claude Code 已經生效；Codex 等 skillshare 放行之後，在 repo 根目錄重跑 `install.ps1`。
+- 輸出提到某個 agent 的規則「沒有覆蓋」或「沒有加回去」：那是使用者自己改過的檔案，這次沒動；要接上就在 repo 根目錄重跑 `install.ps1`。

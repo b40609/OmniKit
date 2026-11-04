@@ -1,6 +1,12 @@
 # 同事安裝 OmniKit 之後：個人化上手方案（提案）
 
-日期：2026-11-04　狀態：階段 1、2 已實作；階段 3、4 待決定
+日期：2026-11-04　狀態：階段 1、2、3 已實作；階段 4 待決定
+
+- 階段 3：支援範圍定為 Windows 11 + Claude Code、Codex、Antigravity（不再等同事回報環境）。公司電腦的
+  Trend Micro 會擋 skillshare，允許的通知要剛好盯著畫面才按得到，背景同步常失敗；範圍固定三個 agent 之後，
+  skillshare 的多 agent 支援用不到，所以改由 `engine/scripts/agents.py` 自己接規則、skills 與 MCP，拿掉 skillshare。
+  Antigravity 的位置是在這台實測確認的：規則 `~/.gemini/GEMINI.md`、skills `~/.gemini/config/skills` 與
+  `~/.agents/skills`（不跟隨資料夾連結，所以用複製）、MCP `~/.gemini/config/mcp_config.json`（讀到 BOM 會整份失敗）。
 
 - 階段 1：規則分成安全底線與 profile，情境改成範本。
 - 階段 2：`scan.py` 掃描、`omnikit-setup` 訪談、`profile_new.py` 依答案產生 profile、`install.ps1 -WhatIf` 預覽。跟原計畫的差別：掃描改用 Python（能在 CI 測、skill 直接讀 JSON），不擴充 `inventory.ps1`；profile 直接產生 `data/profiles/<名稱>/` 的 `AGENTS.md` 與 `scenarios.yaml`，不另外做 `profile.yaml`；工具包（packs）還沒做，訪談先調整規則與情境。

@@ -1,6 +1,7 @@
-# MCP servers：skillshare 依這份同步到 Claude Code（~/.claude.json）與 Codex（~/.codex/config.toml）。
-# install.ps1 會把 skillshare 的 sources.mcp 指到這個檔案；commit 動到這裡時，git hook 會自動同步。
-# 金鑰不寫在這裡，用 env 參照環境變數。
+# MCP servers：engine/scripts/agents.py 依這份寫進 targets 列的 agent：
+#   claude → ~/.claude.json、codex → ~/.codex/config.toml、antigravity → ~/.gemini/config/mcp_config.json
+# 只動這裡列的 server，其他設定不碰；commit 或 pull 動到這裡時，git hook 會自動同步。
+# options.<agent> 的欄位原樣寫進那個 agent。格式見 engine/schema/mcp.schema.json；金鑰不要寫在這裡。
 servers:
   # 瀏覽器槽位，試用到 2026-11-18（見 data/tools/chrome-devtools-mcp.yaml）
   chrome_devtools:
@@ -15,7 +16,7 @@ servers:
       - --isolated
       - --no-usage-statistics
       - --no-performance-crux
-    targets: [claude, codex]
+    targets: [claude, codex, antigravity]
     options:
       codex:
         # Codex 非互動模式的核准政策是 never；不設這個，開頁、導向這類工具會全部被拒

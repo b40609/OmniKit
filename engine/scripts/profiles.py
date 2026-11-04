@@ -2,7 +2,7 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""OmniKit profile：這台電腦套用哪一份個人規則。
+"""OmniKit profile：這台電腦套用哪一份個人規則，並接到 Claude Code、Codex 與 Antigravity。
 
 agent 讀到的規則是兩層接在一起：
 - data/rules/baseline.md：安全底線，所有人都套用
@@ -12,10 +12,13 @@ agent 讀到的規則是兩層接在一起：
 選了哪個 profile 記在 %LOCALAPPDATA%\\omnikit\\profile.json。沒選過就用 default（授權偏保守），
 而且每次都會提醒，直到用 --set 選定。
 
-接上的方式：
+接上的方式（只接 agents.py 記錄裡的 agent，記在 %LOCALAPPDATA%\\omnikit\\agents.json）：
 - Claude Code：~/.claude/CLAUDE.md 開頭的受管區塊 import 底線與 profile 兩份，改完開新 session 就生效。
-- Codex：不支援 import，所以把兩份接成 %LOCALAPPDATA%\\omnikit\\rules\\AGENTS.md，再由 skillshare
-  （extras：rules-codex）複製到 ~/.codex/AGENTS.md。已經接上 Codex，或加了 --codex，才會動 Codex。
+- Codex：不支援 import，~/.codex/AGENTS.md 整份換成兩份接在一起的內容（第一個字串是產生標記）。
+- Antigravity：~/.gemini/GEMINI.md 開頭的受管區塊放兩份接在一起的內容。這個檔案常跟其他工具
+  共用（硬連結），所以原地改寫，不換掉檔案。
+第一次接上時（install.ps1 透過 agents.py connect），原本的 Codex 與 Antigravity 規則先備份成
+<檔名>.pre-omnikit；之後的同步（git hook、--set）只改 OmniKit 產生的內容，被手動換掉的不覆蓋。
 
 用法：
   uv run engine/scripts/profiles.py                 用目前的 profile 重新接上
@@ -27,9 +30,10 @@ import argparse
 import json
 import os
 import re
-import subprocess
+import shutil
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -37,13 +41,19 @@ DATA = ROOT / "data"
 HOME = Path.home()
 LOCAL = Path(os.environ.get("LOCALAPPDATA", HOME))
 STATE = LOCAL / "omnikit"
-CLAUDE_MD = HOME / ".claude" / "CLAUDE.md"
-CODEX_DIR = HOME / ".codex"
-SKILLSHARE = LOCAL / "Programs" / "skillshare" / "skillshare.exe"
+RULES = {
+    "claude-code": HOME / ".claude" / "CLAUDE.md",
+    "codex": HOME / ".codex" / "AGENTS.md",
+    "antigravity": HOME / ".gemini" / "GEMINI.md",
+}
+NAMES = {"claude-code": "Claude Code", "codex": "Codex", "antigravity": "Antigravity"}
+# 舊版靠 skillshare 複製 Codex 的規則；還沒重跑 install.ps1 的電腦，用它判斷 Codex 有沒有接上
 SKILLSHARE_CONFIG = Path(os.environ.get("APPDATA", HOME)) / "skillshare" / "config.yaml"
 DEFAULT = "default"
 NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
-BLOCK = re.compile(r"<!-- omnikit:rules:begin -->.*?<!-- omnikit:rules:end -->", re.S)
+BEGIN, END = "<!-- omnikit:rules:begin -->", "<!-- omnikit:rules:end -->"
+BLOCK = re.compile(re.escape(BEGIN) + r".*?" + re.escape(END), re.S)
+HEADER = "<!-- 由 OmniKit 產生，不要手改："
 CODEX_EXTRA = re.compile(r"(?m)^\s*- name: rules-codex\s*$")
 
 
@@ -59,6 +69,28 @@ def write(path, content):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
     return True
+
+
+def write_in_place(path, content):
+    """原地改寫，不換掉檔案：硬連結到同一個檔案的其他名字會一起更新，不會斷開。"""
+    data = content.encode("utf-8")
+    if not path.exists():
+        return write(path, content)
+    if path.read_bytes() == data:
+        return False
+    with open(path, "r+b") as f:
+        f.write(data)
+        f.truncate()
+    return True
+
+
+def backup(path):
+    """備份成 <檔名>.pre-omnikit；已經有同名備份就加上時間。回傳備份檔。"""
+    target = path.with_name(path.name + ".pre-omnikit")
+    if target.exists():
+        target = path.with_name(f"{path.name}.pre-omnikit-{datetime.now():%Y%m%d%H%M%S}")
+    shutil.copyfile(path, target)
+    return target
 
 
 def available(data):
@@ -96,71 +128,131 @@ def rules_files(data, name):
 
 
 def compose(data, name):
-    """給 Codex 的規則：底線在前，profile 在後。"""
+    """給 Codex 與 Antigravity 的規則：底線在前，profile 在後；第一行是產生標記。"""
     parts = [text(p).replace("\r\n", "\n").strip() for p in rules_files(data, name)]
-    header = f"<!-- 由 OmniKit 產生，不要手改：data/rules/baseline.md + data/profiles/{name}/AGENTS.md -->"
+    header = f"{HEADER}data/rules/baseline.md + data/profiles/{name}/AGENTS.md -->"
     return "\n\n".join([header, *parts]) + "\n"
+
+
+def is_ours(content):
+    return content.lstrip().startswith(HEADER)
+
+
+def connected(state, paths=None, skillshare_config=SKILLSHARE_CONFIG):
+    """接上了哪些 agent：看 agents.py 的記錄；舊版安裝沒有記錄，就從現有的檔案推斷。"""
+    paths = paths or RULES
+    try:
+        agents = json.loads(text(state / "agents.json")).get("agents")
+        if isinstance(agents, list):
+            return [a for a in agents if a in RULES]
+    except (OSError, ValueError, AttributeError):
+        pass
+    agents = ["claude-code"]
+    codex = paths["codex"]
+    legacy = skillshare_config.exists() and CODEX_EXTRA.search(text(skillshare_config))
+    if legacy or (codex.exists() and is_ours(text(codex))):
+        agents.append("codex")
+    return agents
 
 
 def claude_block(data, name):
     """skillshare 0.28.2 的 import 模式在 Windows 寫出反斜線路徑，Claude Code 不會載入；所以自己維護，路徑用正斜線。"""
     imports = "\n".join("@" + p.resolve().as_posix() for p in rules_files(data, name))
-    return f"<!-- omnikit:rules:begin -->\n{imports}\n<!-- omnikit:rules:end -->"
+    return f"{BEGIN}\n{imports}\n{END}"
+
+
+def with_block(old, block):
+    """換掉受管區塊；沒有就加在開頭。區塊以外的內容與換行都不動。"""
+    return BLOCK.sub(lambda _: block, old, count=1) if BLOCK.search(old) else block + "\n" + old
 
 
 def connect_claude(claude_md, block):
-    """換掉受管區塊；沒有就加在開頭。區塊以外的內容與換行都不動。"""
     old = text(claude_md) if claude_md.exists() else ""
-    new = BLOCK.sub(lambda _: block, old, count=1) if BLOCK.search(old) else block + "\n" + old
-    return write(claude_md, new)
+    return write(claude_md, with_block(old, block))
 
 
-def codex_connected(config):
-    try:
-        return CODEX_EXTRA.search(text(config)) is not None
-    except OSError:
-        return False
+def connect_codex(path, content, take_over, legacy=False):
+    """回傳（狀態, 備份檔）。狀態：updated、unchanged、skipped（不是 OmniKit 產生的，同步時不覆蓋）。"""
+    if not path.exists():
+        write(path, content)
+        return "updated", None
+    old = text(path)
+    if old == content:
+        return "unchanged", None
+    saved = None
+    if not (is_ours(old) or legacy):
+        if not take_over:
+            return "skipped", None
+        saved = backup(path)
+    write(path, content)
+    return "updated", saved
 
 
-def skillshare(exe, *args):
-    """exe 是 skillshare 的指令（list）；自我測試時換成假的。"""
-    label = f"skillshare {' '.join(args[:3])}"
-    try:
-        result = subprocess.run([*exe, *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
-    except OSError as e:
-        # 公司電腦的防毒（例如 Trend Micro）可能擋下 skillshare.exe，CreateProcess 會回「存取被拒」
-        raise SystemExit(f"{label} 無法執行（{str(e).rstrip('。')}），可能被防毒軟體擋下；Codex 的規則還是舊的")
-    if result.returncode != 0:
-        detail = (result.stderr or result.stdout).strip()
-        raise SystemExit(f"{label} 失敗（exit {result.returncode}）：{detail}")
+def gemini_block(content):
+    return f"{BEGIN}\n{content.rstrip()}\n{END}"
 
 
-def connect_codex(source, config, exe, codex_dir):
-    """rules-codex 改從 source 複製再同步。來源已經是 source 就不重設（舊版指向 data/rules 的會改過來）。"""
-    if not Path(exe[0]).exists():
-        raise SystemExit(f"找不到 skillshare（{exe[0]}），先執行 engine/scripts/install.ps1")
-    current = text(config) if config.exists() else ""
-    if not (CODEX_EXTRA.search(current) and f"source: {source}" in current):
-        skillshare(exe, "extras", "init", "rules-codex", "--source", str(source), "--file", "AGENTS.md",
-                   "--target", str(codex_dir), "--as", "AGENTS.md", "--mode", "copy", "--force", "--no-tui")
-    skillshare(exe, "sync", "extras")
+def connect_gemini(path, content, take_over):
+    """回傳（狀態, 備份檔）。同步時區塊不見了（使用者拿掉）就不再加回去。"""
+    old = text(path) if path.exists() else ""
+    if not BLOCK.search(old) and old.strip() and not take_over:
+        return "skipped", None
+    new = with_block(old, gemini_block(content))
+    if new == old:
+        return "unchanged", None
+    saved = backup(path) if take_over and old.strip() and not BLOCK.search(old) else None
+    write_in_place(path, new)
+    return "updated", saved
 
 
-def apply(data, state, claude_md, config, exe, codex_dir, wanted=None, codex=False):
-    """接上 profile，回傳要印給使用者看的訊息。"""
+def disconnect_gemini(path):
+    """原地拿掉受管區塊。檔案只剩區塊（OmniKit 建的）就刪掉；跟備份一樣時，多餘的備份也刪掉。回傳訊息。"""
+    if not path.exists() or not BLOCK.search(text(path)):
+        return []
+    rest = BLOCK.sub("", text(path), count=1)
+    rest = rest[1:] if rest.startswith("\n") else rest
+    saved = path.with_name(path.name + ".pre-omnikit")
+    if not rest.strip() and not saved.exists():
+        path.unlink()
+        return [f"已刪除只剩 OmniKit 區塊的 {path}"]
+    write_in_place(path, rest)
+    lines = [f"已拿掉 {path} 的 OmniKit 區塊"]
+    if saved.exists():
+        if saved.read_bytes() == rest.encode("utf-8"):
+            saved.unlink()
+        else:
+            lines.append(f"  安裝前的備份還在：{saved}，需要的話自己合併回去")
+    return lines
+
+
+def apply(data, state, paths=None, wanted=None, agents=None, take_over=False, skillshare_config=SKILLSHARE_CONFIG):
+    """接上 profile，回傳要印給使用者看的訊息。take_over：第一次接上（install），可以接手並備份原本的規則。"""
+    paths = paths or RULES
     name, fallback = resolve(data, state, wanted)
-    # 名稱確認存在就記下：Codex 那邊中途失敗的話，下次（例如 git hook）會用同一個 profile 重試，
-    # 不會讓 Claude Code 退回 default
     if wanted:
         write(state / "profile.json", json.dumps({"profile": name}, ensure_ascii=False) + "\n")
-    connect_claude(claude_md, claude_block(data, name))
-    source = state / "rules"
-    write(source / "AGENTS.md", compose(data, name))
-    targets = ["Claude Code"]
-    if codex or codex_connected(config):
-        connect_codex(source, config, exe, codex_dir)
-        targets.append("Codex")
-    lines = [f"已套用 profile：{name}（{'、'.join(targets)}，開新的 session 才生效）"]
+    agents = agents if agents is not None else connected(state, paths, skillshare_config)
+    content = compose(data, name)
+    # 給 uninstall.ps1 比對 ~/.codex/AGENTS.md 是不是 OmniKit 的副本
+    write(state / "rules" / "AGENTS.md", content)
+    done, notes = [], []
+    if "claude-code" in agents:
+        connect_claude(paths["claude-code"], claude_block(data, name))
+        done.append(NAMES["claude-code"])
+    if "codex" in agents:
+        legacy = skillshare_config.exists() and CODEX_EXTRA.search(text(skillshare_config)) is not None
+        status, saved = connect_codex(paths["codex"], content, take_over, legacy)
+        done.append(NAMES["codex"]) if status != "skipped" else notes.append(
+            f"{paths['codex']} 不是 OmniKit 產生的，沒有覆蓋；要接上請重跑 install.ps1")
+        if saved:
+            notes.append(f"已備份原本的 Codex 規則：{saved}")
+    if "antigravity" in agents:
+        status, saved = connect_gemini(paths["antigravity"], content, take_over)
+        done.append(NAMES["antigravity"]) if status != "skipped" else notes.append(
+            f"{paths['antigravity']} 的 OmniKit 區塊被拿掉了，沒有加回去；要接上請重跑 install.ps1")
+        if saved:
+            notes.append(f"已備份原本的 Antigravity 規則：{saved}")
+    lines = [f"已套用 profile：{name}（{'、'.join(done) or '沒有 agent'}，開新的 session 才生效）", *notes]
     if fallback:
         lines.append(fallback_notice(data))
     return lines
@@ -190,82 +282,101 @@ def selftest():
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         data, state = tmp / "data", tmp / "state"
-        claude_md, config = tmp / "claude" / "CLAUDE.md", tmp / "skillshare.yaml"
-        codex_dir, calls = tmp / "codex", tmp / "calls.txt"
-        exe = [str(tmp / "missing-skillshare.exe")]
+        paths = {"claude-code": tmp / "home" / ".claude" / "CLAUDE.md",
+                 "codex": tmp / "home" / ".codex" / "AGENTS.md",
+                 "antigravity": tmp / "home" / ".gemini" / "GEMINI.md"}
+        legacy_config = tmp / "skillshare.yaml"
         write(data / "rules" / "baseline.md", "# 底線\r\n\r\n不碰金鑰\r\n")
         write(data / "profiles" / "default" / "AGENTS.md", "# default\n保守\n")
         write(data / "profiles" / "x" / "AGENTS.md", "# x\n放手\n")
         write(data / "profiles" / "empty" / "notes.md", "沒有 AGENTS.md 的資料夾不算 profile\n")
-        old_block = "<!-- omnikit:rules:begin -->\n@C:/old/data/rules/AGENTS.md\n<!-- omnikit:rules:end -->"
-        write(claude_md, old_block + "\r\n# 我自己的規則\r\nkeep\r\n")
+        old_block = f"{BEGIN}\n@C:/old/data/rules/AGENTS.md\n{END}"
+        write(paths["claude-code"], old_block + "\r\n# 我自己的規則\r\nkeep\r\n")
+        write(paths["codex"], "# 我原本的 Codex 規則\n")
+        write(paths["antigravity"], "# 我原本的 Antigravity 規則\n")
+        shared = tmp / "home" / ".dsh" / "AGENTS.md"
+        shared.parent.mkdir(parents=True)
+        os.link(paths["antigravity"], shared)
 
         def run(**kw):
-            return apply(data, state, claude_md, config, exe, codex_dir, **kw)
+            kw.setdefault("paths", paths)
+            kw.setdefault("skillshare_config", legacy_config)
+            return apply(data, state, **kw)
 
         check("可選的 profile 只算有 AGENTS.md 的資料夾", available(data) == ["default", "x"])
         check("沒選過：用 default 並標記為預設", resolve(data, state) == ("default", True))
+        check("沒有記錄也沒有舊安裝：只接 Claude Code", connected(state, paths, legacy_config) == ["claude-code"])
 
-        lines = run()
-        md = text(claude_md)
+        all3 = ["claude-code", "codex", "antigravity"]
+        lines = run(agents=all3, take_over=True)
+        md = text(paths["claude-code"])
         check("沒選過：提醒還沒選 profile", any("還沒選 profile" in line for line in lines))
         check("沒選過：不記錄選擇", not (state / "profile.json").exists())
         check("Claude：舊的單一 import 換成底線與 profile 兩份",
-              "@C:/old" not in md and md.count("omnikit:rules:begin") == 1
-              and (data / "rules" / "baseline.md").resolve().as_posix() in md
+              "@C:/old" not in md and md.count(BEGIN) == 1
               and (data / "profiles" / "default" / "AGENTS.md").resolve().as_posix() in md)
         check("Claude：區塊以外的內容與 CRLF 不動", md.endswith("\r\n# 我自己的規則\r\nkeep\r\n"))
-        composed = text(state / "rules" / "AGENTS.md")
-        check("Codex：底線在前、profile 在後", composed.index("不碰金鑰") < composed.index("保守"))
-        check("Codex：換行統一成 LF", "\r" not in composed)
-        check("Codex 沒接上就不動 Codex", lines[0].startswith("已套用 profile：default（Claude Code，"))
+        codex = text(paths["codex"])
+        check("Codex：整份換成底線加 profile，第一行是產生標記",
+              is_ours(codex) and codex.index("不碰金鑰") < codex.index("保守") and "\r" not in codex)
+        check("Codex：原本的規則先備份", text(paths["codex"].with_name("AGENTS.md.pre-omnikit")) == "# 我原本的 Codex 規則\n")
+        gemini = text(paths["antigravity"])
+        check("Antigravity：受管區塊加在開頭，原本的內容保留",
+              gemini.startswith(BEGIN) and "不碰金鑰" in gemini and gemini.endswith("# 我原本的 Antigravity 規則\n"))
+        check("Antigravity：原地改寫，硬連結的其他名字一起更新",
+              os.path.samefile(paths["antigravity"], shared) and text(shared) == gemini)
+        check("Antigravity：原本的規則先備份",
+              text(paths["antigravity"].with_name("GEMINI.md.pre-omnikit")) == "# 我原本的 Antigravity 規則\n")
+        check("訊息列出三個 agent", lines[0].startswith("已套用 profile：default（Claude Code、Codex、Antigravity，"))
 
-        before = claude_md.read_bytes()
-        run()
-        check("重複執行：CLAUDE.md 不變", claude_md.read_bytes() == before)
+        before = {k: p.read_bytes() for k, p in paths.items()}
+        run(agents=all3)
+        check("重複執行：三份規則都不變", all(p.read_bytes() == before[k] for k, p in paths.items()))
 
-        run(wanted="x")
+        run(agents=all3, wanted="x")
         check("--set：記下選擇", chosen(state) == "x")
-        check("--set：Claude 改 import x", "/profiles/x/AGENTS.md" in text(claude_md))
-        check("--set：Codex 規則換成 x", "放手" in text(state / "rules" / "AGENTS.md"))
-        check("選過之後：不再提醒", not any("還沒選" in line for line in run()))
+        check("--set：三邊都換成 x", "/profiles/x/AGENTS.md" in text(paths["claude-code"])
+              and "放手" in text(paths["codex"]) and "放手" in text(paths["antigravity"]) and "放手" in text(shared))
+        check("--set：不會多出第二份備份", not list(paths["codex"].parent.glob("AGENTS.md.pre-omnikit-*")))
+        check("選過之後：不再提醒", not any("還沒選" in line for line in run(agents=all3)))
+
+        write(paths["codex"], "# 使用者自己換掉的\n")
+        lines = run(agents=all3)
+        check("同步時：被手動換掉的 Codex 規則不覆蓋", text(paths["codex"]) == "# 使用者自己換掉的\n"
+              and any("不是 OmniKit 產生的" in line for line in lines))
+        write_in_place(paths["antigravity"], "# 使用者拿掉了區塊\n")
+        lines = run(agents=all3)
+        check("同步時：被拿掉的 Antigravity 區塊不加回去", text(paths["antigravity"]) == "# 使用者拿掉了區塊\n"
+              and any("區塊被拿掉了" in line for line in lines))
+
+        write(state / "agents.json", json.dumps({"agents": ["claude-code", "antigravity"]}))
+        check("有記錄：照記錄接", connected(state, paths, legacy_config) == ["claude-code", "antigravity"])
+        (state / "agents.json").unlink()
+        write(legacy_config, "extras:\n  - name: rules-codex\n")
+        check("舊版 skillshare 安裝：推斷 Codex 有接上", connected(state, paths, legacy_config) == ["claude-code", "codex"])
+        lines = run(agents=["codex"])
+        check("舊版 skillshare 管的 Codex 規則：直接接手，不另外備份", is_ours(text(paths["codex"]))
+              and not list(paths["codex"].parent.glob("AGENTS.md.pre-omnikit-*")))
 
         check("不存在的 profile 失敗", fails(lambda: run(wanted="nope")))
         check("名稱格式不對失敗", fails(lambda: run(wanted="Bad_Name")))
         check("失敗時不改記錄", chosen(state) == "x")
-
         (data / "profiles" / "x" / "AGENTS.md").unlink()
         check("選過的 profile 被刪掉：失敗，不悄悄換回 default", fails(lambda: run()))
 
-        write(data / "profiles" / "x" / "AGENTS.md", "# x\n放手\n")
-        write(config, "extras:\n  - name: rules-codex\n    source: C:\\old\\data\\rules\n")
-        check("Codex 已接上但找不到 skillshare：失敗", fails(lambda: run(wanted="default")))
-        check("Codex 失敗時仍記下選擇，下次用同一個重試", chosen(state) == "default")
-
-        # 假的 skillshare：記下參數；extras init 改寫設定檔的來源，sync extras 把來源複製到 Codex
-        fake = tmp / "fake_skillshare.py"
-        write(fake, (
-            "import shutil, sys\nfrom pathlib import Path\n"
-            f"Path(r'{calls}').open('a', encoding='utf-8').write(' '.join(sys.argv[1:3]) + '\\n')\n"
-            "a = sys.argv[1:]\n"
-            "if a[:2] == ['extras', 'init']:\n"
-            f"    Path(r'{config}').write_text('extras:\\n  - name: rules-codex\\n    source: ' + a[a.index('--source') + 1] + '\\n', encoding='utf-8')\n"
-            "if a[:2] == ['sync', 'extras']:\n"
-            f"    Path(r'{codex_dir}').mkdir(exist_ok=True)\n"
-            f"    shutil.copy(Path(r'{state}') / 'rules' / 'AGENTS.md', Path(r'{codex_dir}') / 'AGENTS.md')\n"
-        ))
-        exe[:] = [sys.executable, str(fake)]
-        lines = run(wanted="x")
-        check("Codex 已接上：舊來源改指到組合好的規則", f"source: {state / 'rules'}" in text(config))
-        check("Codex：同步後內容是 x", "放手" in text(codex_dir / "AGENTS.md"))
-        check("Codex：訊息列出兩邊", "Claude Code、Codex" in lines[0])
-        run()
-        check("Codex：來源已正確就不重設，只同步",
-              text(calls).splitlines() == ["extras init", "sync extras", "sync extras"])
-
-        fresh = tmp / "new" / "CLAUDE.md"
-        connect_claude(fresh, claude_block(data, "default"))
-        check("沒有 CLAUDE.md：建立只有受管區塊的檔案", text(fresh).startswith("<!-- omnikit:rules:begin -->"))
+        gem = tmp / "g" / "GEMINI.md"
+        write(gem, "# 原本\n")
+        link = tmp / "g" / "AGENTS.md"
+        os.link(gem, link)
+        connect_gemini(gem, compose(data, "default"), take_over=True)
+        lines = disconnect_gemini(gem)
+        check("移除 Antigravity 區塊：還原成原本的內容，硬連結還在",
+              text(gem) == "# 原本\n" and os.path.samefile(gem, link) and any("已拿掉" in line for line in lines))
+        check("移除後跟備份一樣：多餘的備份刪掉", not gem.with_name("GEMINI.md.pre-omnikit").exists())
+        fresh = tmp / "f" / "GEMINI.md"
+        connect_gemini(fresh, compose(data, "default"), take_over=True)
+        disconnect_gemini(fresh)
+        check("OmniKit 建的 GEMINI.md：移除時整個刪掉", not fresh.exists())
 
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0
@@ -274,7 +385,6 @@ def selftest():
 def main():
     parser = argparse.ArgumentParser(description="選擇並接上 OmniKit profile")
     parser.add_argument("--set", dest="wanted", metavar="名稱", help="換成這個 profile 並記下來")
-    parser.add_argument("--codex", action="store_true", help="Codex 還沒接上也要接（install.ps1 用）")
     parser.add_argument("--show", action="store_true", help="只印出目前的 profile 名稱，不改任何東西")
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args()
@@ -284,7 +394,7 @@ def main():
         # 只印名稱：install.ps1 會接住 stdout；PowerShell 5.1 轉向 stderr 會出錯，所以不印提醒
         print(resolve(DATA, STATE)[0])
         return 0
-    for line in apply(DATA, STATE, CLAUDE_MD, SKILLSHARE_CONFIG, [str(SKILLSHARE)], CODEX_DIR, args.wanted, args.codex):
+    for line in apply(DATA, STATE, wanted=args.wanted):
         print(line)
     return 0
 

@@ -254,8 +254,7 @@ def write_profile(folder, files):
 
 
 def apply_real(name):
-    return profiles.apply(profiles.DATA, profiles.STATE, profiles.CLAUDE_MD, profiles.SKILLSHARE_CONFIG,
-                          [str(profiles.SKILLSHARE)], profiles.CODEX_DIR, wanted=name)
+    return profiles.apply(profiles.DATA, profiles.STATE, wanted=name)
 
 
 def run(answers_path, data, write=False, apply=False, force=False, apply_fn=apply_real, today=None):
@@ -393,10 +392,12 @@ def selftest():
               and "When unsure, check first" in rules)
 
         state, claude_md = tmp / "state", tmp / "claude" / "CLAUDE.md"
+        rule_paths = {"claude-code": claude_md, "codex": tmp / "codex" / "AGENTS.md",
+                      "antigravity": tmp / "gemini" / "GEMINI.md"}
 
         def apply_fn(name):
-            return profiles.apply(data, state, claude_md, tmp / "none.yaml", [str(tmp / "none.exe")], tmp / "codex",
-                                  wanted=name)
+            return profiles.apply(data, state, rule_paths, wanted=name, agents=["claude-code"],
+                                  skillshare_config=tmp / "none.yaml")
 
         code, out = quiet(answers_file("erin"), data, write=True, apply=True, apply_fn=apply_fn)
         check("--apply：寫完直接套用", code == 0 and profiles.chosen(state) == "erin"

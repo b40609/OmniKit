@@ -1,26 +1,31 @@
 ﻿<#
 OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 
-1. 安裝固定版本的 skillshare、uv、gh 與 gitleaks：從 GitHub release 下載 zip，比對寫死的
-   SHA256 後解壓；不改 PATH。這台已經有 uv 或 gh 就沿用。skillshare 會先試跑一次：
-   公司電腦的防毒可能擋下它，被擋就停下來，說明怎麼放行。
+接上的 agent 是偵測到的 Claude Code、Codex 與 Antigravity。全部由 OmniKit 自己的 Python 腳本接，
+不經過 skillshare：公司電腦的防毒會擋下 skillshare（允許的通知要剛好盯著畫面才按得到）。
+
+1. 安裝固定版本的 uv、gh 與 gitleaks：從 GitHub release 下載 zip，比對寫死的 SHA256 後解壓；
+   不改 PATH。這台已經有 uv 或 gh 就沿用。
 2. fork 出來的 repo：把 data/omnikit.yaml 的 repo、owner、marketplace 改成 origin 指向的
    GitHub repo、profile 改回 default，並重新產生 marketplace 清單，避免跟原作者的 marketplace 撞名。
-3. 第一次執行時初始化 skillshare，target 是 Claude Code 與 Codex。
-4. 規則 = 安全底線（data/rules/baseline.md）+ profile（data/profiles/<名稱>/AGENTS.md），
-   由 profiles.py 接到兩邊：Claude 用 import，Codex 用複製（第一次接上時，原本的
-   ~/.codex/AGENTS.md 先備份）。沒指定也沒選過 profile 就用 default（下載、安裝前會先問）。
-   engine/skills 裡的 skills 也連進 skillshare，同步到兩邊。
-5. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本），
-   再把 data/mcp/servers.yaml 設成 skillshare 的 MCP 來源，同步到兩邊。
-6. 把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的使用者設定（只增不刪），
+3. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本）。
+4. agents.py connect：
+   - 規則 = 安全底線（data/rules/baseline.md）+ profile（data/profiles/<名稱>/AGENTS.md）。
+     Claude 在 ~/.claude/CLAUDE.md 用受管區塊 import；Codex 整份換掉 ~/.codex/AGENTS.md；
+     Antigravity 在 ~/.gemini/GEMINI.md 加受管區塊（原地改寫，硬連結不會斷）。Codex 與 Antigravity
+     原本的規則先備份成 .pre-omnikit。沒指定也沒選過 profile 就用 default（下載、安裝前會先問）。
+   - skills：engine/skills 連到 ~/.claude/skills；複製到 ~/.agents/skills 給 Codex 與 Antigravity。
+   - MCP：data/mcp/servers.yaml 寫進三邊的設定，不動其他設定。
+   - 舊版用 skillshare 接的，改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分（skillshare 本身不刪）。
+5. 把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的使用者設定（只增不刪），
    並在 Claude Code 與 Codex 註冊開新對話提醒的 Stop hook（session_nudge.py）；
    Codex 要使用者在 /hooks 信任後才會執行。
-7. 設定 git hook：commit 前驗證名冊；commit 或 pull 動到規則、MCP 或權限規則時，自動同步。
-8. 檢查 OmniKit repo 的 git 身分。
+6. 設定 git hook：commit 前驗證名冊；commit 或 pull 動到規則、skills、MCP 或權限規則時，自動同步。
+7. 檢查 OmniKit repo 的 git 身分。
 
 這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，會記在
-%LOCALAPPDATA%\omnikit\install-record.json；uninstall.ps1 只移除這些。
+%LOCALAPPDATA%\omnikit\install-record.json；接上了哪些 agent、管了哪些 skills 與 MCP，記在
+%LOCALAPPDATA%\omnikit\agents.json。uninstall.ps1 只移除這些。
 
 裝好之後，開新 session 說「幫我設定 OmniKit」，omnikit-setup 會用簡短訪談建立自己的 profile。
 
@@ -28,7 +33,7 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
   -ProfileName <名稱>  用 data/profiles/<名稱> 的個人規則，並記下來；之後重跑不用再指定。
   -Fresh               這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
                        備份後移除，避免新舊規則同時生效。
-  -WhatIf              預覽：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不執行 skillshare）。
+  -WhatIf              預覽：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不寫檔）。
 
 用法（Windows PowerShell 5.1 或 PowerShell 7）：
   powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Fresh] [-WhatIf]
@@ -40,11 +45,6 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 # 固定版本：升級時連同 SHA256 一起改，來源是各版 release 公布的 checksum
-$SkillshareVersion = '0.28.2'
-$SkillshareSha256 = @{
-  amd64 = '91496399264347d29ca92689195864803e69ede0fe5166b302639f2ac4ed31bb'
-  arm64 = '83c4e1762f0cdba84c8aa715e805d9fabf39f6f72c6556b277438d5345405432'
-}
 $UvVersion = '0.13.7'
 $UvSha256 = @{
   amd64 = '0cdc5b38fe5a8168ed6a25814f5ba43c21d313dd3187314fccb37b7cec46e021'
@@ -63,9 +63,8 @@ $GitleaksSha256 = @{
 
 $Repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $ProfilesPy = Join-Path $Repo 'engine\scripts\profiles.py'
+$AgentsPy = Join-Path $Repo 'engine\scripts\agents.py'
 $Arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
-$BinDir = Join-Path $env:LOCALAPPDATA 'Programs\skillshare'
-$Exe = Join-Path $BinDir 'skillshare.exe'
 $UvDir = Join-Path $env:LOCALAPPDATA 'Programs\uv'
 $UvExe = Join-Path $UvDir 'uv.exe'
 $GhDir = Join-Path $env:LOCALAPPDATA 'Programs\gh'
@@ -74,19 +73,35 @@ $GitleaksDir = Join-Path $env:LOCALAPPDATA 'Programs\gitleaks'
 $GitleaksExe = Join-Path $GitleaksDir 'gitleaks.exe'
 $ClaudeMd = Join-Path $env:USERPROFILE '.claude\CLAUDE.md'
 $CodexMd = Join-Path $env:USERPROFILE '.codex\AGENTS.md'
+$GeminiMd = Join-Path $env:USERPROFILE '.gemini\GEMINI.md'
+$AgentsFile = Join-Path $env:LOCALAPPDATA 'omnikit\agents.json'
 $RecordFile = Join-Path $env:LOCALAPPDATA 'omnikit\install-record.json'
+$SkillshareConfig = Join-Path $env:APPDATA 'skillshare\config.yaml'
 $BlockPattern = '(?s)<!-- omnikit:rules:begin -->.*?<!-- omnikit:rules:end -->'
-
-function Invoke-Skillshare {
-  & $Exe @args
-  if ($LASTEXITCODE -ne 0) { throw "skillshare $($args -join ' ') 失敗（exit $LASTEXITCODE）" }
-}
+$OursHeader = '<!-- 由 OmniKit 產生，不要手改：'
+$AgentNames = [ordered]@{ 'claude-code' = 'Claude Code'; 'codex' = 'Codex'; 'antigravity' = 'Antigravity' }
 
 # 優先用 PATH 上的 uv，沒有就用 Install-Uv 裝的那一份
 function Get-Uv {
   $onPath = (Get-Command uv -ErrorAction SilentlyContinue).Source
   if ($onPath) { return $onPath }
   return $UvExe
+}
+
+function Get-FileText($path) { if (Test-Path $path) { [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8) } else { '' } }
+
+# 跟 agents.py 的 detect 一樣：看設定資料夾或 PATH 上的指令
+function Get-Agents {
+  $has = { param($dirs, $commands)
+    foreach ($d in $dirs) { if (Test-Path (Join-Path $env:USERPROFILE $d)) { return $true } }
+    foreach ($c in $commands) { if (Get-Command $c -ErrorAction SilentlyContinue) { return $true } }
+    return $false
+  }
+  $found = @()
+  if (& $has @('.claude') @('claude')) { $found += 'claude-code' }
+  if (& $has @('.codex') @('codex')) { $found += 'codex' }
+  if (& $has @('.gemini\config', '.gemini\antigravity') @('agy', 'antigravity')) { $found += 'antigravity' }
+  return $found
 }
 
 # 備份成 <檔名>.pre-omnikit；已經有同名備份就加上時間
@@ -133,52 +148,7 @@ function Install-PinnedZip($url, $sha256, $exeNames, $dest) {
   }
 }
 
-# 公司電腦的防毒可能擋下 skillshare.exe：Trend Micro 的「新出現的程式」偵測，對從網路下載、
-# 很少人用或剛發布的程式，執行前要使用者按允許，沒人按就擋下；而且可能第一次能跑、之後才開始擋。
-# 被擋時後面每一步都會失敗，所以先試跑一次，跑不動就停下來說明怎麼放行。
-# 用 .NET 直接啟動：PowerShell 7 用 & 啟動失敗時，回報的是不相干的 StandardOutputEncoding 錯誤，看不出被擋。
-# 回傳 --version 的輸出；檔案不存在時回傳 $null
-function Test-Skillshare {
-  if (-not (Test-Path $Exe)) { return $null }
-  $psi = New-Object System.Diagnostics.ProcessStartInfo
-  $psi.FileName = $Exe
-  $psi.Arguments = '--version'
-  $psi.UseShellExecute = $false
-  $psi.RedirectStandardOutput = $true
-  $psi.CreateNoWindow = $true
-  try {
-    $p = [System.Diagnostics.Process]::Start($psi)
-    $out = $p.StandardOutput.ReadToEnd()
-    $p.WaitForExit()
-    if ($p.ExitCode -eq 0) { return $out.Trim() }
-    $reason = "exit $($p.ExitCode)"
-  } catch {
-    $e = $_.Exception
-    while ($e.InnerException) { $e = $e.InnerException }
-    $reason = $e.Message.Trim()
-  }
-  $hash = try { (Get-FileHash -Algorithm SHA256 $Exe).Hash } catch { '（讀不到）' }
-  Write-Host ''
-  Write-Host "skillshare 無法執行：$reason" -ForegroundColor Red
-  Write-Host "公司電腦的防毒（例如 Trend Micro）可能擋下了 $Exe"
-  Write-Host '  - 有跳出防毒的通知：選允許，再重跑 install.ps1。'
-  Write-Host "  - 沒有通知可按，或允許後又被擋：請 IT 把這個檔案加進例外（SHA256：$hash），再重跑 install.ps1。"
-  Write-Host '  說明見 README 常見問題：「公司電腦執行 skillshare 時「存取被拒」？」'
-  exit 1
-}
-
-function Install-Skillshare {
-  if ((Test-Skillshare) -match [regex]::Escape($SkillshareVersion)) {
-    Write-Host "skillshare $SkillshareVersion 已安裝：$Exe"
-    return
-  }
-  $url = "https://github.com/runkids/skillshare/releases/download/v$SkillshareVersion/skillshare_${SkillshareVersion}_windows_$Arch.zip"
-  Install-PinnedZip $url $SkillshareSha256[$Arch] @('skillshare.exe') $BinDir
-  Test-Skillshare | Out-Null
-  Write-Host "已安裝 skillshare $SkillshareVersion：$Exe"
-}
-
-# 名冊驗證等 Python 腳本用 uv 執行
+# 名冊驗證、接上 agent 等 Python 腳本用 uv 執行
 function Install-Uv {
   $onPath = Get-Command uv -ErrorAction SilentlyContinue
   if ($onPath) {
@@ -247,55 +217,6 @@ function Sync-RepoConfig {
   Write-Host "已把 data/omnikit.yaml 與 marketplace 清單改成 $owner/$name，記得 commit"
 }
 
-function Initialize-Skillshare {
-  $dir = Join-Path $env:APPDATA 'skillshare'
-  if (-not (Test-Path (Join-Path $dir 'config.yaml'))) {
-    $existed = Test-Path $dir
-    Invoke-Skillshare init --no-copy --no-git --no-skill --targets claude,codex --no-tui
-    if (-not $existed) { Add-InstallRecord paths $dir }
-  }
-  # 設定檔已存在時 init 不會重跑；舊設定缺 target（曾發生少了 codex）就在這裡補上
-  $have = (& $Exe target list --json | ConvertFrom-Json).targets.name
-  if ($LASTEXITCODE -ne 0) { throw "skillshare target list 失敗（exit $LASTEXITCODE）" }
-  $want = [ordered]@{ claude = '.claude\skills'; codex = '.agents\skills' }
-  foreach ($name in $want.Keys) {
-    if ($name -notin $have) {
-      Invoke-Skillshare target add $name (Join-Path $env:USERPROFILE $want[$name])
-      Write-Host "已補上 skillshare target：$name"
-    }
-  }
-}
-
-# 規則由 profiles.py 接上（git hook 也用它）：Claude 的受管區塊 import 底線與 profile 兩份；
-# Codex 不支援 import，接成一份 %LOCALAPPDATA%\omnikit\rules\AGENTS.md，再由 skillshare 複製。
-# 第一次接上 Codex 時（skillshare 還沒有 rules-codex），原本的 ~/.codex/AGENTS.md 先備份
-function Connect-Rules {
-  $config = Join-Path $env:APPDATA 'skillshare\config.yaml'
-  $managed = [IO.File]::ReadAllText($config, [Text.Encoding]::UTF8) -match '(?m)^\s*- name: rules-codex\s*$'
-  if (-not $managed -and (Test-Path $CodexMd)) {
-    Write-Host "已備份原本的 Codex 規則：$(Backup-File $CodexMd)"
-  }
-  $profileArgs = if ($ProfileName) { @('--set', $ProfileName) } else { @() }
-  & (Get-Uv) run --quiet $ProfilesPy --codex @profileArgs
-  if ($LASTEXITCODE -ne 0) { throw "profiles.py 失敗（exit $LASTEXITCODE）" }
-}
-
-# OmniKit 自己的 skills（engine/skills）連進 skillshare 的來源，再同步到兩邊；
-# 目標資料夾用 SKILL.md 的 name（target_naming: standard），符合 Agent Skills 規格
-function Connect-Skills {
-  $config = Join-Path $env:APPDATA 'skillshare\config.yaml'
-  $text = [IO.File]::ReadAllText($config, [Text.Encoding]::UTF8)
-  if ($text -notmatch '(?m)^target_naming: standard\s*$') {
-    if ($text -match '(?m)^target_naming: .*$') { $text = [regex]::Replace($text, '(?m)^target_naming: .*$', 'target_naming: standard') }
-    else { $text = $text.TrimEnd() + "`ntarget_naming: standard`n" }
-    [IO.File]::WriteAllText($config, $text, (New-Object Text.UTF8Encoding($false)))
-  }
-  if (-not (Test-Path (Join-Path $env:APPDATA 'skillshare\skills\_omnikit'))) {
-    Invoke-Skillshare link (Join-Path $Repo 'engine\skills') --name _omnikit --enable
-  }
-  Invoke-Skillshare sync
-}
-
 # MCP server 用到的 npm 套件，全域安裝 packages.txt 指定的版本；已經是那個版本就略過
 function Install-McpPackages {
   $specs = @(Get-Content -Encoding UTF8 (Join-Path $Repo 'data\mcp\packages.txt') |
@@ -320,15 +241,11 @@ function Install-McpPackages {
   Write-Host "已安裝 MCP 套件：$($missing -join ', ')"
 }
 
-# skillshare 沒有設定指令，直接在 config.yaml 的 sources 補上 mcp；sync 會合併寫入，不覆蓋兩邊的其他設定
-function Connect-Mcp {
-  $config = Join-Path $env:APPDATA 'skillshare\config.yaml'
-  $line = '  mcp: ' + (Join-Path $Repo 'data\mcp\servers.yaml')
-  $text = [IO.File]::ReadAllText($config, [Text.Encoding]::UTF8)
-  if ($text -match '(?m)^  mcp: .*$') { $text = [regex]::Replace($text, '(?m)^  mcp: .*$', { $line }) }
-  else { $text = ([regex]'(?m)^sources:\r?\n').Replace($text, { param($m) $m.Value + $line + "`n" }, 1) }
-  [IO.File]::WriteAllText($config, $text, (New-Object Text.UTF8Encoding($false)))
-  Invoke-Skillshare sync mcp --no-tui
+# 規則、skills、MCP 都交給 agents.py（git hook 也用它同步）
+function Connect-Agents {
+  $profileArgs = if ($ProfileName) { @('--profile', $ProfileName) } else { @() }
+  & (Get-Uv) run --quiet $AgentsPy connect @profileArgs
+  if ($LASTEXITCODE -ne 0) { throw "agents.py connect 失敗（exit $LASTEXITCODE）" }
 }
 
 # Claude Code 免問的權限規則；JSON 交給 Python 改，PowerShell 5.1 的 ConvertTo-Json 會改掉原本的格式
@@ -366,11 +283,10 @@ function Test-GitIdentity {
   }
 }
 
-# -WhatIf：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不執行 skillshare）
+# -WhatIf：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不寫檔）
 function Show-InstallPlan {
   $plan = @()
   $tools = @(
-    @{ Name = 'skillshare'; Version = $SkillshareVersion; Path = $Exe; Command = $null },
     @{ Name = 'uv'; Version = $UvVersion; Path = $UvExe; Command = 'uv' },
     @{ Name = 'gh'; Version = $GhVersion; Path = $GhExe; Command = 'gh' },
     @{ Name = 'gitleaks'; Version = $GitleaksVersion; Path = $GitleaksExe; Command = $null }
@@ -381,49 +297,77 @@ function Show-InstallPlan {
       $plan += "下載 $($t.Name) $($t.Version)，比對 SHA256 後放到 $(Split-Path $t.Path)（不改 PATH）"
     }
   }
-  if (-not (Test-Path $Exe)) { $plan += '  skillshare 裝好先試跑一次；被公司電腦的防毒擋下就停在這裡，說明怎麼放行' }
 
   $url = git -C $Repo remote get-url origin
   $config = [IO.File]::ReadAllText((Join-Path $Repo 'data\omnikit.yaml'), [Text.Encoding]::UTF8)
   if ($url -match 'github\.com[:/]([^/]+)/([^/]+?)(\.git)?/?$' -and $config -notmatch "(?m)^repo: $([regex]::Escape("$($Matches[1])/$($Matches[2])"))\s*$") {
     $plan += "data/omnikit.yaml 改成 $($Matches[1])/$($Matches[2])、看板用的 profile 改回 default，重新產生 marketplace 清單"
   }
+  $packages = @(Get-Content -Encoding UTF8 (Join-Path $Repo 'data\mcp\packages.txt') |
+    ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+  if ($packages) { $plan += "npm 全域套件（沒裝或版本不同才裝）：$($packages -join '、')" }
 
-  $ssConfig = Join-Path $env:APPDATA 'skillshare\config.yaml'
-  if (-not (Test-Path $ssConfig)) { $plan += '初始化 skillshare（設定在 %APPDATA%\skillshare），同步目標是 Claude Code 與 Codex' }
-
+  $agents = @(Get-Agents)
+  if (-not $agents) {
+    $plan += '找不到 Claude Code、Codex 或 Antigravity，安裝會在接上 agent 這一步失敗'
+  } else {
+    $plan += "接上偵測到的 agent：$(($agents | ForEach-Object { $AgentNames[$_] }) -join '、')"
+  }
   $stateFile = Join-Path $env:LOCALAPPDATA 'omnikit\profile.json'
   $chosen = if (Test-Path $stateFile) { try { ([IO.File]::ReadAllText($stateFile) | ConvertFrom-Json).profile } catch { $null } }
   $name = if ($ProfileName) { $ProfileName } elseif ($chosen) { $chosen } else { 'default' }
   $note = if ($ProfileName -or $chosen) { '' } else { '（還沒選過，用預設：下載、安裝前會先問）' }
-  $plan += "規則：安全底線 + profile「$name」$note"
+  $plan += "  規則：安全底線 + profile「$name」$note"
   if (-not (Test-Path (Join-Path $Repo "data\profiles\$name\AGENTS.md"))) {
     $plan += "  找不到 data/profiles/$name/AGENTS.md，安裝會在這一步失敗"
   }
-  $hasBlock = (Test-Path $ClaudeMd) -and ([IO.File]::ReadAllText($ClaudeMd, [Text.Encoding]::UTF8) -match $BlockPattern)
-  $plan += "  ~/.claude/CLAUDE.md：$(if ($hasBlock) { '更新' } else { '在開頭加上' })受管區塊，import 底線與 profile；其他內容不動"
-  $codexManaged = (Test-Path $ssConfig) -and ([IO.File]::ReadAllText($ssConfig, [Text.Encoding]::UTF8) -match '(?m)^\s*- name: rules-codex\s*$')
-  if (-not $codexManaged -and (Test-Path $CodexMd)) {
-    $plan += '  ~/.codex/AGENTS.md：先備份成 AGENTS.md.pre-omnikit，再換成底線與 profile 接在一起的副本'
-  } else {
-    $plan += '  ~/.codex/AGENTS.md：換成底線與 profile 接在一起的副本'
+  if ($agents -contains 'claude-code') {
+    $verb = if ((Get-FileText $ClaudeMd) -match $BlockPattern) { '更新' } else { '在開頭加上' }
+    $plan += "  ~/.claude/CLAUDE.md：$($verb)受管區塊，import 底線與 profile；其他內容不動"
+  }
+  if ($agents -contains 'codex') {
+    $legacy = (Get-FileText $SkillshareConfig) -match '(?m)^\s*- name: rules-codex\s*$'
+    $ours = (Get-FileText $CodexMd).TrimStart().StartsWith($OursHeader) -or $legacy
+    if ((Test-Path $CodexMd) -and -not $ours) {
+      $plan += '  ~/.codex/AGENTS.md：先備份成 AGENTS.md.pre-omnikit，再換成底線與 profile 接在一起的內容'
+    } else {
+      $plan += '  ~/.codex/AGENTS.md：換成底線與 profile 接在一起的內容'
+    }
+  }
+  if ($agents -contains 'antigravity') {
+    $gemini = Get-FileText $GeminiMd
+    if ($gemini -match $BlockPattern) {
+      $plan += '  ~/.gemini/GEMINI.md：更新受管區塊；其他內容不動'
+    } elseif ($gemini.Trim()) {
+      $plan += '  ~/.gemini/GEMINI.md：先備份成 GEMINI.md.pre-omnikit，在開頭加上受管區塊（原地改寫，硬連結到同一個檔案的其他名字會一起更新）'
+    } else {
+      $plan += '  ~/.gemini/GEMINI.md：建立，內容是底線與 profile'
+    }
   }
   if ($Fresh) { $plan += '  ~/.claude/CLAUDE.md：受管區塊以外的舊規則先備份成 CLAUDE.md.pre-omnikit，再移除' }
 
-  $skills = (Get-ChildItem -Directory (Join-Path $Repo 'engine\skills')).Name -join '、'
-  $plan += "skills：把 $skills 同步到 ~/.claude/skills 與 ~/.agents/skills"
-  $packages = @(Get-Content -Encoding UTF8 (Join-Path $Repo 'data\mcp\packages.txt') |
-    ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
-  if ($packages) { $plan += "npm 全域套件（沒裝或版本不同才裝）：$($packages -join '、')" }
-  $servers = [regex]::Matches([IO.File]::ReadAllText((Join-Path $Repo 'data\mcp\servers.yaml'), [Text.Encoding]::UTF8),
-    '(?m)^  ([A-Za-z0-9_-]+):\s*$') | ForEach-Object { $_.Groups[1].Value }
-  if ($servers) { $plan += "MCP：把 $($servers -join '、') 合併寫入 ~/.claude.json 與 ~/.codex/config.toml，不動其他設定" }
+  $skills = (Get-ChildItem -Directory (Join-Path $Repo 'engine\skills') | Where-Object { Test-Path (Join-Path $_.FullName 'SKILL.md') }).Name -join '、'
+  if ($agents -contains 'claude-code') { $plan += "  skills：$skills 連到 ~/.claude/skills" }
+  $shared = @($agents | Where-Object { $_ -in 'codex', 'antigravity' } | ForEach-Object { $AgentNames[$_] })
+  if ($shared) { $plan += "  skills：$skills 複製到 ~/.agents/skills（給 $($shared -join '、')）" }
+  $servers = [regex]::Matches((Get-FileText (Join-Path $Repo 'data\mcp\servers.yaml')), '(?m)^  ([A-Za-z0-9_-]+):\s*$') |
+    ForEach-Object { $_.Groups[1].Value }
+  $files = @{ 'claude-code' = '~/.claude.json'; 'codex' = '~/.codex/config.toml'; 'antigravity' = '~/.gemini/config/mcp_config.json' }
+  if ($servers -and $agents) {
+    $plan += "  MCP：$($servers -join '、') 寫進 $(($agents | ForEach-Object { $files[$_] }) -join '、')，不動其他設定"
+  }
+  $ssText = Get-FileText $SkillshareConfig
+  if ($ssText -match '(?m)^\s*- name: rules-codex\s*$' -or $ssText -match '(?m)^  mcp: .*servers\.yaml' -or
+      (Test-Path (Join-Path $env:APPDATA 'skillshare\skills\_omnikit'))) {
+    $plan += '  不再使用 skillshare：改由 OmniKit 接手，拿掉 skillshare 設定裡 OmniKit 的部分（skillshare 本身不刪）'
+  }
+
   $allow = @(Get-Content -Encoding UTF8 (Join-Path $Repo 'data\harness\claude-allow.txt') |
     ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
   if ($allow) { $plan += "~/.claude/settings.json：權限免問清單補上 $($allow -join '、')（只增不刪）" }
   $plan += '開新對話提醒：加進 ~/.claude/settings.json 與 ~/.codex/config.toml 的 Stop hook（Codex 要到 /hooks 信任才會跑）'
   if ((git -C $Repo config --get core.hooksPath) -ne '.githooks') {
-    $plan += '這個 repo 改用 .githooks：commit 前掃金鑰、驗證名冊；改到規則、MCP 等檔案時自動同步'
+    $plan += '這個 repo 改用 .githooks：commit 前掃金鑰、驗證名冊；改到規則、skills、MCP 等檔案時自動同步'
   }
 
   Write-Host '這是預覽，什麼都沒改。照這台目前的狀態，install.ps1 會：'
@@ -438,8 +382,9 @@ function Show-NextSteps {
   $text = [IO.File]::ReadAllText((Join-Path $Repo 'data\rules\baseline.md'), [Text.Encoding]::UTF8)
   $version = if ($text -match '規則版本：(\S+)') { $Matches[1] } else { 'data/rules/baseline.md 開頭的版本' }
   $name = & (Get-Uv) run --quiet $ProfilesPy --show
+  $connected = try { @(([IO.File]::ReadAllText($AgentsFile) | ConvertFrom-Json).agents | ForEach-Object { $AgentNames[$_] }) } catch { @() }
   Write-Host ''
-  Write-Host "OmniKit 已接上 Claude Code 與 Codex（profile：$name），開新的 session 才會生效："
+  Write-Host "OmniKit 已接上 $($connected -join '、')（profile：$name），開新的 session 才會生效："
   Write-Host "  - 問「OmniKit 規則版本與 profile 是什麼？」，應該回答 $version 與 $name"
   if ($name -eq 'default') {
     Write-Host '  - 建立自己的 profile：開新 session 說「幫我設定 OmniKit」（Claude Code 也可以輸入 /omnikit-setup，Codex 輸入 $omnikit-setup），回答幾題就好' -ForegroundColor Yellow
@@ -447,22 +392,18 @@ function Show-NextSteps {
     Write-Host '  - 重新設定 profile：開新 session 說「幫我設定 OmniKit」'
   }
   Write-Host '  - 換 profile：重跑 install.ps1 -ProfileName <名稱>，或 uv run engine/scripts/profiles.py --set <名稱>'
-  Write-Host '  - 評估新工具：Claude Code 輸入 /omnikit-eval，Codex 輸入 $omnikit-eval'
+  Write-Host '  - 評估新工具：說「幫我評估」加上 GitHub 連結（Claude Code 也可以輸入 /omnikit-eval，Codex 輸入 $omnikit-eval）'
   Write-Host '  - 預設 plugin 不會自動安裝；安裝方式與其他說明見 README 的「裝好之後」'
 }
 
 if ($WhatIf) { Show-InstallPlan; return }
 
-Install-Skillshare
 Install-Uv
 Install-Gh
 Install-Gitleaks
 Sync-RepoConfig
-Initialize-Skillshare
-Connect-Rules
-Connect-Skills
 Install-McpPackages
-Connect-Mcp
+Connect-Agents
 Grant-ClaudePermissions
 Register-CodexHook
 if ($Fresh) { Clear-OldClaudeRules }
