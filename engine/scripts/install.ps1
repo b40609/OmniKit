@@ -7,8 +7,9 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 3. 把 data/rules/AGENTS.md 接到兩邊：Claude 用 import，Codex 用複製，然後同步。
 4. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本），
    再把 data/mcp/servers.yaml 設成 skillshare 的 MCP 來源，同步到兩邊。
-5. 設定 git hook：commit 前驗證名冊；commit 或 pull 動到規則或 MCP 時，自動同步。
-6. 檢查 OmniKit repo 的 git 身分。
+5. 把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的使用者設定（只增不刪）。
+6. 設定 git hook：commit 前驗證名冊；commit 或 pull 動到規則、MCP 或權限規則時，自動同步。
+7. 檢查 OmniKit repo 的 git 身分。
 
 參數：
   -Fresh  這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
@@ -153,6 +154,14 @@ function Connect-Mcp {
   Invoke-Skillshare sync mcp --no-tui
 }
 
+# Claude Code 免問的權限規則；JSON 交給 Python 改，PowerShell 5.1 的 ConvertTo-Json 會改掉原本的格式
+function Grant-ClaudePermissions {
+  $uv = (Get-Command uv -ErrorAction SilentlyContinue).Source
+  if (-not $uv) { $uv = $UvExe }
+  & $uv run --quiet (Join-Path $Repo 'engine\scripts\claude_allow.py')
+  if ($LASTEXITCODE -ne 0) { throw "claude_allow.py 失敗（exit $LASTEXITCODE）" }
+}
+
 # 只留下 OmniKit 的受管區塊；舊內容先備份
 function Clear-OldClaudeRules {
   $text = [IO.File]::ReadAllText($ClaudeMd, [Text.Encoding]::UTF8)
@@ -184,6 +193,7 @@ Connect-ClaudeRules
 Connect-CodexRules
 Install-McpPackages
 Connect-Mcp
+Grant-ClaudePermissions
 if ($Fresh) { Clear-OldClaudeRules }
 Enable-GitHooks
 Test-GitIdentity
