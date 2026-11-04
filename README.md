@@ -264,6 +264,7 @@ uv run engine/scripts/profiles.py --set <名稱>    # 換成 data/profiles/<名�
 每週彙整的最後一節，會列出這台電腦 30 天沒用到的 skill 與 plugin，建議移除；名冊上還是預設或試用中的，也會點出來。
 
 - **怎麼算用到**：讀 Claude Code、Codex、Antigravity 的本機對話紀錄，只算實際讀取或呼叫的。每段對話開頭列出的 skill 清單不算。只輸出名稱、對話數與日期，不輸出對話內容，也不上傳。
+- **Codex 的 plugin**：以最近一次 Codex 對話實際載入的 skill 清單為準，已停用的 plugin 與 skill 不列；讀到 plugin 裡的 SKILL.md，算那個 plugin 用到。
 - **不會誤判剛裝的**：裝不到 30 天的先不判斷。Claude Code 的 plugin 只要累計用過就不列。
 - **重複安裝**：同一個 agent 讀得到兩份同名 skill、只有一份有在用時，會標成「可能是重複的」。
 - **移除前會先問**：agent 只會列出來問你，不會自己刪。
