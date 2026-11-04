@@ -1,0 +1,39 @@
+name: 部署看板
+
+# main 有新 commit 時，由名冊重新產生槽位看板並部署到 GitHub Pages。
+# 第一次使用前，要在 repo 的 Settings → Pages 把 Source 設成 GitHub Actions。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
+      - run: uv run engine/scripts/build.py --site _site
+      - uses: actions/configure-pages@v6.0.0
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5.0.1

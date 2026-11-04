@@ -1,0 +1,45 @@
+{
+  "name": "omnikit-b40609",
+  "description": "讓你的 agent 設定自己汰舊換新，每個決定都有理由。",
+  "owner": {
+    "name": "b40609",
+    "url": "https://github.com/b40609"
+  },
+  "plugins": [
+    {
+      "name": "frontend-design",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/frontend-design",
+        "sha": "a2e251d9b97b909bf728b3e84fc8d17e6aba0063"
+      },
+      "description": "frontend-design：OmniKit「前端設計」槽位的預設。",
+      "category": "前端設計",
+      "homepage": "https://github.com/anthropics/skills/tree/main/skills/frontend-design"
+    },
+    {
+      "name": "rea",
+      "source": {
+        "source": "npm",
+        "package": "rea-agents",
+        "version": "6.8.0"
+      },
+      "description": "REA（Reverse Engineer Anything）：OmniKit「逆向工程」槽位的預設。",
+      "category": "逆向工程",
+      "homepage": "https://github.com/morluto/rea"
+    },
+    {
+      "name": "skill-creator",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/skill-creator",
+        "sha": "a2e251d9b97b909bf728b3e84fc8d17e6aba0063"
+      },
+      "description": "skill-creator：OmniKit「skill 製作與評估」槽位的預設。",
+      "category": "skill 製作與評估",
+      "homepage": "https://github.com/anthropics/skills/tree/main/skills/skill-creator"
+    }
+  ]
+}

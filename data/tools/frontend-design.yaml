@@ -7,9 +7,22 @@ status: default
 url: https://github.com/anthropics/skills/tree/main/skills/frontend-design
 works_with:
 - claude
+- codex
 decided_at: '2026-11-04'
 reason: 訪談：有感；但沒解決 CatOS 前端的核心痛點，這個槽位要主動找替代。
+plugin:
+  claude:
+    source: git-subdir
+    url: https://github.com/anthropics/claude-plugins-official.git
+    path: plugins/frontend-design
+    sha: 'a2e251d9b97b909bf728b3e84fc8d17e6aba0063'
+  codex:
+    source: git-subdir
+    url: https://github.com/anthropics/claude-plugins-official.git
+    path: plugins/frontend-design
+    sha: 'a2e251d9b97b909bf728b3e84fc8d17e6aba0063'
 sources:
 - 訪談
 - 桌機盤點
+notes: plugin 固定在 anthropics/claude-plugins-official 的 a2e251d（2026-11-03，plugin 版本 1.1.1）；第 0 層 skill 掃描 SAFE。2026-11-04 在隔離環境實測：Claude Code 與 Codex 都能從 OmniKit 的 marketplace 安裝（Codex 吃得下 Claude 格式的 plugin）。
 added: '2026-11-04'

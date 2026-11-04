@@ -1,0 +1,35 @@
+{
+  "name": "omnikit-b40609",
+  "interface": {
+    "displayName": "OmniKit · b40609"
+  },
+  "plugins": [
+    {
+      "name": "frontend-design",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/frontend-design",
+        "sha": "a2e251d9b97b909bf728b3e84fc8d17e6aba0063"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "前端設計"
+    },
+    {
+      "name": "rea",
+      "source": {
+        "source": "npm",
+        "package": "rea-agents",
+        "version": "6.8.0"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "逆向工程"
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 #!/bin/sh
-# 名冊或 schema 有變動才驗證，不通過就擋下 commit
-if git diff --cached --name-only | grep -qE '^(data/|engine/schema/)'; then
+# 名冊、schema 或產生器有變動才處理：驗證名冊，不通過就擋下 commit；
+# 通過後重新產生 marketplace 清單，一起放進這次 commit
+if git diff --cached --name-only | grep -qE '^(data/|engine/(schema|scripts)/)'; then
   uv=$(command -v uv || echo "$LOCALAPPDATA/Programs/uv/uv.exe")
   "$uv" run --quiet engine/scripts/validate.py || exit 1
+  "$uv" run --quiet engine/scripts/build.py --marketplace-only >/dev/null || exit 1
+  git add .claude-plugin/marketplace.json .agents/plugins/marketplace.json
 fi

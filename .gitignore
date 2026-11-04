@@ -1,6 +1,9 @@
 # 過渡期草稿：步驟 4 轉成 data/ 之後刪除，不進版本紀錄
 drafts/
 
+# 看板的產出：由 GitHub Actions 建置後部署，不進版本紀錄
+_site/
+
 # Python
 __pycache__/
 .venv/

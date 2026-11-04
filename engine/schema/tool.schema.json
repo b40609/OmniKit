@@ -32,6 +32,36 @@
     "reason": { "type": "string", "minLength": 1 },
     "trial_until": { "$ref": "#/$defs/date" },
     "replaces": { "$ref": "#/$defs/id" },
+    "plugin": {
+      "description": "可以用 plugin 安裝時的來源，依 agent 分開；狀態是 default 的才會寫進 marketplace。git 來源要固定 sha，npm 要固定版本。",
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "plugin.json 裡的名稱；跟卡片 id 不同時才要填",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+        },
+        "claude": {
+          "description": "寫進 .claude-plugin/marketplace.json 的 source",
+          "oneOf": [
+            { "$ref": "#/$defs/githubSource" },
+            { "$ref": "#/$defs/urlSource" },
+            { "$ref": "#/$defs/gitSubdirSource" },
+            { "$ref": "#/$defs/npmSource" }
+          ]
+        },
+        "codex": {
+          "description": "寫進 .agents/plugins/marketplace.json 的 source；Codex 沒有 github 這種來源",
+          "oneOf": [
+            { "$ref": "#/$defs/urlSource" },
+            { "$ref": "#/$defs/gitSubdirSource" },
+            { "$ref": "#/$defs/npmSource" }
+          ]
+        }
+      }
+    },
     "sources": {
       "description": "這張卡從哪裡來，例如訪談、桌機盤點、RIA:C024",
       "type": "array",
@@ -54,6 +84,51 @@
   ],
   "$defs": {
     "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
-    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "sha": { "description": "完整的 40 碼 commit SHA", "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "githubSource": {
+      "type": "object",
+      "required": ["source", "repo", "sha"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "const": "github" },
+        "repo": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+        "ref": { "type": "string", "minLength": 1 },
+        "sha": { "$ref": "#/$defs/sha" }
+      }
+    },
+    "urlSource": {
+      "type": "object",
+      "required": ["source", "url", "sha"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "const": "url" },
+        "url": { "type": "string", "pattern": "^https://" },
+        "ref": { "type": "string", "minLength": 1 },
+        "sha": { "$ref": "#/$defs/sha" }
+      }
+    },
+    "gitSubdirSource": {
+      "type": "object",
+      "required": ["source", "url", "path", "sha"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "const": "git-subdir" },
+        "url": { "type": "string", "pattern": "^https://" },
+        "path": { "description": "repo 裡的子目錄，不能以 / 或 . 開頭", "type": "string", "pattern": "^[A-Za-z0-9_-][^\\\\]*$" },
+        "ref": { "type": "string", "minLength": 1 },
+        "sha": { "$ref": "#/$defs/sha" }
+      }
+    },
+    "npmSource": {
+      "type": "object",
+      "required": ["source", "package", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "const": "npm" },
+        "package": { "type": "string", "minLength": 1 },
+        "version": { "description": "固定的確切版本，不接受範圍", "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+([-+][0-9A-Za-z.-]+)?$" }
+      }
+    }
   }
 }

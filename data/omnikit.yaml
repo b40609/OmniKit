@@ -1,0 +1,8 @@
+# 看板與 marketplace 用的公開設定；fork 之後改成你自己的。
+title: OmniKit 槽位看板
+tagline: 讓你的 agent 設定自己汰舊換新，每個決定都有理由。
+# GitHub 上的 repo，看板用它連回原始資料
+repo: b40609/OmniKit
+# marketplace 名稱，也就是安裝時打的 plugin@<名稱>；加上帳號，避免跟別人 fork 的撞名
+marketplace: omnikit-b40609
+owner: b40609

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OmniKit 公開設定",
+  "description": "data/omnikit.yaml：看板與 marketplace 用的設定。",
+  "type": "object",
+  "required": ["title", "tagline", "repo", "marketplace", "owner"],
+  "additionalProperties": false,
+  "properties": {
+    "title": { "type": "string", "minLength": 1 },
+    "tagline": { "type": "string", "minLength": 1 },
+    "repo": { "description": "owner/repo", "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+    "marketplace": {
+      "description": "英數、. _ -，以英數開頭，不能有 ..",
+      "type": "string",
+      "pattern": "^(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "owner": { "type": "string", "minLength": 1 }
+  }
+}
