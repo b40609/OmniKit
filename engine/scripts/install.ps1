@@ -3,14 +3,17 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 
 1. 安裝固定版本的 skillshare、uv、gh 與 gitleaks：從 GitHub release 下載 zip，比對寫死的
    SHA256 後解壓；不改 PATH。這台已經有 uv 或 gh 就沿用。
-2. 第一次執行時初始化 skillshare，target 是 Claude Code 與 Codex。
-3. 把 data/rules/AGENTS.md 接到兩邊：Claude 用 import，Codex 用複製，然後同步；
-   engine/skills 裡的 skills 也連進 skillshare，同步到兩邊。
-4. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本），
+2. fork 出來的 repo：把 data/omnikit.yaml 的 repo、owner、marketplace 改成 origin 指向的
+   GitHub repo，並重新產生 marketplace 清單，避免跟原作者的 marketplace 撞名。
+3. 第一次執行時初始化 skillshare，target 是 Claude Code 與 Codex。
+4. 把 data/rules/AGENTS.md 接到兩邊：Claude 用 import，Codex 用複製（第一次接上時，
+   原本的 ~/.codex/AGENTS.md 先備份），然後同步；engine/skills 裡的 skills 也連進
+   skillshare，同步到兩邊。
+5. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本），
    再把 data/mcp/servers.yaml 設成 skillshare 的 MCP 來源，同步到兩邊。
-5. 把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的使用者設定（只增不刪）。
-6. 設定 git hook：commit 前驗證名冊；commit 或 pull 動到規則、MCP 或權限規則時，自動同步。
-7. 檢查 OmniKit repo 的 git 身分。
+6. 把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的使用者設定（只增不刪）。
+7. 設定 git hook：commit 前驗證名冊；commit 或 pull 動到規則、MCP 或權限規則時，自動同步。
+8. 檢查 OmniKit repo 的 git 身分。
 
 參數：
   -Fresh  這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
@@ -59,11 +62,27 @@ $GhExe = Join-Path $GhDir 'gh.exe'
 $GitleaksDir = Join-Path $env:LOCALAPPDATA 'Programs\gitleaks'
 $GitleaksExe = Join-Path $GitleaksDir 'gitleaks.exe'
 $ClaudeMd = Join-Path $env:USERPROFILE '.claude\CLAUDE.md'
+$CodexMd = Join-Path $env:USERPROFILE '.codex\AGENTS.md'
 $BlockPattern = '(?s)<!-- omnikit:rules:begin -->.*?<!-- omnikit:rules:end -->'
 
 function Invoke-Skillshare {
   & $Exe @args
   if ($LASTEXITCODE -ne 0) { throw "skillshare $($args -join ' ') 失敗（exit $LASTEXITCODE）" }
+}
+
+# 優先用 PATH 上的 uv，沒有就用 Install-Uv 裝的那一份
+function Get-Uv {
+  $onPath = (Get-Command uv -ErrorAction SilentlyContinue).Source
+  if ($onPath) { return $onPath }
+  return $UvExe
+}
+
+# 備份成 <檔名>.pre-omnikit；已經有同名備份就加上時間
+function Backup-File($path) {
+  $backup = "$path.pre-omnikit"
+  if (Test-Path $backup) { $backup += '-' + (Get-Date -Format 'yyyyMMddHHmmss') }
+  Copy-Item $path $backup
+  return $backup
 }
 
 # 下載 release zip，SHA256 相符才把指定的執行檔放進 $dest
@@ -143,6 +162,28 @@ function Install-Gitleaks {
   Write-Host "已安裝 gitleaks $GitleaksVersion：$GitleaksExe"
 }
 
+# fork 出來的 repo，看板連結與 marketplace 名稱要換成自己的；
+# marketplace 撞名的話，兩個 marketplace 沒辦法同時加進 Claude Code
+function Sync-RepoConfig {
+  $url = git -C $Repo remote get-url origin
+  if ($url -notmatch 'github\.com[:/]([^/]+)/([^/]+?)(\.git)?/?$') {
+    Write-Warning "origin 不是 GitHub repo（$url），略過 data/omnikit.yaml 的設定"
+    return
+  }
+  $owner = $Matches[1]
+  $name = $Matches[2]
+  $config = Join-Path $Repo 'data\omnikit.yaml'
+  $text = [IO.File]::ReadAllText($config, [Text.Encoding]::UTF8)
+  if ($text -match "(?m)^repo: $([regex]::Escape("$owner/$name"))\s*$") { return }
+  $text = [regex]::Replace($text, '(?m)^repo: .*$', "repo: $owner/$name")
+  $text = [regex]::Replace($text, '(?m)^owner: .*$', "owner: $owner")
+  $text = [regex]::Replace($text, '(?m)^marketplace: .*$', "marketplace: omnikit-$($owner.ToLower())")
+  [IO.File]::WriteAllText($config, $text, (New-Object Text.UTF8Encoding($false)))
+  & (Get-Uv) run --quiet (Join-Path $Repo 'engine\scripts\build.py') --marketplace-only | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "build.py --marketplace-only 失敗（exit $LASTEXITCODE）" }
+  Write-Host "已把 data/omnikit.yaml 與 marketplace 清單改成 $owner/$name，記得 commit"
+}
+
 function Initialize-Skillshare {
   if (Test-Path (Join-Path $env:APPDATA 'skillshare\config.yaml')) { return }
   Invoke-Skillshare init --no-copy --no-git --no-skill --targets claude,codex --no-tui
@@ -159,8 +200,14 @@ function Connect-ClaudeRules {
   [IO.File]::WriteAllText($ClaudeMd, $text, (New-Object Text.UTF8Encoding($false)))
 }
 
-# Codex 不支援 import，由 skillshare 複製一份；--force 讓重複執行時覆寫成同一份定義
+# Codex 不支援 import，由 skillshare 複製一份；--force 讓重複執行時覆寫成同一份定義。
+# 第一次接上時（skillshare 還沒有 rules-codex），原本的 ~/.codex/AGENTS.md 先備份
 function Connect-CodexRules {
+  $config = Join-Path $env:APPDATA 'skillshare\config.yaml'
+  $managed = [IO.File]::ReadAllText($config, [Text.Encoding]::UTF8) -match '(?m)^\s*- name: rules-codex\s*$'
+  if (-not $managed -and (Test-Path $CodexMd)) {
+    Write-Host "已備份原本的 Codex 規則：$(Backup-File $CodexMd)"
+  }
   Invoke-Skillshare extras init rules-codex --source $Rules --file AGENTS.md --target (Join-Path $env:USERPROFILE '.codex') --as AGENTS.md --mode copy --force --no-tui
   Invoke-Skillshare sync extras
 }
@@ -215,9 +262,7 @@ function Connect-Mcp {
 
 # Claude Code 免問的權限規則；JSON 交給 Python 改，PowerShell 5.1 的 ConvertTo-Json 會改掉原本的格式
 function Grant-ClaudePermissions {
-  $uv = (Get-Command uv -ErrorAction SilentlyContinue).Source
-  if (-not $uv) { $uv = $UvExe }
-  & $uv run --quiet (Join-Path $Repo 'engine\scripts\claude_allow.py')
+  & (Get-Uv) run --quiet (Join-Path $Repo 'engine\scripts\claude_allow.py')
   if ($LASTEXITCODE -ne 0) { throw "claude_allow.py 失敗（exit $LASTEXITCODE）" }
 }
 
@@ -226,9 +271,7 @@ function Clear-OldClaudeRules {
   $text = [IO.File]::ReadAllText($ClaudeMd, [Text.Encoding]::UTF8)
   $block = [regex]::Match($text, $BlockPattern).Value
   if ($text.Trim() -eq $block) { return }
-  $backup = "$ClaudeMd.pre-omnikit"
-  if (Test-Path $backup) { $backup += '-' + (Get-Date -Format 'yyyyMMddHHmmss') }
-  Copy-Item $ClaudeMd $backup
+  $backup = Backup-File $ClaudeMd
   [IO.File]::WriteAllText($ClaudeMd, $block + "`n", (New-Object Text.UTF8Encoding($false)))
   Write-Host "已移除 CLAUDE.md 受管區塊以外的舊規則，備份在 $backup"
 }
@@ -249,6 +292,7 @@ Install-Skillshare
 Install-Uv
 Install-Gh
 Install-Gitleaks
+Sync-RepoConfig
 Initialize-Skillshare
 Connect-ClaudeRules
 Connect-CodexRules
