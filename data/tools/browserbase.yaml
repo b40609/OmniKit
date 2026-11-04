@@ -1,0 +1,11 @@
+id: browserbase
+name: Browserbase
+kind: service
+slots:
+- browser
+status: pending
+url: https://browserbase.com
+sources:
+- 使用者提出
+notes: 雲端瀏覽器服務，要帳號與 API key；開源 SDK 是 Stagehand（25.9k 星，MIT）。自架版 MCP 已在 2026-07-20 封存，改推託管 MCP。適合無人值守、平行跑大量網站任務，不列入 U1 比較。它的比較文（2026-08-11）把自家排第一。
+added: '2026-11-04'

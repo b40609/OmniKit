@@ -1,0 +1,11 @@
+id: seleniumbase
+name: SeleniumBase
+kind: library
+slots:
+- browser
+status: pending
+url: https://github.com/seleniumbase/SeleniumBase
+sources:
+- 使用者提出
+notes: Python 的瀏覽器自動化與測試框架，主打隱匿模式；v4.57.0（2026-11-03），13.2k 星，MIT。用途是自己寫自動化腳本與測試，不列入 U1 比較。
+added: '2026-11-04'

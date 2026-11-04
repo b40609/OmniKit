@@ -1,0 +1,14 @@
+id: playwright-mcp
+name: Playwright MCP
+kind: mcp
+slots:
+- browser
+status: pending
+url: https://github.com/microsoft/playwright-mcp
+works_with:
+- claude
+- codex
+sources:
+- 使用者提出
+notes: 微軟官方 MCP，v0.0.84（2026-10-31），39.1k 星，Apache-2.0。用無障礙樹操作，支援 Chromium、Firefox、WebKit；browser-use 比較文的評測裡速度最快。微軟對 coding agent 改推 Playwright CLI（較省 token），這張先當 CLI 的備案。
+added: '2026-11-04'

@@ -9,8 +9,8 @@
     "id": { "$ref": "#/$defs/id" },
     "name": { "type": "string", "minLength": 1 },
     "kind": {
-      "description": "skill、plugin、mcp、cli、app（獨立程式）、service（線上服務或 API）、native（Claude Code 或 Codex 內建）、collection（多個 skill 的集合）、rules（規則包）",
-      "enum": ["skill", "plugin", "mcp", "cli", "app", "service", "native", "collection", "rules"]
+      "description": "skill、plugin、mcp、cli、app（獨立程式）、service（線上服務或 API）、library（程式庫或框架，要自己寫程式呼叫）、native（Claude Code 或 Codex 內建）、collection（多個 skill 的集合）、rules（規則包）",
+      "enum": ["skill", "plugin", "mcp", "cli", "app", "service", "library", "native", "collection", "rules"]
     },
     "slots": {
       "description": "所屬槽位；還沒分配或屬於零件庫時可以是空陣列",

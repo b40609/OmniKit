@@ -1,0 +1,11 @@
+id: browser-use
+name: Browser Use
+kind: library
+slots:
+- browser
+status: pending
+url: https://github.com/browser-use/browser-use
+sources:
+- 使用者提出
+notes: 開源 Python 程式庫，用來寫自己的瀏覽器 agent，另有雲端服務；0.13.14（2026-10-26），120k 星，MIT。用途是開發瀏覽器 agent，不列入 U1 比較。它的比較文（2026-10-17）把自家兩個產品排前兩名；文中評測的四個工具成功率差不多，差在速度與成本。
+added: '2026-11-04'

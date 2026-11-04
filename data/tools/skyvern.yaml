@@ -1,0 +1,11 @@
+id: skyvern
+name: Skyvern
+kind: app
+slots:
+- browser
+status: pending
+url: https://github.com/Skyvern-AI/skyvern
+sources:
+- 使用者提出
+notes: 用 LLM 加電腦視覺自動化網站流程（例如填表），可自架或用雲端版；v1.0.56（2026-10-14），23.3k 星，AGPL-3.0。用途是無人值守的網站流程自動化，不是讓 agent 驗證自己的前端，不列入 U1 比較。
+added: '2026-11-04'

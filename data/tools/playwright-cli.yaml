@@ -1,0 +1,14 @@
+id: playwright-cli
+name: Playwright CLI
+kind: cli
+slots:
+- browser
+status: pending
+url: https://github.com/microsoft/playwright-cli
+works_with:
+- claude
+- codex
+sources:
+- 使用者提出
+notes: 微軟官方給 coding agent 用的 CLI 加 skills，v0.1.23（2026-10-31），14.9k 星，Apache-2.0。官方說比 Playwright MCP 省 token，不把整頁資料硬塞進 context。能看 console 與網路請求、錄 trace 與影片、產生 Playwright 測試碼。README 只點名 Claude Code 與 Copilot，Codex 要實測。建議列入 U1 第一輪比較。
+added: '2026-11-04'

@@ -1,0 +1,14 @@
+id: agent-browser
+name: agent-browser
+kind: cli
+slots:
+- browser
+status: pending
+url: https://github.com/vercel-labs/agent-browser
+works_with:
+- claude
+- codex
+sources:
+- browser-use 比較文
+notes: Vercel Labs 的瀏覽器 CLI，Rust 寫成，v0.41.2（2026-11-03），45.4k 星，Apache-2.0。用快照裡的 ref 操作，附 skills，也能當 MCP；有 Windows 原生執行檔，可接上正在開的 Chrome。跟 Playwright CLI 同一類，先當它的備案。README 內含要 agent 修改 AGENTS.md 的指示，評估時已忽略。
+added: '2026-11-04'

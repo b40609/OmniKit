@@ -1,0 +1,13 @@
+id: browser-harness
+name: Browser Harness
+slots:
+- browser
+status: pending
+url: https://github.com/browser-use/browser-harness
+works_with:
+- claude
+- codex
+sources:
+- browser-use 比較文
+notes: browser-use 出的，讓 Claude Code、Codex、Cursor 用你已登入的 Chrome；18.8k 星，MIT。browser-use 比較文把它排第一（自家產品）。用途同 Browser MCP，兩邊原生已有，不列入 U1 比較。
+added: '2026-11-04'

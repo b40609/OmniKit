@@ -57,6 +57,13 @@ slots:
       - id: B1
         text: 改功能時只寫需要的程式碼、不擴大範圍，但驗證、錯誤處理與安全照做。
 
+  - id: browser
+    name: 瀏覽器操作與驗證
+    focus: active
+    scenarios:
+      - id: U1
+        text: 改完 CatOS 或 OmniKeep 的前端後，agent 自己開 dev server，在瀏覽器看畫面與 console 錯誤，確認改動真的生效才回報；Claude Code 與 Codex 都要能用。
+
   - id: permissions
     name: 權限與通知
     focus: watch

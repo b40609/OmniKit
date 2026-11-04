@@ -1,0 +1,14 @@
+id: chrome-devtools-mcp
+name: Chrome DevTools MCP
+kind: mcp
+slots:
+- browser
+status: pending
+url: https://github.com/ChromeDevTools/chrome-devtools-mcp
+works_with:
+- claude
+- codex
+sources:
+- 使用者提出
+notes: Google Chrome 團隊官方，v1.12.0（2026-10-22），54.7k 星，Apache-2.0。除錯最深：效能追蹤、附 source map 的 console 錯誤、網路請求、截圖；另有 CLI 與 --slim 精簡模式。Claude Code 可用 plugin 安裝並附 skills，Codex 用一般 MCP 設定接（要實測）。預設會送使用統計，效能工具會查 Google CrUX，可用 --no-usage-statistics、--no-performance-crux 關掉。建議列入 U1 第一輪比較。
+added: '2026-11-04'
