@@ -11,7 +11,8 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
    skillshare，同步到兩邊。
 5. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本），
    再把 data/mcp/servers.yaml 設成 skillshare 的 MCP 來源，同步到兩邊。
-6. 把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的使用者設定（只增不刪）。
+6. 把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的使用者設定（只增不刪），
+   並註冊開新對話提醒的 Stop hook（session_nudge.py）。
 7. 設定 git hook：commit 前驗證名冊；commit 或 pull 動到規則、MCP 或權限規則時，自動同步。
 8. 檢查 OmniKit repo 的 git 身分。
 

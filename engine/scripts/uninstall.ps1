@@ -7,7 +7,7 @@ OmniKit 移除：把 install.ps1 對這台電腦做的改動還原，可以重�
 3. skills：從 skillshare 拿掉 engine/skills 的連結並同步，兩邊不再有 OmniKit 的 skills。
 4. MCP：讓 skillshare 改讀一份空的 MCP 定義並同步，兩邊移除 OmniKit 加的 MCP server，
    再把 MCP 來源從 skillshare 設定拿掉。
-5. 權限：從 ~/.claude/settings.json 拿掉安裝紀錄裡、由 OmniKit 加的規則。
+5. 權限與提醒 hook：從 ~/.claude/settings.json 拿掉安裝紀錄裡、由 OmniKit 加的規則與 Stop hook。
 6. git hook：這個 repo 不再使用 .githooks。
 7. 沒加 -KeepTools 時：移除安裝紀錄裡、由 OmniKit 裝的 npm 套件，以及 skillshare、uv、gh、
    gitleaks 與 skillshare 的設定資料夾。
@@ -87,6 +87,7 @@ if ($codexManaged -or (Test-Path "$CodexMd.pre-omnikit")) { $plan += '把 ~/.cod
 if ($skillsLinked) { $plan += '移除 OmniKit 的 skills（Claude Code 與 Codex）' }
 if ($mcpMatch.Success) { $plan += '移除 OmniKit 加的 MCP server（Claude Code 與 Codex）' }
 if ($record['claude_allow']) { $plan += "從 ~/.claude/settings.json 拿掉權限規則：$($record['claude_allow'] -join ', ')" }
+if ($record['claude_hooks']) { $plan += '從 ~/.claude/settings.json 拿掉開新對話提醒 hook' }
 if ($hooksOn) { $plan += '這個 repo 不再使用 .githooks' }
 if (-not $KeepTools) {
   if ($npmPackages) { $plan += "移除 npm 全域套件：$($npmPackages -join ', ')" }
@@ -193,10 +194,10 @@ function Remove-Mcp {
 }
 
 function Remove-ClaudePermissions {
-  if (-not $record['claude_allow']) { return }
+  if (-not ($record['claude_allow'] -or $record['claude_hooks'])) { return }
   $uv = Get-Uv
   if (-not $uv) {
-    Write-Warning "找不到 uv，請自己從 ~/.claude/settings.json 拿掉：$($record['claude_allow'] -join ', ')"
+    Write-Warning "找不到 uv，請自己從 ~/.claude/settings.json 拿掉：$($record['claude_allow'] -join ', ') 與 hooks.Stop 裡的 session_nudge.py"
     return
   }
   & $uv run --quiet (Join-Path $Repo 'engine\scripts\claude_allow.py') --uninstall

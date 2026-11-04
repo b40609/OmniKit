@@ -2,7 +2,8 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的 permissions.allow。
+"""把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的 permissions.allow，
+並在 hooks.Stop 註冊開新對話提醒（session_nudge.py）。
 
 只增不刪：已有的規則和其他設定都不動；設定檔不是合法 JSON 時直接失敗，不覆寫。
 這次新加的規則記進安裝紀錄；移除 OmniKit 時（--uninstall）只拿掉紀錄裡的，安裝前就有的不動。
@@ -12,11 +13,13 @@
 import argparse
 import json
 import os
+import shutil
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 RECORD = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "omnikit" / "install-record.json"
+NUDGE = "session_nudge.py"
 
 
 def load(path: Path) -> dict:
@@ -30,26 +33,67 @@ def save(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline=newline)
 
 
+def is_nudge(hook: dict) -> bool:
+    return NUDGE in hook.get("command", "")
+
+
+def add_nudge_hook(settings: dict) -> bool:
+    """註冊或更新提醒 hook；回傳是否有改動。uv 或 repo 換位置時，重跑就會改成新路徑。"""
+    uv = Path(os.environ.get("UV") or shutil.which("uv")).as_posix()
+    # Claude Code 在 Windows 上用 Git Bash 跑 hook；OmniKit 的 git hooks 本來就需要 Git for Windows
+    command = f'"{uv}" run --quiet --script "{(ROOT / "engine" / "scripts" / NUDGE).as_posix()}"'
+    stop = settings.setdefault("hooks", {}).setdefault("Stop", [])
+    ours = [h for group in stop for h in group.get("hooks", []) if is_nudge(h)]
+    if ours and all(h["command"] == command for h in ours):
+        return False
+    for h in ours:
+        h["command"] = command
+    if not ours:
+        stop.append({"hooks": [{"type": "command", "command": command, "timeout": 10}]})
+    return True
+
+
+def remove_nudge_hook(settings: dict) -> bool:
+    hooks = settings.get("hooks", {})
+    stop = hooks.get("Stop", [])
+    kept = [{**g, "hooks": [h for h in g.get("hooks", []) if not is_nudge(h)]} for g in stop]
+    kept = [g for g in kept if g["hooks"]]
+    if kept == stop:
+        return False
+    if kept:
+        hooks["Stop"] = kept
+    else:
+        del hooks["Stop"]
+    if not hooks:
+        del settings["hooks"]
+    return True
+
+
 def uninstall(settings_path: Path, record: dict) -> int:
     ours = set(record.get("claude_allow", []))
     settings = load(settings_path)
     allow = settings.get("permissions", {}).get("allow", [])
     removed = [r for r in allow if r in ours]
-    if not removed:
-        print("沒有要移除的 Claude 權限規則。")
+    hook_removed = bool(record.get("claude_hooks")) and remove_nudge_hook(settings)
+    if not (removed or hook_removed):
+        print("沒有要移除的 Claude 權限規則或提醒 hook。")
         return 0
 
-    settings["permissions"]["allow"] = [r for r in allow if r not in ours]
-    # 移除後變空的就整個拿掉；什麼都不剩的設定檔等於沒有，直接刪
-    if not settings["permissions"]["allow"]:
-        del settings["permissions"]["allow"]
-    if not settings["permissions"]:
-        del settings["permissions"]
+    if removed:
+        settings["permissions"]["allow"] = [r for r in allow if r not in ours]
+        # 移除後變空的就整個拿掉；什麼都不剩的設定檔等於沒有，直接刪
+        if not settings["permissions"]["allow"]:
+            del settings["permissions"]["allow"]
+        if not settings["permissions"]:
+            del settings["permissions"]
     if settings:
         save(settings_path, settings)
     else:
         settings_path.unlink()
-    print(f"已移除 Claude 的權限規則：{', '.join(removed)}")
+    if removed:
+        print(f"已移除 Claude 的權限規則：{', '.join(removed)}")
+    if hook_removed:
+        print("已移除開新對話提醒 hook")
     return 0
 
 
@@ -71,16 +115,22 @@ def main() -> int:
     settings = load(args.settings)
     allow = settings.setdefault("permissions", {}).setdefault("allow", [])
     added = [r for r in rules if r not in allow]
-    if not added:
-        print("Claude 的權限規則已是最新。")
+    allow.extend(added)
+    hooked = add_nudge_hook(settings)
+    if not (added or hooked):
+        print("Claude 的權限規則與提醒 hook 已是最新。")
         return 0
 
-    allow.extend(added)
     save(args.settings, settings)
     recorded = record.setdefault("claude_allow", [])
     recorded.extend(r for r in added if r not in recorded)
+    if hooked:
+        record["claude_hooks"] = [NUDGE]
     save(args.record, record)
-    print(f"已加入 Claude 的權限規則：{', '.join(added)}")
+    if added:
+        print(f"已加入 Claude 的權限規則：{', '.join(added)}")
+    if hooked:
+        print("已註冊開新對話提醒 hook（Stop）")
     return 0
 
 

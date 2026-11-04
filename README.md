@@ -104,6 +104,7 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
 | 規則（`data/rules/AGENTS.md`） | 回覆用什麼語言、寫多詳細、哪些事要先問你，都照這份規則走。沒改過的話是原作者的規則：繁體中文、回覆精簡、下載安裝直接做、刪除前先問 | Claude Code 直接讀 repo 裡這一份，改完開新 session 就生效。Codex 讀的是複製出去的副本，改完要 commit，git hook 才會同步過去 |
 | `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡 | 兩邊說「幫我評估」都會自動觸發；要手動叫，Claude Code 輸入 `/omnikit-eval`，Codex 輸入 `$omnikit-eval` |
 | `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 已加進免問清單，Codex 設成自動核准，兩邊都不會跳權限確認 |
+| 開新對話提醒 | 每回合結束時檢查一次：上下文每跨過 100k tokens、或這一回合成功 `git push`，就跳一行提醒你考慮開新對話。只提醒，不會自己換對話 | 只有 Claude Code |
 | git hooks | 只作用在 OmniKit repo：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、MCP、權限時自動同步 | 跟 agent 無關 |
 
 開新的 session 試試看：
@@ -163,7 +164,7 @@ flowchart LR
 | `~/.claude/skills`、`~/.agents/skills` | 由 skillshare 同步 `engine/skills` 裡的 skills |
 | `~/.claude.json`、`~/.codex/config.toml` | 合併寫入 `data/mcp/servers.yaml` 的 MCP server，不動其他設定 |
 | npm 全域套件 | 安裝 `data/mcp/packages.txt` 指定的固定版本 |
-| `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪 |
+| `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪；在 `hooks.Stop` 加上開新對話提醒（`engine/scripts/session_nudge.py`） |
 | 這個 repo | `core.hooksPath` 指到 `.githooks`：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、MCP、權限時自動同步 |
 | `%LOCALAPPDATA%\omnikit\install-record.json` | 安裝紀錄：記下這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，移除時只動這些 |
 
@@ -237,7 +238,7 @@ data/                        資料：fork 後換成你的
   evals/                     實測紀錄
 engine/                      引擎：不用改
   schema/                    名冊與槽位的 JSON Schema
-  scripts/                   安裝、驗證、產生看板與 marketplace
+  scripts/                   安裝、驗證、產生看板與 marketplace、開新對話提醒
   site/                      看板的樣式與程式
   skills/omnikit-eval/       評估新工具的 skill
 .claude-plugin/              Claude Code 的 marketplace（由名冊產生，不要手改）
