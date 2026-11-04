@@ -167,8 +167,9 @@ def apply(data, state, claude_md, config, exe, codex_dir, wanted=None, codex=Fal
 
 
 def fallback_notice(data):
-    return (f"這台還沒選 profile，先用 {DEFAULT}（下載、安裝前會先問）。要用自己的："
-            f"uv run engine/scripts/profiles.py --set <名稱>，可選：{'、'.join(available(data))}")
+    return (f"這台還沒選 profile，先用 {DEFAULT}（下載、安裝前會先問）。要建立自己的：開新 session 說"
+            f"「幫我設定 OmniKit」；用現有的：uv run engine/scripts/profiles.py --set <名稱>，"
+            f"可選：{'、'.join(available(data))}")
 
 
 def selftest():

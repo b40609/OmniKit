@@ -26,6 +26,10 @@ jobs:
       - run: uv run engine/scripts/codex_hooks.py --selftest
       # 規則分層（安全底線 + profile）的自我測試
       - run: uv run engine/scripts/profiles.py --selftest
+      # 訪談建立 profile：掃描、依答案產生 profile，以及 skill 入口能找到 repo
+      - run: uv run engine/scripts/scan.py --selftest
+      - run: uv run engine/scripts/profile_new.py --selftest
+      - run: uv run engine/skills/omnikit-setup/scripts/setup.py scan > /dev/null
 
   secrets:
     name: 金鑰外洩

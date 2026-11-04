@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OmniKit 訪談答案",
+  "description": "omnikit-setup 訪談的答案；engine/scripts/profile_new.py 依這份產生 data/profiles/<name>/。",
+  "type": "object",
+  "required": ["name", "language", "verbosity", "autonomy", "work", "pains", "evaluate_tools"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "description": "profile 名稱：小寫英數與 -；default 保留給沒選 profile 的電腦",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 30,
+      "not": { "const": "default" }
+    },
+    "language": { "description": "回覆語言", "enum": ["zh-TW", "en"] },
+    "verbosity": { "description": "concise：精簡；detailed：詳細", "enum": ["concise", "detailed"] },
+    "autonomy": {
+      "description": "cautious：改檔案前先問；balanced：專案內直接做，下載安裝與專案外先問；hands-off：大多直接做",
+      "enum": ["cautious", "balanced", "hands-off"]
+    },
+    "work": {
+      "description": "主要用 agent 做什麼",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["coding", "data", "docs", "research"] }
+    },
+    "pains": {
+      "description": "最想改善的事，最多兩項",
+      "type": "array",
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": { "enum": ["too-long", "scope-creep", "no-verification", "guesses"] }
+    },
+    "background": {
+      "description": "主要工作與技術，一句話",
+      "type": "string",
+      "maxLength": 200
+    },
+    "projects": {
+      "description": "評估工具時，情境範本裡的 <你的專案> 與 <你的前端專案> 要換成的名稱",
+      "type": "object",
+      "required": ["main"],
+      "additionalProperties": false,
+      "properties": {
+        "main": { "type": "string", "minLength": 1, "maxLength": 60, "pattern": "^[^<>\\r\\n]+$" },
+        "frontend": { "type": "string", "minLength": 1, "maxLength": 60, "pattern": "^[^<>\\r\\n]+$" }
+      }
+    },
+    "evaluate_tools": { "description": "要不要用 OmniKit 持續評估新工具", "type": "boolean" }
+  },
+  "if": { "properties": { "evaluate_tools": { "const": true } } },
+  "then": { "required": ["projects"] }
+}

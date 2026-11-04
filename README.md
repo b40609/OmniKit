@@ -48,17 +48,20 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
    cd OmniKit
    ```
 
-3. **選你的 profile。** agent 讀到的規則分兩層：
+3. **認識 profile。** agent 讀到的規則分兩層：
    - `data/rules/baseline.md` 是安全底線，所有人都套用：刪除、對外發送、付款、push 前先確認，不碰金鑰。
    - `data/profiles/<名稱>/` 是個人層：`AGENTS.md` 寫語言、語氣、哪些事可以直接做；`scenarios.yaml` 寫評估工具用的真實情境，沒寫的槽位用 `data/slots.yaml` 的範本。
 
-   不指定的話用 `default`：繁體中文、下載安裝前先問。想要自己的，複製 `data/profiles/default` 成 `data/profiles/<你的名字>` 再改；`data/profiles/ryan` 是原作者的，可以參考。之後再改也行，git hook 會自動同步。
+   不用先改檔案：先用 `default` 安裝（繁體中文、下載安裝前先問），裝好之後用[訪談](#建立自己的-profile)產生你自己的 profile。想手寫也行：複製 `data/profiles/default` 成 `data/profiles/<你的名字>` 再改，`data/profiles/ryan` 是原作者的，可以參考。
 
-4. **安裝。** 可以重複執行，profile 指定一次就會記住。安裝前建議先看[安裝會改動哪些地方](#安裝會改動哪些地方)。
+4. **安裝。** 可以重複執行。想先看會改動哪些地方，加上 `-WhatIf` 預覽，什麼都不會做；完整清單見[安裝會改動哪些地方](#安裝會改動哪些地方)。
 
    ```powershell
-   powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 -ProfileName <你的名字>
+   powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 -WhatIf
+   powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
    ```
+
+   已經有自己的 profile，就加上 `-ProfileName <名稱>`，指定一次就會記住。
 
    偵測到這是 fork 時，會自動把 `data/omnikit.yaml` 的 `repo`、`owner`、`marketplace` 改成你的、看板用的 `profile` 改回 `default`，並重新產生 marketplace 清單，避免跟原作者的撞名。
 
@@ -70,6 +73,8 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
    ```
 
 6. **確認接上了。** 開一個新的 Claude Code 或 Codex session，問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的一樣、profile 是你選的，就表示兩層規則都生效了。skill 與 MCP 怎麼檢查、裝好之後怎麼用，見[裝好之後](#裝好之後)。
+
+7. **建立自己的 profile。** 在新的 session 說「幫我設定 OmniKit」，見[建立自己的 profile](#建立自己的-profile)。
 
 ### 只想裝預設的 plugin
 
@@ -91,14 +96,14 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
 
 ## 裝好之後
 
-安裝不會在 Claude Code 或 Codex 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了一個 skill、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
+安裝不會在 Claude Code 或 Codex 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了兩個 skill、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
 
 ### 確認接上了
 
 | 檢查 | Claude Code | Codex |
 |---|---|---|
 | 規則 | 問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的「規則版本」一樣，profile 是你選的 | 同左 |
-| skill | 輸入 `/omnikit-eval`，選單裡會出現 | 輸入 `$omnikit-eval`，或用 `/skills` 列出來 |
+| skill | 輸入 `/omnikit`，選單裡會出現 `omnikit-setup` 與 `omnikit-eval` | 輸入 `$omnikit`，或用 `/skills` 列出來 |
 | MCP | 終端機跑 `claude mcp get chrome_devtools`，狀態是 Connected | 終端機跑 `codex mcp list`，`chrome_devtools` 是 enabled |
 
 ### 安裝前後差在哪
@@ -106,6 +111,7 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
 | 項目 | 會有什麼不同 | Claude Code 與 Codex 的差別 |
 |---|---|---|
 | 規則（`data/rules/baseline.md` + `data/profiles/<名稱>/AGENTS.md`） | 安全底線所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問 | Claude Code 直接讀 repo 裡這兩份，改完開新 session 就生效。Codex 讀的是兩份接在一起的副本，改完要 commit，git hook 才會同步過去 |
+| `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 兩邊說「幫我設定 OmniKit」都會自動觸發；要手動叫，Claude Code 輸入 `/omnikit-setup`，Codex 輸入 `$omnikit-setup` |
 | `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡 | 兩邊說「幫我評估」都會自動觸發；要手動叫，Claude Code 輸入 `/omnikit-eval`，Codex 輸入 `$omnikit-eval` |
 | `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 已加進免問清單，Codex 設成自動核准，兩邊都不會跳權限確認 |
 | 開新對話提醒 | 每回合結束時檢查一次：上下文每跨過 100k tokens、或這一回合成功 `git push`，就跳一行提醒你考慮開新對話。只提醒，不會自己換對話 | Claude Code 裝好就生效。Codex 多看一項：對話累計第 1、3、9、27… 次自動壓縮時也提醒（Codex 常在 100k 前就壓縮）；新 hook 要先信任才會跑，CLI 輸入 `/hooks`、桌面版到設定的 Hooks 按信任；OmniKit 搬位置或原本那支 uv 不在了，指令會改，要再信任一次 |
@@ -115,12 +121,32 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
 
 ```text
 OmniKit 規則版本與 profile 是什麼？
+幫我設定 OmniKit
 幫我評估 https://github.com/<owner>/<repo>
 用瀏覽器打開 http://localhost:3000，看 console 有沒有錯誤
 每週彙整
 ```
 
 評估、改名冊、跟上原作者的更新，見[日常使用](#日常使用)。
+
+### 建立自己的 profile
+
+在新的 session 說「幫我設定 OmniKit」。`omnikit-setup` 會：
+
+1. **掃描**：列出這台裝了哪些 agent、目前的規則、skills 與 MCP（只看名稱與版本，不讀金鑰）。
+2. **訪談**：最多 6 題，大多是選擇題：主要用途、最想改善的習慣、回覆的語言與詳略、agent 可以自己做到哪、要不要評估新工具、主要專案。
+3. **預覽**：先給你看產生的規則，同意才寫入。
+4. **建立並套用**：寫進 `data/profiles/<名稱>/`，接上 Claude Code 與 Codex，開新 session 生效。
+
+| 你選的 | 規則裡寫成 |
+|---|---|
+| agent 可以自己做到哪 | 每步先問：改檔案、執行指令前先列計畫等你同意。專案內直接做（建議）：下載安裝、改專案以外的才先問。大多放手：下載安裝也直接做 |
+| 最想改善的習慣 | 例如「常改太多」變成「只改需求相關的地方，其他想改的先列出來問你」 |
+| 要評估新工具 | 情境範本裡的 `<你的專案>` 換成你的專案，評估工具時拿來當考題 |
+
+規則檔與情境檔都由 `engine/scripts/profile_new.py` 依固定範本產生、驗證，agent 只負責問問題；寫入後可以直接改。重新訪談時會帶入上次的答案，舊檔先備份成 `.bak`；手寫的 profile 不會被覆蓋。安全底線不能從 profile 放寬。
+
+profile 存在你這台電腦的 OmniKit repo 裡，不會上傳。
 
 ### 預設 plugin 要另外裝
 
@@ -209,7 +235,7 @@ uv run engine/scripts/profiles.py --show          # 這台現在用哪個
 uv run engine/scripts/profiles.py --set <名稱>    # 換成 data/profiles/<名稱>，Claude Code 與 Codex 一起換
 ```
 
-換完開新的 session 才生效。還沒選過的電腦會一直用 `default`，並在安裝與同步時提醒。
+換完開新的 session 才生效。還沒選過的電腦會一直用 `default`，並在安裝與同步時提醒。想重新訪談、改掉原本的答案，說「幫我設定 OmniKit」就好。
 
 ### 評估新工具
 
@@ -275,8 +301,9 @@ data/                        資料：fork 後換成你的
   evals/                     實測紀錄
 engine/                      引擎：不用改
   schema/                    名冊與槽位的 JSON Schema
-  scripts/                   安裝、選 profile、驗證、產生看板與 marketplace、開新對話提醒（Claude Code 與 Codex）
+  scripts/                   安裝、掃描、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒（Claude Code 與 Codex）
   site/                      看板的樣式與程式，以及匯出的架構地圖（map.html）
+  skills/omnikit-setup/      訪談建立個人 profile 的 skill
   skills/omnikit-eval/       評估新工具的 skill
 .claude-plugin/              Claude Code 的 marketplace（由名冊產生，不要手改）
 .agents/plugins/             Codex 的 marketplace（由名冊產生，不要手改）

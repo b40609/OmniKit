@@ -2,7 +2,7 @@
 
 profile：default
 
-這台電腦還沒選自己的 profile，先用這份預設，授權偏保守。要換成自己的：複製 `data/profiles/default` 成 `data/profiles/<名稱>`，改裡面的 `AGENTS.md`，再執行 `uv run engine/scripts/profiles.py --set <名稱>`。
+這台電腦還沒選自己的 profile，先用這份預設，授權偏保守。使用者想建立自己的：用 omnikit-setup skill 做簡短訪談（使用者說「幫我設定 OmniKit」就會觸發）。
 
 ## 語言
 - 用繁體中文（台灣用語）回覆；程式碼、指令、檔名、識別字、錯誤訊息原文維持原文。

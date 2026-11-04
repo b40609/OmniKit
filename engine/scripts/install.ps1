@@ -22,15 +22,18 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，會記在
 %LOCALAPPDATA%\omnikit\install-record.json；uninstall.ps1 只移除這些。
 
+裝好之後，開新 session 說「幫我設定 OmniKit」，omnikit-setup 會用簡短訪談建立自己的 profile。
+
 參數：
   -ProfileName <名稱>  用 data/profiles/<名稱> 的個人規則，並記下來；之後重跑不用再指定。
   -Fresh               這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
                        備份後移除，避免新舊規則同時生效。
+  -WhatIf              預覽：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不執行 skillshare）。
 
 用法（Windows PowerShell 5.1 或 PowerShell 7）：
-  powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Fresh]
+  powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Fresh] [-WhatIf]
 #>
-param([string]$ProfileName, [switch]$Fresh)
+param([string]$ProfileName, [switch]$Fresh, [switch]$WhatIf)
 
 $ErrorActionPreference = 'Stop'
 # PowerShell 5.1 的下載進度條會讓 Invoke-WebRequest 慢很多
@@ -363,6 +366,73 @@ function Test-GitIdentity {
   }
 }
 
+# -WhatIf：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不執行 skillshare）
+function Show-InstallPlan {
+  $plan = @()
+  $tools = @(
+    @{ Name = 'skillshare'; Version = $SkillshareVersion; Path = $Exe; Command = $null },
+    @{ Name = 'uv'; Version = $UvVersion; Path = $UvExe; Command = 'uv' },
+    @{ Name = 'gh'; Version = $GhVersion; Path = $GhExe; Command = 'gh' },
+    @{ Name = 'gitleaks'; Version = $GitleaksVersion; Path = $GitleaksExe; Command = $null }
+  )
+  foreach ($t in $tools) {
+    $onPath = $t.Command -and (Get-Command $t.Command -ErrorAction SilentlyContinue)
+    if (-not $onPath -and -not (Test-Path $t.Path)) {
+      $plan += "下載 $($t.Name) $($t.Version)，比對 SHA256 後放到 $(Split-Path $t.Path)（不改 PATH）"
+    }
+  }
+  if (-not (Test-Path $Exe)) { $plan += '  skillshare 裝好先試跑一次；被公司電腦的防毒擋下就停在這裡，說明怎麼放行' }
+
+  $url = git -C $Repo remote get-url origin
+  $config = [IO.File]::ReadAllText((Join-Path $Repo 'data\omnikit.yaml'), [Text.Encoding]::UTF8)
+  if ($url -match 'github\.com[:/]([^/]+)/([^/]+?)(\.git)?/?$' -and $config -notmatch "(?m)^repo: $([regex]::Escape("$($Matches[1])/$($Matches[2])"))\s*$") {
+    $plan += "data/omnikit.yaml 改成 $($Matches[1])/$($Matches[2])、看板用的 profile 改回 default，重新產生 marketplace 清單"
+  }
+
+  $ssConfig = Join-Path $env:APPDATA 'skillshare\config.yaml'
+  if (-not (Test-Path $ssConfig)) { $plan += '初始化 skillshare（設定在 %APPDATA%\skillshare），同步目標是 Claude Code 與 Codex' }
+
+  $stateFile = Join-Path $env:LOCALAPPDATA 'omnikit\profile.json'
+  $chosen = if (Test-Path $stateFile) { try { ([IO.File]::ReadAllText($stateFile) | ConvertFrom-Json).profile } catch { $null } }
+  $name = if ($ProfileName) { $ProfileName } elseif ($chosen) { $chosen } else { 'default' }
+  $note = if ($ProfileName -or $chosen) { '' } else { '（還沒選過，用預設：下載、安裝前會先問）' }
+  $plan += "規則：安全底線 + profile「$name」$note"
+  if (-not (Test-Path (Join-Path $Repo "data\profiles\$name\AGENTS.md"))) {
+    $plan += "  找不到 data/profiles/$name/AGENTS.md，安裝會在這一步失敗"
+  }
+  $hasBlock = (Test-Path $ClaudeMd) -and ([IO.File]::ReadAllText($ClaudeMd, [Text.Encoding]::UTF8) -match $BlockPattern)
+  $plan += "  ~/.claude/CLAUDE.md：$(if ($hasBlock) { '更新' } else { '在開頭加上' })受管區塊，import 底線與 profile；其他內容不動"
+  $codexManaged = (Test-Path $ssConfig) -and ([IO.File]::ReadAllText($ssConfig, [Text.Encoding]::UTF8) -match '(?m)^\s*- name: rules-codex\s*$')
+  if (-not $codexManaged -and (Test-Path $CodexMd)) {
+    $plan += '  ~/.codex/AGENTS.md：先備份成 AGENTS.md.pre-omnikit，再換成底線與 profile 接在一起的副本'
+  } else {
+    $plan += '  ~/.codex/AGENTS.md：換成底線與 profile 接在一起的副本'
+  }
+  if ($Fresh) { $plan += '  ~/.claude/CLAUDE.md：受管區塊以外的舊規則先備份成 CLAUDE.md.pre-omnikit，再移除' }
+
+  $skills = (Get-ChildItem -Directory (Join-Path $Repo 'engine\skills')).Name -join '、'
+  $plan += "skills：把 $skills 同步到 ~/.claude/skills 與 ~/.agents/skills"
+  $packages = @(Get-Content -Encoding UTF8 (Join-Path $Repo 'data\mcp\packages.txt') |
+    ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+  if ($packages) { $plan += "npm 全域套件（沒裝或版本不同才裝）：$($packages -join '、')" }
+  $servers = [regex]::Matches([IO.File]::ReadAllText((Join-Path $Repo 'data\mcp\servers.yaml'), [Text.Encoding]::UTF8),
+    '(?m)^  ([A-Za-z0-9_-]+):\s*$') | ForEach-Object { $_.Groups[1].Value }
+  if ($servers) { $plan += "MCP：把 $($servers -join '、') 合併寫入 ~/.claude.json 與 ~/.codex/config.toml，不動其他設定" }
+  $allow = @(Get-Content -Encoding UTF8 (Join-Path $Repo 'data\harness\claude-allow.txt') |
+    ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+  if ($allow) { $plan += "~/.claude/settings.json：權限免問清單補上 $($allow -join '、')（只增不刪）" }
+  $plan += '開新對話提醒：加進 ~/.claude/settings.json 與 ~/.codex/config.toml 的 Stop hook（Codex 要到 /hooks 信任才會跑）'
+  if ((git -C $Repo config --get core.hooksPath) -ne '.githooks') {
+    $plan += '這個 repo 改用 .githooks：commit 前掃金鑰、驗證名冊；改到規則、MCP 等檔案時自動同步'
+  }
+
+  Write-Host '這是預覽，什麼都沒改。照這台目前的狀態，install.ps1 會：'
+  # 兩個空白開頭的是上一項的細節，縮排顯示
+  $plan | ForEach-Object { if ($_.StartsWith('  ')) { Write-Host "      $($_.Trim())" } else { Write-Host "  - $_" } }
+  Write-Host ''
+  Write-Host '拿掉 -WhatIf 再執行就會照做；每一項的說明見 README 的「安裝會改動哪些地方」。'
+}
+
 # 安裝完畫面上不會多出東西，告訴使用者怎麼確認接上了、接下來怎麼用
 function Show-NextSteps {
   $text = [IO.File]::ReadAllText((Join-Path $Repo 'data\rules\baseline.md'), [Text.Encoding]::UTF8)
@@ -371,10 +441,17 @@ function Show-NextSteps {
   Write-Host ''
   Write-Host "OmniKit 已接上 Claude Code 與 Codex（profile：$name），開新的 session 才會生效："
   Write-Host "  - 問「OmniKit 規則版本與 profile 是什麼？」，應該回答 $version 與 $name"
+  if ($name -eq 'default') {
+    Write-Host '  - 建立自己的 profile：開新 session 說「幫我設定 OmniKit」（Claude Code 也可以輸入 /omnikit-setup，Codex 輸入 $omnikit-setup），回答幾題就好' -ForegroundColor Yellow
+  } else {
+    Write-Host '  - 重新設定 profile：開新 session 說「幫我設定 OmniKit」'
+  }
   Write-Host '  - 換 profile：重跑 install.ps1 -ProfileName <名稱>，或 uv run engine/scripts/profiles.py --set <名稱>'
   Write-Host '  - 評估新工具：Claude Code 輸入 /omnikit-eval，Codex 輸入 $omnikit-eval'
   Write-Host '  - 預設 plugin 不會自動安裝；安裝方式與其他說明見 README 的「裝好之後」'
 }
+
+if ($WhatIf) { Show-InstallPlan; return }
 
 Install-Skillshare
 Install-Uv

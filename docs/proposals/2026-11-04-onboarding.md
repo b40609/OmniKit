@@ -1,6 +1,9 @@
 # 同事安裝 OmniKit 之後：個人化上手方案（提案）
 
-日期：2026-11-04　狀態：階段 1 已實作（規則分成安全底線與 profile、情境改範本）；階段 2 以後待決定
+日期：2026-11-04　狀態：階段 1、2 已實作；階段 3、4 待決定
+
+- 階段 1：規則分成安全底線與 profile，情境改成範本。
+- 階段 2：`scan.py` 掃描、`omnikit-setup` 訪談、`profile_new.py` 依答案產生 profile、`install.ps1 -WhatIf` 預覽。跟原計畫的差別：掃描改用 Python（能在 CI 測、skill 直接讀 JSON），不擴充 `inventory.ps1`；profile 直接產生 `data/profiles/<名稱>/` 的 `AGENTS.md` 與 `scenarios.yaml`，不另外做 `profile.yaml`；工具包（packs）還沒做，訪談先調整規則與情境。
 
 下面「現況」引用的行號是階段 1 之前的版本，那時規則還在 `data/rules/AGENTS.md`。
 
