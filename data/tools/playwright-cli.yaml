@@ -10,5 +10,5 @@ works_with:
 - codex
 sources:
 - 使用者提出
-notes: 微軟官方給 coding agent 用的 CLI 加 skills，v0.1.23（2026-10-31），14.9k 星，Apache-2.0。官方說比 Playwright MCP 省 token，不把整頁資料硬塞進 context。能看 console 與網路請求、錄 trace 與影片、產生 Playwright 測試碼。README 只點名 Claude Code 與 Copilot，Codex 要實測。建議列入 U1 第一輪比較。
+notes: 微軟官方給 coding agent 用的 CLI 加 skills，v0.1.23（2026-10-31），14.9k 星，Apache-2.0。官方說比 Playwright MCP 省 token，不把整頁資料硬塞進 context。能看 console 與網路請求、錄 trace 與影片、產生 Playwright 測試碼。第 0 層：npm 由微軟發布並附 SLSA provenance，skill 掃描 SAFE。U1 實測（2026-11-04）：Claude 端 4 分（10 秒、輸出約 2,900 字元）；Codex 在 Windows 沙箱裡找不到指令，要關掉整個 shell 沙箱才拿 4 分，輸入 13.6 萬 token，比 DevTools MCP 少 17%。細節見 data/evals/2026-11-04-browser-u1.md。
 added: '2026-11-04'

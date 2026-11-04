@@ -1,0 +1,10 @@
+id: composio
+name: Composio
+kind: service
+slots: []
+status: pending
+url: https://github.com/ComposioHQ/composio
+sources:
+- 使用者提出
+notes: 把上千個 SaaS 工具（Gmail、Slack、GitHub 等）接給 agent，代管登入授權，也提供 MCP；30.9k 星，MIT，CLI 0.6.0（2026-11-01）。兩邊原生已有連接器（Claude 的 connectors、Codex 的 plugins），還沒有對應的真實情境，先不分配槽位。
+added: '2026-11-04'
