@@ -1,2 +1,5 @@
 # 文字檔一律用 LF：各台電腦一致，hook 的 sh 腳本也不會因為 CRLF 執行失敗
 * text=auto eol=lf
+
+# Floorplan 匯出的架構地圖：產生的單檔 HTML，GitHub 摺疊顯示、diff 不逐行列出
+engine/site/map.html linguist-generated=true -diff

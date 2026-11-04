@@ -9,6 +9,7 @@
 
 - .claude-plugin/marketplace.json、.agents/plugins/marketplace.json：commit 進 repo，不要手改
 - 看板：單一 HTML，寫到 --site 指定的目錄（預設 _site/，不進 repo），由 GitHub Actions 部署
+- 架構地圖：engine/site/map.html 是在本機用 Floorplan 匯出的互動地圖，原樣複製成 map.html
 
 只有狀態是 default、而且卡片寫了該 agent 的 plugin 來源的工具，才會進 marketplace。
 名冊驗證不過就不產生。
@@ -21,6 +22,7 @@ import argparse
 import html
 import json
 import os
+import shutil
 import subprocess
 import sys
 from collections import Counter
@@ -31,6 +33,7 @@ import validate
 
 ROOT = validate.ROOT
 SITE_SRC = ROOT / "engine" / "site"
+MAP = SITE_SRC / "map.html"
 MARKETPLACES = {
     "claude": ROOT / ".claude-plugin" / "marketplace.json",
     "codex": ROOT / ".agents" / "plugins" / "marketplace.json",
@@ -317,6 +320,7 @@ def page(roster):
 </main>
 <footer><div class="wrap">
 <p>每個槽位只留一個預設；新工具用真實情境評估，換或不換都把理由寫回名冊。</p>
+{'<p>想知道 OmniKit 每個部分在做什麼：打開<a href="map.html">互動架構地圖</a>。</p>' if MAP.exists() else ''}
 <p>想用同一套方法管理自己的設定：fork <a href="{repo_url}">{esc(cfg["repo"])}</a>，換掉 data/ 裡的資料即可。</p>
 </div></footer>
 <script>
@@ -364,6 +368,9 @@ def main():
         # Pages 不必用 Jekyll 處理
         (args.site / ".nojekyll").write_text("", encoding="utf-8")
         print(f"已產生看板：{validate.show(args.site / 'index.html')}")
+        if MAP.exists():
+            shutil.copyfile(MAP, args.site / "map.html")
+            print(f"已複製架構地圖：{validate.show(args.site / 'map.html')}")
     return 0
 
 

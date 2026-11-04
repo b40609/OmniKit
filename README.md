@@ -9,7 +9,7 @@
 [![授權](https://img.shields.io/badge/%E6%8E%88%E6%AC%8A-MIT-blue)](LICENSE)
 [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%2011-0078d4)](#常見問題)
 
-[槽位看板](https://b40609.github.io/OmniKit/) · [快速開始](#快速開始) · [裝好之後](#裝好之後) · [運作方式](#運作方式) · [常見問題](#常見問題)
+[槽位看板](https://b40609.github.io/OmniKit/) · [架構地圖](https://b40609.github.io/OmniKit/map.html) · [快速開始](#快速開始) · [裝好之後](#裝好之後) · [運作方式](#運作方式) · [常見問題](#常見問題)
 
 </div>
 
@@ -153,6 +153,15 @@ flowchart LR
 2. **產生**：commit 時 git hook 驗證名冊並重新產生 marketplace 清單；推到 main 之後，GitHub Actions 重建看板。
 3. **同步**：`install.ps1` 把規則、skills、MCP、權限接到 Claude Code 與 Codex；之後 commit 或 pull 動到這些檔案時，git hook 會自動再同步。
 
+想看每個部分、每個檔案在做什麼，打開[互動架構地圖](https://b40609.github.io/OmniKit/map.html)：每個檔案都有白話說明，另有 3 條逐步導覽（評估新工具、改規則、第一次安裝）。建議用電腦開。
+
+<a href="https://b40609.github.io/OmniKit/map.html">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/map-dark.png">
+  <img alt="OmniKit 互動架構地圖：名冊、評估新工具、檢查與產生、對外成品、接到你的電腦、雲端檢查與部署，以及 GitHub、Claude Code、Codex 之間的連線" src=".github/assets/map-light.png">
+</picture>
+</a>
+
 ## 安裝會改動哪些地方
 
 | 位置 | 做什麼 |
@@ -212,6 +221,16 @@ uv run engine/scripts/build.py --site _site
 
 uv 不在 PATH 上的話，把 `uv` 換成 `& "$env:LOCALAPPDATA\Programs\uv\uv.exe"`。CI 會再檢查名冊、marketplace 清單是不是最新、看板能不能產生，並用 gitleaks 掃金鑰。
 
+### 更新架構地圖
+
+`engine/site/map.html` 是用 [Floorplan](https://github.com/haydenschmitty/floorplan) 在本機產生後匯出的，CI 不會重畫。`engine/` 有結構上的改動時，在裝了 Floorplan 的 Claude Code 裡說「更新 floorplan」，再匯出並 commit：
+
+```powershell
+node floorplan/serve.mjs --export engine/site/map.html
+```
+
+`floorplan/` 本身不進 git；換電腦後第一次要重畫整張地圖。
+
 ### 跟上原作者的更新
 
 在你的 fork 頁面按 **Sync fork**，或在本機：
@@ -239,7 +258,7 @@ data/                        資料：fork 後換成你的
 engine/                      引擎：不用改
   schema/                    名冊與槽位的 JSON Schema
   scripts/                   安裝、驗證、產生看板與 marketplace、開新對話提醒
-  site/                      看板的樣式與程式
+  site/                      看板的樣式與程式，以及匯出的架構地圖（map.html）
   skills/omnikit-eval/       評估新工具的 skill
 .claude-plugin/              Claude Code 的 marketplace（由名冊產生，不要手改）
 .agents/plugins/             Codex 的 marketplace（由名冊產生，不要手改）
@@ -288,7 +307,7 @@ engine/                      引擎：不用改
 
 ## 致謝
 
-OmniKit 建立在這些專案上：[skillshare](https://github.com/runkids/skillshare)（同步規則、skills 與 MCP）、[uv](https://github.com/astral-sh/uv)（執行 Python 腳本）、[gitleaks](https://github.com/gitleaks/gitleaks)（掃描金鑰）、[GitHub CLI](https://github.com/cli/cli)。
+OmniKit 建立在這些專案上：[skillshare](https://github.com/runkids/skillshare)（同步規則、skills 與 MCP）、[uv](https://github.com/astral-sh/uv)（執行 Python 腳本）、[gitleaks](https://github.com/gitleaks/gitleaks)（掃描金鑰）、[GitHub CLI](https://github.com/cli/cli)、[Floorplan](https://github.com/haydenschmitty/floorplan)（產生架構地圖）。
 
 ## 授權
 
