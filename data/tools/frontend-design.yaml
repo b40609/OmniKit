@@ -24,5 +24,5 @@ plugin:
 sources:
 - 訪談
 - 桌機盤點
-notes: plugin 固定在 anthropics/claude-plugins-official 的 a2e251d（2026-11-03，plugin 版本 1.1.1）；第 0 層 skill 掃描 SAFE。2026-11-04 在隔離環境實測：Claude Code 與 Codex 都能從 OmniKit 的 marketplace 安裝（Codex 吃得下 Claude 格式的 plugin）。
+notes: plugin 固定在 anthropics/claude-plugins-official 的 a2e251d（2026-11-03，plugin 版本 1.1.1）；第 0 層 skill 掃描 SAFE。2026-11-04 在隔離環境實測：Claude Code 與 Codex 都能從 OmniKit 的 marketplace 安裝（Codex 吃得下 Claude 格式的 plugin）。第 2 層 F1（2026-11-04）：跟 impeccable 平手，維持預設。桌機投票原版 2 票、frontend-design 1 票（權益卡 KPI 欄的 5 px 細捲軸）、impeccable 0 票。Claude 盲評 18 分，impeccable 17 分。兩組都沒解決 F1，這個槽位繼續主動找。詳見 data/evals/2026-11-04-frontend-design-F1.md。
 added: '2026-11-04'
