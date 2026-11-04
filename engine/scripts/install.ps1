@@ -204,10 +204,21 @@ function Sync-RepoConfig {
 
 function Initialize-Skillshare {
   $dir = Join-Path $env:APPDATA 'skillshare'
-  if (Test-Path (Join-Path $dir 'config.yaml')) { return }
-  $existed = Test-Path $dir
-  Invoke-Skillshare init --no-copy --no-git --no-skill --targets claude,codex --no-tui
-  if (-not $existed) { Add-InstallRecord paths $dir }
+  if (-not (Test-Path (Join-Path $dir 'config.yaml'))) {
+    $existed = Test-Path $dir
+    Invoke-Skillshare init --no-copy --no-git --no-skill --targets claude,codex --no-tui
+    if (-not $existed) { Add-InstallRecord paths $dir }
+  }
+  # 設定檔已存在時 init 不會重跑；舊設定缺 target（曾發生少了 codex）就在這裡補上
+  $have = (& $Exe target list --json | ConvertFrom-Json).targets.name
+  if ($LASTEXITCODE -ne 0) { throw "skillshare target list 失敗（exit $LASTEXITCODE）" }
+  $want = [ordered]@{ claude = '.claude\skills'; codex = '.agents\skills' }
+  foreach ($name in $want.Keys) {
+    if ($name -notin $have) {
+      Invoke-Skillshare target add $name (Join-Path $env:USERPROFILE $want[$name])
+      Write-Host "已補上 skillshare target：$name"
+    }
+  }
 }
 
 # skillshare 0.28.2 的 import 模式在 Windows 寫出反斜線路徑，Claude Code 不會載入；
