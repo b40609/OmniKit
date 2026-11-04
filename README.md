@@ -194,7 +194,7 @@ flowchart LR
 <a href="https://b40609.github.io/OmniKit/map.html">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/map-dark.png">
-  <img alt="OmniKit 互動架構地圖：名冊、評估新工具、檢查與產生、對外成品、接到你的電腦、雲端檢查與部署，以及 GitHub、Claude Code、Codex 之間的連線" src=".github/assets/map-light.png">
+  <img alt="OmniKit 互動架構地圖：名冊、建立自己的 profile、評估新工具、檢查與產生、對外成品、接到你的電腦、雲端檢查與部署，以及 GitHub、Claude Code、Codex、Antigravity 之間的連線" src=".github/assets/map-light.png">
 </picture>
 </a>
 
