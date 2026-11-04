@@ -10,6 +10,8 @@ slots:
         text: 在 Windows 用 Claude Code 或 Codex 改 CatOS 的 React／Vite 前端；給一張喜歡的風格參考，要依 CatOS 的需求重新設計，不能照抄。
       - id: F2
         text: OmniKeep 或 CatOS 的後端功能已經完成，決定前端怎麼呈現，讓人看了想用。
+      - id: F3
+        text: 偶爾需要照原版重建一個現成的網站或畫面，版面、樣式與行為要盡量接近原版。
 
   - id: review
     name: 審查與驗收
