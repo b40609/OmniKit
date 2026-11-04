@@ -315,7 +315,12 @@ engine/                      引擎：不用改
 <details>
 <summary><b>公司電腦執行 skillshare 時「存取被拒」？</b></summary>
 
-公司裝的防毒（例如 Trend Micro）可能擋下 `%LOCALAPPDATA%\Programs\skillshare\skillshare.exe`，這時 Codex 的規則、skills 與 MCP 都同步不了。Claude Code 的規則是直接 import repo 裡的檔案，不經過 skillshare，仍然會生效。請 IT 把這個執行檔加進例外，再重跑 `install.ps1`。
+公司的防毒可能擋下 `%LOCALAPPDATA%\Programs\skillshare\skillshare.exe`。例如 Trend Micro 的「新出現的程式」偵測：從網路下載、很少人用或剛發布的程式，執行前會先跳通知要你確認，沒人按就擋下。skillshare 用的人少、新版本出得又快，所以會被攔。被擋時 Codex 的規則、skills 與 MCP 都同步不了；Claude Code 的規則直接 import repo 裡的檔案，不受影響。
+
+- **安裝或移除時被擋**：`install.ps1` 與 `uninstall.ps1` 一開始會先試跑 skillshare，被擋就停下來，印出原因、檔案路徑與 SHA256。跳出防毒通知就選允許，再重跑一次。
+- **裝好之後才被擋**：可能第一次能跑，幾小時後才開始擋。commit 或 pull 時 git hook 印出「skillshare … 失敗」或「無法執行」，就是這個情況；agent 在背景跑的時候，通知沒人按，也可能被擋。放行之後重跑 `install.ps1`，把漏掉的同步補上。
+- **沒有通知可按，或允許之後又被擋**：請 IT 把這個檔案加進例外，附上 `install.ps1` 印出的 SHA256。
+- **升級 skillshare 之後**：新版本是新的檔案，可能要再放行一次。
 
 </details>
 

@@ -2,7 +2,8 @@
 OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 
 1. 安裝固定版本的 skillshare、uv、gh 與 gitleaks：從 GitHub release 下載 zip，比對寫死的
-   SHA256 後解壓；不改 PATH。這台已經有 uv 或 gh 就沿用。
+   SHA256 後解壓；不改 PATH。這台已經有 uv 或 gh 就沿用。skillshare 會先試跑一次：
+   公司電腦的防毒可能擋下它，被擋就停下來，說明怎麼放行。
 2. fork 出來的 repo：把 data/omnikit.yaml 的 repo、owner、marketplace 改成 origin 指向的
    GitHub repo、profile 改回 default，並重新產生 marketplace 清單，避免跟原作者的 marketplace 撞名。
 3. 第一次執行時初始化 skillshare，target 是 Claude Code 與 Codex。
@@ -129,13 +130,48 @@ function Install-PinnedZip($url, $sha256, $exeNames, $dest) {
   }
 }
 
+# 公司電腦的防毒可能擋下 skillshare.exe：Trend Micro 的「新出現的程式」偵測，對從網路下載、
+# 很少人用或剛發布的程式，執行前要使用者按允許，沒人按就擋下；而且可能第一次能跑、之後才開始擋。
+# 被擋時後面每一步都會失敗，所以先試跑一次，跑不動就停下來說明怎麼放行。
+# 用 .NET 直接啟動：PowerShell 7 用 & 啟動失敗時，回報的是不相干的 StandardOutputEncoding 錯誤，看不出被擋。
+# 回傳 --version 的輸出；檔案不存在時回傳 $null
+function Test-Skillshare {
+  if (-not (Test-Path $Exe)) { return $null }
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = $Exe
+  $psi.Arguments = '--version'
+  $psi.UseShellExecute = $false
+  $psi.RedirectStandardOutput = $true
+  $psi.CreateNoWindow = $true
+  try {
+    $p = [System.Diagnostics.Process]::Start($psi)
+    $out = $p.StandardOutput.ReadToEnd()
+    $p.WaitForExit()
+    if ($p.ExitCode -eq 0) { return $out.Trim() }
+    $reason = "exit $($p.ExitCode)"
+  } catch {
+    $e = $_.Exception
+    while ($e.InnerException) { $e = $e.InnerException }
+    $reason = $e.Message.Trim()
+  }
+  $hash = try { (Get-FileHash -Algorithm SHA256 $Exe).Hash } catch { '（讀不到）' }
+  Write-Host ''
+  Write-Host "skillshare 無法執行：$reason" -ForegroundColor Red
+  Write-Host "公司電腦的防毒（例如 Trend Micro）可能擋下了 $Exe"
+  Write-Host '  - 有跳出防毒的通知：選允許，再重跑 install.ps1。'
+  Write-Host "  - 沒有通知可按，或允許後又被擋：請 IT 把這個檔案加進例外（SHA256：$hash），再重跑 install.ps1。"
+  Write-Host '  說明見 README 常見問題：「公司電腦執行 skillshare 時「存取被拒」？」'
+  exit 1
+}
+
 function Install-Skillshare {
-  if ((Test-Path $Exe) -and ((& $Exe --version 2>$null) -match [regex]::Escape($SkillshareVersion))) {
+  if ((Test-Skillshare) -match [regex]::Escape($SkillshareVersion)) {
     Write-Host "skillshare $SkillshareVersion 已安裝：$Exe"
     return
   }
   $url = "https://github.com/runkids/skillshare/releases/download/v$SkillshareVersion/skillshare_${SkillshareVersion}_windows_$Arch.zip"
   Install-PinnedZip $url $SkillshareSha256[$Arch] @('skillshare.exe') $BinDir
+  Test-Skillshare | Out-Null
   Write-Host "已安裝 skillshare $SkillshareVersion：$Exe"
 }
 

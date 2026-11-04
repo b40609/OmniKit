@@ -17,6 +17,8 @@ OmniKit 移除：把 install.ps1 對這台電腦做的改動還原，可以重�
 只動安裝紀錄（%LOCALAPPDATA%\omnikit\install-record.json）裡記下的東西；安裝前就有的工具、
 套件與權限規則都保留。repo 資料夾本身不刪。
 
+第 2 到 4 步要用 skillshare：先試跑一次，被公司電腦的防毒擋下就什麼都不改，說明怎麼放行。
+
 參數：
   -Yes        不詢問，直接移除
   -KeepTools  保留工具與 npm 套件，只還原設定
@@ -60,6 +62,36 @@ function Get-Uv {
 }
 
 function Get-FileText($path) { if (Test-Path $path) { Read-Text $path } else { '' } }
+
+# 跟 install.ps1 的 Test-Skillshare 一樣：公司電腦的防毒可能擋下 skillshare.exe，被擋時 Codex 規則、
+# skills、MCP 都還原不了，移除會停在一半。所以先試跑，跑不動就在動手之前停下來說明怎麼放行
+function Test-Skillshare {
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = $Exe
+  $psi.Arguments = '--version'
+  $psi.UseShellExecute = $false
+  $psi.RedirectStandardOutput = $true
+  $psi.CreateNoWindow = $true
+  try {
+    $p = [System.Diagnostics.Process]::Start($psi)
+    $null = $p.StandardOutput.ReadToEnd()
+    $p.WaitForExit()
+    if ($p.ExitCode -eq 0) { return }
+    $reason = "exit $($p.ExitCode)"
+  } catch {
+    $e = $_.Exception
+    while ($e.InnerException) { $e = $e.InnerException }
+    $reason = $e.Message.Trim()
+  }
+  $hash = try { (Get-FileHash -Algorithm SHA256 $Exe).Hash } catch { '（讀不到）' }
+  Write-Host ''
+  Write-Host "skillshare 無法執行：$reason" -ForegroundColor Red
+  Write-Host "公司電腦的防毒（例如 Trend Micro）可能擋下了 $Exe；這次什麼都還沒改。"
+  Write-Host '  - 有跳出防毒的通知：選允許，再重跑 uninstall.ps1。'
+  Write-Host "  - 沒有通知可按，或允許後又被擋：請 IT 把這個檔案加進例外（SHA256：$hash），再重跑 uninstall.ps1。"
+  Write-Host '  說明見 README 常見問題：「公司電腦執行 skillshare 時「存取被拒」？」'
+  exit 1
+}
 
 # 紀錄壞掉也不會刪到別的東西：只刪 %LOCALAPPDATA%\Programs 底下的資料夾，或 skillshare 的設定資料夾
 function Test-Deletable($path) {
@@ -106,6 +138,9 @@ if (-not $plan) {
   Write-Host 'OmniKit 沒有接在這台電腦上，不用移除。'
   return
 }
+
+# 要用到 skillshare 的步驟（Codex 規則、skills、MCP）只在 $hasSkillshare 時才做，所以只在這時試跑
+if ($hasSkillshare -and ($codexManaged -or $skillsLinked -or $mcpMatch.Success)) { Test-Skillshare }
 
 Write-Host '將會：'
 $plan | ForEach-Object { Write-Host "  - $_" }
