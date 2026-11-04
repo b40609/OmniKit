@@ -12,7 +12,8 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 5. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本），
    再把 data/mcp/servers.yaml 設成 skillshare 的 MCP 來源，同步到兩邊。
 6. 把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的使用者設定（只增不刪），
-   並註冊開新對話提醒的 Stop hook（session_nudge.py）。
+   並在 Claude Code 與 Codex 註冊開新對話提醒的 Stop hook（session_nudge.py）；
+   Codex 要使用者在 /hooks 信任後才會執行。
 7. 設定 git hook：commit 前驗證名冊；commit 或 pull 動到規則、MCP 或權限規則時，自動同步。
 8. 檢查 OmniKit repo 的 git 身分。
 
@@ -302,6 +303,13 @@ function Grant-ClaudePermissions {
   if ($LASTEXITCODE -ne 0) { throw "claude_allow.py 失敗（exit $LASTEXITCODE）" }
 }
 
+# Codex 的開新對話提醒 hook；TOML 交給 Python 改，寫入前會驗證沒動到其他設定。
+# 只是提醒，失敗時警告就好，不擋後面的步驟
+function Register-CodexHook {
+  & (Get-Uv) run --quiet (Join-Path $Repo 'engine\scripts\codex_hooks.py')
+  if ($LASTEXITCODE -ne 0) { Write-Warning "codex_hooks.py 失敗（exit $LASTEXITCODE），Codex 的開新對話提醒沒有註冊" }
+}
+
 # 只留下 OmniKit 的受管區塊；舊內容先備份
 function Clear-OldClaudeRules {
   $text = [IO.File]::ReadAllText($ClaudeMd, [Text.Encoding]::UTF8)
@@ -347,6 +355,7 @@ Connect-Skills
 Install-McpPackages
 Connect-Mcp
 Grant-ClaudePermissions
+Register-CodexHook
 if ($Fresh) { Clear-OldClaudeRules }
 Enable-GitHooks
 Test-GitIdentity

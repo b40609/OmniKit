@@ -23,6 +23,7 @@ jobs:
       - run: uv run engine/skills/omnikit-eval/scripts/selftest.py
       # 開新對話提醒的自我測試
       - run: uv run engine/scripts/session_nudge.py --selftest
+      - run: uv run engine/scripts/codex_hooks.py --selftest
 
   secrets:
     name: 金鑰外洩

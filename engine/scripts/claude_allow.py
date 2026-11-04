@@ -37,11 +37,16 @@ def is_nudge(hook: dict) -> bool:
     return NUDGE in hook.get("command", "")
 
 
+def nudge_command() -> str:
+    """提醒 hook 的指令。Claude Code 在 Windows 上用 Git Bash 跑 hook；OmniKit 的 git hooks 本來就需要
+    Git for Windows。Codex 用 PowerShell 跑，codex_hooks.py 會在前面加上 `&`"""
+    uv = Path(os.environ.get("UV") or shutil.which("uv")).as_posix()
+    return f'"{uv}" run --quiet --script "{(ROOT / "engine" / "scripts" / NUDGE).as_posix()}"'
+
+
 def add_nudge_hook(settings: dict) -> bool:
     """註冊或更新提醒 hook；回傳是否有改動。uv 或 repo 換位置時，重跑就會改成新路徑。"""
-    uv = Path(os.environ.get("UV") or shutil.which("uv")).as_posix()
-    # Claude Code 在 Windows 上用 Git Bash 跑 hook；OmniKit 的 git hooks 本來就需要 Git for Windows
-    command = f'"{uv}" run --quiet --script "{(ROOT / "engine" / "scripts" / NUDGE).as_posix()}"'
+    command = nudge_command()
     stop = settings.setdefault("hooks", {}).setdefault("Stop", [])
     ours = [h for group in stop for h in group.get("hooks", []) if is_nudge(h)]
     if ours and all(h["command"] == command for h in ours):
