@@ -1,0 +1,14 @@
+id: ai-design-skills
+name: AI Design Skills（elayadesign）
+kind: collection
+slots:
+- frontend-design
+status: pending
+url: https://github.com/elayadesign/ai-design-skills
+works_with:
+- claude
+- codex
+sources:
+- 使用者提出
+notes: 第 0／1 層（2026-11-04）：14k 星、MIT、2026-07 才建立、沒有正式 release。兩個 skill：landing-page-design（先問需求，再排頁面結構、轉換文案與視覺系統）和 figma-designer。偏行銷著陸頁與 Figma，README 沒提到 app 介面或儀表板，對 CatOS（F1）幫助有限；做產品介紹頁時（F2）可以參考。介紹影片說它「先理清賣點」，但 README 寫的是先問需求，沒有獨立的賣點步驟。
+added: '2026-11-04'

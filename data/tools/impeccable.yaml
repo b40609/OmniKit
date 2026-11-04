@@ -11,5 +11,6 @@ works_with:
 sources:
 - 桌機盤點
 - Codex 使用紀錄
-notes: 給 agent 一套設計詞彙與指令，用來打磨、評析 UI，抓出 AI 味的套版設計。Codex 讀取 1 次。
+- 使用者提出
+notes: 給 agent 一套設計詞彙與指令，用來打磨、評析 UI，抓出 AI 味的套版設計。Codex 讀取 1 次。第 0／1 層（2026-11-04）：101.6k 星、Apache-2.0、CLI 4.8.0（2026-10-26）。從 Anthropic 的 frontend-design 發展而來，有 24 個指令（critique、audit、polish、typeset、colorize 等），另有不靠 LLM 的套版偵測（62 條規則）；官方說最強在改既有介面，正好對上 CatOS（F1）。安裝：npx impeccable install，或 Claude plugin（pbakaus/impeccable）。建議列入前端設計槽位的實測。
 added: '2026-11-04'

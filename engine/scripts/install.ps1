@@ -1,8 +1,8 @@
 ﻿<#
 OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 
-1. 安裝固定版本的 skillshare 與 uv：從 GitHub release 下載 zip，比對寫死的 SHA256 後解壓；
-   不改 PATH。這台已經有 uv 就沿用。
+1. 安裝固定版本的 skillshare、uv 與 gh：從 GitHub release 下載 zip，比對寫死的 SHA256 後解壓；
+   不改 PATH。這台已經有 uv 或 gh 就沿用。
 2. 第一次執行時初始化 skillshare，target 是 Claude Code 與 Codex。
 3. 把 data/rules/AGENTS.md 接到兩邊：Claude 用 import，Codex 用複製，然後同步。
 4. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本），
@@ -35,6 +35,11 @@ $UvSha256 = @{
   amd64 = '0cdc5b38fe5a8168ed6a25814f5ba43c21d313dd3187314fccb37b7cec46e021'
   arm64 = '505d9e65e7692bac3ddf98c66754aa26c5050c409c184af30a881a0a72cc85e3'
 }
+$GhVersion = '2.103.3'
+$GhSha256 = @{
+  amd64 = '98d0cfa794721665d7973dd728c78aff7bd836d58f10f6d7a03568eccb0a22e0'
+  arm64 = '197211c98687d7770ac331fe8a3b6c198c389108c1536cdbedf659fe4703e484'
+}
 
 $Repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $Rules = Join-Path $Repo 'data\rules'
@@ -43,6 +48,8 @@ $BinDir = Join-Path $env:LOCALAPPDATA 'Programs\skillshare'
 $Exe = Join-Path $BinDir 'skillshare.exe'
 $UvDir = Join-Path $env:LOCALAPPDATA 'Programs\uv'
 $UvExe = Join-Path $UvDir 'uv.exe'
+$GhDir = Join-Path $env:LOCALAPPDATA 'Programs\gh'
+$GhExe = Join-Path $GhDir 'gh.exe'
 $ClaudeMd = Join-Path $env:USERPROFILE '.claude\CLAUDE.md'
 $BlockPattern = '(?s)<!-- omnikit:rules:begin -->.*?<!-- omnikit:rules:end -->'
 
@@ -98,6 +105,22 @@ function Install-Uv {
   $url = "https://github.com/astral-sh/uv/releases/download/$UvVersion/uv-$triple-pc-windows-msvc.zip"
   Install-PinnedZip $url $UvSha256[$Arch] @('uv.exe', 'uvx.exe') $UvDir
   Write-Host "已安裝 uv $UvVersion：$UvExe"
+}
+
+# 建立 repo、開 GitHub Pages 這類 GitHub 操作由 agent 用 gh 完成，不必手動進網頁設定
+function Install-Gh {
+  $onPath = Get-Command gh -ErrorAction SilentlyContinue
+  if ($onPath) {
+    Write-Host "沿用這台已有的 gh：$($onPath.Source)"
+    return
+  }
+  if ((Test-Path $GhExe) -and ((& $GhExe --version 2>$null) -match [regex]::Escape($GhVersion))) {
+    Write-Host "gh $GhVersion 已安裝：$GhExe"
+    return
+  }
+  $url = "https://github.com/cli/cli/releases/download/v$GhVersion/gh_${GhVersion}_windows_$Arch.zip"
+  Install-PinnedZip $url $GhSha256[$Arch] @('gh.exe') $GhDir
+  Write-Host "已安裝 gh $GhVersion：$GhExe"
 }
 
 function Initialize-Skillshare {
@@ -188,6 +211,7 @@ function Test-GitIdentity {
 
 Install-Skillshare
 Install-Uv
+Install-Gh
 Initialize-Skillshare
 Connect-ClaudeRules
 Connect-CodexRules

@@ -1,0 +1,12 @@
+id: lemo-opuscar
+name: lemo-opuscar
+kind: collection
+slots: []
+status: pending
+url: https://github.com/lemomo-ai/lemo-opuscar
+works_with:
+- claude
+sources:
+- 使用者提出
+notes: 用程式碼做影片的風格工具箱：66 種風格，給 Claude Code 用，不靠影片模型；11.8k 星、MIT。目前沒有做影片的情境，先不分配槽位。
+added: '2026-11-04'

@@ -1,8 +1,12 @@
 id: spec-kit
 name: spec-kit（GitHub）
+kind: cli
 slots:
 - dev-workflow
 status: pending
+url: https://github.com/github/spec-kit
 sources:
 - RIA:C037
+- 使用者提出
+notes: GitHub 官方的規格驅動開發（SDD）工具包；146.7k 星、MIT、v1.3.0（2026-11-03）。跟目前預設的 BMAD 同一類；規劃與開發流程槽位凍結中，等 RIA 結果再比。
 added: '2026-11-04'

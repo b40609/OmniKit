@@ -1,7 +1,8 @@
 name: 部署看板
 
 # main 有新 commit 時，由名冊重新產生槽位看板並部署到 GitHub Pages。
-# 第一次使用前，要在 repo 的 Settings → Pages 把 Source 設成 GitHub Actions。
+# 第一次使用前要開啟 Pages、來源設成 GitHub Actions；發佈時由 agent 用 gh 完成：
+#   gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow
 on:
   push:
     branches: [main]

@@ -1,0 +1,13 @@
+id: agent-desktop
+name: agent-desktop（Vercel Labs）
+kind: cli
+slots: []
+status: pending
+url: https://github.com/vercel-labs/agent-desktop
+works_with:
+- claude
+- codex
+sources:
+- 使用者提出
+notes: 讀作業系統的無障礙樹，讓 agent 用編號操作桌面程式，不用看螢幕；Windows 用 UI Automation（Windows 10 1809 以上）。CLI 加 skills，也能當 MCP；13k 星、Apache-2.0、v1.1.0（2026-11-03）。是 agent-browser 的桌面版。目前沒有讓 agent 操作 Windows 桌面程式的情境，先不分配槽位。
+added: '2026-11-04'
