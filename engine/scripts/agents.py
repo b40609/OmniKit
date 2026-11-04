@@ -37,6 +37,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -184,8 +185,11 @@ def remove_link(p):
         p.unlink()
 
 
-def owned(entry, env):
-    """OmniKit 管的：連到 engine/skills 的連結（舊版經過 skillshare 的 _omnikit），或帶 .omnikit.json 的複製品。"""
+def owned(entry, env, recorded=()):
+    """OmniKit 管的：連到 engine/skills 的連結（舊版經過 skillshare 的 _omnikit）、帶 .omnikit.json 的複製品，
+    或 agents.json 記錄是 OmniKit 放的（複製品被刪到一半、.omnikit.json 不見了也認得出來）。"""
+    if entry.name in recorded:
+        return True
     src = env.skills_src.resolve()
     if is_link(entry):
         target = link_target(entry)
@@ -206,23 +210,68 @@ def present(p):
     return p.exists() or is_link(p)
 
 
+def writable(path):
+    """清掉唯讀：Windows 的資料夾常帶唯讀屬性，帶著就刪不掉（存取被拒）；POSIX 給擁有者讀寫執行。"""
+    try:
+        os.chmod(path, stat.S_IRWXU)
+    except OSError:
+        pass
+
+
+def remove_tree(path):
+    def force(func, p, _exc):
+        writable(p)
+        writable(os.path.dirname(p))
+        func(p)
+
+    shutil.rmtree(path, onexc=force)
+
+
 def remove_owned(entry):
     if is_link(entry):
         remove_link(entry)
     else:
-        shutil.rmtree(entry)
+        remove_tree(entry)
+
+
+def source_files(src_dir):
+    return {p.relative_to(src_dir): p for p in sorted(src_dir.rglob("*")) if p.is_file()
+            and not any(part in ("__pycache__", MARKER) for part in p.relative_to(src_dir).parts) and p.suffix != ".pyc"}
 
 
 def copy_skill(src_dir, dest, env):
-    shutil.copytree(src_dir, dest, ignore=shutil.ignore_patterns(*IGNORE))
+    """原地同步成跟 src_dir 一樣：覆寫變了的、補上缺的、刪掉多的。不先整個刪掉，也不複製資料夾屬性
+    （engine/skills 的資料夾常帶唯讀屬性，複製過去就刪不掉；有程式開著資料夾時也刪不掉）。"""
+    dest.mkdir(parents=True, exist_ok=True)
+    writable(dest)
+    wanted = source_files(src_dir)
+    for rel, src in wanted.items():
+        target = dest / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        writable(target.parent)
+        if not target.is_file() or target.read_bytes() != src.read_bytes():
+            if target.exists():
+                writable(target)
+            shutil.copyfile(src, target)
+    for p in sorted(dest.rglob("*"), key=lambda x: -len(x.parts)):
+        rel = p.relative_to(dest)
+        if rel == Path(MARKER) or rel in wanted:
+            continue
+        if p.is_dir() and not is_link(p):
+            if not any(p.iterdir()):
+                writable(p)
+                p.rmdir()
+        else:
+            writable(p)
+            p.unlink()
     marker = {"source": str(src_dir), "repo": str(env.repo), "hash": tree_hash(src_dir)}
     (dest / MARKER).write_text(json.dumps(marker, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def place_skill(src_dir, dest, mode, env):
+def place_skill(src_dir, dest, mode, env, recorded=()):
     """回傳 unchanged、linked、copied 或 skipped（同名但不是 OmniKit 的，不動）。"""
     if present(dest):
-        if not owned(dest, env):
+        if not owned(dest, env, recorded):
             return "skipped"
         if mode == "link" and is_link(dest) and same_path(link_target(dest), src_dir):
             return "unchanged"
@@ -232,6 +281,9 @@ def place_skill(src_dir, dest, mode, env):
                     return "unchanged"
             except (OSError, ValueError):
                 pass
+            if mode == "copy":
+                copy_skill(src_dir, dest, env)  # 原地更新，不先刪
+                return "copied"
         remove_owned(dest)
     if mode == "link":
         try:
@@ -265,17 +317,18 @@ def sync_skills(env, agents, rec):
         folder, mode = env.skill_dirs[key]
         folder.mkdir(parents=True, exist_ok=True)
         placed, skipped, copied_instead = [], [], []
+        recorded = set(rec["skills"].get(key, []))
         for name in names:
-            status = place_skill(env.skills_src / name, folder / name, mode, env)
+            status = place_skill(env.skills_src / name, folder / name, mode, env, recorded)
             if status == "skipped":
                 skipped.append(name)
                 continue
             placed.append(name)
             if mode == "link" and not is_link(folder / name):
                 copied_instead.append(name)
-        for name in sorted(set(rec["skills"].get(key, [])) - set(names)):
+        for name in sorted(recorded - set(names)):
             entry = folder / name
-            if present(entry) and owned(entry, env):
+            if present(entry) and owned(entry, env, recorded):
                 remove_owned(entry)
                 lines.append(f"skills：拿掉已經刪除的 {name}（{folder}）")
         rec["skills"][key] = placed
@@ -604,9 +657,10 @@ def disconnect(env):
     names = set(skill_names(env.skills_src))
     for key, (folder, _) in env.skill_dirs.items():
         removed = []
-        for name in sorted(set(rec["skills"].get(key, [])) | names):
+        recorded = set(rec["skills"].get(key, []))
+        for name in sorted(recorded | names):
             entry = folder / name
-            if present(entry) and owned(entry, env):
+            if present(entry) and owned(entry, env, recorded):
                 remove_owned(entry)
                 removed.append(name)
         if removed:
@@ -649,7 +703,7 @@ def selftest():
             return True
         return False
 
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         tmp = Path(tmp)
         home, repo, state, ss = tmp / "home", tmp / "repo", tmp / "state", tmp / "appdata" / "skillshare"
 
@@ -669,6 +723,10 @@ def selftest():
                           "    targets: [claude, codex, antigravity]\n"
                           "    options:\n      codex:\n        default_tools_approval_mode: approve\n")
         src = repo / "engine" / "skills"
+        # Windows 上 repo 的資料夾常帶唯讀屬性；複製時不能把它帶過去，不然之後刪不掉
+        readonly = [src / "alpha", src / "alpha" / "scripts"]
+        for d in readonly:
+            os.chmod(d, stat.S_IREAD | stat.S_IEXEC)
 
         # 舊版 skillshare 留下的：_omnikit 連結、兩邊 skills 的連結、設定檔與 manifest
         (ss / "skills").mkdir(parents=True)
@@ -764,6 +822,17 @@ def selftest():
         sync(env, mcp=False)
         check("skill 改了：複製品跟著更新，Claude 的連結不用動",
               "v2" in (shared_alpha / "scripts" / "run.py").read_text(encoding="utf-8") and is_link(claude_alpha))
+        check("來源資料夾是唯讀的：複製品的資料夾不帶唯讀", os.access(shared_alpha / "scripts", os.W_OK)
+              and not (getattr(os.stat(shared_alpha / "scripts"), "st_file_attributes", 0) & 1))
+
+        # 複製品被刪到一半（舊版遇到唯讀資料夾刪不掉）：.omnikit.json 不見了也照記錄認得，原地補齊
+        (shared_alpha / MARKER).unlink()
+        (shared_alpha / "scripts" / "run.py").unlink()
+        put(shared_alpha / "scripts" / "stale.py", "多出來的\n")
+        sync(env, mcp=False)
+        check("複製品缺檔、標記也不見了：照記錄認出是 OmniKit 的，原地補齊、刪掉多的",
+              "v2" in (shared_alpha / "scripts" / "run.py").read_text(encoding="utf-8")
+              and (shared_alpha / MARKER).exists() and not (shared_alpha / "scripts" / "stale.py").exists())
         check("新增 skill：兩邊都接上", is_link(home / ".claude" / "skills" / "gamma")
               and (home / ".agents" / "skills" / "gamma" / MARKER).exists())
         shutil.rmtree(src / "gamma")
@@ -812,6 +881,7 @@ def selftest():
 
         put(servers_yaml, "servers:\n  devtools:\n    command: cmd\n    targets: [claude, codex, antigravity]\n")
         sync(env, skills=False)
+        os.chmod(shared_alpha / "scripts", stat.S_IREAD | stat.S_IEXEC)  # 複製品裡有唯讀資料夾也要刪得掉
         lines = disconnect(env)
         check("移除：OmniKit 的 skills 都拿掉，engine/skills 與使用者的不動",
               not present(claude_alpha) and not present(shared_alpha) and (src / "alpha" / "SKILL.md").exists()
@@ -838,6 +908,8 @@ def selftest():
         check("有 claude 指令：用 claude mcp add-json 寫入", read_servers(env, "claude-code")["devtools"]["command"] == "cmd")
         claude_apply(cli_env, {}, {"devtools"})
         check("有 claude 指令：用 claude mcp remove 移除", "devtools" not in read_servers(env, "claude-code"))
+        for d in readonly:
+            writable(d)
 
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0

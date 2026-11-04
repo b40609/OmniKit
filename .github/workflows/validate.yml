@@ -28,6 +28,8 @@ jobs:
       - run: uv run engine/scripts/profiles.py --selftest
       # 接上三個 agent（規則、skills、MCP，以及從舊版 skillshare 接手）的自我測試
       - run: uv run engine/scripts/agents.py --selftest
+      # 每週彙整用的使用統計：只算實際讀取或呼叫，不算對話開頭的 skill 清單
+      - run: uv run engine/scripts/usage.py --selftest
       # 訪談建立 profile：掃描、依答案產生 profile，以及 skill 入口能找到 repo
       - run: uv run engine/scripts/scan.py --selftest
       - run: uv run engine/scripts/profile_new.py --selftest

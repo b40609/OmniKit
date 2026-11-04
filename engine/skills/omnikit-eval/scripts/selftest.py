@@ -86,12 +86,16 @@ def main():
     trial = next((t for t in tools if t["status"] == "trial"), None)
     if trial:
         today = date.fromisoformat(trial["trial_until"]) - timedelta(days=6)
-        digest = run("digest", "--today", today.isoformat())
+        digest = run("digest", "--today", today.isoformat(), "--no-usage")
         check(f"彙整：列出快到期的試用（{trial['name']}）", trial["name"] in digest and "剩 6 天" in digest)
+        check("彙整：加 --no-usage 不讀使用紀錄", "沒用到的 skill 與 plugin" not in digest)
+    digest = run("digest", "--usage-days", "14")
     active_pending = any(s["focus"] == "active" and any(s["id"] in t["slots"] and t["status"] == "pending" for t in tools)
                          for s in roster["slots"])
     if active_pending:
-        check("彙整：列出建議評估的槽位", "- [ ] " in run("digest"))
+        check("彙整：列出建議評估的槽位", "- [ ] " in digest)
+    check("彙整：最後一節是沒用到的 skill 與 plugin（使用紀錄讀不到也不中斷）",
+          "## 14 天沒用到的 skill 與 plugin" in digest and "- 讀" in digest.split("## 14 天沒用到的 skill 與 plugin")[1])
 
     for path in sorted((HERE.parent / "contracts").glob("*.json")):
         try:

@@ -5,26 +5,46 @@
 # [tool.uv]
 # exclude-newer = "2026-11-01T00:00:00Z"
 # ///
-"""每週彙整：試用快到期、這段期間新進的工具、本週的深度評估額度、建議這週評估的槽位。輸出 Markdown。
+"""每週彙整：試用快到期、這段期間新進的工具、本週的深度評估額度、建議這週評估的槽位，
+以及這台電腦 30 天沒用到的 skill 與 plugin（engine/scripts/usage.py 讀本機紀錄）。輸出 Markdown。
 
 平常新工具只記進名冊，不逐筆通知；每週看一次這份彙整。
 
-用法：uv run scripts/digest.py [--since YYYY-MM-DD] [--today YYYY-MM-DD]
+用法：uv run scripts/digest.py [--since YYYY-MM-DD] [--today YYYY-MM-DD] [--usage-days 30] [--no-usage]
 """
 import argparse
 import re
 import sys
 from datetime import date, timedelta
+from pathlib import Path
 
 import _omnikit
+import usage  # noqa: E402  _omnikit 已把 engine/scripts 加進 sys.path
 
 FOCUS = {"active": "主動找", "watch": "有新工具才看", "frozen": "凍結"}
+
+
+def usage_section(tools, days):
+    """這台裝了、但 days 天沒用到的 skill 與 plugin；名冊上還是預設或試用中的，另外點出來。"""
+    try:
+        result = usage.collect(Path.home(), days=days)
+    except Exception as e:  # 讀不到使用紀錄，不影響彙整的其他段落
+        return [f"- 讀不到使用紀錄：{e}"]
+    lines = usage.report(result, limit=15)
+    unused = {i["name"].split("@")[0] for i in result["items"] if i["status"] == "unused"}
+    for t in tools:
+        names = {t["id"], (t.get("plugin") or {}).get("name")} - {None}
+        if t["status"] in ("default", "trial") and names & unused:
+            lines.append(f"- 名冊：{t['name']}（{t['status']}）{days} 天沒用到；考慮 Retire，或試用到期時不續用")
+    return lines
 
 
 def main():
     parser = argparse.ArgumentParser(description="每週彙整")
     parser.add_argument("--today", type=date.fromisoformat, default=date.today())
     parser.add_argument("--since", type=date.fromisoformat, help="預設是 7 天前")
+    parser.add_argument("--usage-days", type=int, default=30, help="多少天沒用到算「沒在用」，預設 30")
+    parser.add_argument("--no-usage", action="store_true", help="不讀本機的使用紀錄")
     args = parser.parse_args()
     today = args.today
     since = args.since or today - timedelta(days=7)
@@ -69,6 +89,10 @@ def main():
     for slot, pending in sorted(active, key=lambda x: -x[1]):
         if pending:
             lines.append(f"- [ ] {slot['name']}（{slot['id']}）：{pending} 個待評估")
+
+    if not args.no_usage:
+        lines += ["", f"## {args.usage_days} 天沒用到的 skill 與 plugin", ""]
+        lines += usage_section(tools, args.usage_days)
 
     _omnikit.utf8_stdout()
     print("\n".join(lines))

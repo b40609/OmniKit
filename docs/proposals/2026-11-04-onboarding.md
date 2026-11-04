@@ -1,6 +1,11 @@
 # 同事安裝 OmniKit 之後：個人化上手方案（提案）
 
-日期：2026-11-04　狀態：階段 1、2、3 已實作；階段 4 待決定
+日期：2026-11-04　狀態：階段 1 到 4 都已實作
+
+- 階段 4：`engine/scripts/usage.py` 讀三個 agent 的本機紀錄，每週彙整最後一節列出 30 天沒用到的 skill 與 plugin。
+  只算實際讀取或呼叫：Claude Code 看 Skill 工具呼叫、slash 指令與 skillUsage；Codex 看執行指令讀 SKILL.md；
+  Antigravity 看 view_file 讀 SKILL.md 且 IsSkill 為 true 的步驟。三邊每段對話開頭都會列出 skill 清單（含路徑），
+  那些不算。裝不到 30 天的不判斷，Claude Code 的 plugin 累計用過就不列，移除前一定先問使用者。
 
 - 階段 3：支援範圍定為 Windows 11 + Claude Code、Codex、Antigravity（不再等同事回報環境）。公司電腦的
   Trend Micro 會擋 skillshare，允許的通知要剛好盯著畫面才按得到，背景同步常失敗；範圍固定三個 agent 之後，

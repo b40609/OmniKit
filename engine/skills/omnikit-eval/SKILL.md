@@ -69,6 +69,15 @@ uv run scripts/digest.py [--since YYYY-MM-DD]
 
 會列出快到期的試用、這段期間新進的工具、本週深度評估用了幾次，以及建議這週評估的槽位，讓使用者勾選。
 
+最後一節是這台電腦 30 天沒用到的 skill 與 plugin（`engine/scripts/usage.py` 讀 Claude Code、Codex、Antigravity 的本機紀錄；只算實際讀取或呼叫，對話開頭列出的 skill 清單不算；裝不到 30 天的先不判斷）。照這樣處理：
+
+- **名冊上是 default 或 trial 的**：跟使用者確認後，把卡片改成 `retired`（或試用到期時不續用），理由寫「30 天沒用到」與日期。
+- **標成「可能是重複的」**：同一個 agent 讀得到兩份同名 skill，建議只留有在用的那份。
+- **其他只裝在這台的**：列給使用者看，問要不要移除。移除是刪除，一定要先問，使用者同意後才動手；Claude Code 的 plugin 用 `/plugin uninstall`。
+- 使用者說「先留著」就不要再追問，下週彙整還會列出來。
+
+想看完整清單或換天數：在 repo 根目錄跑 `uv run engine/scripts/usage.py [--days 60]`。
+
 ## 改完名冊之後
 
 commit 時，pre-commit 會跑金鑰檢查、驗證名冊，並重新產生 marketplace 清單。push 依使用者的規則，要等使用者明確同意。

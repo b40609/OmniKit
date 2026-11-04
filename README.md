@@ -245,7 +245,7 @@ uv run engine/scripts/profiles.py --set <名稱>    # 換成 data/profiles/<名�
 
 ### 評估新工具
 
-在 Claude Code 或 Codex 裡直接說：
+在 Claude Code、Codex 或 Antigravity 裡直接說：
 
 ```text
 幫我評估 https://github.com/<owner>/<repo>
@@ -258,6 +258,21 @@ uv run engine/scripts/profiles.py --set <名稱>    # 換成 data/profiles/<名�
 | 0 | 免費 | GitHub 現況、名冊比對、硬性門檻、安全掃描 |
 | 1 | 便宜 | 讀 README，對照槽位情境寫卡片，狀態是「待評估」 |
 | 2 | 實測 | 拿槽位情境實際跑一遍並評分，點名才跑；紀錄放在 `data/evals/` |
+
+### 清掉沒在用的 skill
+
+每週彙整的最後一節，會列出這台電腦 30 天沒用到的 skill 與 plugin，建議移除；名冊上還是預設或試用中的，也會點出來。
+
+- **怎麼算用到**：讀 Claude Code、Codex、Antigravity 的本機對話紀錄，只算實際讀取或呼叫的。每段對話開頭列出的 skill 清單不算。只輸出名稱、對話數與日期，不輸出對話內容，也不上傳。
+- **不會誤判剛裝的**：裝不到 30 天的先不判斷。Claude Code 的 plugin 只要累計用過就不列。
+- **重複安裝**：同一個 agent 讀得到兩份同名 skill、只有一份有在用時，會標成「可能是重複的」。
+- **移除前會先問**：agent 只會列出來問你，不會自己刪。
+
+想看完整清單或換天數：
+
+```powershell
+uv run engine/scripts/usage.py --days 60
+```
 
 ### 改名冊
 
@@ -307,7 +322,7 @@ data/                        資料：fork 後換成你的
   evals/                     實測紀錄
 engine/                      引擎：不用改
   schema/                    名冊與槽位的 JSON Schema
-  scripts/                   安裝、接上三個 agent、掃描、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒
+  scripts/                   安裝、接上三個 agent、掃描、使用統計、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒
   site/                      看板的樣式與程式，以及匯出的架構地圖（map.html）
   skills/omnikit-setup/      訪談建立個人 profile 的 skill
   skills/omnikit-eval/       評估新工具的 skill
