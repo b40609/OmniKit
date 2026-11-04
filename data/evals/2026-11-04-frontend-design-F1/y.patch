@@ -1,0 +1,1089 @@
+diff --git a/docs/dashboard-design.md b/docs/dashboard-design.md
+new file mode 100644
+index 0000000..59abd80
+--- /dev/null
++++ b/docs/dashboard-design.md
+@@ -0,0 +1,71 @@
++# Dashboard 視覺精修
++
++模式：Operate。沿用 `docs/design-direction.md` 的黑金、緊湊密度、圖示導航與可調整面板工作台。
++
++## 依據與範圍
++
++1440 × 900 的原始畫面顯示：曝險面板標題與切換工具超出可用寬度；事件資訊重複呈現 run ID；面板與選取控制層級接近；未啟動的曝險面板以完整空圓環重複顯示狀態。
++
++採 impeccable polish 流程，保持既有世界與互動，不更換資訊架構。無既存 PRODUCT.md / DESIGN.md；context 啟動器因預設快取目錄無寫入權限未執行，直接依據既定方向、程式與瀏覽器畫面完成脈絡檢視。
++
++## 設計決定
++
++- 深黑底座、實色面板、細邊框，金色只用於目前導航、選取控制及既有強調資訊。
++- 面板標題 13px；分頁與表頭 11px；數字與時間沿用等寬、等寬數字。維持原本五面板與 5px 接縫。
++- 分頁以面板容器寬度換行，不擠壓標題；全部事件分類保留，窄面板可捲動。
++- 缺少觀測時以簡短狀態與一致的圖示取代空圓環；有資料時保留圓環、數值與全部焦點切換。
++- 事件標題優先呈現狀態轉換；完整 run ID、seq、來源留在可展開詳情。整列標題使用原生按鈕，支援鍵盤展開與收合。
++- 樣式限於首頁 `.dashboard-shell`，沿用主題變數與字級設定；不修改資料、後端、套件與持久化版面。
++- 767px 以下依原本樹狀順序直排面板；側欄使用圖示模式，可展開文字導航。不把手機排列或側欄狀態寫入桌面版面偏好。表格保留水平捲動以取得所有欄位。
++
++## 驗證紀錄
++
++使用 chrome_devtools 開啟 `http://127.0.0.1:8892/`，以 viewport 覆寫確認實際內容尺寸為 1440 × 900，截圖檢查完成；另檢查 1024 × 900 與 390 × 844。最後瀏覽器保留在桌面首頁。
++
++瀏覽器實際輸出：
++
++```text
++viewport: [1440, 900]
++pageOverflow: false
++kpiOverflow: false
++panelHeaders: 5
++navItems: 10
++categoryTabs: 6
++Console messages: <no console messages found>
++```
++
++- 曝險 5 分頁、事件 6 分類、實例 3 篩選、持倉與掛單 2 分頁，逐一點選的 `aria-pressed` 檢查全部為 true。
++- 事件以 Enter 展開後 `expanded: true`、`focusRetained: true`、`runIdVisible: true`；再按 Enter 後 `collapsed: true`、`focusRetained: true`。
++- 1440px 五個面板標題列的 `scrollWidth > clientWidth` 全部為 false。
++- 390px 保留五面板與 10 個導航項目；側欄展開和收合時 `innerWidth` 與文件寬度均為 390px。
++- 固定模擬資料沒有帳戶／風控觀測，因此數據圓環與權益曲線的有資料分支沒有以替換資料方式測試；原本資料運算及繪圖保留。
++
++型別與字級檢查實際輸出：
++
++```text
++> tsc --noEmit
++typecheck exit=0
++check:tokens OK - no arbitrary font sizes in src/ or index.html
++```
++
++原始 `npm test` 被此環境的 esbuild 設定檔載入權限阻擋（`Cannot read directory "../../../../..": Access is denied.`）。未修改測試檔，以記憶體中的原測試內容重跑，只把 Vite 的 `createServer` 設定加入 `configLoader: 'runner'`，並在該 Node 行程設定 `globalThis.__dirname = process.cwd()`；11 項測試邏輯與斷言不變。實際輸出：
++
++```text
++ℹ tests 11
++ℹ suites 0
++ℹ pass 11
++ℹ fail 0
++ℹ cancelled 0
++ℹ skipped 0
++ℹ todo 0
++```
++
++正式建置同樣透過行程內的 `__dirname` 與 Vite `--configLoader runner` 執行，輸出到系統暫存目錄，不修改專案設定。最終輸出：
++
++```text
++vite v6.4.4 building for production...
++✓ 2350 modules transformed.
++✓ built in 14.09s
++```
++
++建置仍有既有的單一 bundle 大於 500 kB 提示；本次未調整程式分包架構。
+diff --git a/src/components/catos/account-equity-band.tsx b/src/components/catos/account-equity-band.tsx
+index ccd4c89..4e026a0 100644
+--- a/src/components/catos/account-equity-band.tsx
++++ b/src/components/catos/account-equity-band.tsx
+@@ -1,7 +1,7 @@
+ import React, { useState, useRef, useEffect, useMemo } from "react";
+ import { cn } from "@/lib/utils";
+ import { CardHeaderTitle } from "./card-header-title";
+-import { BorderBeam } from "./motion/border-beam";
++import { ChartNoAxesCombined } from "lucide-react";
+ import { useCatStore } from "@/state/catStore";
+ import { StateAdapter } from "@/state/stateAdapter";
+ import { formatClock, formatDateTime, formatDecimal, formatRatioPct, toPlotNumber, toneOf, shortId } from "@/lib/format";
+@@ -166,7 +166,7 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+   return (
+     <div ref={bandRef} className={cn("flex flex-col h-full w-full select-none overflow-hidden", className)}>
+       {showHeader && (
+-        <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
++        <div className="dashboard-panel-header flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
+           <CardHeaderTitle cardId="equity" title="帳戶權益與損益" />
+           <div className="flex items-center gap-0.5 bg-background/70 border border-border/70 rounded p-0.5 text-t1 font-mono shrink-0">
+             <span className="px-2 py-0.5 rounded bg-secondary text-foreground font-bold shadow-xs">
+@@ -180,11 +180,10 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+       )}
+ 
+       <div className="flex flex-1 min-h-0 overflow-hidden relative">
+-        <BorderBeam size={180} duration={8} borderWidth={1.5} colorFrom="var(--color-primary, #e8b45e)" />
+ 
+         {/* 左側 KPI 欄：全部來自 summary（後端 Decimal 計算） */}
+         <div className={cn(
+-          "shrink-0 border-r border-border/80 flex flex-col justify-between overflow-y-auto bg-surface/30",
++          "dashboard-equity-kpis shrink-0 border-r border-border/80 flex flex-col justify-between overflow-y-auto bg-surface/30",
+           isNarrow ? "w-[130px] p-2 gap-1.5" : "w-[205px] p-2.5 gap-2"
+         )}>
+           <div className="flex flex-col gap-2">
+@@ -194,7 +193,7 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+                 {!isNarrow && (
+                   <span className={cn("text-t1 font-mono flex items-center gap-1",
+                     connection.status === "ok" ? "text-emerald-400" : "text-amber-400")}>
+-                    <span className={cn("size-1.5 rounded-full", connection.status === "ok" ? "bg-emerald-400 animate-ping" : "bg-amber-400")} />
++                    <span className={cn("size-1.5 rounded-full", connection.status === "ok" ? "bg-emerald-400" : "bg-amber-400")} />
+                     {connection.status === "ok" ? "local-sim" : connection.status}
+                   </span>
+                 )}
+@@ -209,7 +208,7 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+               </div>
+             </div>
+ 
+-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60 font-mono">
++            <div className={cn("grid gap-2 pt-2 border-t border-border/60 font-mono", isNarrow ? "grid-cols-1" : "grid-cols-2")}>
+               <Kpi label="已實現損益" value={formatDecimal(summary?.realized_pnl, { sign: true, prefix: "$" }, "未啟動")}
+                    tone={summary ? toneOf(summary.realized_pnl) : undefined} sub="OKX 專用子帳戶 (模擬)" />
+               <Kpi label="未實現損益" value={formatDecimal(summary?.unrealized_pnl, { sign: true, prefix: "$" }, "未啟動")}
+@@ -223,7 +222,7 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+         </div>
+ 
+         {/* 右側 SVG 走勢圖：本次 run 的權益曲線 */}
+-        <div className={cn("flex-1 flex flex-col min-w-0", isCompact ? "p-1.5" : "p-2.5")}>
++        <div className={cn("dashboard-equity-chart flex-1 flex flex-col min-w-0", isCompact ? "p-1.5" : "p-2.5")}>
+           <div className="flex items-center justify-between gap-2 text-t3 font-mono text-muted-foreground h-5 shrink-0 px-1 min-w-0">
+             <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+               <span className="w-2.5 h-[2px] bg-primary inline-block" />
+@@ -236,7 +235,7 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+                   <span className="text-primary font-bold">{fmtPctNumber(hoverPct)}</span>
+                 </span>
+               ) : (
+-                <span className="text-muted-foreground/60 text-t2 whitespace-nowrap hidden lg:inline">游標懸停檢視各 bar 的權益</span>
++                <span className="dashboard-chart-hint text-muted-foreground/60 text-t2 whitespace-nowrap hidden lg:inline">游標懸停檢視各 bar 的權益</span>
+               )}
+             </div>
+           </div>
+@@ -248,8 +247,9 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+             onPointerLeave={() => setHoverIdx(null)}
+           >
+             {emptyReason ? (
+-              <div className="absolute inset-0 flex items-center justify-center text-t3 font-mono text-muted-foreground">
+-                {emptyReason}
++              <div className="dashboard-empty absolute inset-0 flex flex-col gap-3 items-center justify-center text-t3 text-muted-foreground text-center px-3">
++                <ChartNoAxesCombined className="size-6" strokeWidth={1.25} aria-hidden="true" />
++                <span>{emptyReason}</span>
+               </div>
+             ) : chartWidth > 0 && chartHeight > 0 && (
+               <svg width={chartWidth} height={height} className="w-full h-full overflow-visible">
+diff --git a/src/components/catos/activity-panel.tsx b/src/components/catos/activity-panel.tsx
+index f999718..0878931 100644
+--- a/src/components/catos/activity-panel.tsx
++++ b/src/components/catos/activity-panel.tsx
+@@ -4,6 +4,7 @@ import { CardHeaderTitle } from "./card-header-title";
+ import { useCatStore } from "@/state/catStore";
+ import type { BotControlState, PositionDTO } from "@/contracts";
+ import { formatDecimal, signOf, toneOf } from "@/lib/format";
++import { Layers } from "lucide-react";
+ 
+ export type ActivityTab = "positions" | "orders";
+ 
+@@ -192,16 +193,17 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+     <div className={cn("flex flex-col h-full w-full select-none overflow-hidden bg-surface/40", className)}>
+       {/* 1. 一體化 Header 與 Tab 切換 */}
+       {showHeader && (
+-        <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
++        <div className="dashboard-panel-header flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
+           <CardHeaderTitle
+             cardId="positions"
+             title="持倉明細與交易所風控"
+           />
+ 
+-          <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 whitespace-nowrap flex-nowrap">
++          <div className="dashboard-segmented flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 whitespace-nowrap flex-nowrap">
+             <button
+               type="button"
+               onClick={() => setTab("positions")}
++              aria-pressed={tab === "positions"}
+               className={cn(
+                 "px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
+                 tab === "positions"
+@@ -214,6 +216,7 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+             <button
+               type="button"
+               onClick={() => setTab("orders")}
++              aria-pressed={tab === "orders"}
+               className={cn(
+                 "px-2 py-0.5 text-t2 font-mono rounded transition-colors inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0",
+                 tab === "orders"
+@@ -253,7 +256,10 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+                   {positions.length === 0 ? (
+                     <tr>
+                       <td colSpan={7} className="py-8 text-center text-muted-foreground font-mono text-xs">
+-                        {noRunYet ? "尚未啟動模擬 run" : "目前無未平倉部位"}
++                        <div className="dashboard-empty flex flex-col items-center gap-3">
++                          <Layers className="size-6" strokeWidth={1.25} aria-hidden="true" />
++                          <span>{noRunYet ? "尚未啟動模擬 run" : "目前無未平倉部位"}</span>
++                        </div>
+                       </td>
+                     </tr>
+                   ) : (
+diff --git a/src/components/catos/allocation-donut-card.tsx b/src/components/catos/allocation-donut-card.tsx
+index 19174f5..1c74c9f 100644
+--- a/src/components/catos/allocation-donut-card.tsx
++++ b/src/components/catos/allocation-donut-card.tsx
+@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
+ import { useCatStore } from "@/state/catStore";
+ import type { BotControlState, DecimalString, PositionDTO, RiskStatus } from "@/contracts";
+ import { formatDecimal, formatRatioPct, signOf, toPlotNumber } from "@/lib/format";
++import { ShieldCheck } from "lucide-react";
+ 
+ // 定案配色：低彩度、高質感的資料系列色
+ const COLORS = {
+@@ -163,6 +164,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+   const connectionStatus = useCatStore((s) => s.connection.status);
+ 
+   const modeNotOpen = connectionStatus === "mode_not_open";
++  const hasObservation = viewMode === "pnl" ? summary !== null : risk !== null;
+   const unavailableText = modeNotOpen ? TEXT_MODE_NOT_OPEN : TEXT_NO_RISK;
+   const unavailableSub = modeNotOpen ? "v1 僅提供 local-sim" : TEXT_NO_RISK_SUB;
+ 
+@@ -688,7 +690,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+   return (
+     <div ref={containerRef} className={cn("flex flex-col h-full w-full select-none overflow-hidden bg-surface/40 relative", className)}>
+       {/* 1. 卡片頂部 Header：左側標題、風控狀態晶片與焦點切換器，右側高對比維度分段切換鈕 */}
+-      <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
++      <div className="dashboard-panel-header dashboard-allocation-header flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
+         <div className="flex items-center gap-2 min-w-0">
+           <CardHeaderTitle
+             cardId="allocation"
+@@ -707,11 +709,12 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+           />
+ 
+           {/* 核心焦點切換鈕：金額主導 vs 槓桿倍數 */}
+-          <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 text-t2 font-mono">
++          <div className="dashboard-segmented flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 text-t2 font-mono">
+             <span className="text-amber-400 font-bold px-1 text-t1 sm:text-t1">焦點:</span>
+             <button
+               type="button"
+               onClick={() => setHudFocus("leverage")}
++              aria-pressed={hudFocus === "leverage"}
+               className={cn(
+                 "px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
+                 hudFocus === "leverage"
+@@ -725,6 +728,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+             <button
+               type="button"
+               onClick={() => setHudFocus("money")}
++              aria-pressed={hudFocus === "money"}
+               className={cn(
+                 "px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
+                 hudFocus === "money"
+@@ -739,13 +743,15 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+         </div>
+ 
+         {/* 核心維度分段鈕 (幣種配置 | 策略實例 | 多空部位曝險 | 保證金佔用 | 損益分佈) */}
+-        <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 text-t2 font-mono">
++        <div className="dashboard-segmented dashboard-allocation-tabs flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 text-t2 font-mono">
+           {TABS.map((tab) => {
+             const isActive = viewMode === tab.id;
+             return (
+               <button
+                 key={tab.id}
+                 type="button"
++                aria-pressed={isActive}
++                title={tab.label}
+                 onClick={() => {
+                   setViewMode(tab.id);
+                   setHoveredIndex(null);
+@@ -766,6 +772,16 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+ 
+       {/* 2. 核心繪圖與內容展示區 (收攏左右間距、自適應流體縮放不裁切) */}
+       <div className="flex-1 min-h-0 w-full h-full relative overflow-hidden p-2 sm:p-2.5">
++        {!hasObservation ? (
++          <div className="dashboard-empty h-full flex flex-col items-center justify-center gap-3 text-center text-muted-foreground">
++            <ShieldCheck className="size-6" strokeWidth={1.25} aria-hidden="true" />
++            <div className="space-y-1.5">
++              <h3 className="text-xs font-medium text-foreground">{viewMode === "pnl" && !modeNotOpen ? "風控期間損益 不適用" : unavailableText}</h3>
++              <p className="text-t3">{unavailableSub}</p>
++            </div>
++            <span className="rounded border border-border px-1.5 py-0.5 text-t2 font-mono">local-sim</span>
++          </div>
++        ) : (
+         <div className="w-full h-full flex items-center justify-start gap-2.5 sm:gap-4 overflow-hidden font-mono max-w-[860px] mx-auto px-1">
+ 
+           {/* 左側：純向量自適應 Paperpillar 聚光燈聚焦環 (h-full 嚴格受父級高度約束) */}
+@@ -920,6 +936,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+             })}
+           </div>
+         </div>
++        )}
+       </div>
+     </div>
+   );
+diff --git a/src/components/catos/card-header-title.tsx b/src/components/catos/card-header-title.tsx
+index 52a3dcd..b24d88b 100644
+--- a/src/components/catos/card-header-title.tsx
++++ b/src/components/catos/card-header-title.tsx
+@@ -21,9 +21,9 @@ export function CardHeaderTitle({
+ }: CardHeaderTitleProps) {
+   return (
+     <div className={cn("flex items-center gap-1.5 py-0.5 min-w-0 shrink-0 select-none whitespace-nowrap", className)}>
+-      <span className="text-t4 font-semibold text-foreground tracking-tight select-none truncate whitespace-nowrap">
++      <h2 className="dashboard-panel-title text-t4 font-semibold text-foreground tracking-tight select-none truncate whitespace-nowrap">
+         {title}
+-      </span>
++      </h2>
+       {subtext}
+     </div>
+   );
+diff --git a/src/components/catos/shell.tsx b/src/components/catos/shell.tsx
+index 419472d..5a33289 100644
+--- a/src/components/catos/shell.tsx
++++ b/src/components/catos/shell.tsx
+@@ -11,6 +11,7 @@ import { CommandPalette } from "@/components/catos/command-palette";
+ import { SimulationStatusStrip } from "@/components/catos/simulation-status-strip";
+ import { cn } from "@/lib/utils";
+ import pkg from "../../../package.json";
++import { useIsMobile } from "@/hooks/use-mobile";
+ 
+ 
+ interface NavigationItem {
+@@ -93,6 +94,9 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+   } = useSidebarStore();
+ 
+   const pathname = useRouterState({ select: (s) => s.location.pathname });
++  const isMobileDashboard = useIsMobile() && pathname === "/";
++  const [mobileNavExpanded, setMobileNavExpanded] = useState(false);
++  const sidebarCollapsed = isMobileDashboard ? !mobileNavExpanded : collapsed;
+   const current = GROUPS.flatMap((g) => g.items).find((n) => n.to === pathname);
+   const { t, language } = useI18n();
+ 
+@@ -181,17 +185,18 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+           return;
+         }
+         e.preventDefault();
+-        toggleCollapsed();
++        if (isMobileDashboard) setMobileNavExpanded((expanded) => !expanded);
++        else toggleCollapsed();
+       }
+     };
+     window.addEventListener("keydown", handleKeyDown);
+     return () => window.removeEventListener("keydown", handleKeyDown);
+-  }, [toggleCollapsed]);
++  }, [toggleCollapsed, isMobileDashboard]);
+ 
+   return (
+-    <div className="min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
++    <div className={cn("min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary", pathname === "/" && "dashboard-shell")}>
+       <aside
+-        style={{ width: collapsed ? 64 : sidebarWidth }}
++        style={{ width: sidebarCollapsed ? 64 : sidebarWidth }}
+         className={cn(
+           "fixed inset-y-0 left-0 z-30 flex flex-col border-r border-border bg-sidebar select-none",
+           !isResizing && "transition-all duration-200"
+@@ -222,14 +227,14 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+           to="/"
+           className={cn(
+             "flex h-14 shrink-0 items-center transition-all",
+-            collapsed ? "justify-center px-0" : "gap-2.5 px-3.5"
++            sidebarCollapsed ? "justify-center px-0" : "gap-2.5 px-3.5"
+           )}
+           title="CatOS Dashboard"
+         >
+           <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-[0_0_12px_var(--color-primary)]/40">
+             <Cat className="size-5" strokeWidth={2} />
+           </span>
+-          {!collapsed && (
++          {!sidebarCollapsed && (
+             <div className="flex items-center justify-between flex-1 min-w-0">
+               <span className="text-lg font-semibold tracking-tight">
+                 catOS<span className="ml-0.5 text-primary">.</span>
+@@ -245,7 +250,7 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+         <nav aria-label="Main navigation" className="min-h-0 flex-1 space-y-2 overflow-y-auto overflow-x-hidden px-2 pb-2 pt-1">
+           {GROUPS.map((group) => (
+             <div key={group.key} className="space-y-0.5">
+-              {!collapsed && (
++              {!sidebarCollapsed && (
+                 <p className="mb-1 mt-2.5 px-2.5 font-mono text-t1 font-semibold uppercase tracking-wider text-muted-foreground/60 truncate">
+                   {group.titleMono}
+                 </p>
+@@ -255,13 +260,14 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+                   <Link
+                     key={to}
+                     to={to}
++                    aria-current={pathname === to ? "page" : undefined}
+                     title={`${language === "en" ? sub : name} (${language === "en" ? name : sub})`}
+                     activeOptions={{ exact: to === "/" }}
+                     activeProps={{ className: "bg-secondary text-foreground [&_svg]:text-primary font-medium shadow-xs" }}
+                     inactiveProps={{ className: "text-muted-foreground hover:bg-secondary/60 hover:text-foreground" }}
+                     className={cn(
+                       "relative transition-all",
+-                      collapsed
++                      sidebarCollapsed
+                         ? "flex size-10 items-center justify-center mx-auto rounded-md group my-1"
+                         : "flex min-h-[46px] items-center gap-3 rounded-md px-3 py-1.5"
+                     )}
+@@ -276,7 +282,7 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+                         />
+                       )}
+                     </span>
+-                    {!collapsed && (
++                    {!sidebarCollapsed && (
+                       <div className="flex flex-col min-w-0 flex-1 leading-tight">
+                         <span className="text-t4 font-medium text-foreground tracking-wide truncate">
+                           {language === "en" ? sub : name}
+@@ -295,12 +301,12 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+ 
+         {/* 側邊欄底座：移除生硬橫線，自然無縫融入 */}
+         <div className="mt-auto shrink-0 pb-1.5">
+-          <AccountMenu isFolded={collapsed} />
++          <AccountMenu isFolded={sidebarCollapsed} />
+         </div>
+       </aside>
+ 
+       <div
+-        style={{ paddingLeft: collapsed ? 64 : sidebarWidth }}
++        style={{ paddingLeft: isMobileDashboard || sidebarCollapsed ? 64 : sidebarWidth }}
+         className={cn(
+           "min-w-0",
+           !isResizing && "transition-all duration-200"
+@@ -312,12 +318,12 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+             <Button
+               variant="ghost"
+               size="icon"
+-              onClick={toggleCollapsed}
+-              title={collapsed ? "展開側邊欄 (Ctrl+B)" : "收合側邊欄 (Ctrl+B)"}
+-              aria-label={collapsed ? "展開側邊欄" : "收合側邊欄"}
++              onClick={() => isMobileDashboard ? setMobileNavExpanded((expanded) => !expanded) : toggleCollapsed()}
++              title={sidebarCollapsed ? "展開側邊欄 (Ctrl+B)" : "收合側邊欄 (Ctrl+B)"}
++              aria-label={sidebarCollapsed ? "展開側邊欄" : "收合側邊欄"}
+               className="size-7 text-muted-foreground hover:bg-secondary hover:text-foreground"
+             >
+-              {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
++              {sidebarCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+             </Button>
+ 
+             {/* Breadcrumbs: Dim Workspace / Bright Active Page */}
+diff --git a/src/components/catos/unified-incident-activity-card.tsx b/src/components/catos/unified-incident-activity-card.tsx
+index de77ce2..b28af2e 100644
+--- a/src/components/catos/unified-incident-activity-card.tsx
++++ b/src/components/catos/unified-incident-activity-card.tsx
+@@ -303,7 +303,6 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+   }, []);
+ 
+   const isNarrow = dimensions.width < 500;
+-  const isSuperNarrow = dimensions.width < 380;
+ 
+   // 時序湧動：量測各節點真實 offsetTop 相對於底部的延遲 (秒)
+   const [bottomUpDelays, setBottomUpDelays] = useState<Record<string, number>>({});
+@@ -388,7 +387,7 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+   return (
+     <div ref={cardRef} className={cn('flex flex-col h-full w-full select-none overflow-hidden bg-surface/40 font-mono', className)}>
+       {/* 1. Header 區域：整合卡片標題 + 右上角統一微膠囊 (窄版自適應簡短標籤，杜絕標題截字) */}
+-      <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
++      <div className="dashboard-panel-header dashboard-events-header flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
+         <CardHeaderTitle
+           cardId="activity_deck"
+           title="事件審計與成交流水"
+@@ -401,13 +400,15 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+           }
+         />
+ 
+-        {/* 右上角切換膠囊：完全統一規格 (窄版自動切換為簡稱，超窄只顯示核心 4 標籤) */}
+-        <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 overflow-x-auto max-w-[65%] custom-scrollbar">
+-          {(isSuperNarrow ? availableTabs.slice(0, 4) : availableTabs).map((tab) => (
++        {/* 窄版使用簡稱，保留全部分類並允許水平捲動。 */}
++        <div className="dashboard-segmented dashboard-event-tabs flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 overflow-x-auto max-w-[65%] custom-scrollbar">
++          {availableTabs.map((tab) => (
+             <button
+               key={tab.id}
+               type="button"
+               onClick={() => setCategory(tab.id)}
++              aria-pressed={category === tab.id}
++              title={tab.label}
+               className={cn(
+                 'px-1.5 sm:px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0',
+                 category === tab.id
+@@ -425,9 +426,8 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+ 
+       {/* 2. 核心時間軸內容區 */}
+       <div
+-        key={`timeline-${expandedKey}`}
+         ref={containerRef}
+-        className="flex-1 min-h-0 overflow-y-auto p-3 pr-2 relative"
++        className="dashboard-event-scroll flex-1 min-h-0 overflow-y-auto p-3 pr-2 relative"
+         style={{
+           '--photon-duration': `${DURATION_SEC}s`,
+           '--photon-length': `${PHOTON_LENGTH}px`,
+@@ -444,7 +444,7 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+             <span className="text-t2">{emptyMessage}</span>
+           </div>
+         ) : (
+-          <div className="relative pl-3 space-y-2.5">
++          <div className="dashboard-event-list relative pl-3 space-y-2.5">
+             {/* 導軌系統：由下往上向上湧動 */}
+             <div className="absolute left-[20px] -translate-x-1/2 top-2 bottom-2 w-[20px] pointer-events-none z-0 overflow-hidden">
+               {/* 1. 底層 1px 磨砂暗色導軌線 */}
+@@ -526,9 +526,8 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+ 
+                   {/* 事件行容器：完全無框純淨數據流 (Zero-Waste) */}
+                   <div
+-                    onClick={() => toggleRow(row.key)}
+                     className={cn(
+-                      'flex-1 min-w-0 transition-all duration-150 cursor-pointer p-2 rounded-md',
++                      'dashboard-event-content flex-1 min-w-0 transition-all duration-150 p-2 rounded-md',
+                       isExp
+                         ? 'bg-white/[0.035]'
+                         : isError
+@@ -538,11 +537,18 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                         : 'hover:bg-white/[0.025]'
+                     )}
+                   >
+-                    {/* 表頭一行：時間 + 標籤 + 買賣方向 + run + 標題 + 右側權益/等級 + 箭頭 */}
+-                    <div className="flex items-center justify-between gap-2 text-t2">
+-                      <div className="flex items-center gap-1.5 min-w-0">
++                    {/* 事件摘要；run ID 與工程證據收進詳情。 */}
++                    <button
++                      type="button"
++                      onClick={() => toggleRow(row.key)}
++                      aria-expanded={isExp}
++                      aria-label={`${isExp ? '收合' : '展開'} ${row.time} ${row.title}`}
++                      title={row.title}
++                      className="dashboard-event-toggle flex w-full items-center justify-between gap-2 text-t2 text-left cursor-pointer"
++                    >
++                      <span className="flex items-center gap-1.5 min-w-0">
+                         {/* 時間戳 (wall_time，Asia/Taipei) */}
+-                        <span className="text-zinc-500 text-t1 shrink-0 font-mono">{row.time}</span>
++                        <span className="dashboard-event-time text-zinc-500 text-t1 shrink-0 font-mono">{row.time}</span>
+ 
+                         {/* 類型 Badge */}
+                         <span className={cn('px-1.5 py-0.2 rounded text-t1 shrink-0', meta.badgeClass)}>
+@@ -563,24 +569,19 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                           </span>
+                         )}
+ 
+-                        {/* 關聯 run */}
+-                        <span className="text-zinc-500 text-t1 shrink-0 font-mono hidden sm:inline">
+-                          [{shortId(ev.run_id)}]
+-                        </span>
+-
+                         {/* 事件主標題 */}
+                         <span
+                           className={cn(
+-                            'truncate leading-tight tracking-tight text-t2',
++                            'dashboard-event-title truncate leading-tight tracking-tight text-t2',
+                             row.isAlert ? 'text-zinc-100 font-medium' : 'text-zinc-300 font-normal'
+                           )}
+                         >
+-                          {row.title}
++                          {ev.kind === 'run_state' ? `${asString(ev.payload.previous) ?? '(新建)'} → ${asText(ev.payload.state)}` : row.title}
+                         </span>
+-                      </div>
++                      </span>
+ 
+                       {/* 右側：成交後權益 / 等級膠囊 / 展開箭頭 */}
+-                      <div className="flex items-center gap-2 shrink-0">
++                      <span className="flex items-center gap-2 shrink-0">
+                         {row.rightText ? (
+                           <span className="text-t2 font-mono tracking-tight text-zinc-300 hidden sm:inline">
+                             {row.rightText}
+@@ -591,15 +592,14 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                           </span>
+                         ) : null}
+ 
+-                        <button
+-                          type="button"
++                        <span
+                           className="text-zinc-500 group-hover:text-zinc-300 shrink-0 transition-transform duration-200"
+-                          aria-label={isExp ? '收合' : '展開'}
++                          aria-hidden="true"
+                         >
+                           {isExp ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+-                        </button>
+-                      </div>
+-                    </div>
++                        </span>
++                      </span>
++                    </button>
+ 
+                     {/* 展開詳情面板 */}
+                     {isExp && (
+@@ -624,8 +624,8 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+ 
+                         {/* 底部來源列 */}
+                         <div className="flex items-center justify-between pt-1 border-t border-white/[0.04] text-t1 text-zinc-500">
+-                          <span className="truncate">
+-                            {`seq ${ev.seq} · ${row.syntheticLabel ? '合成時間 ' + row.syntheticLabel + ' · ' : ''}${ev.category}`}
++                          <span className="break-all">
++                            {`run ${ev.run_id} · seq ${ev.seq} · ${row.syntheticLabel ? '合成時間 ' + row.syntheticLabel + ' · ' : ''}${ev.category}`}
+                           </span>
+                         </div>
+                       </div>
+diff --git a/src/components/catos/v0-bot-table.tsx b/src/components/catos/v0-bot-table.tsx
+index 8224884..702ea48 100644
+--- a/src/components/catos/v0-bot-table.tsx
++++ b/src/components/catos/v0-bot-table.tsx
+@@ -106,15 +106,16 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+   return (
+     <div className={cn("flex flex-col h-full w-full select-none overflow-hidden bg-surface/40", className)}>
+       {showHeader && (
+-        <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
++        <div className="dashboard-panel-header flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
+           <CardHeaderTitle cardId="bots" title="策略實例監控矩陣" />
+-          <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 whitespace-nowrap flex-nowrap">
++          <div className="dashboard-segmented flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 whitespace-nowrap flex-nowrap">
+             {[
+               { id: "all", label: `全部(${bots.length})` },
+               { id: "running", label: `運作(${runningCount})` },
+               { id: "stopped", label: `停止(${bots.length - runningCount})` },
+             ].map((f) => (
+               <button key={f.id} type="button" onClick={() => setBotFilter(f.id as typeof botFilter)}
++                aria-pressed={botFilter === f.id}
+                 className={cn("px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
+                   botFilter === f.id ? "bg-secondary text-foreground font-semibold shadow-xs" : "text-muted-foreground hover:text-foreground")}>
+                 {f.label}
+diff --git a/src/components/catos/workspace-grid.tsx b/src/components/catos/workspace-grid.tsx
+index 959d476..8ae88d4 100644
+--- a/src/components/catos/workspace-grid.tsx
++++ b/src/components/catos/workspace-grid.tsx
+@@ -320,7 +320,7 @@ export function WorkspaceGrid({ renderCard }: WorkspaceGridProps) {
+   return (
+     <div
+       className={cn(
+-        "relative flex flex-col w-full min-w-0 h-[820px] lg:h-[calc(100vh-80px)] min-h-[660px] overflow-y-auto overflow-x-hidden custom-scrollbar",
++        "dashboard-workspace relative flex flex-col w-full min-w-0 h-[820px] lg:h-[calc(100vh-80px)] min-h-[660px] overflow-y-auto overflow-x-hidden custom-scrollbar",
+         draggingInfo ? "select-none" : "select-text"
+       )}
+     >
+diff --git a/src/lib/layout-tree/tree-node-renderer.tsx b/src/lib/layout-tree/tree-node-renderer.tsx
+index ef8c651..7f86b56 100644
+--- a/src/lib/layout-tree/tree-node-renderer.tsx
++++ b/src/lib/layout-tree/tree-node-renderer.tsx
+@@ -36,6 +36,7 @@ export function TreeNodeRenderer(props: TreeNodeRendererProps) {
+ 
+     return (
+       <div
++        data-layout-split={node.direction}
+         className={cn(
+           "flex min-w-0 min-h-0 flex-1",
+           isRow ? "flex-row items-stretch" : "flex-col items-stretch",
+@@ -44,6 +45,7 @@ export function TreeNodeRenderer(props: TreeNodeRendererProps) {
+       >
+         {/* 第一子分支 (First Child) */}
+         <div
++          data-layout-branch
+           style={
+             isRow
+               ? { width: `calc(${ratio * 100}% - ${gapOffset}px)`, flex: "0 0 auto" }
+@@ -67,6 +69,7 @@ export function TreeNodeRenderer(props: TreeNodeRendererProps) {
+ 
+         {/* 第二子分支 (Second Child) */}
+         <div
++          data-layout-branch
+           style={
+             isRow
+               ? { width: `calc(${(1 - ratio) * 100}% - ${gapOffset}px)`, flex: "0 0 auto" }
+diff --git a/src/lib/layout-tree/tree-splitter.tsx b/src/lib/layout-tree/tree-splitter.tsx
+index 780b9ad..e25f268 100644
+--- a/src/lib/layout-tree/tree-splitter.tsx
++++ b/src/lib/layout-tree/tree-splitter.tsx
+@@ -87,6 +87,7 @@ export function TreeSplitter({
+   return (
+     <div
+       ref={splitterRef}
++      data-layout-splitter
+       onPointerDown={handlePointerDown}
+       onDoubleClick={onReset}
+       className={cn(
+diff --git a/src/pages/index.tsx b/src/pages/index.tsx
+index 0e7c592..10f4cf2 100644
+--- a/src/pages/index.tsx
++++ b/src/pages/index.tsx
+@@ -10,6 +10,7 @@ import { UnifiedIncidentActivityCard } from "@/components/catos/unified-incident
+ 
+ import { WorkspaceGrid } from "@/components/catos/workspace-grid";
+ import type { CardId } from "@/state/layoutStore";
++import "@/styles/dashboard.css";
+ 
+ export const Route = createFileRoute("/")({
+   head: () => ({
+@@ -31,25 +32,25 @@ function Dashboard() {
+   const renderCard = (cardId: CardId) => {
+     switch (cardId) {
+       case "equity":
+-        return <AccountEquityBand className="h-full" />;
++        return <AccountEquityBand className="dashboard-card h-full" />;
+ 
+       case "positions":
+-        return <ActivityPanel className="h-full" />;
++        return <ActivityPanel className="dashboard-card h-full" />;
+ 
+       case "bots":
+-        return <V0BotTable className="h-full" />;
++        return <V0BotTable className="dashboard-card h-full" />;
+ 
+       case "allocation":
+-        return <AllocationDonutCard className="h-full" />;
++        return <AllocationDonutCard className="dashboard-card h-full" />;
+ 
+       case "incidents":
+-        return <UnifiedIncidentActivityCard className="h-full" />;
++        return <UnifiedIncidentActivityCard className="dashboard-card h-full" />;
+ 
+       case "activity_deck":
+-        return <UnifiedIncidentActivityCard className="h-full" />;
++        return <UnifiedIncidentActivityCard className="dashboard-card h-full" />;
+ 
+       case "fills":
+-        return <UnifiedIncidentActivityCard className="h-full" />;
++        return <UnifiedIncidentActivityCard className="dashboard-card h-full" />;
+ 
+       default:
+         return null;
+diff --git a/src/styles/dashboard.css b/src/styles/dashboard.css
+new file mode 100644
+index 0000000..439e0ff
+--- /dev/null
++++ b/src/styles/dashboard.css
+@@ -0,0 +1,358 @@
++/* Dashboard polish: keep the compact, resizable Noir & Gold workbench. */
++.dashboard-shell {
++  --dashboard-rule: color-mix(in srgb, var(--foreground) 13%, var(--surface));
++  --dashboard-header: color-mix(in srgb, var(--surface-raised) 55%, var(--surface));
++  --dashboard-secondary: color-mix(in srgb, var(--foreground) 65%, var(--surface));
++  --dashboard-selected: color-mix(in srgb, var(--primary) 11%, var(--surface));
++}
++
++.dashboard-shell aside > a > span {
++  box-shadow: none;
++  border-radius: var(--radius);
++}
++
++.dashboard-shell nav a {
++  border: 1px solid transparent;
++  transition: background-color 160ms ease, border-color 160ms ease;
++}
++
++.dashboard-shell nav a[aria-current="page"] {
++  background: var(--dashboard-selected);
++  border-color: color-mix(in srgb, var(--primary) 28%, transparent);
++  box-shadow: none;
++}
++
++.dashboard-shell nav a[aria-current="page"] span {
++  color: var(--primary);
++}
++
++.dashboard-shell nav a:not([aria-current]) > span {
++  color: var(--dashboard-secondary);
++}
++
++.dashboard-shell nav a > div > span:last-child {
++  font-size: var(--text-t1);
++  font-weight: 400;
++  letter-spacing: 0.04em;
++}
++
++.dashboard-shell nav > div > p {
++  color: var(--dashboard-secondary);
++  font-weight: 500;
++}
++
++.dashboard-shell [data-leaf-id] {
++  background: var(--surface);
++  border-color: var(--dashboard-rule);
++  box-shadow: none;
++  backdrop-filter: none;
++}
++
++.dashboard-shell .dashboard-card {
++  container: dashboard-panel / inline-size;
++  background: var(--surface);
++}
++
++.dashboard-shell .dashboard-panel-header {
++  min-height: 40px;
++  background: var(--dashboard-header);
++  border-bottom-color: var(--dashboard-rule);
++  padding-inline: 12px;
++}
++
++.dashboard-shell .dashboard-panel-title {
++  font-family: var(--font-sans);
++  font-size: 0.8125rem;
++  font-weight: 600;
++  letter-spacing: 0;
++}
++
++.dashboard-shell .dashboard-segmented {
++  gap: 2px;
++  background: var(--background);
++  border-color: var(--dashboard-rule);
++  border-radius: var(--radius);
++  max-width: 100%;
++}
++
++.dashboard-shell .dashboard-segmented button {
++  min-height: 24px;
++  padding: 3px 8px;
++  font-size: var(--text-t3);
++  font-family: var(--font-sans);
++  font-weight: 500;
++  color: var(--dashboard-secondary);
++  border: 1px solid transparent;
++  box-shadow: none;
++  white-space: nowrap;
++  transition: background-color 160ms ease, color 160ms ease;
++}
++
++.dashboard-shell .dashboard-segmented button[aria-pressed="true"] {
++  color: var(--primary);
++  background: var(--dashboard-selected);
++  border-color: color-mix(in srgb, var(--primary) 24%, transparent);
++}
++
++.dashboard-shell .dashboard-segmented button:hover {
++  color: var(--foreground);
++  background: var(--surface-raised);
++}
++
++.dashboard-shell :is(button, a, [tabindex]):focus-visible {
++  outline: 2px solid var(--primary);
++  outline-offset: 2px;
++}
++
++.dashboard-shell .dashboard-equity-kpis {
++  background: color-mix(in srgb, var(--background) 30%, var(--surface));
++  padding: 10px;
++  border-color: var(--dashboard-rule);
++  scrollbar-width: thin;
++}
++
++.dashboard-shell .dashboard-equity-kpis .text-t2 {
++  font-size: var(--text-t3);
++}
++
++.dashboard-shell .dashboard-equity-kpis .text-t1 {
++  font-size: var(--text-t2);
++}
++
++.dashboard-shell .dashboard-equity-kpis .text-muted-foreground,
++.dashboard-shell .dashboard-equity-chart .text-muted-foreground {
++  color: var(--dashboard-secondary);
++}
++
++.dashboard-shell .dashboard-equity-kpis .grid {
++  column-gap: 12px;
++  row-gap: 8px;
++}
++
++.dashboard-shell .dashboard-equity-chart > div:first-child {
++  flex-wrap: wrap;
++  height: auto;
++  min-height: 20px;
++  font-size: var(--text-t2);
++  row-gap: 4px;
++}
++
++.dashboard-shell .dashboard-equity-chart > div:first-child > div {
++  white-space: normal;
++  flex-shrink: 1;
++}
++
++.dashboard-shell .dashboard-empty {
++  color: var(--dashboard-secondary);
++  font-family: var(--font-sans);
++  font-size: var(--text-t4);
++  line-height: 1.5;
++}
++
++.dashboard-shell .dashboard-empty > svg {
++  color: var(--dashboard-secondary);
++}
++
++.dashboard-shell .dashboard-card table {
++  font-variant-numeric: tabular-nums;
++}
++
++.dashboard-shell [data-card-id="bots"] table {
++  min-width: 640px;
++}
++
++.dashboard-shell [data-card-id="bots"] td:first-child .font-mono {
++  white-space: nowrap;
++}
++
++.dashboard-shell .dashboard-card th {
++  font-family: var(--font-sans);
++  font-size: var(--text-t3);
++  color: var(--dashboard-secondary);
++  white-space: nowrap;
++  height: 34px;
++}
++
++.dashboard-shell .dashboard-card td {
++  padding-block: 13px;
++}
++
++.dashboard-shell .dashboard-card td .text-t1 {
++  font-size: var(--text-t2);
++  line-height: 1.5;
++}
++
++.dashboard-shell .dashboard-card tbody tr {
++  opacity: 1;
++}
++
++.dashboard-shell .dashboard-card tbody tr:hover {
++  background: color-mix(in srgb, var(--primary) 4%, var(--surface));
++}
++
++.dashboard-shell .dashboard-card td[colspan] {
++  padding-block: 34px;
++}
++
++.dashboard-shell td[colspan] .dashboard-empty {
++  width: calc(100cqw - 24px);
++  margin-inline: 12px;
++}
++
++.dashboard-shell .dashboard-event-scroll {
++  padding: 6px 10px 10px 6px;
++  scrollbar-width: thin;
++}
++
++.dashboard-shell .dashboard-event-list {
++  padding-left: 12px;
++}
++
++.dashboard-shell .dashboard-event-list > div {
++  margin-block: 0;
++}
++
++.dashboard-shell .dashboard-event-list > div.group {
++  gap: 6px;
++}
++
++.dashboard-shell .dashboard-event-list > div.group > div:first-child {
++  margin-top: 15px;
++}
++
++.dashboard-shell .dashboard-event-content {
++  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
++  border-radius: 0;
++  padding: 0 4px;
++}
++
++.dashboard-shell .dashboard-event-toggle {
++  min-height: 44px;
++  padding-block: 8px;
++}
++
++.dashboard-shell .dashboard-event-time {
++  color: var(--dashboard-secondary);
++  font-size: var(--text-t2);
++  font-variant-numeric: tabular-nums;
++}
++
++.dashboard-shell .dashboard-event-title {
++  font-size: var(--text-t3);
++  letter-spacing: 0;
++  line-height: 1.5;
++}
++
++@container dashboard-panel (width < 840px) {
++  .dashboard-shell .dashboard-chart-hint {
++    display: none;
++  }
++
++  .dashboard-shell .dashboard-allocation-header {
++    height: auto;
++    flex-wrap: wrap;
++    padding-block: 7px;
++    gap: 6px;
++  }
++
++  .dashboard-shell .dashboard-allocation-header > div:first-child {
++    width: 100%;
++    justify-content: space-between;
++    flex-wrap: wrap;
++  }
++
++  .dashboard-shell .dashboard-allocation-tabs {
++    width: 100%;
++    overflow-x: auto;
++  }
++
++  .dashboard-shell .dashboard-allocation-tabs button {
++    flex: 1;
++    padding-inline: 6px;
++  }
++}
++
++@container dashboard-panel (width < 600px) {
++  .dashboard-shell .dashboard-events-header {
++    height: auto;
++    flex-wrap: wrap;
++    padding-block: 7px;
++    gap: 6px;
++  }
++
++  .dashboard-shell .dashboard-event-tabs {
++    max-width: 100%;
++    width: 100%;
++  }
++
++  .dashboard-shell .dashboard-event-tabs button {
++    flex: 1;
++  }
++}
++
++@container dashboard-panel (width < 420px) {
++  .dashboard-shell .dashboard-panel-header {
++    height: auto;
++    flex-wrap: wrap;
++    padding-block: 7px;
++  }
++
++  .dashboard-shell .dashboard-event-title {
++    white-space: normal;
++    overflow-wrap: anywhere;
++  }
++}
++
++@media (prefers-reduced-motion: reduce) {
++  .dashboard-shell *, .dashboard-shell *::before, .dashboard-shell *::after {
++    animation: none !important;
++    transition: none !important;
++  }
++}
++
++/* A narrow viewport reads the same panels in tree order, without saving a new layout. */
++@media (max-width: 767px) {
++  .dashboard-shell aside > a > div {
++    display: none;
++  }
++
++  .dashboard-shell .sidebar-resizer,
++  .dashboard-shell [data-layout-splitter] {
++    display: none;
++  }
++
++  .dashboard-shell .dashboard-workspace {
++    height: auto;
++    min-height: 0;
++    overflow: visible;
++  }
++
++  .dashboard-shell .dashboard-workspace > div {
++    height: auto !important;
++    min-height: 0 !important;
++  }
++
++  .dashboard-shell [data-layout-split] {
++    flex-direction: column;
++    gap: 5px;
++  }
++
++  .dashboard-shell [data-layout-branch] {
++    width: 100% !important;
++    height: auto !important;
++    flex: none !important;
++  }
++
++  .dashboard-shell [data-leaf-id] {
++    width: 100%;
++    height: 280px;
++    min-height: 280px;
++    flex: none;
++  }
++
++  .dashboard-shell [data-card-id="activity_deck"],
++  .dashboard-shell [data-card-id="incidents"],
++  .dashboard-shell [data-card-id="fills"] {
++    height: 420px;
++  }
++}
