@@ -2,7 +2,7 @@
 # 從 stdin 讀變動的檔名，只同步有變動的部分：
 #   data/rules/：同步給 Codex（Codex 不支援 import，讀的是 skillshare 複製的副本）
 #   data/mcp/：同步兩邊的 MCP 設定
-#   data/harness/：把權限規則補進 Claude Code 的使用者設定
+#   data/harness/、claude_allow.py、session_nudge.py：把權限規則與開新對話提醒補進 Claude Code 的使用者設定
 #   engine/skills/：同步 skills（內容改動本來就會反映，新增或刪除 skill 才需要）
 ss="$LOCALAPPDATA/Programs/skillshare/skillshare.exe"
 changed=$(cat)
@@ -23,12 +23,12 @@ if printf '%s\n' "$changed" | grep -q '^data/mcp/'; then
   fi
 fi
 
-if printf '%s\n' "$changed" | grep -q '^data/harness/'; then
+if printf '%s\n' "$changed" | grep -qE '^(data/harness/|engine/scripts/(claude_allow|session_nudge)\.py$)'; then
   uv=$(command -v uv || echo "$LOCALAPPDATA/Programs/uv/uv.exe")
   if "$uv" run --quiet engine/scripts/claude_allow.py >/dev/null 2>&1; then
-    echo "OmniKit：已同步 Claude 的權限規則"
+    echo "OmniKit：已同步 Claude 的權限規則與開新對話提醒"
   else
-    echo "OmniKit：claude_allow.py 失敗，Claude 的權限規則可能還是舊的" >&2
+    echo "OmniKit：claude_allow.py 失敗，Claude 的權限規則與開新對話提醒可能還是舊的" >&2
   fi
 fi
 
