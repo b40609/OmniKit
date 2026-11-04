@@ -1,8 +1,8 @@
 ﻿<#
 OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 
-1. 安裝固定版本的 skillshare、uv 與 gh：從 GitHub release 下載 zip，比對寫死的 SHA256 後解壓；
-   不改 PATH。這台已經有 uv 或 gh 就沿用。
+1. 安裝固定版本的 skillshare、uv、gh 與 gitleaks：從 GitHub release 下載 zip，比對寫死的
+   SHA256 後解壓；不改 PATH。這台已經有 uv 或 gh 就沿用。
 2. 第一次執行時初始化 skillshare，target 是 Claude Code 與 Codex。
 3. 把 data/rules/AGENTS.md 接到兩邊：Claude 用 import，Codex 用複製，然後同步。
 4. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本），
@@ -40,6 +40,11 @@ $GhSha256 = @{
   amd64 = '98d0cfa794721665d7973dd728c78aff7bd836d58f10f6d7a03568eccb0a22e0'
   arm64 = '197211c98687d7770ac331fe8a3b6c198c389108c1536cdbedf659fe4703e484'
 }
+$GitleaksVersion = '8.30.1'
+$GitleaksSha256 = @{
+  amd64 = 'd29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e'
+  arm64 = 'b95f5e4f5c425cedca7ee203d9afd29597e692c4924a12ed42f970537c72cc0f'
+}
 
 $Repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $Rules = Join-Path $Repo 'data\rules'
@@ -50,6 +55,8 @@ $UvDir = Join-Path $env:LOCALAPPDATA 'Programs\uv'
 $UvExe = Join-Path $UvDir 'uv.exe'
 $GhDir = Join-Path $env:LOCALAPPDATA 'Programs\gh'
 $GhExe = Join-Path $GhDir 'gh.exe'
+$GitleaksDir = Join-Path $env:LOCALAPPDATA 'Programs\gitleaks'
+$GitleaksExe = Join-Path $GitleaksDir 'gitleaks.exe'
 $ClaudeMd = Join-Path $env:USERPROFILE '.claude\CLAUDE.md'
 $BlockPattern = '(?s)<!-- omnikit:rules:begin -->.*?<!-- omnikit:rules:end -->'
 
@@ -121,6 +128,18 @@ function Install-Gh {
   $url = "https://github.com/cli/cli/releases/download/v$GhVersion/gh_${GhVersion}_windows_$Arch.zip"
   Install-PinnedZip $url $GhSha256[$Arch] @('gh.exe') $GhDir
   Write-Host "已安裝 gh $GhVersion：$GhExe"
+}
+
+# 公開 repo 的金鑰外洩檢查：pre-commit hook 用它掃這次要 commit 的變動
+function Install-Gitleaks {
+  if ((Test-Path $GitleaksExe) -and ((& $GitleaksExe version 2>$null) -match [regex]::Escape($GitleaksVersion))) {
+    Write-Host "gitleaks $GitleaksVersion 已安裝：$GitleaksExe"
+    return
+  }
+  $platform = if ($Arch -eq 'arm64') { 'arm64' } else { 'x64' }
+  $url = "https://github.com/gitleaks/gitleaks/releases/download/v$GitleaksVersion/gitleaks_${GitleaksVersion}_windows_$platform.zip"
+  Install-PinnedZip $url $GitleaksSha256[$Arch] @('gitleaks.exe') $GitleaksDir
+  Write-Host "已安裝 gitleaks $GitleaksVersion：$GitleaksExe"
 }
 
 function Initialize-Skillshare {
@@ -212,6 +231,7 @@ function Test-GitIdentity {
 Install-Skillshare
 Install-Uv
 Install-Gh
+Install-Gitleaks
 Initialize-Skillshare
 Connect-ClaudeRules
 Connect-CodexRules

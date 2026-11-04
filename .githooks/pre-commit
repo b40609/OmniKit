@@ -1,6 +1,17 @@
 #!/bin/sh
-# 名冊、schema 或產生器有變動才處理：驗證名冊，不通過就擋下 commit；
-# 通過後重新產生 marketplace 清單，一起放進這次 commit
+# 1. 金鑰外洩檢查：這個 repo 是公開的，這次要 commit 的變動裡有疑似金鑰就擋下
+gitleaks=$(command -v gitleaks || echo "$LOCALAPPDATA/Programs/gitleaks/gitleaks.exe")
+if [ ! -x "$gitleaks" ]; then
+  echo "OmniKit：找不到 gitleaks，先執行 engine/scripts/install.ps1" >&2
+  exit 1
+fi
+"$gitleaks" git --pre-commit --staged --redact --no-banner --log-level warn . || {
+  echo "OmniKit：gitleaks 發現疑似金鑰，已擋下 commit" >&2
+  exit 1
+}
+
+# 2. 名冊、schema 或產生器有變動才處理：驗證名冊，不通過就擋下 commit；
+#    通過後重新產生 marketplace 清單，一起放進這次 commit
 if git diff --cached --name-only | grep -qE '^(data/|engine/(schema|scripts)/)'; then
   uv=$(command -v uv || echo "$LOCALAPPDATA/Programs/uv/uv.exe")
   "$uv" run --quiet engine/scripts/validate.py || exit 1
