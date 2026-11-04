@@ -1,2 +1,2 @@
 #!/bin/sh
-git diff-tree --root --no-commit-id --name-only -r HEAD | "$(dirname "$0")/sync-rules.sh"
+git diff-tree --root --no-commit-id --name-only -r HEAD | "$(dirname "$0")/sync-data.sh"

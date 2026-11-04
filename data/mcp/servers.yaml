@@ -1,0 +1,22 @@
+# MCP servers：skillshare 依這份同步到 Claude Code（~/.claude.json）與 Codex（~/.codex/config.toml）。
+# install.ps1 會把 skillshare 的 sources.mcp 指到這個檔案；commit 動到這裡時，git hook 會自動同步。
+# 金鑰不寫在這裡，用 env 參照環境變數。
+servers:
+  # 瀏覽器槽位，試用到 2026-11-18（見 data/tools/chrome-devtools-mcp.yaml）
+  chrome_devtools:
+    # 不用 npx：多花約 3 秒啟動，Codex 會在工具註冊好之前就送出第一個請求，模型看不到工具。
+    # 改用 install.ps1 依 packages.txt 全域安裝的固定版本；由 cmd 展開 %APPDATA%，換電腦也能用。
+    command: cmd
+    args:
+      - /c
+      - node
+      - '%APPDATA%/npm/node_modules/chrome-devtools-mcp/build/src/bin/chrome-devtools-mcp.js'
+      # 每次用暫時的瀏覽器設定檔，碰不到你的登入狀態；所以 Codex 才設成自動核准
+      - --isolated
+      - --no-usage-statistics
+      - --no-performance-crux
+    targets: [claude, codex]
+    options:
+      codex:
+        # Codex 非互動模式的核准政策是 never；不設這個，開頁、導向這類工具會全部被拒
+        default_tools_approval_mode: approve

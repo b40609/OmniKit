@@ -5,8 +5,10 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
    不改 PATH。這台已經有 uv 就沿用。
 2. 第一次執行時初始化 skillshare，target 是 Claude Code 與 Codex。
 3. 把 data/rules/AGENTS.md 接到兩邊：Claude 用 import，Codex 用複製，然後同步。
-4. 設定 git hook：commit 前驗證名冊；commit 或 pull 動到規則時，自動同步給 Codex。
-5. 檢查 OmniKit repo 的 git 身分。
+4. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本），
+   再把 data/mcp/servers.yaml 設成 skillshare 的 MCP 來源，同步到兩邊。
+5. 設定 git hook：commit 前驗證名冊；commit 或 pull 動到規則或 MCP 時，自動同步。
+6. 檢查 OmniKit repo 的 git 身分。
 
 參數：
   -Fresh  這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
@@ -119,6 +121,38 @@ function Connect-CodexRules {
   Invoke-Skillshare sync extras
 }
 
+# MCP server 用到的 npm 套件，全域安裝 packages.txt 指定的版本；已經是那個版本就略過
+function Install-McpPackages {
+  $specs = @(Get-Content -Encoding UTF8 (Join-Path $Repo 'data\mcp\packages.txt') |
+    ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+  if (-not $specs) { return }
+  if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+    Write-Warning "找不到 npm，略過 MCP 套件：$($specs -join ', ')。請先安裝 Node.js LTS 再重跑。"
+    return
+  }
+  # 不轉向 stderr：PowerShell 5.1 在 Stop 模式下會把原生指令的 stderr 當成錯誤丟出
+  $installed = (npm ls -g --depth=0 --json | Out-String | ConvertFrom-Json).dependencies
+  $missing = @($specs | Where-Object {
+    $name, $version = $_ -split '@(?=[^@]+$)'
+    -not ($installed.$name -and $installed.$name.version -eq $version)
+  })
+  if (-not $missing) { Write-Host "MCP 套件已是指定版本：$($specs -join ', ')"; return }
+  npm install -g @missing
+  if ($LASTEXITCODE -ne 0) { throw "npm install -g $($missing -join ' ') 失敗（exit $LASTEXITCODE）" }
+  Write-Host "已安裝 MCP 套件：$($missing -join ', ')"
+}
+
+# skillshare 沒有設定指令，直接在 config.yaml 的 sources 補上 mcp；sync 會合併寫入，不覆蓋兩邊的其他設定
+function Connect-Mcp {
+  $config = Join-Path $env:APPDATA 'skillshare\config.yaml'
+  $line = '  mcp: ' + (Join-Path $Repo 'data\mcp\servers.yaml')
+  $text = [IO.File]::ReadAllText($config, [Text.Encoding]::UTF8)
+  if ($text -match '(?m)^  mcp: .*$') { $text = [regex]::Replace($text, '(?m)^  mcp: .*$', { $line }) }
+  else { $text = ([regex]'(?m)^sources:\r?\n').Replace($text, { param($m) $m.Value + $line + "`n" }, 1) }
+  [IO.File]::WriteAllText($config, $text, (New-Object Text.UTF8Encoding($false)))
+  Invoke-Skillshare sync mcp --no-tui
+}
+
 # 只留下 OmniKit 的受管區塊；舊內容先備份
 function Clear-OldClaudeRules {
   $text = [IO.File]::ReadAllText($ClaudeMd, [Text.Encoding]::UTF8)
@@ -148,6 +182,8 @@ Install-Uv
 Initialize-Skillshare
 Connect-ClaudeRules
 Connect-CodexRules
+Install-McpPackages
+Connect-Mcp
 if ($Fresh) { Clear-OldClaudeRules }
 Enable-GitHooks
 Test-GitIdentity

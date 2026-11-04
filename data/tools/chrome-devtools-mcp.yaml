@@ -3,12 +3,15 @@ name: Chrome DevTools MCP
 kind: mcp
 slots:
 - browser
-status: pending
+status: trial
 url: https://github.com/ChromeDevTools/chrome-devtools-mcp
 works_with:
 - claude
 - codex
+decided_at: '2026-11-04'
+reason: U1 實測兩端都拿 4 分；Codex 非互動模式只要對它開自動核准，沙箱可以保留。Playwright CLI 少 17% token，但在 Codex 要關掉整個 shell 沙箱。使用者選這個進試用。
+trial_until: '2026-11-18'
 sources:
 - 使用者提出
-notes: Google Chrome 團隊官方，v1.12.0（2026-10-22），54.7k 星，Apache-2.0。除錯最深：效能追蹤、附 source map 的 console 錯誤、網路請求、截圖；另有 CLI 與 --slim 精簡模式。預設會送使用統計，效能工具會查 Google CrUX，可用 --no-usage-statistics、--no-performance-crux 關掉。第 0 層：npm 由 Google 發布並附 SLSA provenance，7 個 skills 掃描皆 SAFE。U1 實測（2026-11-04）：Claude 端用 CLI 拿 4 分；Codex 非互動要先設 default_tools_approval_mode = "approve"，之後 4 分，沙箱可保留，輸入 16.4 萬 token。以 MCP 形式接 Claude Code 還沒測。細節見 data/evals/2026-11-04-browser-u1.md。
+notes: Google Chrome 團隊官方，v1.12.0（2026-10-22），54.7k 星，Apache-2.0。除錯最深：效能追蹤、附 source map 的 console 錯誤、網路請求、截圖；另有 CLI 與 --slim 精簡模式。第 0 層：npm 由 Google 發布並附 SLSA provenance，7 個 skills 掃描皆 SAFE。U1 實測細節見 data/evals/2026-11-04-browser-u1.md。試用設定在 data/mcp/servers.yaml：固定 1.12.0、--isolated（暫時設定檔，碰不到登入狀態）、關掉使用統計與 CrUX 查詢，Codex 設自動核准。常設設定實測：Claude 端連線正常；Codex 非互動模式有啟動競態，node 直接啟動 6 次成功 5 次，經 npx 啟動 3 次全失敗，所以不用 npx。
 added: '2026-11-04'
