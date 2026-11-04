@@ -125,8 +125,22 @@ flowchart LR
 | npm 全域套件 | 安裝 `data/mcp/packages.txt` 指定的固定版本 |
 | `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪 |
 | 這個 repo | `core.hooksPath` 指到 `.githooks`：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、MCP、權限時自動同步 |
+| `%LOCALAPPDATA%\omnikit\install-record.json` | 安裝紀錄：記下這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，移除時只動這些 |
 
 加上 `-Fresh` 會把 `~/.claude/CLAUDE.md` 受管區塊以外的舊規則移除（先備份成 `CLAUDE.md.pre-omnikit`），適合想讓 OmniKit 的規則完全取代舊規則的人。
+
+## 移除
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\uninstall.ps1
+```
+
+會先列出要做的事，確認後才動手：
+
+- 規則、skills、MCP、權限、git hook 還原成安裝前的樣子，安裝前的備份會放回原位。
+- 只移除安裝紀錄裡、由 OmniKit 裝上的工具與 npm 套件；安裝前就有的都保留。
+- 加 `-KeepTools` 只還原設定、保留工具；加 `-Yes` 不詢問直接移除。
+- repo 資料夾不會刪，不需要的話自己刪掉即可。
 
 ## 日常使用
 
@@ -195,7 +209,7 @@ engine/                      引擎：不用改
 <details>
 <summary><b>會不會蓋掉我原本的設定？</b></summary>
 
-不會直接蓋掉。`~/.claude/CLAUDE.md` 只加一段受管區塊；`~/.codex/AGENTS.md` 第一次接上時會先備份；MCP 與權限都是合併寫入。只有加上 `-Fresh` 才會移除 CLAUDE.md 的其他內容，而且也會先備份。完整清單見[安裝會改動哪些地方](#安裝會改動哪些地方)。
+不會直接蓋掉。`~/.claude/CLAUDE.md` 只加一段受管區塊；`~/.codex/AGENTS.md` 第一次接上時會先備份；MCP 與權限都是合併寫入。只有加上 `-Fresh` 才會移除 CLAUDE.md 的其他內容，而且也會先備份。完整清單見[安裝會改動哪些地方](#安裝會改動哪些地方)，不想用了隨時可以[移除](#移除)。
 
 </details>
 

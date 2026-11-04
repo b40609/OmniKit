@@ -15,6 +15,9 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 7. 設定 git hook：commit 前驗證名冊；commit 或 pull 動到規則、MCP 或權限規則時，自動同步。
 8. 檢查 OmniKit repo 的 git 身分。
 
+這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，會記在
+%LOCALAPPDATA%\omnikit\install-record.json；uninstall.ps1 只移除這些。
+
 參數：
   -Fresh  這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
           備份後移除，避免新舊規則同時生效。
@@ -63,6 +66,7 @@ $GitleaksDir = Join-Path $env:LOCALAPPDATA 'Programs\gitleaks'
 $GitleaksExe = Join-Path $GitleaksDir 'gitleaks.exe'
 $ClaudeMd = Join-Path $env:USERPROFILE '.claude\CLAUDE.md'
 $CodexMd = Join-Path $env:USERPROFILE '.codex\AGENTS.md'
+$RecordFile = Join-Path $env:LOCALAPPDATA 'omnikit\install-record.json'
 $BlockPattern = '(?s)<!-- omnikit:rules:begin -->.*?<!-- omnikit:rules:end -->'
 
 function Invoke-Skillshare {
@@ -85,8 +89,21 @@ function Backup-File($path) {
   return $backup
 }
 
-# 下載 release zip，SHA256 相符才把指定的執行檔放進 $dest
+# 安裝紀錄：只累加不刪除；權限規則由 claude_allow.py 自己記
+function Add-InstallRecord($key, $values) {
+  $record = @{}
+  if (Test-Path $RecordFile) {
+    $json = [IO.File]::ReadAllText($RecordFile, [Text.Encoding]::UTF8) | ConvertFrom-Json
+    foreach ($p in $json.PSObject.Properties) { $record[$p.Name] = @($p.Value) }
+  }
+  $record[$key] = @(@($record[$key]) + @($values) | Where-Object { $_ } | Select-Object -Unique)
+  New-Item -ItemType Directory -Force -Path (Split-Path $RecordFile) | Out-Null
+  [IO.File]::WriteAllText($RecordFile, (ConvertTo-Json -InputObject $record -Depth 3), (New-Object Text.UTF8Encoding($false)))
+}
+
+# 下載 release zip，SHA256 相符才把指定的執行檔放進 $dest；$dest 是這次新建的就記進安裝紀錄
 function Install-PinnedZip($url, $sha256, $exeNames, $dest) {
+  $existed = Test-Path $dest
   $tmp = Join-Path $env:TEMP ('omnikit-' + [guid]::NewGuid().ToString('N'))
   New-Item -ItemType Directory -Path $tmp | Out-Null
   try {
@@ -102,6 +119,7 @@ function Install-PinnedZip($url, $sha256, $exeNames, $dest) {
       if (-not $found) { throw "zip 裡找不到 $name" }
       Copy-Item -Force $found.FullName (Join-Path $dest $name)
     }
+    if (-not $existed) { Add-InstallRecord paths $dest }
   } finally {
     Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
   }
@@ -185,8 +203,11 @@ function Sync-RepoConfig {
 }
 
 function Initialize-Skillshare {
-  if (Test-Path (Join-Path $env:APPDATA 'skillshare\config.yaml')) { return }
+  $dir = Join-Path $env:APPDATA 'skillshare'
+  if (Test-Path (Join-Path $dir 'config.yaml')) { return }
+  $existed = Test-Path $dir
   Invoke-Skillshare init --no-copy --no-git --no-skill --targets claude,codex --no-tui
+  if (-not $existed) { Add-InstallRecord paths $dir }
 }
 
 # skillshare 0.28.2 的 import 模式在 Windows 寫出反斜線路徑，Claude Code 不會載入；
@@ -244,8 +265,11 @@ function Install-McpPackages {
     -not ($installed.$name -and $installed.$name.version -eq $version)
   })
   if (-not $missing) { Write-Host "MCP 套件已是指定版本：$($specs -join ', ')"; return }
+  # 只升級版本的不算 OmniKit 裝的，移除時保留
+  $new = @($missing | ForEach-Object { ($_ -split '@(?=[^@]+$)')[0] } | Where-Object { -not $installed.$_ })
   npm install -g @missing
   if ($LASTEXITCODE -ne 0) { throw "npm install -g $($missing -join ' ') 失敗（exit $LASTEXITCODE）" }
+  if ($new) { Add-InstallRecord npm $new }
   Write-Host "已安裝 MCP 套件：$($missing -join ', ')"
 }
 
