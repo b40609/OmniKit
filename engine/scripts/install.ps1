@@ -4,7 +4,8 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 1. 安裝固定版本的 skillshare、uv、gh 與 gitleaks：從 GitHub release 下載 zip，比對寫死的
    SHA256 後解壓；不改 PATH。這台已經有 uv 或 gh 就沿用。
 2. 第一次執行時初始化 skillshare，target 是 Claude Code 與 Codex。
-3. 把 data/rules/AGENTS.md 接到兩邊：Claude 用 import，Codex 用複製，然後同步。
+3. 把 data/rules/AGENTS.md 接到兩邊：Claude 用 import，Codex 用複製，然後同步；
+   engine/skills 裡的 skills 也連進 skillshare，同步到兩邊。
 4. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本），
    再把 data/mcp/servers.yaml 設成 skillshare 的 MCP 來源，同步到兩邊。
 5. 把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的使用者設定（只增不刪）。
@@ -164,6 +165,22 @@ function Connect-CodexRules {
   Invoke-Skillshare sync extras
 }
 
+# OmniKit 自己的 skills（engine/skills）連進 skillshare 的來源，再同步到兩邊；
+# 目標資料夾用 SKILL.md 的 name（target_naming: standard），符合 Agent Skills 規格
+function Connect-Skills {
+  $config = Join-Path $env:APPDATA 'skillshare\config.yaml'
+  $text = [IO.File]::ReadAllText($config, [Text.Encoding]::UTF8)
+  if ($text -notmatch '(?m)^target_naming: standard\s*$') {
+    if ($text -match '(?m)^target_naming: .*$') { $text = [regex]::Replace($text, '(?m)^target_naming: .*$', 'target_naming: standard') }
+    else { $text = $text.TrimEnd() + "`ntarget_naming: standard`n" }
+    [IO.File]::WriteAllText($config, $text, (New-Object Text.UTF8Encoding($false)))
+  }
+  if (-not (Test-Path (Join-Path $env:APPDATA 'skillshare\skills\_omnikit'))) {
+    Invoke-Skillshare link (Join-Path $Repo 'engine\skills') --name _omnikit --enable
+  }
+  Invoke-Skillshare sync
+}
+
 # MCP server 用到的 npm 套件，全域安裝 packages.txt 指定的版本；已經是那個版本就略過
 function Install-McpPackages {
   $specs = @(Get-Content -Encoding UTF8 (Join-Path $Repo 'data\mcp\packages.txt') |
@@ -235,6 +252,7 @@ Install-Gitleaks
 Initialize-Skillshare
 Connect-ClaudeRules
 Connect-CodexRules
+Connect-Skills
 Install-McpPackages
 Connect-Mcp
 Grant-ClaudePermissions

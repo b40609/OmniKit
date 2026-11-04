@@ -12,5 +12,5 @@ sources:
 - 桌機盤點
 - Codex 使用紀錄
 - 使用者提出
-notes: 給 agent 一套設計詞彙與指令，用來打磨、評析 UI，抓出 AI 味的套版設計。Codex 讀取 1 次。第 0／1 層（2026-11-04）：101.6k 星、Apache-2.0、CLI 4.8.0（2026-10-26）。從 Anthropic 的 frontend-design 發展而來，有 24 個指令（critique、audit、polish、typeset、colorize 等），另有不靠 LLM 的套版偵測（62 條規則）；官方說最強在改既有介面，正好對上 CatOS（F1）。安裝：npx impeccable install，或 Claude plugin（pbakaus/impeccable）。建議列入前端設計槽位的實測。
+notes: 給 agent 一套設計詞彙與指令，用來打磨、評析 UI，抓出 AI 味的套版設計。Codex 讀取 1 次。第 0 層（2026-11-04，commit 9fadc41）：101.7k 星、Apache-2.0、CLI 4.8.0（2026-10-26）。skill 掃描有 24 份（給不同 agent 的版本），多數標 HIGH，人工看過都是誤判：craft.md 那句是叫 agent 不要要求使用者呼叫已棄用的 craft 別名；SKILL.md 沒宣告 allowed-tools，代表沒有預先取得權限；live-browser.js 的網路請求只打 localhost 的輔助服務，被當成密鑰的是每次注入的工作階段 token。第 1 層：從 Anthropic 的 frontend-design 發展而來，有 24 個指令（critique、audit、polish、typeset、colorize 等），另有不靠 LLM 的套版偵測（62 條規則）；官方說最強在改既有介面，對上 CatOS（F1）。安裝：npx impeccable install，或 Claude plugin（pbakaus/impeccable）。建議跑第 2 層。
 added: '2026-11-04'

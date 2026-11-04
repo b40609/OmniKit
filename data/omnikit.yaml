@@ -6,3 +6,6 @@ repo: b40609/OmniKit
 # marketplace 名稱，也就是安裝時打的 plugin@<名稱>；加上帳號，避免跟別人 fork 的撞名
 marketplace: omnikit-b40609
 owner: b40609
+# 評估 skill：每週最多跑幾次第 2 層深度評估，超過就排到下週
+eval:
+  weekly_deep_limit: 2

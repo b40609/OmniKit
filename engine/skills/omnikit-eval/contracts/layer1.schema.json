@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "第 1 層結果",
+  "description": "第 1 層讀完 README 後的判斷。第二輪由 OmniKeep 在背景產生，再交給使用者每週彙整時看。",
+  "type": "object",
+  "required": ["layer", "tool_id", "name", "url", "slots", "summary", "differences", "recommendation"],
+  "additionalProperties": false,
+  "properties": {
+    "layer": { "const": 1 },
+    "tool_id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "name": { "type": "string" },
+    "url": { "type": "string", "pattern": "^https://" },
+    "slots": { "description": "空陣列代表未分配", "type": "array", "items": { "type": "string" } },
+    "summary": { "description": "一句話說它做什麼", "type": "string" },
+    "differences": { "description": "跟同槽位現任工具的差異", "type": "string" },
+    "similar_rejected": {
+      "description": "跟以前拒絕過的工具很像時，附上當時的理由",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "reason"],
+        "properties": { "id": { "type": "string" }, "reason": { "type": "string" }, "decided_at": { "type": "string" } }
+      }
+    },
+    "recommendation": {
+      "description": "reject 直接拒絕、keep_pending 收著、deep_eval 建議跑第 2 層",
+      "enum": ["reject", "keep_pending", "deep_eval"]
+    },
+    "needs_user": { "description": "需要使用者決定的事，例如槽位判斷不了", "type": "string" }
+  }
+}

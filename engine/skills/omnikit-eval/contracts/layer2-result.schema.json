@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "第 2 層結果",
+  "type": "object",
+  "required": ["slot", "verdict", "winner", "eval_doc", "decided_by", "unverified"],
+  "additionalProperties": false,
+  "properties": {
+    "slot": { "type": "string" },
+    "verdict": {
+      "description": "Keep 維持現任、Improve 保留現任但調整用法、Update 新工具進試用、Retire 現任退役、Merge 把新工具的長處併進現任",
+      "enum": ["Keep", "Improve", "Update", "Retire", "Merge"]
+    },
+    "winner": { "type": "string" },
+    "scores": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "score"],
+        "properties": { "id": { "type": "string" }, "score": { "type": "number" }, "notes": { "type": "string" } }
+      }
+    },
+    "eval_doc": { "description": "data/evals/ 裡的評估紀錄路徑", "type": "string" },
+    "decided_by": { "description": "rule 依事先寫的規則、user 由使用者決定", "enum": ["rule", "user"] },
+    "unverified": { "description": "沒驗證到的部分", "type": "array", "items": { "type": "string" } }
+  }
+}

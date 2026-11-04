@@ -14,6 +14,15 @@
       "type": "string",
       "pattern": "^(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9._-]*$"
     },
-    "owner": { "type": "string", "minLength": 1 }
+    "owner": { "type": "string", "minLength": 1 },
+    "eval": {
+      "description": "評估 skill 的設定",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["weekly_deep_limit"],
+      "properties": {
+        "weekly_deep_limit": { "description": "每週最多跑幾次第 2 層深度評估", "type": "integer", "minimum": 0 }
+      }
+    }
   }
 }

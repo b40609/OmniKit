@@ -19,6 +19,8 @@ jobs:
       - run: uv run engine/scripts/build.py --check
       # 看板要能正常產生
       - run: uv run engine/scripts/build.py --site _site
+      # 評估 skill 的離線自我測試
+      - run: uv run engine/skills/omnikit-eval/scripts/selftest.py
 
   secrets:
     name: 金鑰外洩

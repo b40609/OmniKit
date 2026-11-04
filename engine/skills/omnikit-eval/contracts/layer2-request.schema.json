@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "第 2 層請求",
+  "description": "請某個執行者（這個 skill、RIA，或第二輪由手機觸發、在桌機以非互動模式代跑）做一次深度評估。",
+  "type": "object",
+  "required": ["slot", "scenarios", "candidates", "decision_rule", "runner", "judge", "limits"],
+  "additionalProperties": false,
+  "properties": {
+    "slot": { "type": "string" },
+    "scenarios": { "description": "data/slots.yaml 裡的情境 id，例如 F1", "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "candidates": {
+      "description": "最多 3 個：現任加上挑戰者",
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "role"],
+        "properties": { "id": { "type": "string" }, "role": { "enum": ["incumbent", "challenger"] } }
+      }
+    },
+    "decision_rule": { "description": "動手前寫下的判定規則：什麼結果會改變什麼決定", "type": "string" },
+    "runner": { "description": "執行者的模型家族，例如 openai、anthropic", "type": "string" },
+    "judge": { "description": "評審的模型家族，要跟執行者不同；需要品味判斷時加上 user", "type": "string" },
+    "limits": {
+      "type": "object",
+      "required": ["write_scope", "allow_push"],
+      "properties": {
+        "write_scope": { "description": "只能改的範圍，例如 OmniKit 的 data/", "type": "string" },
+        "allow_push": { "type": "boolean" },
+        "max_minutes": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}
