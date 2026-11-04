@@ -19,5 +19,5 @@ sources:
 - 訪談
 - Codex 使用紀錄
 - RIA:C060
-notes: 附帶 evals（RIA 候選表另列為 C060）。Codex 內建的 $skill-creator 是 OpenAI 自己的版本，所以 Codex 的 marketplace 不列。plugin 固定在 anthropics/claude-plugins-official 的 a2e251d（2026-11-03）。第 0 層：skill 掃描標出 1 個 CRITICAL，經查是誤判（eval-viewer 的 subprocess 用 list 參數、port 是整數）；另外它產生的報表會載入 Google Fonts。
+notes: 附帶 evals（RIA 候選表另列為 C060）。Codex 內建的 $skill-creator 是 OpenAI 自己的版本，所以 Codex 的 marketplace 不列。plugin 固定在 anthropics/claude-plugins-official 的 a2e251d（2026-11-03）。第 0 層：skill 掃描標出 1 個 CRITICAL，經查是誤判（eval-viewer 的 subprocess 用 list 參數、port 是整數）；另外它產生的報表會載入 Google Fonts。2026-11-04 在隔離環境從 GitHub 上的 OmniKit marketplace 實測安裝成功（Claude Code）。
 added: '2026-11-04'

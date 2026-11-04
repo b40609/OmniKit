@@ -23,5 +23,5 @@ sources:
 - 訪談
 - 桌機盤點
 - Codex 使用紀錄
-notes: Codex 近 60 天 MCP 呼叫 4 次。plugin 用 npm 套件 rea-agents 6.8.0，作者自己的 marketplace 也是這樣發布；套件附 SLSA provenance、沒有安裝階段腳本，內附 skill 掃描 SAFE。
+notes: Codex 近 60 天 MCP 呼叫 4 次。plugin 用 npm 套件 rea-agents 6.8.0，作者自己的 marketplace 也是這樣發布；套件附 SLSA provenance、沒有安裝階段腳本，內附 skill 掃描 SAFE。2026-11-04 在隔離環境從 GitHub 上的 OmniKit marketplace 實測安裝成功（Claude Code 與 Codex）。
 added: '2026-11-04'

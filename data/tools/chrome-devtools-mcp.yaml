@@ -13,5 +13,5 @@ reason: U1 實測兩端都拿 4 分；Codex 非互動模式只要對它開自動
 trial_until: '2026-11-18'
 sources:
 - 使用者提出
-notes: Google Chrome 團隊官方，v1.12.0（2026-10-22），54.7k 星，Apache-2.0。除錯最深：效能追蹤、附 source map 的 console 錯誤、網路請求、截圖；另有 CLI 與 --slim 精簡模式。第 0 層：npm 由 Google 發布並附 SLSA provenance，7 個 skills 掃描皆 SAFE。U1 實測細節見 data/evals/2026-11-04-browser-u1.md。試用設定在 data/mcp/servers.yaml：固定 1.12.0、--isolated（暫時設定檔，碰不到登入狀態）、關掉使用統計與 CrUX 查詢，Codex 設自動核准。常設設定實測：Claude 端連線正常；Codex 非互動模式有啟動競態，node 直接啟動 6 次成功 5 次，經 npx 啟動 3 次全失敗，所以不用 npx。
+notes: Google Chrome 團隊官方，v1.12.0（2026-10-22），54.7k 星，Apache-2.0。除錯最深：效能追蹤、附 source map 的 console 錯誤、網路請求、截圖；另有 CLI 與 --slim 精簡模式。第 0 層：npm 由 Google 發布並附 SLSA provenance，7 個 skills 掃描皆 SAFE。U1 實測細節見 data/evals/2026-11-04-browser-u1.md。試用設定在 data/mcp/servers.yaml：固定 1.12.0、--isolated（暫時設定檔，碰不到登入狀態）、關掉使用統計與 CrUX 查詢，Codex 設自動核准。常設設定實測：Claude 端連線正常；Codex 非互動模式有啟動競態，node 直接啟動 6 次成功 5 次，經 npx 啟動 3 次全失敗，所以不用 npx。試用紀錄：2026-11-04 在 Claude Code 以 MCP 形式用它檢查看板（本機與 GitHub Pages）：截圖、console、搜尋與篩選、手機版、Lighthouse 都正常，抓到 4 個版面問題。
 added: '2026-11-04'
