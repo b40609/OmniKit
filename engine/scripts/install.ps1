@@ -323,6 +323,17 @@ function Test-GitIdentity {
   }
 }
 
+# 安裝完畫面上不會多出東西，告訴使用者怎麼確認接上了、接下來怎麼用
+function Show-NextSteps {
+  $text = [IO.File]::ReadAllText((Join-Path $Rules 'AGENTS.md'), [Text.Encoding]::UTF8)
+  $version = if ($text -match '規則版本：(\S+)') { $Matches[1] } else { 'data/rules/AGENTS.md 開頭的版本' }
+  Write-Host ''
+  Write-Host 'OmniKit 已接上 Claude Code 與 Codex，開新的 session 才會生效：'
+  Write-Host "  - 問「OmniKit 規則版本是多少？」，應該回答 $version"
+  Write-Host '  - 評估新工具：Claude Code 輸入 /omnikit-eval，Codex 輸入 $omnikit-eval'
+  Write-Host '  - 預設 plugin 不會自動安裝；安裝方式與其他說明見 README 的「裝好之後」'
+}
+
 Install-Skillshare
 Install-Uv
 Install-Gh
@@ -338,3 +349,4 @@ Grant-ClaudePermissions
 if ($Fresh) { Clear-OldClaudeRules }
 Enable-GitHooks
 Test-GitIdentity
+Show-NextSteps

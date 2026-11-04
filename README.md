@@ -9,7 +9,7 @@
 [![授權](https://img.shields.io/badge/%E6%8E%88%E6%AC%8A-MIT-blue)](LICENSE)
 [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%2011-0078d4)](#常見問題)
 
-[槽位看板](https://b40609.github.io/OmniKit/) · [快速開始](#快速開始) · [運作方式](#運作方式) · [常見問題](#常見問題)
+[槽位看板](https://b40609.github.io/OmniKit/) · [快速開始](#快速開始) · [裝好之後](#裝好之後) · [運作方式](#運作方式) · [常見問題](#常見問題)
 
 </div>
 
@@ -65,7 +65,7 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
    git push
    ```
 
-6. **確認接上了。** 開一個新的 Claude Code 或 Codex session，問「OmniKit 規則版本是多少？」，回答跟 `data/rules/AGENTS.md` 開頭的版本一樣，就表示規則已經生效。
+6. **確認接上了。** 開一個新的 Claude Code 或 Codex session，問「OmniKit 規則版本是多少？」，回答跟 `data/rules/AGENTS.md` 開頭的版本一樣，就表示規則已經生效。skill 與 MCP 怎麼檢查、裝好之後怎麼用，見[裝好之後](#裝好之後)。
 
 ### 只想裝預設的 plugin
 
@@ -84,6 +84,46 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
 | Codex | `codex plugin add frontend-design@omnikit-b40609` |
 
 目前收錄哪些，看[槽位看板](https://b40609.github.io/OmniKit/)的「安裝預設的 plugin」。
+
+## 裝好之後
+
+安裝不會在 Claude Code 或 Codex 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了一個 skill、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
+
+### 確認接上了
+
+| 檢查 | Claude Code | Codex |
+|---|---|---|
+| 規則 | 問「OmniKit 規則版本是多少？」，回答跟 `data/rules/AGENTS.md` 開頭的「規則版本」一樣 | 同左 |
+| skill | 輸入 `/omnikit-eval`，選單裡會出現 | 輸入 `$omnikit-eval`，或用 `/skills` 列出來 |
+| MCP | 終端機跑 `claude mcp get chrome_devtools`，狀態是 Connected | 終端機跑 `codex mcp list`，`chrome_devtools` 是 enabled |
+
+### 安裝前後差在哪
+
+| 項目 | 會有什麼不同 | Claude Code 與 Codex 的差別 |
+|---|---|---|
+| 規則（`data/rules/AGENTS.md`） | 回覆用什麼語言、寫多詳細、哪些事要先問你，都照這份規則走。沒改過的話是原作者的規則：繁體中文、回覆精簡、下載安裝直接做、刪除前先問 | Claude Code 直接讀 repo 裡這一份，改完開新 session 就生效。Codex 讀的是複製出去的副本，改完要 commit，git hook 才會同步過去 |
+| `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡 | 兩邊說「幫我評估」都會自動觸發；要手動叫，Claude Code 輸入 `/omnikit-eval`，Codex 輸入 `$omnikit-eval` |
+| `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 已加進免問清單，Codex 設成自動核准，兩邊都不會跳權限確認 |
+| git hooks | 只作用在 OmniKit repo：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、MCP、權限時自動同步 | 跟 agent 無關 |
+
+開新的 session 試試看：
+
+```text
+OmniKit 規則版本是多少？
+幫我評估 https://github.com/<owner>/<repo>
+用瀏覽器打開 http://localhost:3000，看 console 有沒有錯誤
+每週彙整
+```
+
+評估、改名冊、跟上原作者的更新，見[日常使用](#日常使用)。
+
+### 預設 plugin 要另外裝
+
+`install.ps1` 不會把 OmniKit 加成 marketplace，也不會安裝看板上的預設 plugin。想用的話，照[只想裝預設的 plugin](#只想裝預設的-plugin) 的指令裝。用自己的 fork 時：
+
+- 把指令裡的 `b40609/OmniKit` 換成你的 fork。
+- `@` 後面的 marketplace 名稱換成你 `data/omnikit.yaml` 的 `marketplace`，例如 `omnikit-<你的帳號小寫>`。
+- 先 push 到 GitHub，marketplace 才讀得到最新的清單。
 
 ## 運作方式
 
@@ -205,6 +245,13 @@ engine/                      引擎：不用改
 ```
 
 ## 常見問題
+
+<details>
+<summary><b>裝好了，卻看不出有什麼不同？</b></summary>
+
+安裝改的是規則、skill 與 MCP，畫面上不會多出東西，而且要開新的 session 才生效。照[確認接上了](#確認接上了)檢查一遍。預設 plugin 不會自動安裝，見[預設 plugin 要另外裝](#預設-plugin-要另外裝)。
+
+</details>
 
 <details>
 <summary><b>會不會蓋掉我原本的設定？</b></summary>
