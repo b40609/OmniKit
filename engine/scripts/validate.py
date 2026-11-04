@@ -5,10 +5,14 @@
 # [tool.uv]
 # exclude-newer = "2026-11-01T00:00:00Z"
 # ///
-"""驗證 OmniKit 名冊：data/omnikit.yaml、data/slots.yaml 與 data/tools/*.yaml。
+"""驗證 OmniKit 名冊：data/omnikit.yaml、data/slots.yaml、data/tools/*.yaml 與 data/profiles/。
 
 除了 JSON Schema，還檢查跨檔規則：檔名等於 id、id 不重複、槽位存在、
-每個槽位最多一個預設、replaces 指向存在的工具。
+每個槽位最多一個預設、replaces 指向存在的工具；規則有安全底線，profile 有 default、
+每個 profile 都有 AGENTS.md，情境指向存在的槽位。
+
+讀出的名冊裡，槽位情境是套上 profile 之後的：這台用 profiles.py 選過的 profile 優先，
+沒有就用 data/omnikit.yaml 的 profile；那個 profile 沒寫的槽位沿用 slots.yaml 的範本。
 
 用法：uv run engine/scripts/validate.py [--data <資料目錄>]
 """
@@ -20,6 +24,8 @@ from pathlib import Path
 import yaml
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import best_match
+
+import profiles  # 同目錄的 profiles.py：這台選的 profile
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "engine" / "schema"
@@ -73,8 +79,45 @@ def schema_errors(check, doc, path):
     ]
 
 
-def check(data):
-    """回傳（問題清單, 名冊）；名冊含 config、slots 與依 id 排序的 tools。"""
+def check_profiles(data, slot_ids):
+    """回傳（問題清單, {profile 名稱: {槽位: 情境}}）。"""
+    errors, found = [], {}
+    baseline = data / "rules" / "baseline.md"
+    if not baseline.is_file():
+        errors.append(f"{show(baseline)}: 找不到安全底線")
+    root = data / "profiles"
+    dirs = sorted(p for p in root.iterdir() if p.is_dir()) if root.is_dir() else []
+    if profiles.DEFAULT not in [p.name for p in dirs]:
+        errors.append(f"{show(root)}: 少了 {profiles.DEFAULT} profile（這台沒選 profile 時用它）")
+    check_scenarios = validator("scenarios.schema.json")
+    for d in dirs:
+        if not profiles.NAME.match(d.name):
+            errors.append(f"{show(d)}: profile 名稱只能用小寫英數與 -")
+            continue
+        if not (d / "AGENTS.md").is_file():
+            errors.append(f"{show(d)}: 少了 AGENTS.md（個人規則）")
+            continue
+        found[d.name] = {}
+        path = d / "scenarios.yaml"
+        if not path.exists():
+            continue
+        doc = load_yaml(path)
+        bad = schema_errors(check_scenarios, doc, path)
+        errors += bad
+        if bad:
+            continue
+        for slot, items in doc["scenarios"].items():
+            if slot not in slot_ids:
+                errors.append(f"{show(path)}: 找不到槽位「{slot}」")
+            ids = [s["id"] for s in items]
+            for dup in sorted({i for i in ids if ids.count(i) > 1}):
+                errors.append(f"{show(path)}: 槽位「{slot}」的情境 id 重複：{dup}")
+        found[d.name] = doc["scenarios"]
+    return errors, found
+
+
+def check(data, profile=None):
+    """回傳（問題清單, 名冊）；名冊含 config、套上 profile 情境的 slots、依 id 排序的 tools 與 profile 名稱。"""
     errors = []
 
     config_path = data / "omnikit.yaml"
@@ -118,7 +161,17 @@ def check(data):
         if len(ids) > 1:
             errors.append(f"槽位「{slot}」有 {len(ids)} 個預設：{'、'.join(ids)}；一個槽位只能留一個")
 
-    return errors, {"config": config, "slots": slots, "tools": tools}
+    found_errors, found = check_profiles(data, slot_ids)
+    errors += found_errors
+    board = (config or {}).get("profile") if isinstance(config, dict) else None
+    if board and board not in found:
+        errors.append(f"{show(config_path)}: 找不到 profile「{board}」（data/profiles/{board}/AGENTS.md）")
+    chosen = profiles.chosen(profiles.STATE)
+    name = profile or (chosen if chosen in found else None) or board
+    overlay = found.get(name, {})
+    slots = [{**s, "scenarios": overlay.get(s.get("id"), s.get("scenarios"))} for s in slots]
+
+    return errors, {"config": config, "slots": slots, "tools": tools, "profile": name}
 
 
 def main():
@@ -132,7 +185,7 @@ def main():
             print(f"- {e}")
         return 1
     tool_count = len(list((data / "tools").glob("*.yaml")))
-    print(f"名冊驗證通過：{len(roster['slots'])} 個槽位、{tool_count} 張工具卡。")
+    print(f"名冊驗證通過：{len(roster['slots'])} 個槽位、{tool_count} 張工具卡，情境用 profile：{roster['profile'] or '（範本）'}。")
     return 0
 
 

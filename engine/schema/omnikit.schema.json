@@ -15,6 +15,11 @@
       "pattern": "^(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9._-]*$"
     },
     "owner": { "type": "string", "minLength": 1 },
+    "profile": {
+      "description": "看板與評估用哪個 profile 的情境（data/profiles/<名稱>/scenarios.yaml）；這台電腦用 profiles.py 選過 profile 的話，以那個為準",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
     "eval": {
       "description": "評估 skill 的設定",
       "type": "object",

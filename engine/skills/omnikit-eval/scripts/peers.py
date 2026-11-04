@@ -30,6 +30,8 @@ def main():
     _omnikit.emit({
         "layer": "peers",
         "omnikit_root": str(_omnikit.ROOT),
+        # slot 的情境已經套上這個 profile；None 表示用的是 slots.yaml 的範本
+        "profile": roster["profile"],
         "slot": slot,
         "incumbents": pick("default", "trial"),
         "rejected": pick("rejected"),

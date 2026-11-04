@@ -1,6 +1,7 @@
 #!/bin/sh
 # 從 stdin 讀變動的檔名，只同步有變動的部分：
-#   data/rules/：同步給 Codex（Codex 不支援 import，讀的是 skillshare 複製的副本）
+#   data/rules/、data/profiles/、profiles.py：用這台選的 profile 重新接上規則（Claude 的 import 路徑、
+#     給 Codex 的副本；Codex 不支援 import，讀的是 skillshare 複製的副本）
 #   data/mcp/：同步兩邊的 MCP 設定
 #   data/harness/、claude_allow.py、session_nudge.py：把權限規則與開新對話提醒補進 Claude Code 的使用者設定
 #   codex_hooks.py、claude_allow.py、session_nudge.py：把開新對話提醒補進 Codex 的 config.toml
@@ -8,11 +9,13 @@
 ss="$LOCALAPPDATA/Programs/skillshare/skillshare.exe"
 changed=$(cat)
 
-if printf '%s\n' "$changed" | grep -q '^data/rules/'; then
-  if "$ss" sync extras >/dev/null 2>&1; then
-    echo "OmniKit：已把規則同步給 Codex"
+if printf '%s\n' "$changed" | grep -qE '^(data/rules/|data/profiles/|engine/scripts/profiles\.py$)'; then
+  uv=$(command -v uv || echo "$LOCALAPPDATA/Programs/uv/uv.exe")
+  if out=$("$uv" run --quiet engine/scripts/profiles.py 2>&1); then
+    printf '%s\n' "$out" | sed 's/^/OmniKit：/'
   else
-    echo "OmniKit：skillshare sync extras 失敗，Codex 的規則可能還是舊的" >&2
+    printf '%s\n' "$out" | sed 's/^/OmniKit：/' >&2
+    echo "OmniKit：profiles.py 沒有完成，原因見上一行" >&2
   fi
 fi
 

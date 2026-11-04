@@ -1,4 +1,6 @@
-# 槽位與情境。評估新工具時，用 scenarios 當比較題目。
+# 槽位與情境範本。評估新工具時，用情境當比較題目。
+# 這裡的情境是範本：<你的專案> 這類佔位要換成自己的真實專案。自己的情境寫在
+# data/profiles/<名稱>/scenarios.yaml，列出的槽位會整組取代這裡的範本（範例見 data/profiles/ryan/）。
 # focus：active 主動找更好的工具，每週的深度評估額度只用在這些槽位；
 #        watch 有新工具進來才做免費初篩；frozen 不評估、不動預設（等 RIA 的結果）。
 slots:
@@ -7,9 +9,9 @@ slots:
     focus: active
     scenarios:
       - id: F1
-        text: 在 Windows 用 Claude Code 或 Codex 改 CatOS 的 React／Vite 前端；給一張喜歡的風格參考，要依 CatOS 的需求重新設計，不能照抄。
+        text: 改 <你的前端專案> 的畫面；給一張喜歡的風格參考，要依專案需求重新設計，不能照抄。
       - id: F2
-        text: OmniKeep 或 CatOS 的後端功能已經完成，決定前端怎麼呈現，讓人看了想用。
+        text: <你的專案> 的後端功能已經完成，決定前端怎麼呈現，讓人看了想用。
       - id: F3
         text: 偶爾需要照原版重建一個現成的網站或畫面，版面、樣式與行為要盡量接近原版。
 
@@ -18,14 +20,14 @@ slots:
     focus: active
     scenarios:
       - id: R1
-        text: Claude Code 改完 OmniKeep 的 Python 後端修正，交給 Codex 審 diff，或反過來；重要的才交叉審，小改動自己審。
+        text: 一個 agent 改完 <你的專案> 的修正，交給另一個 agent 審 diff；重要的才交叉審，小改動自己審。
 
   - id: memory
     name: 記憶與交接
     focus: active
     scenarios:
       - id: M1
-        text: Claude Code 做到一半的 OmniKeep 任務，換到 Codex 或新 session 接手，不用重講脈絡。
+        text: 做到一半的 <你的專案> 任務，換到另一個 agent 或新 session 接手，不用重講脈絡。
       - id: M2
         text: 長 session 經過 compaction 之後，agent 仍然記得做到哪裡、做過哪些決定。
 
@@ -34,7 +36,7 @@ slots:
     focus: active
     scenarios:
       - id: C1
-        text: 在 OmniKeep、CatOS 找某個函式的所有呼叫者，以及改動的影響範圍。
+        text: 在 <你的專案> 找某個函式的所有呼叫者，以及改動的影響範圍。
       - id: C2
         text: 深讀第三方 repo，寫附行號的研究筆記。
 
@@ -43,7 +45,7 @@ slots:
     focus: active
     scenarios:
       - id: T1
-        text: 在 OmniKeep 跑 pytest、在 CatOS 跑前端 build，輸出很長，把 context 塞滿。
+        text: 在 <你的專案> 跑測試或 build，輸出很長，把 context 塞滿。
 
   - id: tool-discovery
     name: 工具發現
@@ -64,7 +66,7 @@ slots:
     focus: active
     scenarios:
       - id: U1
-        text: 改完 CatOS 或 OmniKeep 的前端後，agent 自己開 dev server，在瀏覽器看畫面與 console 錯誤，確認改動真的生效才回報；Claude Code 與 Codex 都要能用。
+        text: 改完 <你的專案> 的前端後，agent 自己開 dev server，在瀏覽器看畫面與 console 錯誤，確認改動真的生效才回報；你用的每個 agent 都要能用。
 
   - id: permissions
     name: 權限與通知
@@ -78,7 +80,7 @@ slots:
     focus: watch
     scenarios:
       - id: O1
-        text: 日常對話先講結果、少廢話，但保留證據（file:line、測試輸出），並維持繁體中文。
+        text: 日常對話先講結果、少廢話，但保留證據（file:line、測試輸出），並維持你習慣的語言。
 
   - id: docs-output
     name: 文件與簡報產出
@@ -99,14 +101,14 @@ slots:
     focus: watch
     scenarios:
       - id: K1
-        text: 寫 OmniKit 的評估 skill，並證明它比沒裝的時候好。
+        text: 寫一個自己用的 skill，並證明它比沒裝的時候好。
 
   - id: product-research
     name: 產品研究與方向
     focus: frozen
     scenarios:
       - id: P1
-        text: 在 OmniKeep 或 CatOS 提優化需求時，先比對業界與開源做法，再提方案。
+        text: 在 <你的專案> 提優化需求時，先比對業界與開源做法，再提方案。
       - id: P2
         text: 有產品想法時，先找出符合的現有專案，避免重造輪子。
 
@@ -115,4 +117,4 @@ slots:
     focus: frozen
     scenarios:
       - id: V1
-        text: 小改動走中流程（討論計畫、核准、實作、審查），大功能走重流程（assessment、spec、獨立審查、授權、實作、驗收、closeout）；常跑偏、重工。
+        text: 小改動走輕流程（討論計畫、實作、審查），大功能走重流程（規格、獨立審查、實作、驗收）；常跑偏、重工。

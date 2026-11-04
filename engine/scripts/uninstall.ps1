@@ -3,7 +3,8 @@ OmniKit 移除：把 install.ps1 對這台電腦做的改動還原，可以重�
 
 1. Claude Code：拿掉 ~/.claude/CLAUDE.md 的受管區塊。檔案因此變空時，有安裝前的備份
    （CLAUDE.md.pre-omnikit）就還原，沒有就刪掉這個空檔。
-2. Codex：由 skillshare 移除 rules-codex，~/.codex/AGENTS.md 回到接上 OmniKit 之前的樣子。
+2. Codex：由 skillshare 移除 rules-codex，~/.codex/AGENTS.md 回到接上 OmniKit 之前的樣子；
+   再刪掉 %LOCALAPPDATA%\omnikit 裡接好的規則（rules\AGENTS.md）與 profile 選擇（profile.json）。
 3. skills：從 skillshare 拿掉 engine/skills 的連結並同步，兩邊不再有 OmniKit 的 skills。
 4. MCP：讓 skillshare 改讀一份空的 MCP 定義並同步，兩邊移除 OmniKit 加的 MCP server，
    再把 MCP 來源從 skillshare 設定拿掉。
@@ -37,6 +38,9 @@ $McpSource = Join-Path $Repo 'data\mcp\servers.yaml'
 $ClaudeMd = Join-Path $env:USERPROFILE '.claude\CLAUDE.md'
 $CodexMd = Join-Path $env:USERPROFILE '.codex\AGENTS.md'
 $RecordFile = Join-Path $env:LOCALAPPDATA 'omnikit\install-record.json'
+# profiles.py 產生的：給 Codex 的規則（底線 + profile 接成一份）與這台選的 profile
+$ComposedRules = Join-Path $env:LOCALAPPDATA 'omnikit\rules'
+$ProfileFile = Join-Path $env:LOCALAPPDATA 'omnikit\profile.json'
 $BlockPattern = '(?s)<!-- omnikit:rules:begin -->.*?<!-- omnikit:rules:end -->\r?\n?'
 $McpPattern = '(?m)^  mcp: (.*?)\s*$\r?\n?'
 $Utf8 = New-Object Text.UTF8Encoding($false)
@@ -85,6 +89,7 @@ $paths = @($record['paths'] | Where-Object { $_ -and (Test-Path $_) })
 $plan = @()
 if ($claudeHasBlock) { $plan += '拿掉 ~/.claude/CLAUDE.md 的 OmniKit 區塊' }
 if ($codexManaged -or (Test-Path "$CodexMd.pre-omnikit")) { $plan += '把 ~/.codex/AGENTS.md 還原成接上 OmniKit 之前的樣子' }
+if ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile)) { $plan += '刪除接好的規則與 profile 選擇（%LOCALAPPDATA%\omnikit）' }
 if ($skillsLinked) { $plan += '移除 OmniKit 的 skills（Claude Code 與 Codex）' }
 if ($mcpMatch.Success) { $plan += '移除 OmniKit 加的 MCP server（Claude Code 與 Codex）' }
 if ($record['claude_allow']) { $plan += "從 ~/.claude/settings.json 拿掉權限規則：$($record['claude_allow'] -join ', ')" }
@@ -147,8 +152,8 @@ function Remove-CodexRules {
     Invoke-Skillshare extras remove rules-codex --force
   }
   $backup = "$CodexMd.pre-omnikit"
-  $ours = Join-Path $Repo 'data\rules\AGENTS.md'
-  $isOurCopy = (Test-Path $CodexMd) -and ((Get-FileHash $CodexMd).Hash -eq (Get-FileHash $ours).Hash)
+  $ours = Join-Path $ComposedRules 'AGENTS.md'
+  $isOurCopy = (Test-Path $CodexMd) -and (Test-Path $ours) -and ((Get-FileHash $CodexMd).Hash -eq (Get-FileHash $ours).Hash)
   if (Test-Path $backup) {
     if (-not (Test-Path $CodexMd) -or $isOurCopy) {
       Move-Item -Force $backup $CodexMd
@@ -161,6 +166,14 @@ function Remove-CodexRules {
     Remove-Item $CodexMd
   }
   Write-Host '已還原 Codex 規則'
+}
+
+# 要在 Remove-CodexRules 之後：它拿接好的規則比對 ~/.codex/AGENTS.md 有沒有被改過
+function Remove-ProfileState {
+  if (-not ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile))) { return }
+  Remove-Item -Recurse -Force $ComposedRules -ErrorAction SilentlyContinue
+  Remove-Item -Force $ProfileFile -ErrorAction SilentlyContinue
+  Write-Host '已刪除接好的規則與 profile 選擇'
 }
 
 function Remove-Skills {
@@ -273,6 +286,7 @@ function Remove-RecordedPaths {
 
 Remove-ClaudeRules
 Remove-CodexRules
+Remove-ProfileState
 Remove-Skills
 Remove-Mcp
 Remove-ClaudePermissions

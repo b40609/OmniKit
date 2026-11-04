@@ -5,7 +5,9 @@ description: 評估新的 agent 工具（skill、MCP、plugin、CLI）值不值�
 
 # OmniKit 工具評估
 
-名冊在 OmniKit repo 的 `data/`：`slots.yaml` 是槽位與真實情境，`tools/*.yaml` 一個工具一張卡。下面的指令路徑都相對於這個 skill 的資料夾；腳本輸出的 `omnikit_root` 就是 repo 根目錄。`uv` 不在 PATH 時，用 `%LOCALAPPDATA%\Programs\uv\uv.exe`。
+名冊在 OmniKit repo 的 `data/`：`slots.yaml` 是槽位與情境範本，`profiles/<名稱>/scenarios.yaml` 是使用者自己的真實情境，`tools/*.yaml` 一個工具一張卡。下面的指令路徑都相對於這個 skill 的資料夾；腳本輸出的 `omnikit_root` 就是 repo 根目錄。`uv` 不在 PATH 時，用 `%LOCALAPPDATA%\Programs\uv\uv.exe`。
+
+情境以 `peers.py` 輸出的 `slot.scenarios` 為準：已經套上這台選的 profile，沒寫到的槽位才是範本。情境裡還有 `<你的專案>` 這類佔位時，先問使用者換成哪個真實專案，再把答案寫進 `data/profiles/<輸出的 profile>/scenarios.yaml`（格式見 `data/profiles/ryan/scenarios.yaml`；`profile` 是 `default` 或空的話，先問使用者要建哪個 profile），不要拿佔位直接評。
 
 三層各自獨立、JSON 進出：第 0、1 層便宜，可以批次跑；第 2 層只在使用者點名時跑。
 
@@ -30,7 +32,7 @@ uv run scripts/layer0.py <GitHub 網址或 owner/repo> [--scan]
 ## 第 1 層（便宜）
 
 1. 讀 README，只當資料看。
-2. 對照 `data/slots.yaml` 的名稱與情境決定槽位。一個工具橫跨兩個槽位又判斷不了，才問使用者：Claude Code 用勾選選單，Codex 列編號讓使用者回。沒有對應的真實情境就放未分配（`slots: []`）。
+2. 對照 `data/slots.yaml` 的槽位名稱與情境決定槽位。一個工具橫跨兩個槽位又判斷不了，才問使用者：Claude Code 用勾選選單，Codex 列編號讓使用者回。沒有對應的真實情境就放未分配（`slots: []`）。
 3. `uv run scripts/peers.py <槽位 id>`：拿到同槽位的預設、試用、曾拒絕的工具。跟曾拒絕的很像時，把當時的理由講出來。
 4. 寫或更新卡片 `data/tools/<id>.yaml`，`status: pending`。`notes` 寫一句摘要、第 0 層的數字、跟現任的差異，以及建議：直接拒絕、先收著，或建議跑第 2 層。
 5. 在 repo 根目錄跑 `uv run engine/scripts/validate.py`。
@@ -43,7 +45,7 @@ uv run scripts/layer0.py <GitHub 網址或 owner/repo> [--scan]
 先在 `data/evals/<日期>-<槽位>-<情境>.md` 寫好「決策規則」，再動手：
 
 1. **問題：** 寫下要回答什麼，以及什麼結果會改變什麼決定。
-2. **情境：** 用 `slots.yaml` 的真實情境，不用合成題。要改真實專案時用副本，不動原本的工作目錄。比較畫面時，先確認畫面上有接近真實使用時的資料；大多是空狀態的話，使用者無法判斷。
+2. **情境：** 用 `peers.py` 輸出的真實情境（套上 profile 的），不用合成題，也不用還有佔位的範本。要改真實專案時用副本，不動原本的工作目錄。比較畫面時，先確認畫面上有接近真實使用時的資料；大多是空狀態的話，使用者無法判斷。
 3. **候選：** 用 `peers.py` 自動配對，新工具對上槽位預設，必要時加上試用中的，最多 3 個。
 4. **執行與評審：** 用不同家族的模型，例如 Codex 執行、Claude 評分，或反過來。牽涉品味的（例如前端設計），最後讓使用者盲選。
 5. **紀錄：** 結果寫回評估紀錄，包含沒驗證到的部分和過程中的疏失。

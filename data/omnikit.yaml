@@ -6,6 +6,9 @@ repo: b40609/OmniKit
 # marketplace 名稱，也就是安裝時打的 plugin@<名稱>；加上帳號，避免跟別人 fork 的撞名
 marketplace: omnikit-b40609
 owner: b40609
+# 看板展示哪個 profile 的情境（data/profiles/<名稱>/scenarios.yaml）；fork 時 install.ps1 會改回 default。
+# 在自己電腦上評估工具時，以這台用 profiles.py 選的 profile 為準
+profile: ryan
 # 評估 skill：每週最多跑幾次第 2 層深度評估，超過就排到下週
 eval:
   weekly_deep_limit: 2

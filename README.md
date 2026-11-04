@@ -48,15 +48,19 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
    cd OmniKit
    ```
 
-3. **改成你的規則與情境。** `data/rules/AGENTS.md` 是 agent 會遵守的規則，`data/slots.yaml` 是槽位與情境；現在寫的是原作者的。不改的話會原封不動套到你的 agent 上，之後再改也行，git hook 會自動同步。
+3. **選你的 profile。** agent 讀到的規則分兩層：
+   - `data/rules/baseline.md` 是安全底線，所有人都套用：刪除、對外發送、付款、push 前先確認，不碰金鑰。
+   - `data/profiles/<名稱>/` 是個人層：`AGENTS.md` 寫語言、語氣、哪些事可以直接做；`scenarios.yaml` 寫評估工具用的真實情境，沒寫的槽位用 `data/slots.yaml` 的範本。
 
-4. **安裝。** 可以重複執行。安裝前建議先看[安裝會改動哪些地方](#安裝會改動哪些地方)。
+   不指定的話用 `default`：繁體中文、下載安裝前先問。想要自己的，複製 `data/profiles/default` 成 `data/profiles/<你的名字>` 再改；`data/profiles/ryan` 是原作者的，可以參考。之後再改也行，git hook 會自動同步。
+
+4. **安裝。** 可以重複執行，profile 指定一次就會記住。安裝前建議先看[安裝會改動哪些地方](#安裝會改動哪些地方)。
 
    ```powershell
-   powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
+   powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 -ProfileName <你的名字>
    ```
 
-   偵測到這是 fork 時，會自動把 `data/omnikit.yaml` 的 `repo`、`owner`、`marketplace` 改成你的，並重新產生 marketplace 清單，避免跟原作者的撞名。
+   偵測到這是 fork 時，會自動把 `data/omnikit.yaml` 的 `repo`、`owner`、`marketplace` 改成你的、看板用的 `profile` 改回 `default`，並重新產生 marketplace 清單，避免跟原作者的撞名。
 
 5. **推上去。** 推到 main 之後，GitHub Actions 會部署看板到 `https://<你的帳號>.github.io/OmniKit/`。
 
@@ -65,7 +69,7 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
    git push
    ```
 
-6. **確認接上了。** 開一個新的 Claude Code 或 Codex session，問「OmniKit 規則版本是多少？」，回答跟 `data/rules/AGENTS.md` 開頭的版本一樣，就表示規則已經生效。skill 與 MCP 怎麼檢查、裝好之後怎麼用，見[裝好之後](#裝好之後)。
+6. **確認接上了。** 開一個新的 Claude Code 或 Codex session，問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的一樣、profile 是你選的，就表示兩層規則都生效了。skill 與 MCP 怎麼檢查、裝好之後怎麼用，見[裝好之後](#裝好之後)。
 
 ### 只想裝預設的 plugin
 
@@ -93,7 +97,7 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
 
 | 檢查 | Claude Code | Codex |
 |---|---|---|
-| 規則 | 問「OmniKit 規則版本是多少？」，回答跟 `data/rules/AGENTS.md` 開頭的「規則版本」一樣 | 同左 |
+| 規則 | 問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的「規則版本」一樣，profile 是你選的 | 同左 |
 | skill | 輸入 `/omnikit-eval`，選單裡會出現 | 輸入 `$omnikit-eval`，或用 `/skills` 列出來 |
 | MCP | 終端機跑 `claude mcp get chrome_devtools`，狀態是 Connected | 終端機跑 `codex mcp list`，`chrome_devtools` 是 enabled |
 
@@ -101,16 +105,16 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
 
 | 項目 | 會有什麼不同 | Claude Code 與 Codex 的差別 |
 |---|---|---|
-| 規則（`data/rules/AGENTS.md`） | 回覆用什麼語言、寫多詳細、哪些事要先問你，都照這份規則走。沒改過的話是原作者的規則：繁體中文、回覆精簡、下載安裝直接做、刪除前先問 | Claude Code 直接讀 repo 裡這一份，改完開新 session 就生效。Codex 讀的是複製出去的副本，改完要 commit，git hook 才會同步過去 |
+| 規則（`data/rules/baseline.md` + `data/profiles/<名稱>/AGENTS.md`） | 安全底線所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問 | Claude Code 直接讀 repo 裡這兩份，改完開新 session 就生效。Codex 讀的是兩份接在一起的副本，改完要 commit，git hook 才會同步過去 |
 | `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡 | 兩邊說「幫我評估」都會自動觸發；要手動叫，Claude Code 輸入 `/omnikit-eval`，Codex 輸入 `$omnikit-eval` |
 | `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 已加進免問清單，Codex 設成自動核准，兩邊都不會跳權限確認 |
 | 開新對話提醒 | 每回合結束時檢查一次：上下文每跨過 100k tokens、或這一回合成功 `git push`，就跳一行提醒你考慮開新對話。只提醒，不會自己換對話 | Claude Code 裝好就生效。Codex 多看一項：對話累計第 1、3、9、27… 次自動壓縮時也提醒（Codex 常在 100k 前就壓縮）；新 hook 要先信任才會跑，CLI 輸入 `/hooks`、桌面版到設定的 Hooks 按信任；OmniKit 搬位置或原本那支 uv 不在了，指令會改，要再信任一次 |
-| git hooks | 只作用在 OmniKit repo：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、MCP、權限時自動同步 | 跟 agent 無關 |
+| git hooks | 只作用在 OmniKit repo：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、MCP、權限時自動同步 | 跟 agent 無關 |
 
 開新的 session 試試看：
 
 ```text
-OmniKit 規則版本是多少？
+OmniKit 規則版本與 profile 是什麼？
 幫我評估 https://github.com/<owner>/<repo>
 用瀏覽器打開 http://localhost:3000，看 console 有沒有錯誤
 每週彙整
@@ -132,16 +136,19 @@ OmniKit 規則版本是多少？
 flowchart LR
   E["omnikit-eval<br/>評估新工具"] -->|寫卡片| D
   subgraph D["data/ 名冊"]
-    S["slots.yaml<br/>槽位與情境"]
+    S["slots.yaml<br/>槽位與情境範本"]
     T["tools/*.yaml<br/>工具卡"]
-    R["rules/AGENTS.md<br/>規則"]
+    R["rules/baseline.md<br/>安全底線"]
+    F["profiles/*/<br/>個人規則與情境"]
     M["mcp/、harness/<br/>MCP 與權限"]
   end
   S --> B["build.py"]
   T --> B
+  F -->|情境| B
   B --> P["槽位看板<br/>GitHub Pages"]
   B --> K["plugin marketplace"]
   R --> I["install.ps1<br/>與 git hooks"]
+  F -->|規則| I
   M --> I
   I --> C["Claude Code"]
   I --> X["Codex"]
@@ -151,7 +158,7 @@ flowchart LR
 
 1. **評估**：把工具的 GitHub 連結貼給 agent，`omnikit-eval` 會查 GitHub 現況、對照槽位情境，寫成一張工具卡。
 2. **產生**：commit 時 git hook 驗證名冊並重新產生 marketplace 清單；推到 main 之後，GitHub Actions 重建看板。
-3. **同步**：`install.ps1` 把規則、skills、MCP、權限接到 Claude Code 與 Codex；之後 commit 或 pull 動到這些檔案時，git hook 會自動再同步。
+3. **同步**：`install.ps1` 把規則（安全底線 + 你選的 profile）、skills、MCP、權限接到 Claude Code 與 Codex；之後 commit 或 pull 動到這些檔案時，git hook 會自動再同步。
 
 想看每個部分、每個檔案在做什麼，打開[互動架構地圖](https://b40609.github.io/OmniKit/map.html)：每個檔案都有白話說明，另有 3 條逐步導覽（評估新工具、改規則、第一次安裝）。建議用電腦開。
 
@@ -167,14 +174,15 @@ flowchart LR
 | 位置 | 做什麼 |
 |---|---|
 | `%LOCALAPPDATA%\Programs\` | 安裝固定版本的 skillshare、uv、gh、gitleaks；比對 SHA256，不改 PATH。這台已經有 uv、gh 就沿用 |
-| `data/omnikit.yaml` | fork 出來的 repo，改成你的 `repo`、`owner`、`marketplace`，並重新產生 marketplace 清單 |
-| `~/.claude/CLAUDE.md` | 在開頭加一段受管區塊，import `data/rules/AGENTS.md`；其他內容不動 |
-| `~/.codex/AGENTS.md` | 換成 `data/rules/AGENTS.md` 的副本；第一次接上時，原本的內容先備份成 `AGENTS.md.pre-omnikit` |
+| `data/omnikit.yaml` | fork 出來的 repo，改成你的 `repo`、`owner`、`marketplace`，`profile` 改回 `default`，並重新產生 marketplace 清單 |
+| `~/.claude/CLAUDE.md` | 在開頭加一段受管區塊，import `data/rules/baseline.md` 與你選的 `data/profiles/<名稱>/AGENTS.md`；其他內容不動 |
+| `~/.codex/AGENTS.md` | 換成底線與 profile 接在一起的副本；第一次接上時，原本的內容先備份成 `AGENTS.md.pre-omnikit` |
+| `%LOCALAPPDATA%\omnikit\` | `profile.json` 記這台選的 profile；`rules\AGENTS.md` 是給 Codex 的副本，由 `engine/scripts/profiles.py` 產生 |
 | `~/.claude/skills`、`~/.agents/skills` | 由 skillshare 同步 `engine/skills` 裡的 skills |
 | `~/.claude.json`、`~/.codex/config.toml` | 合併寫入 `data/mcp/servers.yaml` 的 MCP server，不動其他設定；`config.toml` 結尾另加一段 `[[hooks.Stop]]` 開新對話提醒，寫入前驗證其他設定沒被動到 |
 | npm 全域套件 | 安裝 `data/mcp/packages.txt` 指定的固定版本 |
 | `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪；在 `hooks.Stop` 加上開新對話提醒（`engine/scripts/session_nudge.py`） |
-| 這個 repo | `core.hooksPath` 指到 `.githooks`：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、MCP、權限、提醒 hook 時自動同步 |
+| 這個 repo | `core.hooksPath` 指到 `.githooks`：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、MCP、權限、提醒 hook 時自動同步 |
 | `%LOCALAPPDATA%\omnikit\install-record.json` | 安裝紀錄：記下這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，移除時只動這些 |
 
 加上 `-Fresh` 會把 `~/.claude/CLAUDE.md` 受管區塊以外的舊規則移除（先備份成 `CLAUDE.md.pre-omnikit`），適合想讓 OmniKit 的規則完全取代舊規則的人。
@@ -193,6 +201,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\uninstall.ps1
 - repo 資料夾不會刪，不需要的話自己刪掉即可。
 
 ## 日常使用
+
+### 換 profile
+
+```powershell
+uv run engine/scripts/profiles.py --show          # 這台現在用哪個
+uv run engine/scripts/profiles.py --set <名稱>    # 換成 data/profiles/<名稱>，Claude Code 與 Codex 一起換
+```
+
+換完開新的 session 才生效。還沒選過的電腦會一直用 `default`，並在安裝與同步時提醒。
 
 ### 評估新工具
 
@@ -249,15 +266,16 @@ git pull upstream main
 ```text
 data/                        資料：fork 後換成你的
   omnikit.yaml               看板與 marketplace 的公開設定
-  slots.yaml                 槽位與情境
+  slots.yaml                 槽位與情境範本
   tools/<id>.yaml            名冊，一個工具一張卡
-  rules/AGENTS.md            Claude Code 與 Codex 共用的規則
+  rules/baseline.md          安全底線，所有人都套用
+  profiles/<名稱>/           個人規則（AGENTS.md）與真實情境（scenarios.yaml）；default 是沒選時的預設
   mcp/                       MCP server 定義與 npm 套件版本
   harness/                   Claude Code 免問的權限規則
   evals/                     實測紀錄
 engine/                      引擎：不用改
   schema/                    名冊與槽位的 JSON Schema
-  scripts/                   安裝、驗證、產生看板與 marketplace、開新對話提醒（Claude Code 與 Codex）
+  scripts/                   安裝、選 profile、驗證、產生看板與 marketplace、開新對話提醒（Claude Code 與 Codex）
   site/                      看板的樣式與程式，以及匯出的架構地圖（map.html）
   skills/omnikit-eval/       評估新工具的 skill
 .claude-plugin/              Claude Code 的 marketplace（由名冊產生，不要手改）
@@ -291,6 +309,13 @@ engine/                      引擎：不用改
 <summary><b>不想用某個預設工具怎麼辦？</b></summary>
 
 把那張卡（`data/tools/<id>.yaml`）的 `status` 改掉並 commit，marketplace 與看板會跟著更新。已經裝好的 plugin 要自己移除。
+
+</details>
+
+<details>
+<summary><b>公司電腦執行 skillshare 時「存取被拒」？</b></summary>
+
+公司裝的防毒（例如 Trend Micro）可能擋下 `%LOCALAPPDATA%\Programs\skillshare\skillshare.exe`，這時 Codex 的規則、skills 與 MCP 都同步不了。Claude Code 的規則是直接 import repo 裡的檔案，不經過 skillshare，仍然會生效。請 IT 把這個執行檔加進例外，再重跑 `install.ps1`。
 
 </details>
 

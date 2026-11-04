@@ -4,11 +4,12 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 1. 安裝固定版本的 skillshare、uv、gh 與 gitleaks：從 GitHub release 下載 zip，比對寫死的
    SHA256 後解壓；不改 PATH。這台已經有 uv 或 gh 就沿用。
 2. fork 出來的 repo：把 data/omnikit.yaml 的 repo、owner、marketplace 改成 origin 指向的
-   GitHub repo，並重新產生 marketplace 清單，避免跟原作者的 marketplace 撞名。
+   GitHub repo、profile 改回 default，並重新產生 marketplace 清單，避免跟原作者的 marketplace 撞名。
 3. 第一次執行時初始化 skillshare，target 是 Claude Code 與 Codex。
-4. 把 data/rules/AGENTS.md 接到兩邊：Claude 用 import，Codex 用複製（第一次接上時，
-   原本的 ~/.codex/AGENTS.md 先備份），然後同步；engine/skills 裡的 skills 也連進
-   skillshare，同步到兩邊。
+4. 規則 = 安全底線（data/rules/baseline.md）+ profile（data/profiles/<名稱>/AGENTS.md），
+   由 profiles.py 接到兩邊：Claude 用 import，Codex 用複製（第一次接上時，原本的
+   ~/.codex/AGENTS.md 先備份）。沒指定也沒選過 profile 就用 default（下載、安裝前會先問）。
+   engine/skills 裡的 skills 也連進 skillshare，同步到兩邊。
 5. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本），
    再把 data/mcp/servers.yaml 設成 skillshare 的 MCP 來源，同步到兩邊。
 6. 把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的使用者設定（只增不刪），
@@ -21,13 +22,14 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 %LOCALAPPDATA%\omnikit\install-record.json；uninstall.ps1 只移除這些。
 
 參數：
-  -Fresh  這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
-          備份後移除，避免新舊規則同時生效。
+  -ProfileName <名稱>  用 data/profiles/<名稱> 的個人規則，並記下來；之後重跑不用再指定。
+  -Fresh               這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
+                       備份後移除，避免新舊規則同時生效。
 
 用法（Windows PowerShell 5.1 或 PowerShell 7）：
-  powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-Fresh]
+  powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Fresh]
 #>
-param([switch]$Fresh)
+param([string]$ProfileName, [switch]$Fresh)
 
 $ErrorActionPreference = 'Stop'
 # PowerShell 5.1 的下載進度條會讓 Invoke-WebRequest 慢很多
@@ -56,7 +58,7 @@ $GitleaksSha256 = @{
 }
 
 $Repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$Rules = Join-Path $Repo 'data\rules'
+$ProfilesPy = Join-Path $Repo 'engine\scripts\profiles.py'
 $Arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
 $BinDir = Join-Path $env:LOCALAPPDATA 'Programs\skillshare'
 $Exe = Join-Path $BinDir 'skillshare.exe'
@@ -198,6 +200,8 @@ function Sync-RepoConfig {
   $text = [regex]::Replace($text, '(?m)^repo: .*$', "repo: $owner/$name")
   $text = [regex]::Replace($text, '(?m)^owner: .*$', "owner: $owner")
   $text = [regex]::Replace($text, '(?m)^marketplace: .*$', "marketplace: omnikit-$($owner.ToLower())")
+  # 看板展示的情境原本是原作者的 profile，fork 之後先用 default 的範本，有自己的 profile 再改
+  $text = [regex]::Replace($text, '(?m)^profile: .*$', 'profile: default')
   [IO.File]::WriteAllText($config, $text, (New-Object Text.UTF8Encoding($false)))
   & (Get-Uv) run --quiet (Join-Path $Repo 'engine\scripts\build.py') --marketplace-only | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "build.py --marketplace-only 失敗（exit $LASTEXITCODE）" }
@@ -223,27 +227,18 @@ function Initialize-Skillshare {
   }
 }
 
-# skillshare 0.28.2 的 import 模式在 Windows 寫出反斜線路徑，Claude Code 不會載入；
-# 所以 Claude 這邊自己維護受管區塊，路徑改用正斜線
-function Connect-ClaudeRules {
-  $import = '@' + (Join-Path $Rules 'AGENTS.md').Replace('\', '/')
-  $block = "<!-- omnikit:rules:begin -->`n$import`n<!-- omnikit:rules:end -->"
-  $text = if (Test-Path $ClaudeMd) { [IO.File]::ReadAllText($ClaudeMd, [Text.Encoding]::UTF8) } else { '' }
-  if ($text -match $BlockPattern) { $text = [regex]::Replace($text, $BlockPattern, { $block }) }
-  else { $text = $block + "`n" + $text }
-  [IO.File]::WriteAllText($ClaudeMd, $text, (New-Object Text.UTF8Encoding($false)))
-}
-
-# Codex 不支援 import，由 skillshare 複製一份；--force 讓重複執行時覆寫成同一份定義。
-# 第一次接上時（skillshare 還沒有 rules-codex），原本的 ~/.codex/AGENTS.md 先備份
-function Connect-CodexRules {
+# 規則由 profiles.py 接上（git hook 也用它）：Claude 的受管區塊 import 底線與 profile 兩份；
+# Codex 不支援 import，接成一份 %LOCALAPPDATA%\omnikit\rules\AGENTS.md，再由 skillshare 複製。
+# 第一次接上 Codex 時（skillshare 還沒有 rules-codex），原本的 ~/.codex/AGENTS.md 先備份
+function Connect-Rules {
   $config = Join-Path $env:APPDATA 'skillshare\config.yaml'
   $managed = [IO.File]::ReadAllText($config, [Text.Encoding]::UTF8) -match '(?m)^\s*- name: rules-codex\s*$'
   if (-not $managed -and (Test-Path $CodexMd)) {
     Write-Host "已備份原本的 Codex 規則：$(Backup-File $CodexMd)"
   }
-  Invoke-Skillshare extras init rules-codex --source $Rules --file AGENTS.md --target (Join-Path $env:USERPROFILE '.codex') --as AGENTS.md --mode copy --force --no-tui
-  Invoke-Skillshare sync extras
+  $profileArgs = if ($ProfileName) { @('--set', $ProfileName) } else { @() }
+  & (Get-Uv) run --quiet $ProfilesPy --codex @profileArgs
+  if ($LASTEXITCODE -ne 0) { throw "profiles.py 失敗（exit $LASTEXITCODE）" }
 }
 
 # OmniKit 自己的 skills（engine/skills）連進 skillshare 的來源，再同步到兩邊；
@@ -334,11 +329,13 @@ function Test-GitIdentity {
 
 # 安裝完畫面上不會多出東西，告訴使用者怎麼確認接上了、接下來怎麼用
 function Show-NextSteps {
-  $text = [IO.File]::ReadAllText((Join-Path $Rules 'AGENTS.md'), [Text.Encoding]::UTF8)
-  $version = if ($text -match '規則版本：(\S+)') { $Matches[1] } else { 'data/rules/AGENTS.md 開頭的版本' }
+  $text = [IO.File]::ReadAllText((Join-Path $Repo 'data\rules\baseline.md'), [Text.Encoding]::UTF8)
+  $version = if ($text -match '規則版本：(\S+)') { $Matches[1] } else { 'data/rules/baseline.md 開頭的版本' }
+  $name = & (Get-Uv) run --quiet $ProfilesPy --show
   Write-Host ''
-  Write-Host 'OmniKit 已接上 Claude Code 與 Codex，開新的 session 才會生效：'
-  Write-Host "  - 問「OmniKit 規則版本是多少？」，應該回答 $version"
+  Write-Host "OmniKit 已接上 Claude Code 與 Codex（profile：$name），開新的 session 才會生效："
+  Write-Host "  - 問「OmniKit 規則版本與 profile 是什麼？」，應該回答 $version 與 $name"
+  Write-Host '  - 換 profile：重跑 install.ps1 -ProfileName <名稱>，或 uv run engine/scripts/profiles.py --set <名稱>'
   Write-Host '  - 評估新工具：Claude Code 輸入 /omnikit-eval，Codex 輸入 $omnikit-eval'
   Write-Host '  - 預設 plugin 不會自動安裝；安裝方式與其他說明見 README 的「裝好之後」'
 }
@@ -349,8 +346,7 @@ Install-Gh
 Install-Gitleaks
 Sync-RepoConfig
 Initialize-Skillshare
-Connect-ClaudeRules
-Connect-CodexRules
+Connect-Rules
 Connect-Skills
 Install-McpPackages
 Connect-Mcp

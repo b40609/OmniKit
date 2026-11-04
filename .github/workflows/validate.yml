@@ -24,6 +24,8 @@ jobs:
       # 開新對話提醒的自我測試
       - run: uv run engine/scripts/session_nudge.py --selftest
       - run: uv run engine/scripts/codex_hooks.py --selftest
+      # 規則分層（安全底線 + profile）的自我測試
+      - run: uv run engine/scripts/profiles.py --selftest
 
   secrets:
     name: 金鑰外洩
