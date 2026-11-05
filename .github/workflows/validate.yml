@@ -48,6 +48,28 @@ jobs:
       - run: uv run engine/scripts/profile_new.py --selftest
       - run: uv run engine/skills/omnikit-setup/scripts/setup.py scan > /dev/null
 
+  # FR-34：同事用的是 Windows，上面「名冊」的每一個 uv run 都在 Windows 再跑一次（windows-ci.ps1 從這個檔案讀，
+  # 加了新的檢查不用改兩個地方），另外跑 preflight.ps1 與 install.ps1 的 -SelfTest、install.ps1 -WhatIf，
+  # 以及訪談跑完 git status 看不到個人檔案（FR-38）。repo 與暫存資料夾放在長路徑、含空白與中文的資料夾，
+  # 並模擬中文 Windows 的 cp950。PowerShell 5.1（powershell）與 7（pwsh）各跑一次
+  windows:
+    name: Windows（PowerShell ${{ matrix.label }}）
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: '5.1'
+            exe: powershell
+          - label: '7'
+            exe: pwsh
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
+      - name: 自我測試與安裝預覽（長路徑、含空白與中文的路徑、模擬 cp950）
+        shell: cmd
+        run: ${{ matrix.exe }} -NoProfile -ExecutionPolicy Bypass -File engine\scripts\windows-ci.ps1
+
   secrets:
     name: 金鑰外洩
     runs-on: ubuntu-latest
