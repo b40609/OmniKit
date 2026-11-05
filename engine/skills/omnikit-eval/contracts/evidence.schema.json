@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "證據卡",
+  "description": "第 1b 層的外部證據（docs/v2/research/eval.md §5.3）。存在 data/funnel/evidence/<工具 id>.yaml。只存改寫後的主張與帶時間點的連結；引用原文最多 15 個字。可以查證的負面證據讓工具被排除或往後排，正面證據只會提高排序。",
+  "type": "object",
+  "required": ["tool", "cards"],
+  "additionalProperties": false,
+  "properties": {
+    "tool": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "cards": { "type": "array", "items": { "$ref": "#/$defs/card" } }
+  },
+  "$defs": {
+    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "card": {
+      "type": "object",
+      "required": ["id", "tool", "source", "independence", "method", "kind", "direction", "claim", "reliability", "credibility", "certainty", "expires"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^ev-\\d{8}-[a-z0-9-]+-\\d{2}$" },
+        "tool": { "type": "string" },
+        "tool_version_tested": { "description": "原文沒寫就填 unknown", "type": "string" },
+        "slot": { "type": "string" },
+        "scenarios": { "type": "array", "items": { "type": "string" } },
+        "source": {
+          "type": "object",
+          "required": ["type", "url", "retrieved"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "enum": ["issue", "discussion", "hn", "devto", "video", "paper", "registry", "blog", "vendor", "other"] },
+            "url": { "type": "string", "pattern": "^https://" },
+            "ts": { "description": "影片的時間點，例如 t=312s", "type": "string" },
+            "author": { "type": "string" },
+            "published": { "$ref": "#/$defs/date" },
+            "retrieved": { "$ref": "#/$defs/date" }
+          }
+        },
+        "independence": { "enum": ["independent", "vendor", "competitor", "sponsored", "affiliate", "unknown"] },
+        "disclosure": {
+          "type": "object",
+          "properties": {
+            "yt_paid_flag": { "type": ["boolean", "null"] },
+            "sponsorblock_full": { "type": ["boolean", "null"] },
+            "affiliate_links": { "type": "integer" }
+          }
+        },
+        "setup": {
+          "type": "object",
+          "properties": {
+            "agent": { "type": "string" },
+            "model": { "type": "string" },
+            "os": { "type": "string" },
+            "mode": { "type": "string" }
+          }
+        },
+        "method": { "enum": ["controlled-ab", "benchmark", "single-run", "anecdote", "marketing"] },
+        "comparator": { "description": "none、baseline 或 incumbent:<工具 id>", "type": "string", "pattern": "^(none|baseline|incumbent:[a-z0-9-]+)$" },
+        "runs": { "type": "integer", "minimum": 0 },
+        "kind": { "description": "elimination 可以拿來排除的事實（不支援 Windows、非互動不能用、已封存、安全事件）", "enum": ["elimination", "capability", "quality", "cost"] },
+        "direction": { "enum": ["+", "-"] },
+        "claim": { "description": "自己改寫的一句話", "type": "string", "minLength": 1 },
+        "quote": { "description": "原文最多 15 個字（英文以詞計）", "type": "string" },
+        "reliability": { "description": "Admiralty：來源可靠度 A 到 F", "enum": ["A", "B", "C", "D", "E", "F"] },
+        "credibility": { "description": "Admiralty：資訊可信度 1 到 6", "type": "integer", "minimum": 1, "maximum": 6 },
+        "certainty": { "description": "GRADE 四級", "enum": ["high", "moderate", "low", "very-low"] },
+        "expires": { "description": "發布或取得後 90 天內；工具跨 minor 版本也算過期", "$ref": "#/$defs/date" }
+      }
+    }
+  }
+}

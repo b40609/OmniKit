@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "煙霧測試結果",
+  "description": "第 1c 層（FR-24）：smoke.py 記錄的四件事：裝不裝得起來（install、sandbox）、有沒有被叫用與非互動模式能不能跑（run）、每回合 context 成本（context）。存在 data/funnel/smoke/<id>.json。查不到的是 null，不當作通過。",
+  "type": "object",
+  "required": ["tool", "date"],
+  "properties": {
+    "tool": { "type": "string" },
+    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "source": {
+      "type": "object",
+      "properties": { "repo": { "type": "string" }, "sha": { "type": "string" }, "path": { "type": "string" } }
+    },
+    "executable": { "description": "會在本機執行程式的線索；有 hook 或 MCP 的要先做程式碼審查", "type": "array", "items": { "type": "string" } },
+    "install": {
+      "type": "object",
+      "required": ["ok"],
+      "properties": { "ok": { "type": "boolean" }, "detail": { "type": "string" } }
+    },
+    "context": {
+      "description": "每個 agent 的每回合 context 成本：沒裝與有裝的請求大小差",
+      "type": "object",
+      "properties": { "note": { "type": "string" } },
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          {
+            "type": "object",
+            "properties": {
+              "baseline_bytes": { "type": "integer" },
+              "with_bytes": { "type": "integer" },
+              "delta_bytes": { "type": "integer" },
+              "delta_tokens_est": { "type": "integer" },
+              "mentions": { "type": "array", "items": { "type": "string" } },
+              "error": { "type": "string" }
+            }
+          }
+        ]
+      }
+    },
+    "run": {
+      "description": "真實非互動執行；null 表示沒跑成（例如隔離資料夾沒登入）",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["noninteractive", "invoked"],
+        "properties": {
+          "noninteractive": { "type": ["boolean", "null"] },
+          "invoked": { "type": ["boolean", "null"] },
+          "evidence": { "type": "array", "items": { "type": "string" } },
+          "usage": { "type": ["object", "null"] },
+          "error": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "sandbox": {
+      "description": "Windows Sandbox 裡的安裝步驟與 MCP 交握",
+      "type": "object",
+      "properties": {
+        "steps": { "type": ["array", "null"] },
+        "mcp": { "type": ["object", "null"] },
+        "seconds": { "type": "integer" },
+        "exit_code": { "type": ["integer", "null"] },
+        "error": { "type": "string" }
+      }
+    }
+  }
+}

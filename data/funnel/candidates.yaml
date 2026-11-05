@@ -1,0 +1,1273 @@
+# 第 0 層：沒有 url 的工具卡的候選 repo（batch0.py 產生，維護者勾選）。
+# match：clear 已自動採用（auto；同名唯一而且是星數最多的，或符合括號裡的擁有者）；
+#        likely 有建議（suggested）但要維護者確認；ambiguous 不明確；none_found 搜尋不到。
+# 請在 chosen 填 owner/repo（從 options 挑，或自己找的），不是 GitHub 上的專案就填 none；
+# 建議都對的話跑 batch0.py --accept-suggested。改完跑 batch0.py --apply 把網址寫回卡片。
+tools:
+  agent-os:
+    name: agent-os
+    query: agent-os
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: buildermethods/agent-os
+      description: Agent OS is a system for injecting your codebase standards and writing better specs for spec-driven development.
+      stars: 5581
+      pushed: '2026-10-07'
+      archived: false
+    - repo: use-agent-os/agent-os
+      description: The Open Agent Operation System
+      stars: 78
+      pushed: '2026-11-05'
+      archived: false
+    - repo: smartcomputer-ai/agent-os
+      description: Build autonomous AI agents! 🌞
+      stars: 247
+      pushed: '2026-06-13'
+      archived: false
+    - repo: craft-ai-agents/craft-agents-oss
+      description: ''
+      stars: 7309
+      pushed: '2026-11-03'
+      archived: false
+    - repo: imran-siddique/agent-os
+      description: '[DEPRECATED] Moved to microsoft/agent-governance-toolkit'
+      stars: 74
+      pushed: '2026-03-03'
+      archived: true
+  agentops-reverse-engineer:
+    name: agentops reverse-engineer
+    query: agentops reverse-engineer
+    match: none_found
+    chosen: null
+    checked: '2026-11-05'
+    options: []
+  anthropic-product-management:
+    name: Anthropic Product Management
+    query: Anthropic Product Management
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: costrict-plugins-repo/anthropics-knowledge-work-plugins-product-management
+      description: costrict-plugins mirror of anthropics-knowledge-work-plugins-product-management (auto-generated, do not edit)
+      stars: 0
+      pushed: '2026-10-20'
+      archived: false
+  browserbase:
+    name: Browserbase
+    query: Browserbase
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: browserbase/stagehand
+      description: The SDK to extract data and interact with any site on the web. Get started with Claude Code, Codex, Eve, Mastra, and more.
+      stars: 25951
+      pushed: '2026-11-05'
+      archived: false
+    - repo: browserbase/mcp-server-browserbase
+      description: Allow LLMs to control a browser with Browserbase and Stagehand
+      stars: 3398
+      pushed: '2026-07-20'
+      archived: true
+    - repo: browserbase/skills
+      description: Browserbase's official collection of agent skills to access the web.
+      stars: 3750
+      pushed: '2026-10-27'
+      archived: false
+    - repo: browserbase/open-operator
+      description: A template for building web agents with Stagehand on Browserbase
+      stars: 1944
+      pushed: '2026-05-04'
+      archived: true
+    - repo: browserbase/stagehand-python
+      description: ⚠️ No longer maintained  The official Stagehand Python source has moved here. Documentation can be found here  This version of the Stagehand Python SDK is no longer maintained and will not receive upd
+      stars: 516
+      pushed: '2026-10-23'
+      archived: false
+  chinese-pm-skills:
+    name: chinese-pm-skills
+    query: chinese-pm-skills
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: Timi-Fish/chinese-pm-skills
+      description: 'Chinese PM skills for AI coding agents: competitor teardown → requirement eval (KANO/RICE) → PRD writing → tracking plan, with human-in-the-loop gates. 给 AI agent 的中文产品经理技能套件'
+      stars: 0
+      pushed: '2026-08-28'
+      archived: false
+  claude-competitive-intel:
+    name: claude-competitive-intel
+    query: claude-competitive-intel
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: momentumfurkan/claude-competitive-intel
+      description: Claude Code skill that turns any business idea into a full competitive intelligence report — DOCX, Excel, and interactive HTML dashboards
+      stars: 4
+      pushed: '2026-03-20'
+      archived: false
+    - repo: Enterprise-DNA-OS/competitive-intelligence-for-claude-code
+      description: The open-source competitive intelligence desk that is just a database and Claude Code.
+      stars: 0
+      pushed: '2026-10-29'
+      archived: false
+  claude-lsp:
+    name: Claude 官方 LSP plugin
+    query: claude-lsp
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: Piebald-AI/claude-code-lsps
+      description: Claude Code Plugin Marketplace with LSP servers
+      stars: 522
+      pushed: '2026-07-25'
+      archived: false
+    - repo: nesaminua/claude-code-lsp-enforcement-kit
+      description: Hooks that force Claude Code to use LSP instead of Grep for code navigation. Saves   ~80% tokens
+      stars: 328
+      pushed: '2026-04-14'
+      archived: false
+    - repo: boostvolt/claude-code-lsps
+      description: LSP plugins for Claude Code — Astro, Bash/Shell, C/C++/Objective-C, C#, Clojure, Dart/Flutter, Elixir, Gleam, Go, Java, Kotlin, Lua, Nix, OCaml, PHP, Python, Ruby, Rust, Swift, Terraform, TypeScript/J
+      stars: 192
+      pushed: '2026-10-06'
+      archived: false
+    - repo: yungweng/claude-lsp-servers
+      description: LSP plugin for Claude Code — TypeScript, Python, and Go code intelligence that actually works
+      stars: 20
+      pushed: '2026-01-08'
+      archived: false
+    - repo: 1c-syntax/claude-code-bsl-lsp
+      description: Claude Code plugin — BSL Language Server LSP for 1C:Enterprise (BSL) and OneScript (OS) files
+      stars: 37
+      pushed: '2026-11-04'
+      archived: false
+  codex-security:
+    name: codex-security
+    query: codex-security
+    match: likely
+    chosen: null
+    suggested: openai/codex-security
+    checked: '2026-11-05'
+    options:
+    - repo: openai/codex-security
+      description: 'OpenAI''s Codex Security CLI and TypeScript SDK for finding, validating, and fixing security vulnerabilities. npm: https://www.npmjs.com/package/@openai/codex-security'
+      stars: 11306
+      pushed: '2026-11-05'
+      archived: false
+    - repo: DEADSEC-SECURITY/CODEX
+      description: Its like airgeddon but better!
+      stars: 58
+      pushed: '2024-07-27'
+      archived: false
+    - repo: laravie/codex-security
+      description: 🤖 Security Component for Laravie Codex
+      stars: 5
+      pushed: '2024-03-31'
+      archived: false
+    - repo: Kappaemme-git/codex-security-audit-skill
+      description: ''
+      stars: 12
+      pushed: '2026-06-03'
+      archived: false
+    - repo: Davidcreador/pi-codex-security
+      description: 'A pi package that brings OpenAI Codex Security into your agent sessions: scan repositories for vulnerabilities, review severity-ranked findings, and fix them — all without leaving pi.'
+      stars: 12
+      pushed: '2026-07-29'
+      archived: false
+  cometweb-product-teardown:
+    name: CometWeb product-teardown
+    query: CometWeb product-teardown
+    match: none_found
+    chosen: null
+    checked: '2026-11-05'
+    options: []
+  competitors-analysis:
+    name: competitors-analysis（daymade）
+    query: competitors-analysis
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: PromptAndChill/competitors-analysis
+      description: ''
+      stars: 0
+      pushed: '2026-08-18'
+      archived: false
+    - repo: oxylabs/automate-competitors-benchmark-analysis
+      description: A tutorial for automating competitors’ & benchmark analysis using Python
+      stars: 4
+      pushed: '2025-09-25'
+      archived: false
+    - repo: nataly2023/competitors-analysis
+      description: ''
+      stars: 0
+      pushed: '2022-12-06'
+      archived: false
+    - repo: SiddharthaAryan/competitors-analysis
+      description: ''
+      stars: 0
+      pushed: '2026-03-01'
+      archived: false
+    - repo: RafaelPresa/Competitors-Analysis
+      description: ''
+      stars: 1
+      pushed: '2022-02-07'
+      archived: false
+  context7:
+    name: Context7
+    query: Context7
+    match: likely
+    chosen: null
+    suggested: upstash/context7
+    checked: '2026-11-05'
+    options:
+    - repo: upstash/context7
+      description: Context7 Platform -- Up-to-date docs for AI agents
+      stars: 64219
+      pushed: '2026-11-05'
+      archived: false
+    - repo: BiniamD/context7
+      description: Instant LLM Context for Agents and Developers
+      stars: 12
+      pushed: '2025-03-28'
+      archived: false
+    - repo: netresearch/context7-skill
+      description: Context7 documentation lookup skill for AI coding agents. Lightweight REST API wrapper with no MCP context overhead.
+      stars: 86
+      pushed: '2026-11-01'
+      archived: false
+    - repo: upstash/context7-vscode-extension
+      description: ''
+      stars: 40
+      pushed: '2026-06-12'
+      archived: false
+    - repo: akbxr/zed-mcp-server-context7
+      description: Context7 MCP Server for Zed
+      stars: 120
+      pushed: '2025-10-01'
+      archived: false
+  deepgit:
+    name: DeepGit
+    query: DeepGit
+    match: likely
+    chosen: null
+    suggested: zamalali/DeepGit
+    checked: '2026-11-05'
+    options:
+    - repo: zamalali/DeepGit
+      description: Deep research agent to help you find the best GitHub repositories 🕵️!
+      stars: 927
+      pushed: '2026-08-30'
+      archived: false
+    - repo: data-exp-lab/deepgit
+      description: Promoting Exploration and Discovery of Research Software with Human-Curated Graphs
+      stars: 11
+      pushed: '2026-01-23'
+      archived: false
+    - repo: ParisL4bs/deepgithub
+      description: ''
+      stars: 3
+      pushed: '2025-06-15'
+      archived: false
+    - repo: Deepakapps6/Deepgit
+      description: Deepak GIT
+      stars: 0
+      pushed: '2022-04-05'
+      archived: false
+    - repo: yitzikbarzel/deepGit
+      description: ''
+      stars: 0
+      pushed: '2025-05-07'
+      archived: false
+  deepwiki-mcp:
+    query: DeepWiki MCP
+    match: error
+    error: 'gh: Validation Failed (HTTP 422)'
+    chosen: null
+    checked: '2026-11-05'
+  deepwiki-open:
+    name: DeepWiki-Open
+    query: DeepWiki-Open
+    match: likely
+    chosen: null
+    suggested: AsyncFuncAI/deepwiki-open
+    checked: '2026-11-05'
+    options:
+    - repo: AsyncFuncAI/deepwiki-open
+      description: 'Open Source DeepWiki: AI-Powered Wiki Generator for GitHub/Gitlab/Bitbucket Repositories. Join the discord: https://discord.gg/gMwThUMeme'
+      stars: 18370
+      pushed: '2026-11-04'
+      archived: false
+    - repo: Stevepyl/deepwiki-open
+      description: An agent-based ugprade towards DeepWiki-Open
+      stars: 2
+      pushed: '2026-05-22'
+      archived: true
+    - repo: wejick/open-deepwiki
+      description: ''
+      stars: 4
+      pushed: '2026-09-12'
+      archived: false
+    - repo: lcx0128/open-deepwiki
+      description: ''
+      stars: 3
+      pushed: '2026-05-03'
+      archived: false
+    - repo: lalanikarim/deepwiki-open-helmchart
+      description: Helm Chart for [DeepWiki-Open](https://github.com/AsyncFuncAI/deepwiki-open)
+      stars: 3
+      pushed: '2025-05-28'
+      archived: false
+  deerflow:
+    name: DeerFlow github-deep-research
+    query: DeerFlow github-deep-research
+    match: none_found
+    chosen: null
+    checked: '2026-11-05'
+    options: []
+  exa:
+    name: Exa
+    query: Exa
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: ogham/exa
+      description: A modern replacement for ‘ls’.
+      stars: 24452
+      pushed: '2024-09-24'
+      archived: false
+    - repo: exa-labs/exa-mcp-server
+      description: Exa MCP for web search and web crawling!
+      stars: 5213
+      pushed: '2026-11-03'
+      archived: false
+    - repo: Exa-Networks/exabgp
+      description: The BGP swiss army knife of networking
+      stars: 2315
+      pushed: '2026-11-02'
+      archived: false
+    - repo: zap-zsh/exa
+      description: Override common commands to use exa instead
+      stars: 20
+      pushed: '2025-09-17'
+      archived: false
+    - repo: exa-labs/exa-deepseek-chat
+      description: A simple open-source chat app that uses Exa's API for web search and Deepseek R1 for reasoning
+      stars: 729
+      pushed: '2025-10-10'
+      archived: false
+  feature-dev:
+    name: feature-dev（Anthropic）
+    query: feature-dev
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: danielbraun89/devcontainer-features
+      description: 🐳 Extra add-in features for Devcontainers and GitHub Codespaces
+      stars: 250
+      pushed: '2024-08-20'
+      archived: true
+    - repo: anthropics/devcontainer-features
+      description: Anthropic Dev Container Features, including Claude Code CLI
+      stars: 315
+      pushed: '2025-12-16'
+      archived: false
+    - repo: wxw-matt/devcontainer-features
+      description: A devcontainer feature that can load and run remote bash scripts which makes the devcontainers more usable
+      stars: 29
+      pushed: '2024-06-22'
+      archived: false
+    - repo: open-feature/openfeature.dev
+      description: OpenFeature Website
+      stars: 67
+      pushed: '2026-11-05'
+      archived: false
+    - repo: rocker-org/devcontainer-features
+      description: A collection of Dev Container Features.
+      stars: 73
+      pushed: '2026-10-22'
+      archived: false
+  find-skills:
+    name: find-skills
+    query: find-skills
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: su-ron/find-skills
+      description: 'Find the right skill for any task - the #1 ranked skill on skills.sh (1.9M installs) from Vercel Labs'
+      stars: 9
+      pushed: '2026-06-05'
+      archived: false
+    - repo: Neeeophytee/finding-unknowns-skills
+      description: '14 installable skills for Claude Code, OpenAI Codex, and Hermes: find unknowns, clarify requirements, manage context, test assumptions, and verify bug fixes with regression evidence.'
+      stars: 363
+      pushed: '2026-09-28'
+      archived: false
+    - repo: bozhouDev/finding-unknowns-skills
+      description: 'Unknown-discovery guidelines for Claude Code, derived from Thariq''s (Anthropic) ''A Field Guide to Fable: Finding Your Unknowns'''
+      stars: 71
+      pushed: '2026-07-06'
+      archived: false
+    - repo: lihong137/find-reddit-need-skills
+      description: 挖掘 reddit 需求
+      stars: 0
+      pushed: '2026-02-11'
+      archived: false
+    - repo: airoasting/find-skills
+      description: 설치된 스킬, AI Roasting 스킬 라이브러리, skills.sh 순으로 에이전트 스킬을 찾아 검증하고 설치까지 돕는 find-skills 스킬. 비즈니스 리더용 Claude 스킬 카탈로그(skill.airoasting.com)를 함께 담고 있다.
+      stars: 2
+      pushed: '2026-10-18'
+      archived: false
+  firecrawl:
+    name: Firecrawl
+    query: Firecrawl
+    match: clear
+    chosen: firecrawl/firecrawl
+    auto: firecrawl/firecrawl
+    checked: '2026-11-05'
+    options:
+    - repo: firecrawl/firecrawl
+      description: Supercharge your AI agents with data from the web and beyond. Building the library for superintelligence. 🔥
+      stars: 198756
+      pushed: '2026-11-05'
+      archived: false
+    - repo: firecrawl/firecrawl-mcp-server
+      description: 'Official Firecrawl MCP server, the context API for AI agents: search, scrape, and interact with the web, plus parse, crawl, map, Agent and Monitor, from any MCP client.'
+      stars: 7764
+      pushed: '2026-11-05'
+      archived: false
+    - repo: firecrawl/anydoc
+      description: Convert Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV, and PDF to clean Markdown. Built in Rust, with Node.js and Python bindings.
+      stars: 23356
+      pushed: '2026-10-23'
+      archived: false
+    - repo: firecrawl/open-lovable
+      description: 🔥 Clone and recreate any website as a modern React app in seconds
+      stars: 28859
+      pushed: '2026-10-09'
+      archived: false
+    - repo: firecrawl/pdf-inspector
+      description: Fast Rust library for PDF inspection, classification, and text extraction. Intelligently detects scanned vs text-based PDFs to enable smart routing decisions.
+      stars: 19868
+      pushed: '2026-10-22'
+      archived: false
+  gh-search:
+    name: GitHub 搜尋（gh）
+    query: gh-search
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: janeklb/gh-search
+      description: GitHub code search with full text regex filtering, from your cli.
+      stars: 52
+      pushed: '2026-10-26'
+      archived: false
+    - repo: HauntedThemes/ghost-search
+      description: A simple but powerful search library for Ghost Blogging Platform.
+      stars: 117
+      pushed: '2023-01-05'
+      archived: false
+    - repo: feinoujc/gh-search-cli
+      description: searches github via command line. Supports repo, issues, code and commit searches and listing notifications
+      stars: 121
+      pushed: '2022-05-03'
+      archived: true
+    - repo: gmfmi/searchinGhost
+      description: A pure javascript, lightweight & in-browser full-text search plugin for Ghost (blog)
+      stars: 63
+      pushed: '2022-01-05'
+      archived: false
+    - repo: microsoft/GHC19-GroverSearch
+      description: Workshop materials for the "Introduction to Quantum Computing with Grover’s Search" workshop at Grace Hopper Celebration 2019
+      stars: 26
+      pushed: '2020-12-10'
+      archived: true
+  git-forage:
+    name: Git Forage（matcluck）
+    query: Git Forage
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: Surekha413/https-github.com-vagabond-systems-forage-midas
+      description: https://github.com/vagabond-systems/forage-midas.git
+      stars: 1
+      pushed: '2025-02-21'
+      archived: false
+    - repo: rohitsai2911-git/ForageSkill-AI
+      description: ''
+      stars: 0
+      pushed: '2026-08-26'
+      archived: false
+    - repo: forager2026/forager2026.github.io
+      description: ''
+      stars: 0
+      pushed: '2026-08-11'
+      archived: false
+    - repo: forager365/forager365.github.io
+      description: ''
+      stars: 0
+      pushed: '2026-09-26'
+      archived: false
+    - repo: mbaye15/gitForage
+      description: ''
+      stars: 0
+      pushed: '2018-10-12'
+      archived: false
+  gpt-researcher:
+    name: GPT Researcher
+    query: GPT Researcher
+    match: likely
+    chosen: null
+    suggested: assafelovic/gpt-researcher
+    checked: '2026-11-05'
+    options:
+    - repo: assafelovic/gpt-researcher
+      description: An autonomous agent that conducts deep research on any data using any LLM providers
+      stars: 30494
+      pushed: '2026-10-10'
+      archived: false
+    - repo: JayZeeDesign/researcher-gpt
+      description: ''
+      stars: 455
+      pushed: '2023-09-25'
+      archived: false
+    - repo: Makesh-Srinivasan/LangChain-GPT-Researcher
+      description: GPT-Researcher as a LangChain tool to be used in Agents and Chains
+      stars: 127
+      pushed: '2024-10-06'
+      archived: false
+    - repo: Ryougi-yukiro/ChatGPT-ask-model-for-researchers
+      description: 一个用来给科研工作者们询问chatgpt的提问模板，包括rephase refine and aimed journals
+      stars: 32
+      pushed: '2023-03-06'
+      archived: false
+    - repo: godisboy0/gpt-researcher
+      description: a project inspired by https://github.com/assafelovic/gpt-researcher, a few more feature added
+      stars: 3
+      pushed: '2025-07-11'
+      archived: false
+  gsd:
+    name: GSD
+    query: GSD
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: nigelpoulton/gsd
+      description: Files for Getting Started with Docker video training course
+      stars: 244
+      pushed: '2024-05-15'
+      archived: false
+    - repo: open-gsd/gsd-core
+      description: Git. Ship. Done - Core
+      stars: 11253
+      pushed: '2026-11-05'
+      archived: false
+    - repo: gsd-build/gsd-2
+      description: A powerful meta-prompting, context engineering and spec-driven development system that enables agents to work for long periods of time autonomously without losing track of the big picture
+      stars: 7750
+      pushed: '2026-05-22'
+      archived: true
+    - repo: gsdios/GSD_WeiXin
+      description: 高仿微信
+      stars: 3168
+      pushed: '2018-03-26'
+      archived: false
+    - repo: gsd-build/get-shit-done
+      description: A light-weight and powerful meta-prompting, context engineering and spec-driven development system for Claude Code by TÂCHES.
+      stars: 64160
+      pushed: '2026-05-31'
+      archived: true
+  haonan-product-research:
+    name: HaoNan product-research
+    query: HaoNan product-research
+    match: none_found
+    chosen: null
+    checked: '2026-11-05'
+    options: []
+  harbor:
+    name: Harbor
+    query: Harbor
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: goharbor/harbor
+      description: An open source trusted cloud native registry project that stores, signs, and scans content.
+      stars: 29673
+      pushed: '2026-11-05'
+      archived: false
+    - repo: harbor-framework/harbor
+      description: 'Framework for evaluating and improving agents '
+      stars: 6813
+      pushed: '2026-11-05'
+      archived: false
+    - repo: av/harbor
+      description: Stop configuring your AI stack. Start using it. One command brings a complete pre-wired LLM stack with hundreds of services to explore.
+      stars: 3262
+      pushed: '2026-10-31'
+      archived: false
+    - repo: matsuyoshi30/harbor
+      description: Simple and minimal personal blog theme.
+      stars: 183
+      pushed: '2026-01-09'
+      archived: false
+    - repo: thsnkhn/harbor
+      description: Beautiful native macOS download manager for direct links, magnets, and torrents.
+      stars: 684
+      pushed: '2026-11-05'
+      archived: false
+  hn-algolia:
+    name: HN Algolia API
+    query: HN Algolia API
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: Nightwing627/hn.algolia_API
+      description: ''
+      stars: 1
+      pushed: '2022-08-11'
+      archived: false
+  hoopyai-competitive-analysis:
+    name: hoopyAI competitive-analysis-skill
+    query: hoopyAI competitive-analysis-skill
+    match: none_found
+    chosen: null
+    checked: '2026-11-05'
+    options: []
+  hyperresearch:
+    name: hyperresearch
+    query: hyperresearch
+    match: likely
+    chosen: null
+    suggested: jordan-gibbs/hyperresearch
+    checked: '2026-11-05'
+    options:
+    - repo: jordan-gibbs/hyperresearch
+      description: 'Convert Claude Code or Codex into the most intelligent Deep Research Agent. Collect, search, and synthesize web research into a persistent, searchable wiki that builds on itself. Hosted API + MCP: hyp'
+      stars: 4399
+      pushed: '2026-11-01'
+      archived: false
+    - repo: il-gareni4/HyperResearch
+      description: 'tModLoader Mod that adds plenty of features for Journey Mode '
+      stars: 3
+      pushed: '2025-08-05'
+      archived: false
+    - repo: kcj9180-source/hyperresearch
+      description: ''
+      stars: 0
+      pushed: '2026-05-23'
+      archived: false
+    - repo: Gravirus/hyperresearch
+      description: 'Hyperresearch: multi-step research pipeline skills'
+      stars: 0
+      pushed: '2026-09-02'
+      archived: false
+    - repo: Omarbarir2009/hyperresearch
+      description: Turn Claude Code into a state-of-the-art deep research agent with a tier-adaptive 16-step pipeline.
+      stars: 0
+      pushed: '2026-10-14'
+      archived: false
+  inspect-ai:
+    name: Inspect AI
+    query: Inspect AI
+    match: clear
+    chosen: UKGovernmentBEIS/inspect_ai
+    auto: UKGovernmentBEIS/inspect_ai
+    checked: '2026-11-05'
+    options:
+    - repo: UKGovernmentBEIS/inspect_ai
+      description: 'Inspect: A framework for large language model evaluations'
+      stars: 3182
+      pushed: '2026-11-05'
+      archived: false
+    - repo: meridianlabs-ai/inspect_petri
+      description: An alignment auditing agent capable of quickly exploring alignment hypothesis
+      stars: 1402
+      pushed: '2026-11-04'
+      archived: false
+    - repo: meridianlabs-ai/inspect_scout
+      description: In-depth analysis of AI agent transcripts.
+      stars: 89
+      pushed: '2026-11-04'
+      archived: false
+    - repo: meridianlabs-ai/inspect_swe
+      description: Software Engineering Agents for Inspect AI
+      stars: 41
+      pushed: '2026-11-04'
+      archived: false
+    - repo: meridianlabs-ai/inspect_flow
+      description: Inspect Flow is a workflow stack built on Inspect AI that enables research organisations to run AI evaluations at scale.
+      stars: 23
+      pushed: '2026-11-04'
+      archived: false
+  karpathy-guidelines:
+    name: Karpathy 風格準則（multica-ai）
+    query: karpathy-guidelines
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: BurukalaManiReethika/Karpathy-Inspired-Claude-Code-Guidelines
+      description: ''
+      stars: 41
+      pushed: '2026-06-28'
+      archived: false
+    - repo: 2mattias/karpathy-guidelines-opencode
+      description: Andrej Karpathy-inspired coding guidelines for OpenCode - reduces common LLM coding mistakes
+      stars: 6
+      pushed: '2026-04-13'
+      archived: false
+    - repo: hburaktasyurek/karpathy-interaction-guidelines
+      description: Behavioral guidelines for LLM tools (AGENTS.md). Installer wires Claude Code, Codex, OpenCode, and Kimi Code; Cursor/Cowork via paste. Principles 1–4 Karpathy-derived; 5 by maintainer.
+      stars: 11
+      pushed: '2026-08-10'
+      archived: false
+    - repo: sendralt/karpathy-guidelines
+      description: Agent Zero plugin that auto-injects Karpathy coding guidelines to reduce common LLM coding mistakes
+      stars: 7
+      pushed: '2026-04-15'
+      archived: false
+    - repo: nassimna/karpathy-guidelines
+      description: Cross-agent Karpathy-inspired behavioral guidelines for Claude Code, Codex, Cursor, and Gemini CLI.
+      stars: 3
+      pushed: '2026-05-18'
+      archived: false
+  mcp-registry:
+    name: 官方 MCP Registry
+    query: mcp-registry
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: docker/mcp-registry
+      description: 'Official Docker MCP registry '
+      stars: 581
+      pushed: '2026-11-05'
+      archived: false
+    - repo: toolsdk-ai/toolsdk-mcp-registry
+      description: MCPSDK.dev(ToolSDK.ai)'s Awesome MCP Servers and Packages Registry and Database with Structured JSON configurations. Supports OAuth2.1, DCR...
+      stars: 219
+      pushed: '2026-11-03'
+      archived: false
+    - repo: agentic-community/mcp-gateway-registry
+      description: Enterprise-ready MCP Gateway & Registry that centralizes AI development tools with secure OAuth authentication, dynamic tool discovery, and unified access for both autonomous AI agents and AI coding a
+      stars: 1038
+      pushed: '2026-11-04'
+      archived: false
+    - repo: ravitemer/mcp-registry
+      description: A community-maintained registry of Model Context Protocol (MCP) servers with structured installation configurations for easy integration.
+      stars: 30
+      pushed: '2026-11-04'
+      archived: false
+    - repo: ARadRareness/mcp-registry
+      description: A central registry and HTTP interface for coordinating Model Context Protocol (MCP) servers.
+      stars: 35
+      pushed: '2024-12-29'
+      archived: false
+  mirothinker:
+    name: MiroThinker
+    query: MiroThinker
+    match: likely
+    chosen: null
+    suggested: MiroMindAI/MiroThinker
+    checked: '2026-11-05'
+    options:
+    - repo: MiroMindAI/MiroThinker
+      description: MiroThinker is a deep research agent optimized for complex research and prediction tasks. Our latest models, MiroThinker-1.7, achieves 74.0 and 75.3 on the BrowseComp and BrowseComp Zh, respectively.
+      stars: 8438
+      pushed: '2026-07-06'
+      archived: false
+    - repo: HuanLinOTO/MiroThinker2API
+      description: ''
+      stars: 10
+      pushed: '2026-02-05'
+      archived: false
+    - repo: 17839693698/miroThinker
+      description: miroThinker
+      stars: 0
+      pushed: '2026-06-18'
+      archived: false
+    - repo: hito32767/mirothinker
+      description: mirotinker
+      stars: 0
+      pushed: '2026-06-23'
+      archived: false
+    - repo: 5ji653m6/MiroThinker
+      description: MiroThinker agent framework
+      stars: 0
+      pushed: '2026-09-28'
+      archived: false
+  moai-adk:
+    name: moai-adk
+    query: moai-adk
+    match: likely
+    chosen: null
+    suggested: modu-ai/moai-adk
+    checked: '2026-11-05'
+    options:
+    - repo: modu-ai/moai-adk
+      description: Agentic development harness for Claude Code — SPEC-driven plan/run/sync, TRUST 5 quality gates, model+effort routing, and Claude×GLM multi-LLM cost control. Single Go binary, 16 languages, zero deps.
+      stars: 1251
+      pushed: '2026-11-03'
+      archived: false
+    - repo: MRodHer/moai-adk
+      description: MoAI - Agentic Development Kit
+      stars: 0
+      pushed: '2026-01-20'
+      archived: false
+    - repo: lesang73/moai-adk
+      description: ''
+      stars: 0
+      pushed: '2026-11-02'
+      archived: false
+    - repo: kush-coder/autopilot-moai-adk
+      description: 'Official Build & Verified Release | Agentic development harness for Claude Code — SPEC-driven plan/run/sync, TRUST 5 quality gates, model+effort routing, and Claude×GLM multi-LLM cost control. Single '
+      stars: 0
+      pushed: '2026-11-04'
+      archived: false
+    - repo: pyhu26-public/moai-jindo-adk
+      description: Moai-ADK를 랩핑하듯 사용할 수 있도록 클로드 플러그인으로 재정의하여 구성
+      stars: 0
+      pushed: '2026-07-08'
+      archived: false
+  okx-skills:
+    name: OKX skills
+    query: OKX skills
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: okx/onchainos-skills
+      description: Skills for AI agents to integrate with the OKX OnchainOS API — Wallet, token discovery, market data, DEX swap, and transaction broadcasting.
+      stars: 344
+      pushed: '2026-10-30'
+      archived: false
+    - repo: okx/agent-skills
+      description: 'Plug-and-play AI agent skills for OKX — letting any LLM agent trade, manage portfolios, query live market data, and run grid/DCA bots through a single okx CLI, no API wiring required.  '
+      stars: 200
+      pushed: '2026-10-28'
+      archived: false
+    - repo: skillstore-xlayer/okx-skillstore
+      description: ''
+      stars: 0
+      pushed: '2026-03-25'
+      archived: false
+    - repo: artem-fanat/okx-onchainos-skills
+      description: ''
+      stars: 1
+      pushed: '2026-03-06'
+      archived: false
+    - repo: RaymondChange666/okx-strategy-skills
+      description: ''
+      stars: 0
+      pushed: '2026-08-26'
+      archived: false
+  open-deep-research:
+    name: LangChain Open Deep Research
+    query: LangChain Open Deep Research
+    match: clear
+    chosen: langchain-ai/open_deep_research
+    auto: langchain-ai/open_deep_research
+    checked: '2026-11-05'
+    options:
+    - repo: langchain-ai/open_deep_research
+      description: ''
+      stars: 12680
+      pushed: '2026-08-10'
+      archived: true
+    - repo: ayush7662/langchain-ai-open_deep_research
+      description: ''
+      stars: 0
+      pushed: '2025-12-28'
+      archived: false
+  openspec:
+    name: OpenSpec
+    query: OpenSpec
+    match: likely
+    chosen: null
+    suggested: Fission-AI/OpenSpec
+    checked: '2026-11-05'
+    options:
+    - repo: Fission-AI/OpenSpec
+      description: Spec-driven development (SDD) for AI coding assistants.
+      stars: 73991
+      pushed: '2026-11-04'
+      archived: false
+    - repo: zhuzhaoyun/OpenSpec
+      description: AI-powered professional document generation and audit(企业级智能长文档生成与审查平台）
+      stars: 47
+      pushed: '2026-05-09'
+      archived: false
+    - repo: openspec-cn/openspec
+      description: ''
+      stars: 41
+      pushed: '2026-02-06'
+      archived: false
+    - repo: ForceInjection/OpenSpec-practise
+      description: OpenSpec Practical Guide
+      stars: 643
+      pushed: '2026-11-02'
+      archived: false
+    - repo: JiangWay/openspec-schemas
+      description: 'Community-contributed OpenSpec schemas. First bridge: superpowers-bridge (OpenSpec + obra/superpowers integration with retrospective artifact).'
+      stars: 234
+      pushed: '2026-10-28'
+      archived: false
+  parallel:
+    name: Parallel
+    query: Parallel
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: grosser/parallel
+      description: 'Ruby: parallel processing made simple and fast'
+      stars: 4269
+      pushed: '2026-10-05'
+      archived: false
+    - repo: krakjoe/parallel
+      description: A succinct parallel concurrency API for PHP8
+      stars: 1596
+      pushed: '2026-11-02'
+      archived: false
+    - repo: amphp/parallel
+      description: An advanced parallelization library for PHP, enabling efficient multitasking, optimizing resource use, and application responsiveness through multiple CPU threads.
+      stars: 864
+      pushed: '2026-06-26'
+      archived: false
+    - repo: mmstick/parallel
+      description: This project now lives on in a rewrite at https://gitlab.redox-os.org/redox-os/parallel
+      stars: 1193
+      pushed: '2017-12-04'
+      archived: true
+    - repo: parallel-finance/parallel
+      description: A decentralized lending & staking protocol built on top of the Polkadot ecosystem.
+      stars: 125
+      pushed: '2025-02-04'
+      archived: false
+  promptfoo:
+    name: promptfoo
+    query: promptfoo
+    match: likely
+    chosen: null
+    suggested: promptfoo/promptfoo
+    checked: '2026-11-05'
+    options:
+    - repo: promptfoo/promptfoo
+      description: 'Test your prompts, agents, and RAGs. Red teaming/pentesting/vulnerability scanning for AI. Compare performance of GPT, Claude, Gemini, DeepSeek, and more. Simple declarative configs with command line '
+      stars: 26860
+      pushed: '2026-11-05'
+      archived: false
+    - repo: promptfoo/promptfoo-action
+      description: The GitHub Action for Promptfoo.  Test your prompts, agents, and RAGs. AI Red teaming, pentesting, and vulnerability scanning for LLMs. Compare performance of GPT, Claude, Gemini, Llama, and more. Sim
+      stars: 80
+      pushed: '2026-11-04'
+      archived: false
+    - repo: improving/promptfoo
+      description: ''
+      stars: 5
+      pushed: '2026-09-30'
+      archived: false
+    - repo: promptfoo/modelaudit
+      description: Security scanner for AI/ML model files. Detects malicious code, backdoors, and vulnerabilities before deployment
+      stars: 86
+      pushed: '2026-11-05'
+      archived: false
+    - repo: promptfoo/promptfoo-python
+      description: Python wrapper for the promptfoo CLI - LLM testing, red teaming, and security evaluation
+      stars: 8
+      pushed: '2026-11-03'
+      archived: false
+  repo-analyzer:
+    name: repo-analyzer
+    query: repo-analyzer
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: yzddmr6/repo-analyzer
+      description: AI coding agent skill for deep architectural analysis of open-source projects | 开源项目深度架构分析，一句话生成专业级分析报告
+      stars: 499
+      pushed: '2026-04-27'
+      archived: false
+    - repo: ZiHuixi/QQgroup-annual-report-analyzer
+      description: 一个用于分析QQ群聊记录并生成年度热词报告的工具。支持热词发现、趣味统计、可视化报告生成等功能。
+      stars: 737
+      pushed: '2025-12-29'
+      archived: false
+    - repo: feedzai/repo-analyzer
+      description: ''
+      stars: 19
+      pushed: '2023-01-04'
+      archived: true
+    - repo: m-kovalsky/ReportAnalyzer
+      description: A tool for visualizing and analyzing a Power BI report's performance.
+      stars: 102
+      pushed: '2022-11-14'
+      archived: false
+    - repo: CommitAnalyzingService/CAS_CodeRepoAnalyzer
+      description: Ingests and analyzes a code repository.
+      stars: 35
+      pushed: '2021-04-29'
+      archived: false
+  ria:
+    name: RIA
+    query: RIA
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: basho/riak
+      description: Riak is a decentralized datastore from Basho Technologies.
+      stars: 4029
+      pushed: '2026-08-14'
+      archived: false
+    - repo: Dev-Kango/Queen-Riam
+      description: ''
+      stars: 788
+      pushed: '2026-11-03'
+      archived: false
+    - repo: Toxic1239/Queen-RiasV3_
+      description: 'A High Speed WhatsApp Bot Made By Toxxic Tech '
+      stars: 155
+      pushed: '2025-07-21'
+      archived: false
+    - repo: Toxic1239/RIASGREMORYBOT
+      description: WhatsApp Bot Made By Toxxic Tech
+      stars: 274
+      pushed: '2024-08-19'
+      archived: false
+    - repo: basho/riak_core
+      description: Distributed systems infrastructure used by Riak.
+      stars: 1276
+      pushed: '2026-08-14'
+      archived: false
+  sgrx:
+    name: SGRX
+    query: SGRX
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: alzenkastrati/sgrx
+      description: Evidence-backed source graph research for AI papers, dependency internals, and exact GitHub implementations.
+      stars: 3
+      pushed: '2026-07-22'
+      archived: false
+    - repo: delta8842/sgrx
+      description: content
+      stars: 0
+      pushed: '2026-10-05'
+      archived: false
+    - repo: ipenathe/sgrx
+      description: content
+      stars: 0
+      pushed: '2026-09-19'
+      archived: false
+    - repo: mimo-cd/sgrx
+      description: content
+      stars: 0
+      pushed: '2026-09-20'
+      archived: false
+    - repo: bugchans/sgrx
+      description: content
+      stars: 0
+      pushed: '2026-09-26'
+      archived: false
+  stanford-storm:
+    name: Stanford STORM
+    query: Stanford STORM
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: stanford-oval/storm
+      description: An LLM-powered knowledge curation system that researches a topic and generates a full-length report with citations.
+      stars: 31787
+      pushed: '2025-09-30'
+      archived: false
+    - repo: stanford-oval/DataSTORM
+      description: 'DataSTORM: Deep Research on Large-Scale Databases using Exploratory Data Analysis and Data Storytelling https://arxiv.org/abs/2604.06474'
+      stars: 11
+      pushed: '2026-08-19'
+      archived: false
+    - repo: coolTheWorld/stanford-oval-storm-skills
+      description: Multi-perspective deep research that writes Wikipedia-style, fully-cited articles. Unofficial native implementation of the Stanford STORM methodology
+      stars: 2
+      pushed: '2026-08-15'
+      archived: false
+    - repo: Keshav0375/Stanford_Storm_FastAPI_wrapper
+      description: ''
+      stars: 1
+      pushed: '2025-09-05'
+      archived: false
+    - repo: i--storm/stanford-ml-exercises
+      description: ''
+      stars: 0
+      pushed: '2017-07-17'
+      archived: false
+  superclaude:
+    name: SuperClaude
+    query: SuperClaude
+    match: likely
+    chosen: null
+    suggested: SuperClaude-Org/SuperClaude_Framework
+    checked: '2026-11-05'
+    options:
+    - repo: SuperClaude-Org/SuperClaude_Framework
+      description: A configuration framework that enhances Claude Code with specialized commands, cognitive personas, and development methodologies.
+      stars: 23928
+      pushed: '2026-09-27'
+      archived: false
+    - repo: gwendall/superclaude
+      description: 🚀 Give Claude AI superpowers for GitHub workflows. Transform "fix stuff" commits into professional messages, generate intelligent changelogs, and get AI code reviews - all with one command.
+      stars: 326
+      pushed: '2025-06-25'
+      archived: false
+    - repo: gudzenkov/SuperClaude
+      description: A configuration framework that enhances Claude Code with specialized commands, cognitive personas, and development methodologies.
+      stars: 17
+      pushed: '2026-03-26'
+      archived: true
+    - repo: babamba2/superclaude-for-sap
+      description: SuperClaude for SAP — Claude Code plugin for SAP On-Premise S/4HANA ABAP development (24 agents, 14 skills, 150+ MCP tools)
+      stars: 70
+      pushed: '2026-11-05'
+      archived: false
+    - repo: Tony363/SuperClaude
+      description: A configuration framework that enhances Claude Code with specialized commands, cognitive personas, and development methodologies.
+      stars: 20
+      pushed: '2026-06-29'
+      archived: false
+  task-master:
+    name: task-master
+    query: task-master
+    match: likely
+    chosen: null
+    suggested: eyaltoledano/claude-task-master
+    checked: '2026-11-05'
+    options:
+    - repo: eyaltoledano/claude-task-master
+      description: An AI-powered task-management system you can drop into Cursor, Lovable, Windsurf, Roo, and others.
+      stars: 28303
+      pushed: '2026-04-28'
+      archived: false
+    - repo: UdacityFrontEndScholarship/task-master
+      description: This application is a collaborative project made by the Google Udacity Front End Web Developer Scholars.
+      stars: 38
+      pushed: '2018-05-16'
+      archived: false
+    - repo: jaiswaladi246/Task-Master-Pro
+      description: ''
+      stars: 52
+      pushed: '2024-12-30'
+      archived: false
+    - repo: gaowhen/task-master
+      description: gulp task collection
+      stars: 21
+      pushed: '2016-03-08'
+      archived: false
+    - repo: mjc-school/stage0-master-task
+      description: This task is to be completed if you are already familiar with topics covered in stage 0 and want to skip it.
+      stars: 1
+      pushed: '2024-07-04'
+      archived: false
+  tavily:
+    name: Tavily
+    query: Tavily
+    match: ambiguous
+    chosen: null
+    checked: '2026-11-05'
+    options:
+    - repo: tavily-ai/tavily-mcp
+      description: Production ready MCP server with real-time search, extract, map & crawl.
+      stars: 2478
+      pushed: '2026-11-04'
+      archived: false
+    - repo: xuncv/TavilyProxyManager
+      description: 一个透明的 Tavily API 反向代理：将多个 Tavily API Key（额度/credits）汇聚在一个 Master Key 之后，并提供内置 Web UI 用于管理 Key、用量与请求日志。
+      stars: 551
+      pushed: '2026-10-21'
+      archived: false
+    - repo: tavily-ai/tavily-python
+      description: The Tavily Python SDK allows for easy interaction with the Tavily API, offering the full range of our search, extract, crawl, map, and research functionalities directly from your Python programs. Easi
+      stars: 1428
+      pushed: '2026-10-26'
+      archived: false
+    - repo: IvanLi-CN/tavily-hikari
+      description: ''
+      stars: 369
+      pushed: '2026-11-03'
+      archived: false
+    - repo: transitive-bullshit/tavily
+      description: SDK for the Tavily search API which is tailored for LLM agents.
+      stars: 14
+      pushed: '2026-04-03'
+      archived: false
+  thinking-framework-skills:
+    name: thinking-framework-skills（product-on-purpose）
+    query: thinking-framework-skills
+    match: clear
+    chosen: product-on-purpose/thinking-framework-skills
+    auto: product-on-purpose/thinking-framework-skills
+    checked: '2026-11-05'
+    options:
+    - repo: product-on-purpose/thinking-framework-skills
+      description: Evidence-graded, agent-executable thinking-method skills - 63 frameworks reduced to their working mechanism, honestly graded, and producing a concrete artifact. 63 frameworks + 4 tools + 9 recipes for
+      stars: 25
+      pushed: '2026-11-05'
+      archived: false
+  tongyi-deepresearch:
+    name: Alibaba Tongyi DeepResearch
+    query: Alibaba Tongyi DeepResearch
+    match: none_found
+    chosen: null
+    checked: '2026-11-05'
+    options: []
+  zapier-mcp:
+    name: Zapier MCP
+    query: Zapier MCP
+    match: likely
+    chosen: null
+    suggested: zapier/zapier-mcp
+    checked: '2026-11-05'
+    options:
+    - repo: zapier/zapier-mcp
+      description: Official plugin distribution for the hosted Zapier MCP server. Install it in your AI client and connect to thousands of apps.
+      stars: 453
+      pushed: '2026-10-22'
+      archived: false
+    - repo: memoona-zahur/zapier_mcp
+      description: ''
+      stars: 0
+      pushed: '2025-07-21'
+      archived: false
+    - repo: Rashmeet0099/Zapier_MCP
+      description: ''
+      stars: 0
+      pushed: '2025-07-25'
+      archived: false
+    - repo: Frogface607/Zapier-mcp
+      description: ''
+      stars: 0
+      pushed: '2025-10-30'
+      archived: false
+    - repo: MochithaCodeBasics/Project2_ZapierMCP_ClaudeCode
+      description: ''
+      stars: 0
+      pushed: '2026-04-04'
+      archived: false

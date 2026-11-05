@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "floorplan",
+ "name": "Floorplan",
+ "url": "https://github.com/haydenschmitty/floorplan",
+ "slots": [
+  "code-understanding"
+ ],
+ "scenarios": [
+  "C1"
+ ],
+ "summary": "Floorplan 落在 code-understanding 槽位，只有 C1 的「改動影響範圍」一半對得上：它能畫出整個 app 的部分、檔案、endpoint 與前後端請求的對應，但查詢只到檔案與 endpoint 粒度，找不到函式的所有呼叫者，所以 C1 的主要需求仍得靠 grep 或 LSP。C2 不符合，它產出的是地圖，不是附行號的研究筆記，而且第一次要為每個檔案寫說明，深讀第三方 repo 很花 token。它也沒有 hook、MCP 或相依套件。建議先收著，等 C1 的第 2 層再比較 CodeGraph、Serena 與 LSP。",
+ "differences": "相對於現任原生搜尋，多了：整體架構地圖、前端請求對到後端 endpoint 的對應、白話說明與健康檢查。少了：函式層級的呼叫者查詢、附行號的筆記輸出；首次建置要替每個檔案寫說明，token 成本高。",
+ "claims": [
+  {
+   "claim": "同時提供 Claude Code 外掛與 Codex 外掛的安裝方式",
+   "kind": "compat",
+   "how_to_verify": "檢查 README 的 Install 段與 docs/codex.md 的安裝指令，並在兩個 CLI 實際執行 marketplace add 與 plugin install"
+  },
+  {
+   "claim": "沒有 hook、MCP server 與外部相依套件（零相依）",
+   "kind": "security",
+   "how_to_verify": "檢查 repo 根目錄與 plugin 內容是否有 hooks 設定、.mcp.json、package.json 的 dependencies 欄位，並看 docs/is-it-safe.md 的清單"
+  },
+  {
+   "claim": "需要 Node.js 18 以上",
+   "kind": "compat",
+   "how_to_verify": "檢查 package.json 的 engines 欄位，並在 Node 18 環境執行 floorplan 的掃描指令"
+  },
+  {
+   "claim": "唯一的對外請求是選擇性加入的 waitlist POST",
+   "kind": "security",
+   "how_to_verify": "在 scripts 目錄搜尋 fetch、http、https、request 等網路呼叫，確認只有 waitlist 那一處，並檢查 FLOORPLAN_NO_PROMPTS=1 是否會關閉提示"
+  },
+  {
+   "claim": "本機伺服器只聽 127.0.0.1，並檢查 token 與 Host 標頭",
+   "kind": "security",
+   "how_to_verify": "閱讀 serve.mjs 的 listen 位址與 token、Host 檢查邏輯，並以錯誤的 Host 標頭送請求確認會被拒絕"
+  },
+  {
+   "claim": "查詢工具只支援 overview、find、show、path，沒有呼叫者查詢",
+   "kind": "capability",
+   "how_to_verify": "閱讀 floorplan/query.mjs 的子命令清單，並在大型專案上確認沒有找出所有呼叫者的指令"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-search"
+  ],
+  "note": "原生 grep 與 glob 能找到函式的呼叫者與檔案位置；Floorplan 補的是整體架構與前後端請求對應，但粒度只到檔案與 endpoint，無法取代函式層級的搜尋。"
+ },
+ "cluster": "agent-generated-map",
+ "recommendation": "keep_pending",
+ "needs_user": "C1 只有「影響範圍」一半對得上，C2 不對得上。「前後端請求對應」這個強項目前沒有對應的情境 id；是否要為它另立情境，或等 CatOS 試跑後再決定，請維護者判斷。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 16312,
+   "cached": 0,
+   "output": 3142
+  },
+  "readme_sha": "b7cbd5045a7a",
+  "readme_chars": 20688
+ }
+}

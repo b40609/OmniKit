@@ -1,0 +1,72 @@
+{
+ "tool": "chrome-devtools-mcp",
+ "date": "2026-11-05",
+ "source": {},
+ "executable": [
+  "MCP：chrome_devtools"
+ ],
+ "sandbox": {
+  "steps": [
+   {
+    "name": "node v24.22.1",
+    "ok": true,
+    "code": 0
+   },
+   {
+    "name": "mcp handshake",
+    "ok": true,
+    "code": 0,
+    "seconds": 3,
+    "tail": {}
+   }
+  ],
+  "mcp": {
+   "chrome_devtools": {
+    "ok": true,
+    "tools": 32,
+    "bytes": 29661,
+    "names": [
+     "click",
+     "close_page",
+     "drag",
+     "emulate",
+     "evaluate_script",
+     "fill",
+     "fill_form",
+     "get_console_message",
+     "get_css_styles",
+     "get_network_request",
+     "handle_dialog",
+     "hover",
+     "lighthouse_audit",
+     "list_console_messages",
+     "list_network_requests",
+     "list_pages",
+     "navigate_page",
+     "new_page",
+     "performance_analyze_insight",
+     "performance_start_trace",
+     "performance_stop_trace",
+     "press_key",
+     "resize_page",
+     "screencast_start",
+     "screencast_stop",
+     "select_page",
+     "take_heapsnapshot",
+     "take_screenshot",
+     "take_snapshot",
+     "type_text",
+     "upload_file",
+     "wait_for"
+    ]
+   }
+  },
+  "os": "Microsoft Windows NT 10.0.26100.0",
+  "exit_code": 0,
+  "seconds": 124
+ },
+ "install": {
+  "ok": true,
+  "detail": "Windows Sandbox：全部成功"
+ }
+}

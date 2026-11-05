@@ -21,6 +21,16 @@ jobs:
       - run: uv run engine/scripts/build.py --site _site
       # 評估 skill 的離線自我測試
       - run: uv run engine/skills/omnikit-eval/scripts/selftest.py
+      # 評估漏斗的批次工具：第 0 層、第 1 層、證據卡、煙霧測試（都不連網、不呼叫模型）
+      - run: uv run engine/skills/omnikit-eval/scripts/batch0.py --selftest
+      - run: uv run engine/skills/omnikit-eval/scripts/layer1.py --selftest
+      - run: uv run engine/skills/omnikit-eval/scripts/evidence.py --selftest
+      - run: uv run engine/skills/omnikit-eval/scripts/smoke.py --selftest
+      # commit 進來的證據卡：格式、引用長度、到期日
+      - run: uv run engine/skills/omnikit-eval/scripts/evidence.py check
+      # 安裝前檢查的判斷規則（假的偵測結果）與 doctor
+      - run: pwsh -NoProfile -File engine/scripts/preflight.ps1 -SelfTest
+      - run: uv run engine/scripts/doctor.py --selftest
       # 開新對話提醒的自我測試
       - run: uv run engine/scripts/session_nudge.py --selftest
       - run: uv run engine/scripts/codex_hooks.py --selftest

@@ -1,0 +1,6 @@
+# 第 0 層：腳本判斷不了、由維護者確認後才淘汰的工具（batch0.py 讀取）。
+# fail 只能是 malicious（確認惡意）、high_risk（有未解決的高風險問題）、incompatible（跟 agent 不相容）。
+# 每筆都要附 evidence（證據連結或卡片位置）與 date；問題解決了就刪掉那一筆。
+# 例：
+#   some-tool: {fail: incompatible, evidence: "只支援 macOS（README 的 Requirements）", date: 2026-11-05}
+tools: {}

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "第 1 層結果",
-  "description": "第 1 層讀完 README 後的判斷。第二輪由 OmniKeep 在背景產生，再交給使用者每週彙整時看。",
+  "description": "第 1 層讀完 README 後的判斷。layer1.py 用便宜模型批次產生（data/funnel/layer1/<id>.json），維護者在週報看。便宜模型的結果只用來排除與排序，不能決定勝負。",
   "type": "object",
   "required": ["layer", "tool_id", "name", "url", "slots", "summary", "differences", "recommendation"],
   "additionalProperties": false,
@@ -11,8 +11,33 @@
     "name": { "type": "string" },
     "url": { "type": "string", "pattern": "^https://" },
     "slots": { "description": "空陣列代表未分配", "type": "array", "items": { "type": "string" } },
+    "scenarios": { "description": "對得上的情境 id（套上 profile 之後的）", "type": "array", "items": { "type": "string" } },
     "summary": { "description": "一句話說它做什麼", "type": "string" },
     "differences": { "description": "跟同槽位現任工具的差異", "type": "string" },
+    "claims": {
+      "description": "可以客觀查證的主張，附查證方法；行銷形容詞不算",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["claim", "kind", "how_to_verify"],
+        "properties": {
+          "claim": { "type": "string" },
+          "kind": { "enum": ["capability", "compat", "cost", "quality", "security"] },
+          "how_to_verify": { "type": "string" }
+        }
+      }
+    },
+    "native_coverage": {
+      "description": "是否已被內建功能涵蓋：covered、partial、none；by 是內建功能卡的 id",
+      "type": "object",
+      "required": ["level", "by"],
+      "properties": {
+        "level": { "enum": ["covered", "partial", "none"] },
+        "by": { "type": "array", "items": { "type": "string" } },
+        "note": { "type": "string" }
+      }
+    },
+    "cluster": { "description": "相似群組：做法類別的代號，同做法的工具同一個", "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
     "similar_rejected": {
       "description": "跟以前拒絕過的工具很像時，附上當時的理由",
       "type": "array",
@@ -26,6 +51,20 @@
       "description": "reject 直接拒絕、keep_pending 收著、deep_eval 建議跑第 2 層",
       "enum": ["reject", "keep_pending", "deep_eval"]
     },
-    "needs_user": { "description": "需要使用者決定的事，例如槽位判斷不了", "type": "string" }
+    "needs_user": { "description": "需要使用者決定的事，例如槽位判斷不了", "type": "string" },
+    "meta": {
+      "description": "layer1.py 記錄的執行資訊",
+      "type": "object",
+      "required": ["date", "agent", "model"],
+      "properties": {
+        "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "agent": { "enum": ["claude", "codex"] },
+        "model": { "type": ["string", "null"] },
+        "usage": { "type": ["object", "null"] },
+        "readme_sha": { "type": ["string", "null"] },
+        "readme_chars": { "type": "integer" },
+        "dropped": { "description": "模型給了、但名冊裡沒有的 id，已刪掉", "type": "array", "items": { "type": "string" } }
+      }
+    }
   }
 }

@@ -1,0 +1,77 @@
+{
+ "tool": "caveman",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "JuliusBrussee/caveman",
+  "sha": "2e068f735253cce28256744804785f01887d9646"
+ },
+ "executable": [
+  "skill 附可執行檔（.js、.mjs、.py）",
+  "plugin 有 hook"
+ ],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99202,
+   "with_bytes": 104172,
+   "delta_bytes": 4970,
+   "delta_tokens_est": 1243,
+   "mentions": [
+    "cavecrew",
+    "caveman",
+    "caveman-commit",
+    "caveman-compress",
+    "caveman-discover",
+    "caveman-evidence-review",
+    "caveman-explore",
+    "caveman-help",
+    "caveman-learn",
+    "caveman-manage",
+    "caveman-optimize",
+    "caveman-review",
+    "caveman-setup",
+    "caveman-stats",
+    "investigate-first",
+    "lean-build",
+    "migration",
+    "safe-refactor",
+    "surgical-patch",
+    "verify-and-stop"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70354,
+   "with_bytes": 77186,
+   "delta_bytes": 6832,
+   "delta_tokens_est": 1710,
+   "mentions": [
+    "cavecrew",
+    "caveman",
+    "caveman-commit",
+    "caveman-compress",
+    "caveman-discover",
+    "caveman-evidence-review",
+    "caveman-explore",
+    "caveman-help",
+    "caveman-learn",
+    "caveman-manage",
+    "caveman-optimize",
+    "caveman-review",
+    "caveman-setup",
+    "caveman-stats",
+    "investigate-first",
+    "lean-build",
+    "megacave",
+    "migration",
+    "safe-refactor",
+    "surgical-patch",
+    "ultracave",
+    "verify-and-stop"
+   ]
+  },
+  "note": "有 hook 或 MCP、還沒審查：只量 skill；MCP 的工具定義用 sandbox 指令量"
+ },
+ "install": {
+  "ok": true,
+  "detail": "28 個 skill、plugin"
+ }
+}

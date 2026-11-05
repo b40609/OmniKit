@@ -1,0 +1,245 @@
+{
+ "date": "2026-11-05",
+ "repos": {
+  "addyosmani/agent-skills": {
+   "stars": 113343,
+   "license": "MIT"
+  },
+  "affaan-m/ecc": {
+   "stars": 297441,
+   "license": "MIT"
+  },
+  "alirezarezvani/claude-skills": {
+   "stars": 29318,
+   "license": "MIT"
+  },
+  "anthropics/claude-plugins-official": {
+   "stars": 46178,
+   "license": "Apache-2.0"
+  },
+  "anthropics/skills": {
+   "stars": 187530,
+   "license": null
+  },
+  "ayghri/i-have-adhd": {
+   "stars": 60124,
+   "license": "MIT"
+  },
+  "bmad-code-org/bmad-method": {
+   "stars": 55008,
+   "license": "NOASSERTION"
+  },
+  "browser-use/browser-harness": {
+   "stars": 18877,
+   "license": "MIT"
+  },
+  "browser-use/browser-use": {
+   "stars": 120076,
+   "license": "MIT"
+  },
+  "browsermcp/mcp": {
+   "stars": 7294,
+   "license": "Apache-2.0"
+  },
+  "chaseai-yt/claudex-loop": {
+   "stars": 3349,
+   "license": "NOASSERTION"
+  },
+  "chromedevtools/chrome-devtools-mcp": {
+   "stars": 54818,
+   "license": "Apache-2.0"
+  },
+  "colbymchenry/codegraph": {
+   "stars": 76676,
+   "license": "MIT"
+  },
+  "composiohq/composio": {
+   "stars": 30933,
+   "license": "MIT"
+  },
+  "dietrichgebert/ponytail": {
+   "stars": 184761,
+   "license": "MIT"
+  },
+  "dzhng/deep-research": {
+   "stars": 19877,
+   "license": "MIT"
+  },
+  "elayadesign/ai-design-skills": {
+   "stars": 14220,
+   "license": "MIT"
+  },
+  "everyinc/compound-engineering-plugin": {
+   "stars": 25930,
+   "license": "MIT"
+  },
+  "firecrawl/firecrawl": {
+   "stars": 198752,
+   "license": "AGPL-3.0"
+  },
+  "garrytan/gstack": {
+   "stars": 139534,
+   "license": "MIT"
+  },
+  "github/spec-kit": {
+   "stars": 147532,
+   "license": "MIT"
+  },
+  "graphify-labs/graphify": {
+   "stars": 142611,
+   "license": "Apache-2.0"
+  },
+  "hashbulla/deep-research": {
+   "stars": 1,
+   "license": "MIT"
+  },
+  "haydenschmitty/floorplan": {
+   "stars": 2898,
+   "license": "MIT"
+  },
+  "herdrdev/herdr-app": {
+   "stars": 1997,
+   "license": "Apache-2.0"
+  },
+  "ifixai-ai/ifixai": {
+   "stars": 43591,
+   "license": "Apache-2.0"
+  },
+  "jeffallan/claude-skills": {
+   "stars": 12223,
+   "license": "MIT"
+  },
+  "juliusbrussee/caveman": {
+   "stars": 117589,
+   "license": "Apache-2.0"
+  },
+  "kkkkhazix/khazix-skills": {
+   "stars": 21982,
+   "license": "MIT"
+  },
+  "langchain-ai/open_deep_research": {
+   "stars": 12680,
+   "license": "MIT"
+  },
+  "lemomo-ai/lemo-opuscar": {
+   "stars": 12415,
+   "license": "MIT"
+  },
+  "mattpocock/skills": {
+   "stars": 313835,
+   "license": "MIT"
+  },
+  "microsoft/playwright-cli": {
+   "stars": 14969,
+   "license": "Apache-2.0"
+  },
+  "microsoft/playwright-mcp": {
+   "stars": 39194,
+   "license": "Apache-2.0"
+  },
+  "microsoft/tokeneconomizer": {
+   "stars": 4803,
+   "license": "Apache-2.0"
+  },
+  "momentumfurkan/claude-competitive-intel": {
+   "stars": 4,
+   "license": "MIT"
+  },
+  "morluto/rea": {
+   "stars": 432177,
+   "license": "MIT"
+  },
+  "mrgoonie/claudekit-skills": {
+   "stars": 2234,
+   "license": null
+  },
+  "nigelpoulton/gsd": {
+   "stars": 244,
+   "license": null
+  },
+  "nightwing627/hn.algolia_api": {
+   "stars": 1,
+   "license": null
+  },
+  "obra/superpowers": {
+   "stars": 312616,
+   "license": "MIT"
+  },
+  "oraios/serena": {
+   "stars": 31111,
+   "license": "NOASSERTION"
+  },
+  "othmanadi/planning-with-files": {
+   "stars": 27891,
+   "license": "MIT"
+  },
+  "panniantong/agent-reach": {
+   "stars": 108950,
+   "license": "MIT"
+  },
+  "pbakaus/impeccable": {
+   "stars": 103191,
+   "license": "Apache-2.0"
+  },
+  "phuryn/pm-skills": {
+   "stars": 27703,
+   "license": "MIT"
+  },
+  "product-on-purpose/thinking-framework-skills": {
+   "stars": 25,
+   "license": "Apache-2.0"
+  },
+  "pullboard-dev/pullboard": {
+   "stars": 681,
+   "license": "MIT"
+  },
+  "rtk-ai/rtk": {
+   "stars": 85595,
+   "license": "Apache-2.0"
+  },
+  "seleniumbase/seleniumbase": {
+   "stars": 13225,
+   "license": "MIT"
+  },
+  "skyvern-ai/skyvern": {
+   "stars": 23340,
+   "license": "AGPL-3.0"
+  },
+  "storytold/craft-anything": {
+   "stars": 13224,
+   "license": "Apache-2.0"
+  },
+  "thedotmack/claude-mem": {
+   "stars": 113148,
+   "license": "Apache-2.0"
+  },
+  "timi-fish/chinese-pm-skills": {
+   "stars": 0,
+   "license": "MIT"
+  },
+  "transitive-bullshit/tavily": {
+   "stars": 14,
+   "license": "MIT"
+  },
+  "typesafe-ai/skills": {
+   "stars": 2876,
+   "license": "MIT"
+  },
+  "ukgovernmentbeis/inspect_ai": {
+   "stars": 3182,
+   "license": "MIT"
+  },
+  "vercel-labs/agent-browser": {
+   "stars": 45581,
+   "license": "Apache-2.0"
+  },
+  "vercel-labs/agent-desktop": {
+   "stars": 15846,
+   "license": "Apache-2.0"
+  },
+  "wshobson/agents": {
+   "stars": 42223,
+   "license": "MIT"
+  }
+ }
+}

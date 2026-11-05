@@ -54,7 +54,7 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
 
    不用先改檔案：先用 `default` 安裝（繁體中文、下載安裝前先問），裝好之後用[訪談](#建立自己的-profile)產生你自己的 profile。想手寫也行：複製 `data/profiles/default` 成 `data/profiles/<你的名字>` 再改，`data/profiles/ryan` 是原作者的，可以參考。
 
-4. **安裝。** 可以重複執行。想先看會改動哪些地方，加上 `-WhatIf` 預覽，什麼都不會做；完整清單見[安裝會改動哪些地方](#安裝會改動哪些地方)。
+4. **安裝。** 可以重複執行。想先看會改動哪些地方，加上 `-WhatIf` 預覽，什麼都不會做；完整清單見[安裝會改動哪些地方](#安裝會改動哪些地方)。開始前會先做安裝前檢查（git、連得到 GitHub、npm、PyPI、proxy、防毒、PowerShell 執行原則），任一項不通過就停下來、列出處理方式，什麼都不寫入。
 
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 -WhatIf
@@ -109,6 +109,8 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
 | MCP | 終端機跑 `claude mcp get chrome_devtools`，狀態是 Connected | 終端機跑 `codex mcp list`，`chrome_devtools` 是 enabled | 終端機跑 `agy mcp list`，`chrome_devtools` 是 enabled |
 
 終端機跑 `uv run engine/scripts/agents.py status`，可以看到這台接上了哪些 agent、OmniKit 管了哪些 skills 與 MCP。
+
+逐項檢查跑 `uv run engine/scripts/doctor.py`：規則區塊、skills、MCP、權限規則與提醒 hook 都還在、跟寫入時一樣，再用各 agent 自己的清單確認 MCP 已啟用；查不到的標「未知」，不算通過。加 `--preflight` 一併跑安裝前檢查。
 
 ### 安裝前後差在哪
 

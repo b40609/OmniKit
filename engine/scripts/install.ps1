@@ -6,6 +6,8 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 
 這台是同事版（預設）還是維護者版，見 engine/scripts/edition.py；兩版只差第 5 步的免問核准與第 6、7 步。
 
+0. 安裝前檢查（engine/scripts/preflight.ps1）：git、連得到 GitHub、npm、PyPI、proxy、防毒、PowerShell 執行原則。
+   任一項不通過就停下來、列出處理方式，什麼都不下載、不寫入。結果只印在這台，不上傳。
 1. 安裝固定版本的 uv、gh 與 gitleaks（gitleaks 只有維護者版裝，給 pre-commit 用）：從 GitHub release
    下載 zip，比對寫死的 SHA256 後解壓；不改 PATH。這台已經有 uv 或 gh 就沿用。
 2. fork 出來的 repo：把 data/omnikit.yaml 的 repo、owner、marketplace 改成 origin 指向的
@@ -40,14 +42,15 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
                        沒指定也沒記過：分版之前就裝過的電腦是維護者版，其他都是同事版。
   -Fresh               這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
                        備份後移除，避免新舊規則同時生效。
-  -WhatIf              預覽：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不寫檔）。
+  -WhatIf              預覽：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不寫檔）；也會跑安裝前檢查。
+  -SkipCheck <名稱>    安裝前檢查要略過的項目（已經自己處理好，例如防毒已請 IT 放行：-SkipCheck antivirus）。
   -SelfTest            自我測試：在暫存資料夾與暫存 git repo 測版本判斷與 git hook 設定，不動這台的設定。
 
 用法（Windows PowerShell 5.1 或 PowerShell 7）：
   powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Edition colleague|maintainer] [-Fresh] [-WhatIf]
 #>
 param([string]$ProfileName, [ValidateSet('colleague', 'maintainer')][string]$Edition, [switch]$Fresh, [switch]$WhatIf,
-  [switch]$SelfTest)
+  [switch]$SelfTest, [string[]]$SkipCheck = @())
 
 $ErrorActionPreference = 'Stop'
 # PowerShell 5.1 的下載進度條會讓 Invoke-WebRequest 慢很多
@@ -74,6 +77,7 @@ $Repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $ProfilesPy = Join-Path $Repo 'engine\scripts\profiles.py'
 $AgentsPy = Join-Path $Repo 'engine\scripts\agents.py'
 $EditionPy = Join-Path $Repo 'engine\scripts\edition.py'
+$PreflightPs1 = Join-Path $Repo 'engine\scripts\preflight.ps1'
 $EditionNames = @{ 'colleague' = '同事版'; 'maintainer' = '維護者版' }
 $Arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
 $UvDir = Join-Path $env:LOCALAPPDATA 'Programs\uv'
@@ -521,7 +525,20 @@ function Invoke-SelfTest {
 }
 
 if ($SelfTest) { exit (Invoke-SelfTest) }
-if ($WhatIf) { Show-InstallPlan; return }
+
+# 安裝前檢查（FR-35）：任一項不通過就什麼都不下載、不寫入
+& $PreflightPs1 -Skip $SkipCheck
+$PreflightOk = ($LASTEXITCODE -eq 0)
+Write-Host ''
+if ($WhatIf) {
+  if (-not $PreflightOk) { Write-Host '注意：安裝前檢查沒通過，照上面的處理方式處理好之前，實際安裝會停在這一步。'; Write-Host '' }
+  Show-InstallPlan
+  return
+}
+if (-not $PreflightOk) {
+  Write-Host '安裝前檢查沒通過，什麼都沒有下載或寫入。照上面的處理方式處理好再重跑。'
+  exit 1
+}
 
 Install-Uv
 Install-Gh

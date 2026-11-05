@@ -1,0 +1,203 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: agent-browser
+cards:
+- id: ev-20261105-agent-browser-01
+  tool: agent-browser
+  tool_version_tested: unknown
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/vercel-labs/agent-browser/issues/25
+    author: JustinLeei
+    published: '2026-01-12'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: agent-browser CLI
+    os: Windows
+    mode: npm install -g agent-browser; agent-browser install
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 在 Windows 上執行 agent-browser install 會立即出現「系統找不到指定的路徑」錯誤，安裝失敗。
+  quote: System cannot find the path specified
+  reliability: B
+  credibility: 3
+  certainty: low
+  expires: '2026-04-12'
+- id: ev-20261105-agent-browser-02
+  tool: agent-browser
+  tool_version_tested: unknown
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/vercel-labs/agent-browser/issues/120
+    author: shkumbinhasani
+    published: '2026-01-15'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: agent-browser CLI
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: 使用者回報遇到網站反機器人偵測，而 agent-browser 原本沒有隱身模式（後來提出 AGENT_BROWSER_STEALTH 功能請求）。
+  quote: Users are encountering bot detection when automating websites
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2026-04-15'
+- id: ev-20261105-agent-browser-03
+  tool: agent-browser
+  tool_version_tested: 0.8.3
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/vercel-labs/agent-browser/issues/297
+    author: jdguggs10
+    published: '2026-01-27'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: agent-browser CLI
+    os: macOS arm64
+    mode: daemon started with --state or --profile
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 在 macOS arm64 上，agent-browser 0.8.3 只要加上 --state 或 --profile 就無法啟動 daemon。
+  quote: fails to start the daemon whenever `--state` or `--profile` is provided
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-04-27'
+- id: ev-20261105-agent-browser-04
+  tool: agent-browser
+  tool_version_tested: unknown
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/vercel-labs/agent-browser/issues/1371
+    author: tianxiaochannel-oss88
+    published: '2026-05-17'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: agent-browser CLI
+    mode: headless Chrome under temporary profile after session ends or is interrupted
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: agent-browser 結束後可能遺留無頭 Chrome 行程，其臨時 profile 下的 Helper 會佔用高 CPU，直到手動終止。
+  quote: can leave a headless Google Chrome instance running
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-08-15'
+- id: ev-20261105-agent-browser-05
+  tool: agent-browser
+  tool_version_tested: unknown
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/vercel-labs/agent-browser/issues/108
+    author: sageri
+    published: '2026-01-15'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: agent-browser CLI
+    os: Windows (PowerShell 7.5.4)
+    mode: npm install -g agent-browser; agent-browser install
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: Windows 上 npm 全域安裝後的 agent-browser.ps1 會呼叫 /bin/sh，導致指令執行失敗。
+  quote: agent-browser.ps1 on Windows uses /bin/sh and fails
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-04-15'
+- id: ev-20261105-agent-browser-06
+  tool: agent-browser
+  tool_version_tested: unknown
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/vercel-labs/agent-browser/issues/1247
+    author: yangyaofei
+    published: '2026-04-16'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: agent-browser CLI
+    mode: connected to running Chrome via --cdp or --auto-connect
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: 連接既有 Chrome 時，tab new 與 tab switch 會搶走使用者目前分頁的焦點，AI 難以在背景操作（該問題仍為開啟狀態）。
+  quote: This pulls the user's current tab away
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-agent-browser-07
+  tool: agent-browser
+  tool_version_tested: 0.5.0
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/vercel-labs/agent-browser/issues/132
+    author: Kareem-AEz
+    published: '2026-01-16'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: agent-browser CLI
+    os: Windows 10/11 (win32)
+    mode: agent-browser open via Git Bash, PowerShell, CMD
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: Windows 上當 session 埠落在被排除的埠範圍時（EACCES），agent-browser 0.5.0 的 daemon 無法啟動。
+  quote: Daemon failed to start
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-04-16'
+- id: ev-20261105-agent-browser-08
+  tool: agent-browser
+  tool_version_tested: unknown
+  slot: browser
+  source:
+    type: hn
+    url: https://news.ycombinator.com/item?id=49836880
+    author: silbercue
+    published: '2026-09-24'
+    retrieved: '2026-11-05'
+  independence: competitor
+  method: marketing
+  comparator: baseline
+  runs: 0
+  kind: cost
+  direction: '-'
+  claim: 競品 Public Browser MCP 宣稱相對 agent-browser 每次 session 的 token 少 33%、速度快 48%（作者自家數據，未獨立驗證）。
+  quote: +48% speed -33% token/session vs. AgentBrowser
+  reliability: D
+  credibility: 4
+  certainty: very-low
+  expires: '2026-12-23'

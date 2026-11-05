@@ -39,6 +39,42 @@ def usage_section(tools, days):
     return lines
 
 
+def funnel_section(root, today):
+    """維護者週報的評估漏斗：第 0 層淘汰與要勾選的候選、第 1 層建議排實測的、值得實測的外部證據。
+    還沒跑過 batch0.py 就略過整段。"""
+    import json
+
+    import batch0
+    import evidence
+
+    funnel = root / "data" / "funnel"
+    path = funnel / "layer0.json"
+    if not path.exists():
+        return []
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    s = doc["summary"]
+    lines = ["", "## 評估漏斗", "",
+             f"- 第 0 層（{doc['generated']}）：{s['total']} 張，通過 {s['pass']}、只標旗標 {s['flagged']}、淘汰 {s['fail']}、未知 {s['unknown']}"]
+    for t in doc["tools"]:
+        if t["fails"]:
+            lines.append(f"  - 淘汰 {t['id']}：{'；'.join(f['detail'] for f in t['fails'])}")
+    pick = s.get("candidates_to_pick") or []
+    if pick:
+        suggested = doc.get("suggested") or {}
+        lines.append(f"- 請勾選候選 repo（{len(pick)} 張，data/funnel/candidates.yaml；建議都對就跑 batch0.py --accept-suggested）：")
+        lines += [f"  - [ ] {tid}" + (f"（建議 {suggested[tid]}）" if tid in suggested else "") for tid in pick]
+    deep = []
+    for p in sorted((funnel / "layer1").glob("*.json")):
+        d = json.loads(p.read_text(encoding="utf-8"))
+        if d["recommendation"] == "deep_eval":
+            deep.append(f"{d['tool_id']}（{'、'.join(d['slots']) or '未分配'}）")
+    if deep:
+        lines.append(f"- 第 1 層建議排實測：{'、'.join(deep)}")
+    lines += ["- " + line.lstrip("# ") if line.startswith("##") else "  " + line
+              for line in evidence.summary_lines(evidence.summary(funnel, today))]
+    return lines
+
+
 def main():
     parser = argparse.ArgumentParser(description="每週彙整")
     parser.add_argument("--today", type=date.fromisoformat, default=date.today())
@@ -89,6 +125,8 @@ def main():
     for slot, pending in sorted(active, key=lambda x: -x[1]):
         if pending:
             lines.append(f"- [ ] {slot['name']}（{slot['id']}）：{pending} 個待評估")
+
+    lines += funnel_section(_omnikit.ROOT, today)
 
     if not args.no_usage:
         lines += ["", f"## {args.usage_days} 天沒用到的 skill 與 plugin", ""]

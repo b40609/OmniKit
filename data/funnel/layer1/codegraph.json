@@ -1,0 +1,68 @@
+{
+ "layer": 1,
+ "tool_id": "codegraph",
+ "name": "CodeGraph",
+ "url": "https://github.com/colbymchenry/codegraph",
+ "slots": [
+  "code-understanding"
+ ],
+ "scenarios": [
+  "C1"
+ ],
+ "summary": "CodeGraph 是 MCP 形式的程式碼符號圖工具，對得上 code-understanding 槽位的 C1（找呼叫者與改動影響範圍）。內建原生搜尋只能做文字層級的 grep／glob，沒有呼叫圖，所以這塊是部分涵蓋。README 宣稱支援 Windows 與 Claude Code、Codex CLI 接線，並全本機執行。效益數字是作者自己的基準測試，不能直接採信，需要在 OmniKeep／CatOS 用同樣方法重測。對 C2（第三方 repo 研究筆記）只有間接幫助，未列入槽位。建議進入深入評估。",
+ "differences": "相較現任「原生搜尋」，多了：符號與呼叫邊的圖、呼叫者與影響範圍查詢、FTS5 全文搜尋、檔案變動後的自動同步。少了或代價是：要先安裝 CLI，再對每個專案執行 init 產生 .codegraph/ 目錄；需要接上 MCP；首次建索引要花時間；同步有 debounce 視窗，視窗內的檔案會以警示標示。作者自己也說，長 session 中工具回應會在 context 裡留下較多內容（約多 80%），這對小視窗的長任務是實際成本。相較「原生記憶」與「原生審查」，這個工具沒有重疊。",
+ "claims": [
+  {
+   "claim": "提供 MCP server（codegraph serve --mcp），codegraph install 會把它寫進 Claude Code 與 Codex CLI 的設定",
+   "kind": "capability",
+   "how_to_verify": "在暫存的使用者設定下執行 codegraph install，再檢查 Claude Code 與 Codex CLI 的 MCP 設定檔是否多了 codegraph 項目，並實際呼叫一次工具。"
+  },
+  {
+   "claim": "原生支援 Windows，有 install.ps1 與 Windows CI",
+   "kind": "compat",
+   "how_to_verify": "在本機 Windows 11 以 install.ps1 安裝，執行 codegraph --version；另查 repo 的 CI 設定是否有 windows job 並為綠燈。"
+  },
+  {
+   "claim": "全本機執行，不上傳程式碼，也不需要 API key 或外部服務",
+   "kind": "security",
+   "how_to_verify": "在 OmniKeep 上執行 codegraph init 與查詢時，用防火牆或網路監控確認沒有外連；另閱讀 README 的 Telemetry 段落，確認預設是否上傳遙測以及如何關閉。"
+  },
+  {
+   "claim": "可查詢符號的呼叫者與影響範圍（impact radius）",
+   "kind": "capability",
+   "how_to_verify": "在 OmniKeep 挑一個有多個呼叫者的函式，比較 codegraph 查詢結果與 rg 搜尋結果，檢查漏掉或多出的呼叫點。"
+  },
+  {
+   "claim": "檔案監看自動同步，預設 2 秒 debounce，不必手動 sync",
+   "kind": "capability",
+   "how_to_verify": "修改一個檔案後，於預設 debounce 時間內執行 codegraph status 與查詢，確認新符號已出現，並記錄延遲時間。"
+  },
+  {
+   "claim": "作者基準測試宣稱約 44% 成本節省與 62% token 節省",
+   "kind": "quality",
+   "how_to_verify": "在 OmniKeep 與 CatOS 以相同的有無工具雙臂、每臂至少 4 次重複的方法重測，計算中位數的成本與 token，不採信作者自報數字。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-search"
+  ],
+  "note": "原生 grep／glob 可以找文字與檔名，但沒有符號圖、呼叫者查詢與影響範圍分析，C1 只能靠多次搜尋與讀檔達成。"
+ },
+ "cluster": "code-graph-index",
+ "recommendation": "deep_eval",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 19858,
+   "cached": 0,
+   "output": 3562
+  },
+  "readme_sha": "39100ff5ae11",
+  "readme_chars": 74935
+ }
+}

@@ -43,17 +43,55 @@ OmniKit v2 做給同事：裝完 → 可選的環境掃描與專案掃描 → �
    - Codex 規則改成受管區塊，原本的留在區塊外照常生效；舊版整份換掉的自動轉成只有區塊（FR-10）。兩版都用。
    - MCP 帳本：`agents.json` 記 OmniKit 管的欄位的雜湊；被改過、被移除、同名不是 OmniKit 的就停下來問，`agents.py resolve <名稱> --use-omnikit|--keep-mine`。Codex 原地更新，工具核准紀錄與使用者加的欄位留著（FR-10）。兩版都用。
    - 這台（維護者）唯讀比對：判斷為維護者版，三個 chrome_devtools 都會直接接手、沒有衝突；下次同步時 `~/.codex/AGENTS.md` 會轉成區塊格式。
-3. **階段 0a（約 2 週）**：做評估漏斗的批次工具（FR-22 到 FR-24）、安裝前檢查（FR-35）與 doctor。
-   - 這次沒做、之後要補的同步層項目：FR-36 的「檢查更新」流程（目前同事要先跑 `install.ps1 -WhatIf` 再跑 `install.ps1`）、受管區塊內容的雜湊（區塊裡的手改還是會被蓋掉）、`AGENTS.override.md` 偵測（FR-32）、Windows CI 跑 `install.ps1 -SelfTest`（FR-34）、架構地圖還沒有 `edition.py`。
-4. **階段 0b（4 到 6 週）**：用漏斗處理 active 槽位與訪談會用到的槽位；找資料分析的候選工具。名冊目前沒有任何資料分析相關的卡片。
+3. ~~**階段 0a**~~：2026-11-05 完成工具與第一輪實跑，自我測試全過（見下方「階段 0a 的成果」）。
+   - 同步層之後要補的項目（0a 沒做）：FR-36 的「檢查更新」流程（目前同事要先跑 `install.ps1 -WhatIf` 再跑 `install.ps1`）、受管區塊內容的雜湊（區塊裡的手改還是會被蓋掉）、`AGENTS.override.md` 偵測（FR-32）、Windows CI 跑 `install.ps1 -SelfTest`（FR-34）、架構地圖還沒有 `edition.py`。
+4. **階段 0b（4 到 6 週）**：用漏斗處理 active 槽位與訪談會用到的槽位；找資料分析的候選工具。名冊目前沒有任何資料分析相關的卡片。建議順序：
+   1. 維護者勾選 `data/funnel/candidates.yaml`（44 張，15 張有建議），`batch0.py --apply` 寫回卡片後重跑第 0 層。
+   2. `layer1.py run` 跑非凍結的卡（約 57 張，照試跑每張 1.6 萬 token，合計約 90 萬），再 `layer1.py clusters` 挑代表。
+   3. `evidence.py draft --from-layer1`；E2 與可查證負面證據進維護者週報。
+   4. 使用者登入隔離資料夾（`smoke.py login`）後，對留下的跑 `smoke.py context` 與 `run`；有 hook 或 MCP 的先審程式碼，再用 `sandbox`。
+   5. 資料分析：先用工具發現槽位找候選、建卡，再走同一條漏斗。
+   6. 依 FR-26 的優先序排第 2 層（盲選每週最多 2 次、客觀實測每週 2,000 萬 token）。
 5. **同時開發** v2.0 其他需求。分組見 PRD §6.1。
 6. **調整 `4a4fc38` 的行為**：另一個 session 已推上「不評估就不裝 omnikit-eval」。PRD 的 FR-37 要求個人週報跟訪談第 5 題脫鉤。
+
+## 階段 0a 的成果（2026-11-05）
+
+工具都在 `engine/skills/omnikit-eval/scripts/`（安裝相關的在 `engine/scripts/`），每支都有離線 `--selftest`，已加進 CI；結果放 `data/funnel/`，格式見 `engine/skills/omnikit-eval/contracts/`。
+
+| 需求 | 工具 | 這台實跑 |
+|---|---|---|
+| FR-22 第 0 層 | `batch0.py`：gh 或 `GITHUB_TOKEN`、GraphQL 一批 12 個 repo；H1 到 H6、A4、相容線索；只淘汰四種，其他標旗標；每週星數快照 | 116 張 3 分鐘：通過 56、只標旗標 4、淘汰 1（open-deep-research 已封存）、未知 44、內建 11。第一份快照 `data/funnel/stars/2026-11-05.json`，爆紅從下週起算得出來 |
+| FR-22 補 url | `candidates.yaml`：同名唯一而且星數最多（至少 50 星）或符合括號擁有者才自動採用；名稱包含、星數是其他的 10 倍以上只當建議 | 44 張待勾選，其中 15 張有建議（`--accept-suggested`）。第一版規則把 gsd、tavily、hn-algolia 配到冷門同名 repo，已改掉 |
+| FR-23 第 1 層 | `layer1.py`：Claude Haiku、`--tools ""`、`--setting-sources ""`，README 當資料；記槽位與情境、可查證主張、內建涵蓋、相似群組 | 試跑 3 張，每張約 1.6 萬輸入 token；agent-browser、codegraph 建議排實測，floorplan 先收著。有認出 README 裡的提示注入 |
+| FR-23 證據卡 | `evidence.py`：GitHub issue（90 天內有更新）與 HN；引用最多 15 個字、到期最多 90 天；算 E0 到 E2 與排除效果 | agent-browser 8 張（6 張是已關閉的舊 issue，已過期） |
+| FR-24 第 1c 層 | `smoke.py`：`env`、`login`、`context`（零 token）、`run`（真實非互動）、`sandbox`（Windows Sandbox） | 見下方 |
+| FR-35 | `engine/scripts/preflight.ps1`，install.ps1 第 0 步（`-WhatIf` 也跑）；`-SkipCheck` 略過已自己處理的項目 | 7 項全過；PS 5.1 與 7 都測過 |
+| FR-11 doctor | `engine/scripts/doctor.py`：寫入檢查照 agents.json 與 install-record.json，清單用 `claude mcp list`、`codex mcp list --json`、`agy mcp list` | 通過 17、失敗 0、未知 3（三個 agent 都沒有列 skill 的指令） |
+
+隔離環境實測（FR-24 的 `[ASSUMPTION]` 有答案了）：
+
+- **Windows Sandbox 可用**：`wsb start` 不開視窗，`wsb exec -r System` 執行、輸出經共用資料夾取回；啟動到結束約 45 秒。沙箱裡沒有 git 與 node，連得到 GitHub。chrome-devtools-mcp@1.12.0 在沙箱裡裝好並做 MCP 交握共 124 秒：32 個工具、定義 29,661 bytes。Node 固定 v24.22.1 並核對 SHA256。
+- **WSL2**：功能已啟用，但這台沒有任何發行版，暫不支援。
+- **獨立設定資料夾**：Claude 用 `CLAUDE_CONFIG_DIR`、Codex 用 `CODEX_HOME`，兩邊都要另外登入。
+  - worktree 要放在使用者資料夾外（預設 `C:\omnikit-eval`），不然 Claude 會往上讀到 `~/.claude/CLAUDE.md`。
+  - Codex 仍會讀 `~/.agents/skills`（覆寫 USERPROFILE 無效），要在隔離的 config.toml 逐一 `[[skills.config]] enabled = false`。
+  - 從 agent 裡執行時，要清掉外層的 `ANTHROPIC_BASE_URL`、`CLAUDE_CODE_*` 等環境變數，不然基準會多出桌面版的工具。
+- **零 token 量 context**：API 位址指向本機攔截伺服器，比較有裝與沒裝的請求大小。基準 Claude 約 99 KB、Codex 約 70 KB；caveman 讓 Claude 每回合多 4,970 bytes（約 1,243 token）、Codex 多 6,832 bytes（約 1,710 token）。
+
+還沒做到、或要使用者處理的：
+
+- `smoke.py run`（有沒有被叫用、非互動能不能跑）還沒實跑：隔離資料夾要使用者登入一次（`smoke.py login` 印出做法），沒登入時記「未知」。
+- 有 hook、MCP 或執行檔的工具，`run` 要先做程式碼審查（強模型），審查過加 `--reviewed`；審查流程本身還沒工具化。
+- Antigravity 還沒納入煙霧測試（`agy -p` 有非互動模式，可以照 Claude 的做法補）。
+- 第 0 層還沒做：A1 下載數只看 npm 來源、A2 被依賴與 A3 策展沒做；H7 的 skills.sh 稽核與 MCP Registry 沒接（單張卡可以用 `layer0.py --scan`）。
+- 新的自我測試只在 Windows 跑過，Linux（CI）要 push 後才知道。
 
 ## 要實測才能確定的
 
 - Antigravity 的 hook 訊息，使用者看不看得到。
 - `agy` 讀取 skill 的位置：`~/.agents/skills`，還是 `~/.gemini/antigravity-cli/skills`。
-- 隔離環境：這台有 Windows Sandbox；WSL2 要確認。
+- ~~隔離環境~~：Windows Sandbox 可用；WSL2 沒有發行版（見上）。
 - Codex 的 `tool_suggest.discoverables` 能不能觸發原生的安裝建議。
 
 ## 不要重做

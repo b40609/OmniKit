@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "第 0 層批次結果",
+  "description": "batch0.py 對全部工具卡做身分與健康檢查的結果（data/funnel/layer0.json）。只淘汰四種，其他只標旗標；未知不當作通過。",
+  "type": "object",
+  "required": ["layer", "generated", "github", "summary", "tools"],
+  "properties": {
+    "layer": { "const": "0-batch" },
+    "generated": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "github": { "description": "查詢方式", "enum": ["gh", "token", "anonymous"] },
+    "snapshot": { "description": "這次記下的星數快照路徑", "type": "string" },
+    "summary": {
+      "type": "object",
+      "required": ["total", "pass", "flagged", "fail", "unknown", "skip", "candidates_to_pick"],
+      "properties": {
+        "total": { "type": "integer" },
+        "pass": { "type": "integer" },
+        "flagged": { "type": "integer" },
+        "fail": { "type": "integer" },
+        "unknown": { "type": "integer" },
+        "skip": { "type": "integer" },
+        "candidates_to_pick": { "description": "要維護者在 candidates.yaml 勾選的卡片 id", "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "tools": { "type": "array", "items": { "$ref": "#/$defs/tool" } }
+  },
+  "$defs": {
+    "tool": {
+      "type": "object",
+      "required": ["id", "name", "status", "slots", "repo", "resolution", "flags", "fails", "notes", "verdict"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string" },
+        "slots": { "type": "array", "items": { "type": "string" } },
+        "repo": { "type": ["string", "null"] },
+        "resolution": {
+          "description": "repo 從哪裡來：card 卡片 url 或 plugin 來源、candidate-auto 自動比對、candidate 維護者勾選、not-on-github 維護者確認不在 GitHub、none 還沒有",
+          "enum": ["card", "candidate-auto", "candidate", "not-on-github", "none"]
+        },
+        "verdict": {
+          "description": "pass 通過、flagged 只標旗標、fail 淘汰、unknown 查不到（不當作通過）、skip 內建功能不適用",
+          "enum": ["pass", "flagged", "fail", "unknown", "skip"]
+        },
+        "fails": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["rule", "detail"],
+            "properties": {
+              "rule": { "enum": ["archived", "license", "malicious", "high_risk", "incompatible"] },
+              "detail": { "type": "string" }
+            }
+          }
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["flag", "detail"],
+            "properties": {
+              "flag": { "enum": ["cooling", "viral", "stale", "unknown"] },
+              "detail": { "type": "string" }
+            }
+          }
+        },
+        "notes": { "type": "array", "items": { "type": "string" } },
+        "github": { "type": "object" },
+        "health": {
+          "description": "docs/v2/research/eval.md §4.3 的 H1 到 H6；查不到的是 null",
+          "type": "object",
+          "properties": {
+            "H1": { "type": "object" },
+            "H2": { "type": "object" },
+            "H3": { "type": ["object", "null"] },
+            "H4": { "type": ["object", "null"] },
+            "H5": { "type": "object" },
+            "H6": { "type": "object" }
+          }
+        },
+        "adoption": { "type": "object" },
+        "compat": { "type": ["object", "null"] }
+      }
+    }
+  }
+}

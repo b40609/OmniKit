@@ -1,0 +1,5308 @@
+{
+ "layer": "0-batch",
+ "generated": "2026-11-05",
+ "github": "gh",
+ "summary": {
+  "pass": 56,
+  "flagged": 4,
+  "fail": 1,
+  "unknown": 44,
+  "skip": 11,
+  "total": 116,
+  "candidates_to_pick": [
+   "agent-os",
+   "agentops-reverse-engineer",
+   "anthropic-product-management",
+   "browserbase",
+   "chinese-pm-skills",
+   "claude-competitive-intel",
+   "claude-lsp",
+   "codex-security",
+   "cometweb-product-teardown",
+   "competitors-analysis",
+   "context7",
+   "deepgit",
+   "deepwiki-mcp",
+   "deepwiki-open",
+   "deerflow",
+   "exa",
+   "feature-dev",
+   "find-skills",
+   "gh-search",
+   "git-forage",
+   "gpt-researcher",
+   "gsd",
+   "haonan-product-research",
+   "harbor",
+   "hn-algolia",
+   "hoopyai-competitive-analysis",
+   "hyperresearch",
+   "karpathy-guidelines",
+   "mcp-registry",
+   "mirothinker",
+   "moai-adk",
+   "okx-skills",
+   "openspec",
+   "parallel",
+   "promptfoo",
+   "repo-analyzer",
+   "ria",
+   "sgrx",
+   "stanford-storm",
+   "superclaude",
+   "task-master",
+   "tavily",
+   "tongyi-deepresearch",
+   "zapier-mcp"
+  ]
+ },
+ "tools": [
+  {
+   "id": "addy-agent-skills",
+   "name": "agent-skills（addyosmani）",
+   "status": "pending",
+   "slots": [],
+   "repo": "addyosmani/agent-skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Production-grade engineering skills for AI coding agents.",
+    "created": "2026-02-15",
+    "pushed": "2026-11-01",
+    "stars": 113347,
+    "forks": 11852,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 4,
+     "commits_90d": 392
+    },
+    "H2": {
+     "releases_180d": 15,
+     "last_release": {
+      "tag": "0.6.15",
+      "date": "2026-10-31"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.75,
+     "maintainer_reply": 0.75,
+     "first_reply_hours_median": 37.1,
+     "closed_within_7d": 0.5
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 84
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 113347,
+     "age_days": 263,
+     "stars_per_day": 431.0
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 25,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "agent-browser",
+   "name": "agent-browser",
+   "status": "pending",
+   "slots": [
+    "browser"
+   ],
+   "repo": "vercel-labs/agent-browser",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Browser automation CLI for AI agents",
+    "created": "2026-01-11",
+    "pushed": "2026-11-05",
+    "stars": 45583,
+    "forks": 3137,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 173
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "v0.41.2",
+      "date": "2026-11-03"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.3,
+     "maintainer_reply": 0.1,
+     "first_reply_hours_median": 64.1,
+     "closed_within_7d": 0.2
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 45583,
+     "age_days": 298,
+     "stars_per_day": 153.0
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 1,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "agent-desktop",
+   "name": "agent-desktop（Vercel Labs）",
+   "status": "pending",
+   "slots": [],
+   "repo": "vercel-labs/agent-desktop",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Computer use CLI for AI agents",
+    "created": "2026-02-19",
+    "pushed": "2026-11-05",
+    "stars": 15861,
+    "forks": 1105,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 162
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "v1.2.0",
+      "date": "2026-11-05"
+     }
+    },
+    "H3": {
+     "sampled": 15,
+     "human_reply": 0.53,
+     "maintainer_reply": 0.53,
+     "first_reply_hours_median": 183.8,
+     "closed_within_7d": 0.67
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 9
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 15861,
+     "age_days": 259,
+     "stars_per_day": 61.2
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 6,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "agent-os",
+   "name": "agent-os",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "agent-reach",
+   "name": "Agent-Reach",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": "Panniantong/Agent-Reach",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Give your AI agent eyes to see the entire internet. Read & search Twitter, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu — one CLI, zero API fees.",
+    "created": "2026-02-24",
+    "pushed": "2026-11-04",
+    "stars": 108962,
+    "forks": 9733,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 1,
+     "commits_90d": 104
+    },
+    "H2": {
+     "releases_180d": 5,
+     "last_release": {
+      "tag": "v1.6.1",
+      "date": "2026-11-01"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.15,
+     "maintainer_reply": 0.05,
+     "first_reply_hours_median": 73.4,
+     "closed_within_7d": 0.4
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 45
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 108962,
+     "age_days": 254,
+     "stars_per_day": 429.0
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "agentops-reverse-engineer",
+   "name": "agentops reverse-engineer",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "ai-design-skills",
+   "name": "AI Design Skills（elayadesign）",
+   "status": "pending",
+   "slots": [
+    "frontend-design"
+   ],
+   "repo": "elayadesign/ai-design-skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "",
+    "created": "2026-07-29",
+    "pushed": "2026-11-01",
+    "stars": 14221,
+    "forks": 1066,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 4,
+     "commits_90d": 13
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": {
+     "sampled": 2,
+     "human_reply": 1.0,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 5.6,
+     "closed_within_7d": 0.0
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 4
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 14221,
+     "age_days": 99,
+     "stars_per_day": 143.6
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 2,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "aihot",
+   "name": "aihot",
+   "status": "pending",
+   "slots": [
+    "tool-discovery"
+   ],
+   "repo": "KKKKhazix/khazix-skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "数字生命卡兹克开源的 AI Skills 合集 | Agent Skills: leader（帮你定义目标）, neat-freak 洁癖, hv-analysis, khazix-writer & more — Claude Code, Codex & 40+ agents",
+    "created": "2026-04-06",
+    "pushed": "2026-11-03",
+    "stars": 21983,
+    "forks": 2313,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 2,
+     "commits_90d": 16
+    },
+    "H2": {
+     "releases_180d": 1,
+     "last_release": {
+      "tag": "v1.1.0",
+      "date": "2026-11-03"
+     }
+    },
+    "H3": {
+     "sampled": 4,
+     "human_reply": 0.25,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 0.0,
+     "closed_within_7d": 0.0
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 1
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 21983,
+     "age_days": 213,
+     "stars_per_day": 103.2
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "alirezarezvani-claude-skills",
+   "name": "claude-skills（alirezarezvani）",
+   "status": "pending",
+   "slots": [],
+   "repo": "alirezarezvani/claude-skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "410 Claude Code skills & agent skills & plugins (120+ Agents, custom commands, 410+ skills, customizable references, scripts)for Claude Code, Codex, Gemini CLI, Cursor, and 8 more coding agents — engineering, marketing, product, compliance, C-level advisory, research, business operations, commercial",
+    "created": "2025-10-19",
+    "pushed": "2026-11-05",
+    "stars": 29320,
+    "forks": 4073,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 426
+    },
+    "H2": {
+     "releases_180d": 16,
+     "last_release": {
+      "tag": "v2.14.9",
+      "date": "2026-11-05"
+     }
+    },
+    "H3": {
+     "sampled": 12,
+     "human_reply": 0.83,
+     "maintainer_reply": 0.83,
+     "first_reply_hours_median": 367.9,
+     "closed_within_7d": 0.33
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 60
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 29320,
+     "age_days": 382,
+     "stars_per_day": 76.8
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "anthropic-product-management",
+   "name": "Anthropic Product Management",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "anthropic-skills",
+   "name": "Anthropic skills",
+   "status": "pending",
+   "slots": [],
+   "repo": "anthropics/skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "偵測不到明確授權；要進 marketplace 時會淘汰",
+    "星數快照不足，還不能判斷爆紅",
+    "跟 document-skills、frontend-design、skill-creator 指向同一個 repo"
+   ],
+   "github": {
+    "description": "Public repository for Agent Skills",
+    "created": "2025-09-22",
+    "pushed": "2026-10-28",
+    "stars": 187535,
+    "forks": 22124,
+    "license": null,
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 8,
+     "commits_90d": 15
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.35,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 13.7,
+     "closed_within_7d": 0.05
+    },
+    "H4": {
+     "factor": 2,
+     "contributors_sampled": 16
+    },
+    "H5": {
+     "license": null
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 187535,
+     "age_days": 409,
+     "stars_per_day": 458.5
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 19,
+    "windows_ci": null
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "app-explore",
+   "name": "App 內探索工具",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "內建功能，不查 repo"
+   ],
+   "verdict": "skip"
+  },
+  {
+   "id": "bmad",
+   "name": "BMAD-METHOD",
+   "status": "default",
+   "slots": [
+    "product-research",
+    "dev-workflow"
+   ],
+   "repo": "bmad-code-org/BMAD-METHOD",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "偵測不到明確授權；要進 marketplace 時會淘汰",
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Breakthrough Method for Agile Ai Driven Development",
+    "created": "2025-04-13",
+    "pushed": "2026-11-05",
+    "stars": 55010,
+    "forks": 6138,
+    "license": "NOASSERTION",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 3,
+     "commits_90d": 340
+    },
+    "H2": {
+     "releases_180d": 12,
+     "last_release": {
+      "tag": "v6.12.4",
+      "date": "2026-10-14"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.15,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 16.5,
+     "closed_within_7d": 0.1
+    },
+    "H4": {
+     "factor": 2,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "NOASSERTION"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 55010,
+     "age_days": 571,
+     "stars_per_day": 96.3
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 33,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "browser-harness",
+   "name": "Browser Harness",
+   "status": "pending",
+   "slots": [
+    "browser"
+   ],
+   "repo": "browser-use/browser-harness",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Let Claude Code, Codex or Cursor use your real Chrome, logged in as you. One prompt to set up. Open source, MIT.",
+    "created": "2026-04-17",
+    "pushed": "2026-11-05",
+    "stars": 18877,
+    "forks": 1863,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 306
+    },
+    "H2": {
+     "releases_180d": 14,
+     "last_release": {
+      "tag": "v0.1.13",
+      "date": "2026-09-04"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.35,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 136.2,
+     "closed_within_7d": 0.0
+    },
+    "H4": {
+     "factor": 2,
+     "contributors_sampled": 86
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 18877,
+     "age_days": 202,
+     "stars_per_day": 93.5
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": true,
+    "skills": 1,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "browser-mcp",
+   "name": "Browser MCP",
+   "status": "pending",
+   "slots": [
+    "browser"
+   ],
+   "repo": "BrowserMCP/mcp",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Browser MCP is a Model Context Provider (MCP) server that allows AI applications to control your browser",
+    "created": "2025-03-28",
+    "pushed": "2026-11-03",
+    "stars": 7294,
+    "forks": 601,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 2,
+     "commits_90d": 22
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": {
+     "sampled": 9,
+     "human_reply": 1.0,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 272.7,
+     "closed_within_7d": 0.33
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 1
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 7294,
+     "age_days": 587,
+     "stars_per_day": 12.4
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "browser-use",
+   "name": "Browser Use",
+   "status": "pending",
+   "slots": [
+    "browser"
+   ],
+   "repo": "browser-use/browser-use",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Open-source Python library for AI browser agents, plus Browser Use Cloud: stealth browsers and a hosted agent API.",
+    "created": "2024-10-31",
+    "pushed": "2026-11-05",
+    "stars": 120078,
+    "forks": 13394,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 6,
+     "commits_90d": 407
+    },
+    "H2": {
+     "releases_180d": 18,
+     "last_release": {
+      "tag": "0.13.14",
+      "date": "2026-10-26"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.3,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 8.5,
+     "closed_within_7d": 0.05
+    },
+    "H4": {
+     "factor": 2,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 120078,
+     "age_days": 735,
+     "stars_per_day": 163.4
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 6,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "browserbase",
+   "name": "Browserbase",
+   "status": "pending",
+   "slots": [
+    "browser"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "caveman",
+   "name": "caveman",
+   "status": "pending",
+   "slots": [
+    "concise-output"
+   ],
+   "repo": "JuliusBrussee/caveman",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "🪨 why use many token when few token do trick. Viral skill + proxy for coding agents that cuts 65% of tokens by talking like a caveman.",
+    "created": "2026-04-04",
+    "pushed": "2026-11-05",
+    "stars": 117592,
+    "forks": 6825,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 3,
+     "commits_90d": 1619
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "bin-v4.0.2",
+      "date": "2026-10-23"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 1.0,
+     "maintainer_reply": 1.0,
+     "first_reply_hours_median": 10.1,
+     "closed_within_7d": 0.1
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 99
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 117592,
+     "age_days": 215,
+     "stars_per_day": 546.9
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 24,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "ce-handoff",
+   "name": "ce-handoff（Compound Engineering）",
+   "status": "pending",
+   "slots": [
+    "memory"
+   ],
+   "repo": "EveryInc/compound-engineering-plugin",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅",
+    "跟 compound-engineering 指向同一個 repo"
+   ],
+   "github": {
+    "description": "Official Compound Engineering plugin for Claude Code, Codex, Cursor, and more",
+    "created": "2025-10-09",
+    "pushed": "2026-11-05",
+    "stars": 25931,
+    "forks": 2058,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 446
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "compound-engineering-v3.35.3",
+      "date": "2026-11-04"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.05,
+     "maintainer_reply": 0.05,
+     "first_reply_hours_median": 9.9,
+     "closed_within_7d": 1.0
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 25931,
+     "age_days": 392,
+     "stars_per_day": 66.2
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 37,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "chinese-pm-skills",
+   "name": "chinese-pm-skills",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "chrome-devtools-mcp",
+   "name": "Chrome DevTools MCP",
+   "status": "trial",
+   "slots": [
+    "browser"
+   ],
+   "repo": "ChromeDevTools/chrome-devtools-mcp",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Chrome DevTools for coding agents",
+    "created": "2025-09-11",
+    "pushed": "2026-11-05",
+    "stars": 54818,
+    "forks": 5237,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 494
+    },
+    "H2": {
+     "releases_180d": 17,
+     "last_release": {
+      "tag": "chrome-devtools-mcp-v1.12.0",
+      "date": "2026-10-22"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.55,
+     "maintainer_reply": 0.35,
+     "first_reply_hours_median": 4.5,
+     "closed_within_7d": 0.7
+    },
+    "H4": {
+     "factor": 3,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 54818,
+     "age_days": 420,
+     "stars_per_day": 130.5
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 7,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "claude-competitive-intel",
+   "name": "claude-competitive-intel",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "claude-design",
+   "name": "Claude Code /design",
+   "status": "pending",
+   "slots": [
+    "frontend-design"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "內建功能，不查 repo"
+   ],
+   "verdict": "skip"
+  },
+  {
+   "id": "claude-lsp",
+   "name": "Claude 官方 LSP plugin",
+   "status": "pending",
+   "slots": [
+    "code-understanding"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "claude-mem",
+   "name": "claude-mem",
+   "status": "pending",
+   "slots": [
+    "memory"
+   ],
+   "repo": "thedotmack/claude-mem",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Persistent Context Across Sessions for Every Agent –  Captures everything your agent does during sessions, compresses it with AI, and injects relevant context back into future sessions. Works with Claude Code, OpenClaw, Codex, Gemini, Hermes, Copilot, OpenCode + More",
+    "created": "2025-08-31",
+    "pushed": "2026-11-05",
+    "stars": 113156,
+    "forks": 9821,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 1518
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "v15.9.0",
+      "date": "2026-11-02"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.8,
+     "maintainer_reply": 0.7,
+     "first_reply_hours_median": 37.5,
+     "closed_within_7d": 0.55
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 113156,
+     "age_days": 431,
+     "stars_per_day": 262.5
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "claude-plugin-eval",
+   "name": "claude plugin eval",
+   "status": "pending",
+   "slots": [
+    "skill-authoring"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "內建功能，不查 repo"
+   ],
+   "verdict": "skip"
+  },
+  {
+   "id": "claudekit-skills",
+   "name": "ClaudeKit skills（mrgoonie）",
+   "status": "pending",
+   "slots": [],
+   "repo": "mrgoonie/claudekit-skills",
+   "resolution": "card",
+   "flags": [
+    {
+     "flag": "stale",
+     "detail": "216 天沒有 commit，沒有 release"
+    }
+   ],
+   "fails": [],
+   "notes": [
+    "偵測不到明確授權；要進 marketplace 時會淘汰",
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "All powerful skills of ClaudeKit.cc!",
+    "created": "2025-10-23",
+    "pushed": "2026-04-03",
+    "stars": 2234,
+    "forks": 421,
+    "license": null,
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 216,
+     "commits_90d": 0
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": null,
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 4
+    },
+    "H5": {
+     "license": null
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 2234,
+     "age_days": 378,
+     "stars_per_day": 5.9
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": null
+   },
+   "verdict": "flagged"
+  },
+  {
+   "id": "claudex-loop",
+   "name": "claudex-loop",
+   "status": "pending",
+   "slots": [
+    "review"
+   ],
+   "repo": "chaseai-yt/claudex-loop",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "偵測不到明確授權；要進 marketplace 時會淘汰",
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Claude Code skill: four-phase plan hardening (recon, interrogate, Codex adversarial review, cross-model build & inspection) — two AI models harden your plan before a line of code exists, then swap jobs to build it. Whoever built it never grades it.",
+    "created": "2026-06-05",
+    "pushed": "2026-10-14",
+    "stars": 3349,
+    "forks": 358,
+    "license": "NOASSERTION",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 22,
+     "commits_90d": 33
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": {
+     "sampled": 12,
+     "human_reply": 0.17,
+     "maintainer_reply": 0.08,
+     "first_reply_hours_median": 254.9,
+     "closed_within_7d": 0.17
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 7
+    },
+    "H5": {
+     "license": "NOASSERTION"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 3349,
+     "age_days": 153,
+     "stars_per_day": 21.9
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 4,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "codegraph",
+   "name": "CodeGraph",
+   "status": "pending",
+   "slots": [
+    "code-understanding"
+   ],
+   "repo": "colbymchenry/codegraph",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Pre-indexed code knowledge graph, auto syncs on code changes, for Claude Code, Codex, Gemini, Cursor, OpenCode, AntiGravity, Kiro, CoPilot, and Hermes Agent — fewer tokens, fewer tool calls, 100% local",
+    "created": "2026-01-18",
+    "pushed": "2026-11-01",
+    "stars": 76677,
+    "forks": 5094,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 4,
+     "commits_90d": 990
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "v1.6.2",
+      "date": "2026-10-03"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.3,
+     "maintainer_reply": 0.25,
+     "first_reply_hours_median": 27.0,
+     "closed_within_7d": 0.6
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 49
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 76677,
+     "age_days": 291,
+     "stars_per_day": 263.5
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "codex-security",
+   "name": "codex-security",
+   "status": "pending",
+   "slots": [
+    "review"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "cometweb-product-teardown",
+   "name": "CometWeb product-teardown",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "competitors-analysis",
+   "name": "competitors-analysis（daymade）",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "composio",
+   "name": "Composio",
+   "status": "pending",
+   "slots": [],
+   "repo": "ComposioHQ/composio",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Composio powers 1000+ toolkits, tool search, context management, authentication, and a sandboxed workbench to help you build AI agents that turn intent into action.",
+    "created": "2024-02-23",
+    "pushed": "2026-11-05",
+    "stars": 30933,
+    "forks": 4922,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 1299
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "@composio/cli@0.6.1-beta.534",
+      "date": "2026-11-04"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.45,
+     "maintainer_reply": 0.2,
+     "first_reply_hours_median": 5.6,
+     "closed_within_7d": 0.4
+    },
+    "H4": {
+     "factor": 3,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 30933,
+     "age_days": 986,
+     "stars_per_day": 31.4
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 1,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "compound-engineering",
+   "name": "Compound Engineering",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": "EveryInc/compound-engineering-plugin",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅",
+    "跟 ce-handoff 指向同一個 repo"
+   ],
+   "github": {
+    "description": "Official Compound Engineering plugin for Claude Code, Codex, Cursor, and more",
+    "created": "2025-10-09",
+    "pushed": "2026-11-05",
+    "stars": 25931,
+    "forks": 2058,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 446
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "compound-engineering-v3.35.3",
+      "date": "2026-11-04"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.05,
+     "maintainer_reply": 0.05,
+     "first_reply_hours_median": 9.9,
+     "closed_within_7d": 1.0
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 25931,
+     "age_days": 392,
+     "stars_per_day": 66.2
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 37,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "context7",
+   "name": "Context7",
+   "status": "pending",
+   "slots": [
+    "code-understanding"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "craft-anything",
+   "name": "Craft Anything（ArtCraft）",
+   "status": "pending",
+   "slots": [
+    "reverse-engineering",
+    "frontend-design"
+   ],
+   "repo": "storytold/craft-anything",
+   "resolution": "card",
+   "flags": [
+    {
+     "flag": "cooling",
+     "detail": "建立 5 天，冷卻到 2026-11-14：可以做第 1 層，不排實測"
+    }
+   ],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Craft Anything: understand how any software works, and craft your own.",
+    "created": "2026-10-31",
+    "pushed": "2026-11-04",
+    "stars": 13255,
+    "forks": 2232,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 1,
+     "commits_90d": 356
+    },
+    "H2": {
+     "releases_180d": 3,
+     "last_release": {
+      "tag": "v0.3.0",
+      "date": "2026-11-02"
+     }
+    },
+    "H3": null,
+    "H4": {
+     "factor": 4,
+     "contributors_sampled": 48
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 13255,
+     "age_days": 5,
+     "stars_per_day": 2651.0
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "flagged"
+  },
+  {
+   "id": "deepgit",
+   "name": "DeepGit",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "deepwiki-mcp",
+   "name": "DeepWiki MCP（hosted）",
+   "status": "pending",
+   "slots": [
+    "code-understanding"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "deepwiki-open",
+   "name": "DeepWiki-Open",
+   "status": "pending",
+   "slots": [
+    "code-understanding"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "deerflow",
+   "name": "DeerFlow github-deep-research",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "document-skills",
+   "name": "document-skills",
+   "status": "pending",
+   "slots": [
+    "docs-output"
+   ],
+   "repo": "anthropics/skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "偵測不到明確授權；要進 marketplace 時會淘汰",
+    "星數快照不足，還不能判斷爆紅",
+    "跟 anthropic-skills、frontend-design、skill-creator 指向同一個 repo"
+   ],
+   "github": {
+    "description": "Public repository for Agent Skills",
+    "created": "2025-09-22",
+    "pushed": "2026-10-28",
+    "stars": 187535,
+    "forks": 22124,
+    "license": null,
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 8,
+     "commits_90d": 15
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.35,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 13.7,
+     "closed_within_7d": 0.05
+    },
+    "H4": {
+     "factor": 2,
+     "contributors_sampled": 16
+    },
+    "H5": {
+     "license": null
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 187535,
+     "age_days": 409,
+     "stars_per_day": 458.5
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 19,
+    "windows_ci": null
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "dzhng-deep-research",
+   "name": "deep-research（dzhng）",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": "dzhng/deep-research",
+   "resolution": "card",
+   "flags": [
+    {
+     "flag": "stale",
+     "detail": "208 天沒有 commit，沒有 release"
+    }
+   ],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "An AI-powered research assistant that performs iterative, deep research on any topic by combining search engines, web scraping, and large language models.  The goal of this repo is to provide the simplest implementation of a deep research agent - e.g. an agent that can refine its research direction ",
+    "created": "2025-02-04",
+    "pushed": "2026-04-11",
+    "stars": 19877,
+    "forks": 2009,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 208,
+     "commits_90d": 0
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": {
+     "sampled": 2,
+     "human_reply": 0.0,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": null,
+     "closed_within_7d": 0.0
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 16
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 19877,
+     "age_days": 639,
+     "stars_per_day": 31.1
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": null
+   },
+   "verdict": "flagged"
+  },
+  {
+   "id": "ecc",
+   "name": "ECC",
+   "status": "pending",
+   "slots": [],
+   "repo": "affaan-m/ECC",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅",
+    "跟 search-first 指向同一個 repo"
+   ],
+   "github": {
+    "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond.",
+    "created": "2026-01-18",
+    "pushed": "2026-11-02",
+    "stars": 297447,
+    "forks": 43976,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 6,
+     "commits_90d": 1933
+    },
+    "H2": {
+     "releases_180d": 7,
+     "last_release": {
+      "tag": "v2.2.3",
+      "date": "2026-10-01"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.15,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 1.8,
+     "closed_within_7d": 0.5
+    },
+    "H4": {
+     "factor": 2,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 297447,
+     "age_days": 291,
+     "stars_per_day": 1022.2
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 314,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "exa",
+   "name": "Exa",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "feature-dev",
+   "name": "feature-dev（Anthropic）",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "find-skills",
+   "name": "find-skills",
+   "status": "pending",
+   "slots": [
+    "tool-discovery"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "firecrawl",
+   "name": "Firecrawl",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": "firecrawl/firecrawl",
+   "resolution": "candidate-auto",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "自動比對到 firecrawl/firecrawl（名稱完全相同而且只有一個）；不對的話在 candidates.yaml 改 chosen",
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Supercharge your AI agents with data from the web and beyond. Building the library for superintelligence. 🔥",
+    "created": "2024-04-15",
+    "pushed": "2026-11-05",
+    "stars": 198757,
+    "forks": 10483,
+    "license": "AGPL-3.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 1,
+     "commits_90d": 721
+    },
+    "H2": {
+     "releases_180d": 2,
+     "last_release": {
+      "tag": "v2.11.0",
+      "date": "2026-06-19"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.35,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 6.0,
+     "closed_within_7d": 0.05
+    },
+    "H4": {
+     "factor": 2,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "AGPL-3.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 198757,
+     "age_days": 934,
+     "stars_per_day": 212.8
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 5,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "floorplan",
+   "name": "Floorplan",
+   "status": "pending",
+   "slots": [
+    "code-understanding"
+   ],
+   "repo": "haydenschmitty/floorplan",
+   "resolution": "card",
+   "flags": [
+    {
+     "flag": "cooling",
+     "detail": "建立 9 天，冷卻到 2026-11-10：可以做第 1 層，不排實測"
+    }
+   ],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "See how your app actually fits together. An interactive, plain-English map of your codebase, drawn by Claude or Codex.",
+    "created": "2026-10-27",
+    "pushed": "2026-11-02",
+    "stars": 2900,
+    "forks": 217,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 3,
+     "commits_90d": 120
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "floorplan--v0.6.3",
+      "date": "2026-11-02"
+     }
+    },
+    "H3": {
+     "sampled": 10,
+     "human_reply": 0.7,
+     "maintainer_reply": 0.7,
+     "first_reply_hours_median": 2.6,
+     "closed_within_7d": 0.9
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 8
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 2900,
+     "age_days": 9,
+     "stars_per_day": 322.2
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 1,
+    "windows_ci": true
+   },
+   "verdict": "flagged"
+  },
+  {
+   "id": "frontend-design",
+   "name": "frontend-design",
+   "status": "default",
+   "slots": [
+    "frontend-design"
+   ],
+   "repo": "anthropics/skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "卡片的 repo 偵測不到授權（marketplace 看的是 plugin 來源）",
+    "星數快照不足，還不能判斷爆紅",
+    "跟 anthropic-skills、document-skills、skill-creator 指向同一個 repo"
+   ],
+   "github": {
+    "description": "Public repository for Agent Skills",
+    "created": "2025-09-22",
+    "pushed": "2026-10-28",
+    "stars": 187535,
+    "forks": 22124,
+    "license": null,
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 8,
+     "commits_90d": 15
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.35,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 13.7,
+     "closed_within_7d": 0.05
+    },
+    "H4": {
+     "factor": 2,
+     "contributors_sampled": 16
+    },
+    "H5": {
+     "license": null
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 187535,
+     "age_days": 409,
+     "stars_per_day": 458.5
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 19,
+    "windows_ci": null
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "gh-search",
+   "name": "GitHub 搜尋（gh）",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "git-forage",
+   "name": "Git Forage（matcluck）",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "gpt-researcher",
+   "name": "GPT Researcher",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "graphify",
+   "name": "graphify",
+   "status": "pending",
+   "slots": [
+    "code-understanding"
+   ],
+   "repo": "Graphify-Labs/graphify",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Turn any codebase, with its docs, SQL schemas, configs, and PDFs, into a queryable knowledge graph. A /graphify skill for Claude Code, Cursor, Codex, and Gemini CLI: local deterministic AST parsing, every edge explained, no vector store.",
+    "created": "2026-04-03",
+    "pushed": "2026-11-03",
+    "stars": 142619,
+    "forks": 13634,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 2,
+     "commits_90d": 1481
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "v0.9.102",
+      "date": "2026-11-03"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.5,
+     "maintainer_reply": 0.35,
+     "first_reply_hours_median": 12.7,
+     "closed_within_7d": 0.4
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 142619,
+     "age_days": 216,
+     "stars_per_day": 660.3
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "gsd",
+   "name": "GSD",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "gstack",
+   "name": "gstack",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": "garrytan/gstack",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Use Garry Tan's exact Claude Code setup: 23 opinionated tools that serve as CEO, Designer, Eng Manager, Release Manager, Doc Engineer, and QA",
+    "created": "2026-03-11",
+    "pushed": "2026-11-05",
+    "stars": 139535,
+    "forks": 20654,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 639
+    },
+    "H2": {
+     "releases_180d": 3,
+     "last_release": {
+      "tag": "v1.92.55.0",
+      "date": "2026-11-02"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.0,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": null,
+     "closed_within_7d": 0.75
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 14
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 139535,
+     "age_days": 239,
+     "stars_per_day": 583.8
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": true,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "haonan-product-research",
+   "name": "HaoNan product-research",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "harbor",
+   "name": "Harbor",
+   "status": "pending",
+   "slots": [
+    "skill-authoring"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "hashbulla-deep-research",
+   "name": "deep-research（hashbulla）",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": "hashbulla/deep-research",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "A human-gated, 7-phase agentic deep-research skill for Claude Code. Fans out across the open web (Tavily), GitHub, academic open-graphs (OpenAlex/arXiv/Semantic Scholar), and live library docs — then grades every source on the NATO Admiralty A–F scale, runs deterministic quality gates, and emits fou",
+    "created": "2026-04-17",
+    "pushed": "2026-08-18",
+    "stars": 1,
+    "forks": 0,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 79,
+     "commits_90d": 20
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": null,
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 1
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 1,
+     "age_days": 202,
+     "stars_per_day": 0.0
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": true,
+    "skills": 0,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "herdr",
+   "name": "Herdr 桌面版",
+   "status": "pending",
+   "slots": [
+    "permissions"
+   ],
+   "repo": "herdrdev/herdr-app",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "herdr desktop app",
+    "created": "2026-10-16",
+    "pushed": "2026-11-04",
+    "stars": 2000,
+    "forks": 286,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 1,
+     "commits_90d": 280
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.45,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 21.0,
+     "closed_within_7d": 0.3
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 56
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 2000,
+     "age_days": 20,
+     "stars_per_day": 100.0
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "hn-algolia",
+   "name": "HN Algolia API",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "hoopyai-competitive-analysis",
+   "name": "hoopyAI competitive-analysis-skill",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "hyperresearch",
+   "name": "hyperresearch",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "i-have-adhd",
+   "name": "i-have-adhd",
+   "status": "pending",
+   "slots": [
+    "concise-output"
+   ],
+   "repo": "ayghri/i-have-adhd",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "A skill to stop your coding agent from burying the answer. ADHD-friendly output.",
+    "created": "2026-05-13",
+    "pushed": "2026-10-19",
+    "stars": 60127,
+    "forks": 3500,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 25,
+     "commits_90d": 114
+    },
+    "H2": {
+     "releases_180d": 1,
+     "last_release": {
+      "tag": "v0.4.1",
+      "date": "2026-10-19"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.2,
+     "maintainer_reply": 0.1,
+     "first_reply_hours_median": 150.8,
+     "closed_within_7d": 0.15
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 49
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 60127,
+     "age_days": 176,
+     "stars_per_day": 341.6
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 1,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "ifixai",
+   "name": "iFixAi",
+   "status": "pending",
+   "slots": [],
+   "repo": "ifixai-ai/iFixAi",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Independent Auditing of AI Agents. Run by human or the agent itself, to answer the most crucial question in the AI Agent Economy. Is the agent doing what is supposed to do? With iFixAi you can have this answer in less than 120 seconds.",
+    "created": "2026-04-27",
+    "pushed": "2026-11-02",
+    "stars": 43592,
+    "forks": 1784,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 3,
+     "commits_90d": 277
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "v4.3.0",
+      "date": "2026-10-22"
+     }
+    },
+    "H3": {
+     "sampled": 3,
+     "human_reply": 1.0,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 69.0,
+     "closed_within_7d": 1.0
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 23
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 43592,
+     "age_days": 192,
+     "stars_per_day": 227.0
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "impeccable",
+   "name": "impeccable",
+   "status": "pending",
+   "slots": [
+    "frontend-design"
+   ],
+   "repo": "pbakaus/impeccable",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "The design vocabulary for your coding agent. Steer with polish and bolder, review with critique and audit, catch AI slop before it ships.",
+    "created": "2025-11-16",
+    "pushed": "2026-11-05",
+    "stars": 103208,
+    "forks": 6110,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 1207
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "cli-v4.8.0",
+      "date": "2026-10-26"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.45,
+     "maintainer_reply": 0.45,
+     "first_reply_hours_median": 9.9,
+     "closed_within_7d": 0.55
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 58
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 103208,
+     "age_days": 354,
+     "stars_per_day": 291.5
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "inspect-ai",
+   "name": "Inspect AI",
+   "status": "pending",
+   "slots": [
+    "skill-authoring"
+   ],
+   "repo": "UKGovernmentBEIS/inspect_ai",
+   "resolution": "candidate-auto",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "自動比對到 UKGovernmentBEIS/inspect_ai（名稱完全相同而且只有一個）；不對的話在 candidates.yaml 改 chosen",
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Inspect: A framework for large language model evaluations",
+    "created": "2023-11-14",
+    "pushed": "2026-11-05",
+    "stars": 3182,
+    "forks": 895,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 1,
+     "commits_90d": 1161
+    },
+    "H2": {
+     "releases_180d": 10,
+     "last_release": {
+      "tag": "0.3.287",
+      "date": "2026-10-31"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.45,
+     "maintainer_reply": 0.05,
+     "first_reply_hours_median": 26.3,
+     "closed_within_7d": 0.15
+    },
+    "H4": {
+     "factor": 2,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 3182,
+     "age_days": 1087,
+     "stars_per_day": 2.9
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "jeffallan-claude-skills",
+   "name": "claude-skills（Jeffallan）",
+   "status": "pending",
+   "slots": [],
+   "repo": "Jeffallan/claude-skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "67 Specialized Skills for Full-Stack Developers. Transform Claude Code into your expert pair programmer.",
+    "created": "2025-10-20",
+    "pushed": "2026-10-30",
+    "stars": 12223,
+    "forks": 1175,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 6,
+     "commits_90d": 99
+    },
+    "H2": {
+     "releases_180d": 6,
+     "last_release": {
+      "tag": "v0.4.20",
+      "date": "2026-10-16"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.1,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 232.5,
+     "closed_within_7d": 0.7
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 27
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 12223,
+     "age_days": 381,
+     "stars_per_day": 32.1
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 67,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "karpathy-guidelines",
+   "name": "Karpathy 風格準則（multica-ai）",
+   "status": "pending",
+   "slots": [
+    "behavior-rules"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "lemo-opuscar",
+   "name": "lemo-opuscar",
+   "status": "pending",
+   "slots": [],
+   "repo": "lemomo-ai/lemo-opuscar",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "A toolbox of film styles made in code for Claude Code: 66 ready to use, and your own. Each style is a style prompt plus a demo film made entirely in code by Claude Opus 5.5, with no video model. By Lemomo. · 一套用代码做片的风格工具箱：66 种现成风格，也能做出你自己的",
+    "created": "2026-09-26",
+    "pushed": "2026-10-31",
+    "stars": 12419,
+    "forks": 1437,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 5,
+     "commits_90d": 80
+    },
+    "H2": {
+     "releases_180d": 4,
+     "last_release": {
+      "tag": "thanks",
+      "date": "2026-10-12"
+     }
+    },
+    "H3": {
+     "sampled": 5,
+     "human_reply": 0.8,
+     "maintainer_reply": 0.8,
+     "first_reply_hours_median": 63.3,
+     "closed_within_7d": 1.0
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 4
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 12419,
+     "age_days": 40,
+     "stars_per_day": 310.5
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "mattpocock-grill-me",
+   "name": "grill-me（mattpocock）",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": "mattpocock/skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅",
+    "跟 mattpocock-skills、mattpocock-to-spec 指向同一個 repo"
+   ],
+   "github": {
+    "description": "Skills for Real Engineers. Straight from my .agents directory.",
+    "created": "2026-02-03",
+    "pushed": "2026-11-04",
+    "stars": 313857,
+    "forks": 26316,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 5,
+     "commits_90d": 133
+    },
+    "H2": {
+     "releases_180d": 10,
+     "last_release": {
+      "tag": "v1.3.2",
+      "date": "2026-10-29"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.75,
+     "maintainer_reply": 0.65,
+     "first_reply_hours_median": 92.9,
+     "closed_within_7d": 0.3
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 4
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 313857,
+     "age_days": 275,
+     "stars_per_day": 1141.3
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 5,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "mattpocock-skills",
+   "name": "mattpocock skills",
+   "status": "pending",
+   "slots": [],
+   "repo": "mattpocock/skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅",
+    "跟 mattpocock-grill-me、mattpocock-to-spec 指向同一個 repo"
+   ],
+   "github": {
+    "description": "Skills for Real Engineers. Straight from my .agents directory.",
+    "created": "2026-02-03",
+    "pushed": "2026-11-04",
+    "stars": 313857,
+    "forks": 26316,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 5,
+     "commits_90d": 133
+    },
+    "H2": {
+     "releases_180d": 10,
+     "last_release": {
+      "tag": "v1.3.2",
+      "date": "2026-10-29"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.75,
+     "maintainer_reply": 0.65,
+     "first_reply_hours_median": 92.9,
+     "closed_within_7d": 0.3
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 4
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 313857,
+     "age_days": 275,
+     "stars_per_day": 1141.3
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 5,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "mattpocock-to-spec",
+   "name": "to-spec（mattpocock）",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": "mattpocock/skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅",
+    "跟 mattpocock-grill-me、mattpocock-skills 指向同一個 repo"
+   ],
+   "github": {
+    "description": "Skills for Real Engineers. Straight from my .agents directory.",
+    "created": "2026-02-03",
+    "pushed": "2026-11-04",
+    "stars": 313857,
+    "forks": 26316,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 5,
+     "commits_90d": 133
+    },
+    "H2": {
+     "releases_180d": 10,
+     "last_release": {
+      "tag": "v1.3.2",
+      "date": "2026-10-29"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.75,
+     "maintainer_reply": 0.65,
+     "first_reply_hours_median": 92.9,
+     "closed_within_7d": 0.3
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 4
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 313857,
+     "age_days": 275,
+     "stars_per_day": 1141.3
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 5,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "mcp-registry",
+   "name": "官方 MCP Registry",
+   "status": "pending",
+   "slots": [
+    "tool-discovery"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "mirothinker",
+   "name": "MiroThinker",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "moai-adk",
+   "name": "moai-adk",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "native-browser",
+   "name": "原生瀏覽器",
+   "status": "default",
+   "slots": [
+    "browser"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "內建功能，不查 repo"
+   ],
+   "verdict": "skip"
+  },
+  {
+   "id": "native-concise",
+   "name": "原生精簡輸出",
+   "status": "default",
+   "slots": [
+    "concise-output"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "內建功能，不查 repo"
+   ],
+   "verdict": "skip"
+  },
+  {
+   "id": "native-docs",
+   "name": "原生文件產出",
+   "status": "default",
+   "slots": [
+    "docs-output"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "內建功能，不查 repo"
+   ],
+   "verdict": "skip"
+  },
+  {
+   "id": "native-memory",
+   "name": "原生記憶",
+   "status": "default",
+   "slots": [
+    "memory"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "內建功能，不查 repo"
+   ],
+   "verdict": "skip"
+  },
+  {
+   "id": "native-permissions",
+   "name": "原生權限與通知",
+   "status": "default",
+   "slots": [
+    "permissions"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "內建功能，不查 repo"
+   ],
+   "verdict": "skip"
+  },
+  {
+   "id": "native-review",
+   "name": "原生審查",
+   "status": "default",
+   "slots": [
+    "review"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "內建功能，不查 repo"
+   ],
+   "verdict": "skip"
+  },
+  {
+   "id": "native-search",
+   "name": "原生搜尋",
+   "status": "default",
+   "slots": [
+    "code-understanding"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "內建功能，不查 repo"
+   ],
+   "verdict": "skip"
+  },
+  {
+   "id": "native-workflow",
+   "name": "原生開發流程",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "內建功能，不查 repo"
+   ],
+   "verdict": "skip"
+  },
+  {
+   "id": "okx-skills",
+   "name": "OKX skills",
+   "status": "pending",
+   "slots": [],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "open-deep-research",
+   "name": "LangChain Open Deep Research",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": "langchain-ai/open_deep_research",
+   "resolution": "candidate-auto",
+   "flags": [],
+   "fails": [
+    {
+     "rule": "archived",
+     "detail": "repo 已封存，不再維護"
+    }
+   ],
+   "notes": [
+    "自動比對到 langchain-ai/open_deep_research（名稱完全相同而且只有一個）；不對的話在 candidates.yaml 改 chosen",
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "",
+    "created": "2024-11-20",
+    "pushed": "2026-08-10",
+    "stars": 12680,
+    "forks": 1862,
+    "license": "MIT",
+    "archived": true,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 87,
+     "commits_90d": 1
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": null,
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 26
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 12680,
+     "age_days": 715,
+     "stars_per_day": 17.7
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": false
+   },
+   "verdict": "fail"
+  },
+  {
+   "id": "openspec",
+   "name": "OpenSpec",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "parallel",
+   "name": "Parallel",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "phuryn-pm-skills",
+   "name": "pm-skills（phuryn）",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": "phuryn/pm-skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "PM Skills Marketplace: 100+ agentic skills, commands, and plugins — from discovery to strategy, execution, launch, and growth.",
+    "created": "2026-03-01",
+    "pushed": "2026-10-29",
+    "stars": 27703,
+    "forks": 2868,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 7,
+     "commits_90d": 22
+    },
+    "H2": {
+     "releases_180d": 3,
+     "last_release": {
+      "tag": "v2.2.0",
+      "date": "2026-10-10"
+     }
+    },
+    "H3": {
+     "sampled": 3,
+     "human_reply": 0.0,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": null,
+     "closed_within_7d": 0.0
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 3
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 27703,
+     "age_days": 249,
+     "stars_per_day": 111.3
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "planning-with-files",
+   "name": "planning-with-files",
+   "status": "pending",
+   "slots": [
+    "memory"
+   ],
+   "repo": "OthmanAdi/planning-with-files",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Persistent file-based planning for AI coding agents and long-running tasks. Crash-proof markdown plans, session recovery after /clear and compaction, per-turn re-injection against context rot, deterministic completion gate. Manus-style. Install from npm, the Claude Code plugin marketplace, or npx sk",
+    "created": "2026-01-03",
+    "pushed": "2026-11-04",
+    "stars": 27891,
+    "forks": 2314,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 1,
+     "commits_90d": 259
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "v3.28.0",
+      "date": "2026-11-03"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 1.0,
+     "maintainer_reply": 0.4,
+     "first_reply_hours_median": 6.8,
+     "closed_within_7d": 0.9
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 61
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 27891,
+     "age_days": 306,
+     "stars_per_day": 91.1
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 2,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "playwright-cli",
+   "name": "Playwright CLI",
+   "status": "pending",
+   "slots": [
+    "browser"
+   ],
+   "repo": "microsoft/playwright-cli",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "CLI for common Playwright actions. Record and generate Playwright code, inspect selectors and take screenshots.",
+    "created": "2020-06-19",
+    "pushed": "2026-11-04",
+    "stars": 14969,
+    "forks": 899,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 1,
+     "commits_90d": 24
+    },
+    "H2": {
+     "releases_180d": 10,
+     "last_release": {
+      "tag": "v0.1.23",
+      "date": "2026-10-31"
+     }
+    },
+    "H3": {
+     "sampled": 17,
+     "human_reply": 0.47,
+     "maintainer_reply": 0.35,
+     "first_reply_hours_median": 44.1,
+     "closed_within_7d": 0.94
+    },
+    "H4": {
+     "factor": 2,
+     "contributors_sampled": 14
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 14969,
+     "age_days": 2330,
+     "stars_per_day": 6.4
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 1,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "playwright-mcp",
+   "name": "Playwright MCP",
+   "status": "pending",
+   "slots": [
+    "browser"
+   ],
+   "repo": "microsoft/playwright-mcp",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Playwright MCP server",
+    "created": "2025-03-21",
+    "pushed": "2026-11-04",
+    "stars": 39194,
+    "forks": 3383,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 1,
+     "commits_90d": 40
+    },
+    "H2": {
+     "releases_180d": 9,
+     "last_release": {
+      "tag": "v0.0.84",
+      "date": "2026-10-31"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.55,
+     "maintainer_reply": 0.3,
+     "first_reply_hours_median": 8.5,
+     "closed_within_7d": 1.0
+    },
+    "H4": {
+     "factor": 2,
+     "contributors_sampled": 70
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 39194,
+     "age_days": 594,
+     "stars_per_day": 66.0
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "ponytail",
+   "name": "ponytail",
+   "status": "pending",
+   "slots": [
+    "behavior-rules"
+   ],
+   "repo": "DietrichGebert/ponytail",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Makes your AI agent think like the laziest senior dev in the room. The best code is the code you never wrote.",
+    "created": "2026-06-12",
+    "pushed": "2026-10-29",
+    "stars": 184767,
+    "forks": 10212,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 7,
+     "commits_90d": 163
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "v5.3.3",
+      "date": "2026-10-29"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.1,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 9.9,
+     "closed_within_7d": 0.25
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 184767,
+     "age_days": 146,
+     "stars_per_day": 1265.5
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 6,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "promptfoo",
+   "name": "promptfoo",
+   "status": "pending",
+   "slots": [
+    "skill-authoring"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "pullboard",
+   "name": "Pullboard",
+   "status": "pending",
+   "slots": [
+    "dev-workflow",
+    "review"
+   ],
+   "repo": "pullboard-dev/pullboard",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Autonomous development for real products. Governed agents build from specs you approve, follow the rules you set, and nothing merges until another agent proves it. Your decisions, judgement and taste are the bar that work must clear. Declare your vision and let agents build it.",
+    "created": "2026-10-07",
+    "pushed": "2026-10-28",
+    "stars": 681,
+    "forks": 75,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 8,
+     "commits_90d": 7341
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "v0.9.3",
+      "date": "2026-10-27"
+     }
+    },
+    "H3": {
+     "sampled": 8,
+     "human_reply": 0.75,
+     "maintainer_reply": 0.75,
+     "first_reply_hours_median": 330.1,
+     "closed_within_7d": 0.25
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 1
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 681,
+     "age_days": 29,
+     "stars_per_day": 23.5
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 7,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "rea",
+   "name": "REA（Reverse Engineer Anything）",
+   "status": "default",
+   "slots": [
+    "reverse-engineering"
+   ],
+   "repo": "morluto/rea",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Reverse engineer anything with agents, from app behavior down to native binaries.",
+    "created": "2026-04-14",
+    "pushed": "2026-11-05",
+    "stars": 432213,
+    "forks": 107383,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 5785
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "rea-agents-6.8.0",
+      "date": "2026-10-25"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.35,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 9.9,
+     "closed_within_7d": 0.35
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 432213,
+     "age_days": 205,
+     "stars_per_day": 2108.4
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "repo-analyzer",
+   "name": "repo-analyzer",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "ria",
+   "name": "RIA",
+   "status": "pending",
+   "slots": [
+    "product-research",
+    "dev-workflow"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "rtk",
+   "name": "RTK（Rust Token Killer）",
+   "status": "pending",
+   "slots": [
+    "output-compression"
+   ],
+   "repo": "rtk-ai/rtk",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "CLI proxy that reduces LLM token consumption by 60-90% on common dev commands. Single Rust binary, zero dependencies",
+    "created": "2026-01-22",
+    "pushed": "2026-11-05",
+    "stars": 85596,
+    "forks": 5477,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 1184
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "dev-1.2.0-rc.615",
+      "date": "2026-11-05"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.3,
+     "maintainer_reply": 0.25,
+     "first_reply_hours_median": 86.2,
+     "closed_within_7d": 0.05
+    },
+    "H4": {
+     "factor": 3,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 85596,
+     "age_days": 287,
+     "stars_per_day": 298.2
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "search-first",
+   "name": "search-first（ECC）",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": "affaan-m/ECC",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅",
+    "跟 ecc 指向同一個 repo"
+   ],
+   "github": {
+    "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond.",
+    "created": "2026-01-18",
+    "pushed": "2026-11-02",
+    "stars": 297447,
+    "forks": 43976,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 6,
+     "commits_90d": 1933
+    },
+    "H2": {
+     "releases_180d": 7,
+     "last_release": {
+      "tag": "v2.2.3",
+      "date": "2026-10-01"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.15,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 1.8,
+     "closed_within_7d": 0.5
+    },
+    "H4": {
+     "factor": 2,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 297447,
+     "age_days": 291,
+     "stars_per_day": 1022.2
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 314,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "seleniumbase",
+   "name": "SeleniumBase",
+   "status": "pending",
+   "slots": [
+    "browser"
+   ],
+   "repo": "seleniumbase/SeleniumBase",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Automate browsers without limits. SeleniumBase CDP Mode bypasses bot-detection and CAPTCHAs with ease. Check out the example tests!",
+    "created": "2014-03-04",
+    "pushed": "2026-11-05",
+    "stars": 13225,
+    "forks": 1613,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 320
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "v4.57.1",
+      "date": "2026-11-05"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.4,
+     "maintainer_reply": 0.4,
+     "first_reply_hours_median": 5.4,
+     "closed_within_7d": 0.9
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 33
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 13225,
+     "age_days": 4629,
+     "stars_per_day": 2.9
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "serena",
+   "name": "Serena",
+   "status": "pending",
+   "slots": [
+    "code-understanding"
+   ],
+   "repo": "oraios/serena",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "偵測不到明確授權；要進 marketplace 時會淘汰",
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "A powerful MCP toolkit for coding, providing semantic retrieval and editing capabilities  - the IDE for your agent",
+    "created": "2025-03-23",
+    "pushed": "2026-10-28",
+    "stars": 31112,
+    "forks": 2126,
+    "license": "NOASSERTION",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 8,
+     "commits_90d": 376
+    },
+    "H2": {
+     "releases_180d": 10,
+     "last_release": {
+      "tag": "v2.1.0",
+      "date": "2026-10-19"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.25,
+     "maintainer_reply": 0.05,
+     "first_reply_hours_median": 53.8,
+     "closed_within_7d": 0.1
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "NOASSERTION"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 31112,
+     "age_days": 592,
+     "stars_per_day": 52.6
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "sgrx",
+   "name": "SGRX",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "skill-creator",
+   "name": "skill-creator",
+   "status": "default",
+   "slots": [
+    "skill-authoring"
+   ],
+   "repo": "anthropics/skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "卡片的 repo 偵測不到授權（marketplace 看的是 plugin 來源）",
+    "星數快照不足，還不能判斷爆紅",
+    "跟 anthropic-skills、document-skills、frontend-design 指向同一個 repo"
+   ],
+   "github": {
+    "description": "Public repository for Agent Skills",
+    "created": "2025-09-22",
+    "pushed": "2026-10-28",
+    "stars": 187535,
+    "forks": 22124,
+    "license": null,
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 8,
+     "commits_90d": 15
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.35,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 13.7,
+     "closed_within_7d": 0.05
+    },
+    "H4": {
+     "factor": 2,
+     "contributors_sampled": 16
+    },
+    "H5": {
+     "license": null
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 187535,
+     "age_days": 409,
+     "stars_per_day": 458.5
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 19,
+    "windows_ci": null
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "skyvern",
+   "name": "Skyvern",
+   "status": "pending",
+   "slots": [
+    "browser"
+   ],
+   "repo": "Skyvern-AI/skyvern",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Automate browser based workflows with AI",
+    "created": "2024-02-28",
+    "pushed": "2026-11-05",
+    "stars": 23340,
+    "forks": 2235,
+    "license": "AGPL-3.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 920
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "v1.0.56",
+      "date": "2026-10-14"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.2,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 53.0,
+     "closed_within_7d": 0.15
+    },
+    "H4": {
+     "factor": 3,
+     "contributors_sampled": 92
+    },
+    "H5": {
+     "license": "AGPL-3.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 23340,
+     "age_days": 981,
+     "stars_per_day": 23.8
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 1,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "spec-kit",
+   "name": "spec-kit（GitHub）",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": "github/spec-kit",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "💫 Toolkit to help you get started with SDD or any other process!",
+    "created": "2025-08-21",
+    "pushed": "2026-11-04",
+    "stars": 147538,
+    "forks": 13238,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 1,
+     "commits_90d": 622
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "v1.3.0",
+      "date": "2026-11-03"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.1,
+     "maintainer_reply": 0.05,
+     "first_reply_hours_median": 18.4,
+     "closed_within_7d": 0.8
+    },
+    "H4": {
+     "factor": 3,
+     "contributors_sampled": 100
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 147538,
+     "age_days": 441,
+     "stars_per_day": 334.6
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": false,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "stanford-storm",
+   "name": "Stanford STORM",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "superclaude",
+   "name": "SuperClaude",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "superpowers",
+   "name": "superpowers",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": "obra/superpowers",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "An agentic skills framework & software development methodology that works.",
+    "created": "2025-10-09",
+    "pushed": "2026-11-03",
+    "stars": 312619,
+    "forks": 27812,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 2,
+     "commits_90d": 7
+    },
+    "H2": {
+     "releases_180d": 12,
+     "last_release": {
+      "tag": "v7.0.2",
+      "date": "2026-11-03"
+     }
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.4,
+     "maintainer_reply": 0.35,
+     "first_reply_hours_median": 22.5,
+     "closed_within_7d": 0.15
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 37
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 312619,
+     "age_days": 392,
+     "stars_per_day": 797.5
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": true,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 15,
+    "windows_ci": null
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "task-master",
+   "name": "task-master",
+   "status": "pending",
+   "slots": [
+    "dev-workflow"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "tavily",
+   "name": "Tavily",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "thinking-framework-skills",
+   "name": "thinking-framework-skills（product-on-purpose）",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": "product-on-purpose/thinking-framework-skills",
+   "resolution": "candidate-auto",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "自動比對到 product-on-purpose/thinking-framework-skills（名稱完全相同而且只有一個）；不對的話在 candidates.yaml 改 chosen",
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Evidence-graded, agent-executable thinking-method skills - 63 frameworks reduced to their working mechanism, honestly graded, and producing a concrete artifact. 63 frameworks + 4 tools + 9 recipes for Claude Code, Codex, and other AI agents. Advanced (Gold) tier.",
+    "created": "2026-05-17",
+    "pushed": "2026-11-05",
+    "stars": 25,
+    "forks": 5,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 0,
+     "commits_90d": 117
+    },
+    "H2": {
+     "releases_180d": 20,
+     "last_release": {
+      "tag": "v0.19.0",
+      "date": "2026-10-30"
+     }
+    },
+    "H3": null,
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 1
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 25,
+     "age_days": 172,
+     "stars_per_day": 0.1
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": false,
+    "codex_plugin": true,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 67,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "token-economizer",
+   "name": "TokenEconomizer",
+   "status": "pending",
+   "slots": [
+    "output-compression"
+   ],
+   "repo": "microsoft/TokenEconomizer",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Experience-Driven Black-Box Cost Control for Coding Agents",
+    "created": "2026-10-13",
+    "pushed": "2026-11-04",
+    "stars": 4804,
+    "forks": 289,
+    "license": "Apache-2.0",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 1,
+     "commits_90d": 125
+    },
+    "H2": {
+     "releases_180d": 1,
+     "last_release": {
+      "tag": "v0.1.0",
+      "date": "2026-10-26"
+     }
+    },
+    "H3": {
+     "sampled": 4,
+     "human_reply": 0.25,
+     "maintainer_reply": 0.25,
+     "first_reply_hours_median": 4.4,
+     "closed_within_7d": 1.0
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 21
+    },
+    "H5": {
+     "license": "Apache-2.0"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 4804,
+     "age_days": 23,
+     "stars_per_day": 208.9
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": true
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "tongyi-deepresearch",
+   "name": "Alibaba Tongyi DeepResearch",
+   "status": "pending",
+   "slots": [
+    "product-research"
+   ],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  },
+  {
+   "id": "typesafe-ai",
+   "name": "typesafe-ai",
+   "status": "pending",
+   "slots": [],
+   "repo": "typesafe-ai/skills",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Agent skills for building with TypeSafe's System One API",
+    "created": "2026-08-24",
+    "pushed": "2026-10-23",
+    "stars": 2876,
+    "forks": 184,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 13,
+     "commits_90d": 3
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": {
+     "sampled": 18,
+     "human_reply": 0.78,
+     "maintainer_reply": 0.0,
+     "first_reply_hours_median": 55.3,
+     "closed_within_7d": 0.0
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 2
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 2876,
+     "age_days": 73,
+     "stars_per_day": 39.4
+    }
+   },
+   "compat": {
+    "claude_plugin": true,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": false,
+    "skill_md": false,
+    "skills": 1,
+    "windows_ci": null
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "wshobson-agents",
+   "name": "agents（wshobson）",
+   "status": "pending",
+   "slots": [],
+   "repo": "wshobson/agents",
+   "resolution": "card",
+   "flags": [],
+   "fails": [],
+   "notes": [
+    "星數快照不足，還不能判斷爆紅"
+   ],
+   "github": {
+    "description": "Multi-harness agentic plugin marketplace for Claude Code, Codex, Cursor, OpenCode, GitHub Copilot, Google Antigravity, and Pi",
+    "created": "2025-07-24",
+    "pushed": "2026-11-02",
+    "stars": 42223,
+    "forks": 4460,
+    "license": "MIT",
+    "archived": false,
+    "fork": false
+   },
+   "health": {
+    "H1": {
+     "last_commit_days": 6,
+     "commits_90d": 99
+    },
+    "H2": {
+     "releases_180d": 0,
+     "last_release": null
+    },
+    "H3": {
+     "sampled": 20,
+     "human_reply": 0.85,
+     "maintainer_reply": 0.85,
+     "first_reply_hours_median": 143.9,
+     "closed_within_7d": 0.5
+    },
+    "H4": {
+     "factor": 1,
+     "contributors_sampled": 88
+    },
+    "H5": {
+     "license": "MIT"
+    },
+    "H6": {}
+   },
+   "adoption": {
+    "A4": {
+     "stars": 42223,
+     "age_days": 469,
+     "stars_per_day": 90.0
+    }
+   },
+   "compat": {
+    "claude_plugin": false,
+    "claude_marketplace": true,
+    "codex_plugin": false,
+    "agents_md": true,
+    "skill_md": false,
+    "skills": 0,
+    "windows_ci": false
+   },
+   "verdict": "pass"
+  },
+  {
+   "id": "zapier-mcp",
+   "name": "Zapier MCP",
+   "status": "pending",
+   "slots": [],
+   "repo": null,
+   "resolution": "none",
+   "flags": [
+    {
+     "flag": "unknown",
+     "detail": "沒有 url，也還沒選好候選 repo"
+    }
+   ],
+   "fails": [],
+   "notes": [],
+   "verdict": "unknown"
+  }
+ ],
+ "suggested": {
+  "codex-security": "openai/codex-security",
+  "context7": "upstash/context7",
+  "deepgit": "zamalali/DeepGit",
+  "deepwiki-open": "AsyncFuncAI/deepwiki-open",
+  "gpt-researcher": "assafelovic/gpt-researcher",
+  "hyperresearch": "jordan-gibbs/hyperresearch",
+  "mirothinker": "MiroMindAI/MiroThinker",
+  "moai-adk": "modu-ai/moai-adk",
+  "openspec": "Fission-AI/OpenSpec",
+  "promptfoo": "promptfoo/promptfoo",
+  "superclaude": "SuperClaude-Org/SuperClaude_Framework",
+  "task-master": "eyaltoledano/claude-task-master",
+  "zapier-mcp": "zapier/zapier-mcp"
+ }
+}

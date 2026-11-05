@@ -61,6 +61,19 @@ uv run scripts/layer0.py <GitHub 網址或 owner/repo> [--scan]
 
 每週的深度評估上限在 `data/omnikit.yaml` 的 `eval.weekly_deep_limit`，超過就排到下週。第 2 層可以交給 RIA 或第二輪的非互動代跑：輸入 `contracts/layer2-request.schema.json`，輸出 `contracts/layer2-result.schema.json`。代跑時只能改 OmniKit 的 `data/`，不能 push。
 
+## 批次評估漏斗（維護者）
+
+一次處理整個名冊時用這些，結果都在 `data/funnel/`（格式見 `contracts/`）。每一支都有 `--selftest`。
+
+1. **第 0 層**：`uv run scripts/batch0.py`。0 token；用 `gh` 登入或 `GITHUB_TOKEN`。只淘汰封存、確認惡意或高風險、授權不允許散布（有 plugin 來源的卡）、跟 agent 不相容；其他只標冷卻期、爆紅、停滯、未知。每週記一次星數快照。
+   - 沒有 url 的卡：比對不明確的寫進 `data/funnel/candidates.yaml`，請使用者勾選（`chosen` 填 owner/repo 或 none）；有建議的可以 `--accept-suggested`，選好後 `--apply` 寫回卡片，再跑 validate。
+   - 確認惡意、高風險、不相容：使用者確認後記在 `data/funnel/decisions.yaml`，附證據與日期。
+2. **第 1 層**：`uv run scripts/layer1.py run [--max N]`。便宜模型（預設 Claude Haiku，沒有任何工具可用）讀 README，記槽位與情境、可查證的主張、內建功能涵蓋、相似群組。`layer1.py clusters` 每群建議代表。
+3. **第 1b 層證據卡**：`uv run scripts/evidence.py draft --from-layer1`，再 `evidence.py check`。引用原文最多 15 個字，到期日最多 90 天。
+4. **第 1c 層煙霧測試**：`uv run scripts/smoke.py env` 先確認隔離環境；`context` 不花 token 量每回合 context；`run` 真實非互動執行（隔離資料夾要先登入，見 `smoke.py login`）；有 hook、MCP 或可執行程式的，先做程式碼審查，再用 `sandbox` 在 Windows Sandbox 安裝與 MCP 交握。
+
+便宜模型與煙霧測試的結果只用來排除與排序；要不要換工具只看第 2 層。
+
 ## 每週彙整
 
 ```
