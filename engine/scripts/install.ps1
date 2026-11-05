@@ -4,24 +4,29 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 接上的 agent 是偵測到的 Claude Code、Codex 與 Antigravity。全部由 OmniKit 自己的 Python 腳本接，
 不經過 skillshare：公司電腦的防毒會擋下 skillshare（允許的通知要剛好盯著畫面才按得到）。
 
-1. 安裝固定版本的 uv、gh 與 gitleaks：從 GitHub release 下載 zip，比對寫死的 SHA256 後解壓；
-   不改 PATH。這台已經有 uv 或 gh 就沿用。
+這台是同事版（預設）還是維護者版，見 engine/scripts/edition.py；兩版只差第 5 步的免問核准與第 6、7 步。
+
+1. 安裝固定版本的 uv、gh 與 gitleaks（gitleaks 只有維護者版裝，給 pre-commit 用）：從 GitHub release
+   下載 zip，比對寫死的 SHA256 後解壓；不改 PATH。這台已經有 uv 或 gh 就沿用。
 2. fork 出來的 repo：把 data/omnikit.yaml 的 repo、owner、marketplace 改成 origin 指向的
    GitHub repo、profile 改回 default，並重新產生 marketplace 清單，避免跟原作者的 marketplace 撞名。
 3. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本）。
 4. agents.py connect：
    - 規則 = 安全底線（data/rules/baseline.md）+ profile（data/profiles/<名稱>/AGENTS.md）。
-     Claude 在 ~/.claude/CLAUDE.md 用受管區塊 import；Codex 整份換掉 ~/.codex/AGENTS.md；
-     Antigravity 在 ~/.gemini/GEMINI.md 加受管區塊（原地改寫，硬連結不會斷）。Codex 與 Antigravity
-     原本的規則先備份成 .pre-omnikit。沒指定也沒選過 profile 就用 default（下載、安裝前會先問）。
+     Claude 在 ~/.claude/CLAUDE.md 用受管區塊 import；Codex 的 ~/.codex/AGENTS.md 與 Antigravity 的
+     ~/.gemini/GEMINI.md 在開頭加受管區塊（原地改寫，硬連結不會斷），原本的規則留在區塊外照常生效，
+     也先備份成 .pre-omnikit。沒指定也沒選過 profile 就用 default（下載、安裝前會先問）。
    - skills：engine/skills 連到 ~/.claude/skills；複製到 ~/.agents/skills 給 Codex 與 Antigravity。
-   - MCP：data/mcp/servers.yaml 寫進三邊的設定，不動其他設定。
+   - MCP：data/mcp/servers.yaml 寫進三邊的設定，只動 OmniKit 管的欄位。agents.json 記每個 server 寫入時的
+     雜湊；使用者改過的，或同名但不是 OmniKit 的，先停下來問，不覆蓋。
    - 舊版用 skillshare 接的，改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分（skillshare 本身不刪）。
-5. 把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的使用者設定（只增不刪），
-   並在 Claude Code 與 Codex 註冊開新對話提醒的 Stop hook（session_nudge.py）；
+5. 免問核准：Claude Code 的權限規則（data/harness/claude-allow.txt，只增不刪）與 Codex 的
+   default_tools_approval_mode。維護者版照 data 寫入；同事版每個工具先問，本人同意了才寫入（預設否）。
+   另外在 Claude Code 與 Codex 註冊開新對話提醒的 Stop hook（session_nudge.py）；
    Codex 要使用者在 /hooks 信任後才會執行。
-6. 設定 git hook：commit 前驗證名冊；commit 或 pull 動到規則、skills、MCP 或權限規則時，自動同步。
-7. 檢查 OmniKit repo 的 git 身分。
+6. git hook，只有維護者版：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、skills、MCP 或權限規則時，
+   自動同步。同事版不設 git hook，pull 不會改任何設定；要套用更新就重跑 install.ps1（先用 -WhatIf 預覽）。
+7. 檢查 OmniKit repo 的 git 身分，只有維護者版。
 
 這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，會記在
 %LOCALAPPDATA%\omnikit\install-record.json；接上了哪些 agent、管了哪些 skills 與 MCP，記在
@@ -31,14 +36,18 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 
 參數：
   -ProfileName <名稱>  用 data/profiles/<名稱> 的個人規則，並記下來；之後重跑不用再指定。
+  -Edition <版本>      colleague（同事版）或 maintainer（維護者版），記下來；之後重跑不用再指定。
+                       沒指定也沒記過：分版之前就裝過的電腦是維護者版，其他都是同事版。
   -Fresh               這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
                        備份後移除，避免新舊規則同時生效。
   -WhatIf              預覽：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不寫檔）。
+  -SelfTest            自我測試：在暫存資料夾與暫存 git repo 測版本判斷與 git hook 設定，不動這台的設定。
 
 用法（Windows PowerShell 5.1 或 PowerShell 7）：
-  powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Fresh] [-WhatIf]
+  powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Edition colleague|maintainer] [-Fresh] [-WhatIf]
 #>
-param([string]$ProfileName, [switch]$Fresh, [switch]$WhatIf)
+param([string]$ProfileName, [ValidateSet('colleague', 'maintainer')][string]$Edition, [switch]$Fresh, [switch]$WhatIf,
+  [switch]$SelfTest)
 
 $ErrorActionPreference = 'Stop'
 # PowerShell 5.1 的下載進度條會讓 Invoke-WebRequest 慢很多
@@ -64,6 +73,8 @@ $GitleaksSha256 = @{
 $Repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $ProfilesPy = Join-Path $Repo 'engine\scripts\profiles.py'
 $AgentsPy = Join-Path $Repo 'engine\scripts\agents.py'
+$EditionPy = Join-Path $Repo 'engine\scripts\edition.py'
+$EditionNames = @{ 'colleague' = '同事版'; 'maintainer' = '維護者版' }
 $Arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
 $UvDir = Join-Path $env:LOCALAPPDATA 'Programs\uv'
 $UvExe = Join-Path $UvDir 'uv.exe'
@@ -241,10 +252,38 @@ function Install-McpPackages {
   Write-Host "已安裝 MCP 套件：$($missing -join ', ')"
 }
 
-# 規則、skills、MCP 都交給 agents.py（git hook 也用它同步）
+# 這台是同事版還是維護者版（engine/scripts/edition.py）：-Edition 指定的記下來；
+# 沒指定就照記錄或判斷，也記下來，之後重跑結果一樣
+function Resolve-Edition($wanted) {
+  # 整個包在 @() 裡：只有一個元素時 if 會回傳字串，splat 字串會被拆成一個個字元
+  $editionArgs = @(if ($wanted) { '--set', $wanted } else { '--save' })
+  $value = (& (Get-Uv) run --quiet $EditionPy @editionArgs --show | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0 -or $value -notin $EditionNames.Keys) { throw "edition.py 失敗（exit $LASTEXITCODE）" }
+  Write-Host "OmniKit 版本：$($EditionNames[$value])"
+  return $value
+}
+
+# -WhatIf 用：只判斷不記錄；還沒有 uv 的電腦一定還沒裝過，就是同事版
+function Get-EditionPreview($wanted) {
+  if ($wanted) { return $wanted }
+  if ((Get-Command uv -ErrorAction SilentlyContinue) -or (Test-Path $UvExe)) {
+    $value = (& (Get-Uv) run --quiet $EditionPy --show | Out-String).Trim()
+    if ($value -in $EditionNames.Keys) { return $value }
+  }
+  return 'colleague'
+}
+
+# 同事版：免問核准每個工具先問，本人同意了才寫入（預設否）；不能互動時一個都不寫
+function Request-AutoApprove {
+  & (Get-Uv) run --quiet $AgentsPy approvals --ask
+  if ($LASTEXITCODE -ne 0) { throw "agents.py approvals 失敗（exit $LASTEXITCODE）" }
+}
+
+# 規則、skills、MCP 都交給 agents.py（維護者版的 git hook 也用它同步）。
+# MCP 被使用者改過、或同名但不是 OmniKit 的，--ask 會逐一問；不能互動時列出來並停下，什麼都不寫
 function Connect-Agents {
   $profileArgs = if ($ProfileName) { @('--profile', $ProfileName) } else { @() }
-  & (Get-Uv) run --quiet $AgentsPy connect @profileArgs
+  & (Get-Uv) run --quiet $AgentsPy connect @profileArgs --ask
   if ($LASTEXITCODE -ne 0) { throw "agents.py connect 失敗（exit $LASTEXITCODE）" }
 }
 
@@ -271,8 +310,15 @@ function Clear-OldClaudeRules {
   Write-Host "已移除 CLAUDE.md 受管區塊以外的舊規則，備份在 $backup"
 }
 
-function Enable-GitHooks {
-  git -C $Repo config core.hooksPath .githooks
+# 維護者版：commit 前掃金鑰、驗證名冊，commit 或 pull 後自動同步。
+# 同事版不設 git hook，pull 不會改任何設定；以前設過的拿掉
+function Set-GitHooks($edition) {
+  if ($edition -eq 'maintainer') {
+    git -C $Repo config core.hooksPath .githooks
+  } elseif ((git -C $Repo config --get core.hooksPath) -eq '.githooks') {
+    git -C $Repo config --unset core.hooksPath
+    Write-Host '同事版：這個 repo 不再使用 .githooks，pull 不會自動改設定'
+  }
 }
 
 function Test-GitIdentity {
@@ -285,12 +331,20 @@ function Test-GitIdentity {
 
 # -WhatIf：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不寫檔）
 function Show-InstallPlan {
+  $edition = Get-EditionPreview $Edition
   $plan = @()
+  if ($edition -eq 'maintainer') {
+    $plan += '版本：維護者版（commit 或 pull 後 git hook 自動同步；免問核准照 data 寫入）'
+  } else {
+    $plan += '版本：同事版（不設 git hook，pull 不會自動改設定；免問核准每個工具先問你）'
+  }
   $tools = @(
     @{ Name = 'uv'; Version = $UvVersion; Path = $UvExe; Command = 'uv' },
-    @{ Name = 'gh'; Version = $GhVersion; Path = $GhExe; Command = 'gh' },
-    @{ Name = 'gitleaks'; Version = $GitleaksVersion; Path = $GitleaksExe; Command = $null }
+    @{ Name = 'gh'; Version = $GhVersion; Path = $GhExe; Command = 'gh' }
   )
+  if ($edition -eq 'maintainer') {
+    $tools += @{ Name = 'gitleaks'; Version = $GitleaksVersion; Path = $GitleaksExe; Command = $null }
+  }
   foreach ($t in $tools) {
     $onPath = $t.Command -and (Get-Command $t.Command -ErrorAction SilentlyContinue)
     if (-not $onPath -and -not (Test-Path $t.Path)) {
@@ -327,11 +381,15 @@ function Show-InstallPlan {
   }
   if ($agents -contains 'codex') {
     $legacy = (Get-FileText $SkillshareConfig) -match '(?m)^\s*- name: rules-codex\s*$'
-    $ours = (Get-FileText $CodexMd).TrimStart().StartsWith($OursHeader) -or $legacy
-    if ((Test-Path $CodexMd) -and -not $ours) {
-      $plan += '  ~/.codex/AGENTS.md：先備份成 AGENTS.md.pre-omnikit，再換成底線與 profile 接在一起的內容'
+    $codex = Get-FileText $CodexMd
+    if ($codex -match $BlockPattern) {
+      $plan += '  ~/.codex/AGENTS.md：更新受管區塊；其他內容不動'
+    } elseif ($codex.TrimStart().StartsWith($OursHeader) -or ($legacy -and $codex.Trim())) {
+      $plan += '  ~/.codex/AGENTS.md：舊版整份都是 OmniKit 產生的，換成只有受管區塊（規則內容一樣）'
+    } elseif ($codex.Trim()) {
+      $plan += '  ~/.codex/AGENTS.md：先備份成 AGENTS.md.pre-omnikit，在開頭加上受管區塊；原本的規則留在區塊外，照常生效'
     } else {
-      $plan += '  ~/.codex/AGENTS.md：換成底線與 profile 接在一起的內容'
+      $plan += '  ~/.codex/AGENTS.md：建立，內容是底線與 profile 的受管區塊'
     }
   }
   if ($agents -contains 'antigravity') {
@@ -362,7 +420,7 @@ function Show-InstallPlan {
     ForEach-Object { $_.Groups[1].Value }
   $files = @{ 'claude-code' = '~/.claude.json'; 'codex' = '~/.codex/config.toml'; 'antigravity' = '~/.gemini/config/mcp_config.json' }
   if ($servers -and $agents) {
-    $plan += "  MCP：$($servers -join '、') 寫進 $(($agents | ForEach-Object { $files[$_] }) -join '、')，不動其他設定"
+    $plan += "  MCP：$($servers -join '、') 寫進 $(($agents | ForEach-Object { $files[$_] }) -join '、')，只動 OmniKit 管的欄位；被你改過或同名但不是 OmniKit 的，先問你"
   }
   $ssText = Get-FileText $SkillshareConfig
   if ($ssText -match '(?m)^\s*- name: rules-codex\s*$' -or $ssText -match '(?m)^  mcp: .*servers\.yaml' -or
@@ -372,10 +430,21 @@ function Show-InstallPlan {
 
   $allow = @(Get-Content -Encoding UTF8 (Join-Path $Repo 'data\harness\claude-allow.txt') |
     ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
-  if ($allow) { $plan += "~/.claude/settings.json：權限免問清單補上 $($allow -join '、')（只增不刪）" }
+  if ($edition -eq 'maintainer') {
+    if ($allow) { $plan += "~/.claude/settings.json：權限免問清單補上 $($allow -join '、')（只增不刪）；Codex 照 servers.yaml 設 default_tools_approval_mode" }
+  } elseif ($allow) {
+    # 跟 edition.py 的 tool_of 一樣：mcp__<server>（__<工具>）算在那個 server
+    $approveTools = @($allow | ForEach-Object { $_ -replace '^mcp__(.+?)(__.+)?$', '$1' } | Select-Object -Unique)
+    $plan += "免問核准（$($approveTools -join '、')）：安裝時逐一問你，同意了才寫進 ~/.claude/settings.json 與 ~/.codex/config.toml（預設否）"
+  }
   $plan += '開新對話提醒：加進 ~/.claude/settings.json 與 ~/.codex/config.toml 的 Stop hook（Codex 要到 /hooks 信任才會跑）'
-  if ((git -C $Repo config --get core.hooksPath) -ne '.githooks') {
+  $hooksOn = (git -C $Repo config --get core.hooksPath) -eq '.githooks'
+  if ($edition -eq 'maintainer' -and -not $hooksOn) {
     $plan += '這個 repo 改用 .githooks：commit 前掃金鑰、驗證名冊；改到規則、skills、MCP 等檔案時自動同步'
+  } elseif ($edition -ne 'maintainer' -and $hooksOn) {
+    $plan += '這個 repo 不再使用 .githooks：同事版不設 git hook，pull 不會自動改設定'
+  } elseif ($edition -ne 'maintainer') {
+    $plan += '不設 git hook：pull 不會自動改設定；要套用更新就重跑 install.ps1（先用 -WhatIf 預覽）'
   }
 
   Write-Host '這是預覽，什麼都沒改。照這台目前的狀態，install.ps1 會：'
@@ -386,7 +455,7 @@ function Show-InstallPlan {
 }
 
 # 安裝完畫面上不會多出東西，告訴使用者怎麼確認接上了、接下來怎麼用
-function Show-NextSteps {
+function Show-NextSteps($edition) {
   $text = [IO.File]::ReadAllText((Join-Path $Repo 'data\rules\baseline.md'), [Text.Encoding]::UTF8)
   $version = if ($text -match '規則版本：(\S+)') { $Matches[1] } else { 'data/rules/baseline.md 開頭的版本' }
   $name = & (Get-Uv) run --quiet $ProfilesPy --show
@@ -402,23 +471,69 @@ function Show-NextSteps {
     Write-Host '  - 重新設定 profile：開新 session 說「幫我設定 OmniKit」'
   }
   Write-Host '  - 換 profile：重跑 install.ps1 -ProfileName <名稱>，或 uv run engine/scripts/profiles.py --set <名稱>'
+  if ($edition -ne 'maintainer') {
+    Write-Host '  - 這台是同事版：pull 不會自動改設定；要套用更新，先跑 install.ps1 -WhatIf 預覽，再跑 install.ps1'
+    Write-Host '  - 免問核准：uv run engine/scripts/agents.py approvals 查看；--grant <名稱> 同意、--revoke <名稱> 撤回'
+  }
   if ($hasEval) {
     Write-Host '  - 評估新工具：說「幫我評估」加上 GitHub 連結（Claude Code 也可以輸入 /omnikit-eval，Codex 輸入 $omnikit-eval）'
   }
   Write-Host '  - 預設 plugin 不會自動安裝；安裝方式與其他說明見 README 的「裝好之後」'
 }
 
+# -SelfTest：%LOCALAPPDATA% 換成暫存資料夾、repo 換成暫存 git repo，測版本判斷與 git hook 設定
+function Invoke-SelfTest {
+  $script:failures = 0
+  function Check($label, $ok) {
+    if ($ok) { Write-Host "通過：$label" } else { Write-Host "失敗：$label"; $script:failures++ }
+  }
+  $tmp = Join-Path ([IO.Path]::GetTempPath()) ('omnikit-selftest-' + [guid]::NewGuid().ToString('N'))
+  New-Item -ItemType Directory -Path $tmp | Out-Null
+  $realLocal, $realRepo, $realUvCache = $env:LOCALAPPDATA, $script:Repo, $env:UV_CACHE_DIR
+  # uv 的快取預設在 %LOCALAPPDATA%，換掉之前先指回原本的，免得重新下載
+  if (-not $env:UV_CACHE_DIR) { $env:UV_CACHE_DIR = Join-Path $realLocal 'uv\cache' }
+  try {
+    $env:LOCALAPPDATA = Join-Path $tmp 'local'
+    $editionFile = Join-Path $env:LOCALAPPDATA 'omnikit\edition.json'
+    Check 'Get-EditionPreview：沒有記錄是同事版，而且不寫檔' ((Get-EditionPreview '') -eq 'colleague' -and -not (Test-Path $editionFile))
+    Check 'Resolve-Edition：沒指定就照判斷（同事版）並記下來' ((Resolve-Edition '') -eq 'colleague' -and (Get-FileText $editionFile) -match '"colleague"')
+    Check 'Resolve-Edition：-Edition maintainer 記成維護者版' ((Resolve-Edition 'maintainer') -eq 'maintainer' -and (Get-FileText $editionFile) -match '"maintainer"')
+    Check 'Resolve-Edition：之後沒指定就沿用記錄' ((Resolve-Edition '') -eq 'maintainer')
+    Check 'Get-EditionPreview：照記錄' ((Get-EditionPreview '') -eq 'maintainer')
+    Check 'Get-EditionPreview：有指定就用指定的' ((Get-EditionPreview 'colleague') -eq 'colleague')
+
+    $script:Repo = Join-Path $tmp 'repo'
+    git init --quiet $script:Repo
+    git -C $script:Repo config core.hooksPath .githooks
+    Set-GitHooks 'colleague'
+    Check 'Set-GitHooks colleague：拿掉以前設的 .githooks，pull 不會自動同步' (-not (git -C $script:Repo config --get core.hooksPath))
+    Set-GitHooks 'colleague'
+    Check 'Set-GitHooks colleague：本來就沒設，不出錯' (-not (git -C $script:Repo config --get core.hooksPath))
+    Set-GitHooks 'maintainer'
+    Check 'Set-GitHooks maintainer：設成 .githooks' ((git -C $script:Repo config --get core.hooksPath) -eq '.githooks')
+  } finally {
+    $env:LOCALAPPDATA, $script:Repo, $env:UV_CACHE_DIR = $realLocal, $realRepo, $realUvCache
+    Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+  }
+  Write-Host ''
+  Write-Host $(if ($script:failures) { "$($script:failures) 項失敗" } else { '全部通過' })
+  return $script:failures
+}
+
+if ($SelfTest) { exit (Invoke-SelfTest) }
 if ($WhatIf) { Show-InstallPlan; return }
 
 Install-Uv
 Install-Gh
-Install-Gitleaks
+$CurrentEdition = Resolve-Edition $Edition
+if ($CurrentEdition -eq 'maintainer') { Install-Gitleaks }
 Sync-RepoConfig
 Install-McpPackages
+if ($CurrentEdition -ne 'maintainer') { Request-AutoApprove }
 Connect-Agents
 Grant-ClaudePermissions
 Register-CodexHook
 if ($Fresh) { Clear-OldClaudeRules }
-Enable-GitHooks
-Test-GitIdentity
-Show-NextSteps
+Set-GitHooks $CurrentEdition
+if ($CurrentEdition -eq 'maintainer') { Test-GitIdentity }
+Show-NextSteps $CurrentEdition

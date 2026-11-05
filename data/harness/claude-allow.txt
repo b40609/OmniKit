@@ -1,5 +1,6 @@
 # Claude Code 免問的權限規則：install.ps1 會補進 ~/.claude/settings.json 的 permissions.allow（只增不刪）。
 # Codex 的對應設定在 data/mcp/servers.yaml（options.codex.default_tools_approval_mode）。
+# 這裡是維護者的同意，只用在維護者版；同事版每個工具先問本人，同意了才寫（engine/scripts/edition.py）。
 
-# chrome_devtools：使用者同意免問（2026-11-04）；它用暫時的瀏覽器設定檔，碰不到登入狀態
+# chrome_devtools：維護者同意免問（2026-11-04）；它用暫時的瀏覽器設定檔，碰不到登入狀態
 mcp__chrome_devtools

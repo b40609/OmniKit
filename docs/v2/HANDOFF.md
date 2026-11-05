@@ -18,31 +18,33 @@ OmniKit v2 做給同事：裝完 → 可選的環境掃描與專案掃描 → �
 | 定位與競品初稿 | `docs/proposals/2026-11-05-positioning.md` | 已 commit（2026-11-05 收尾，未 push） |
 | 四項研究：跨 agent 同步、推薦與安裝、評估規模化、RIA | `docs/v2/research.md`；證據在 `docs/v2/research/`；RIA 的完整報告不放公開 repo，存在 `C:\Users\user\Desktop\RIA-Rebuild\OmniKit-RIA查證報告-2026-11-05.md` | 已 commit（未 push） |
 | BMAD 產品簡介 | `docs/v2/brief/`（brief、addendum、.memlog） | 草稿，已 commit（未 push） |
-| BMAD PRD：39 條需求，已過三項審查並修正 | `docs/v2/prd/`（prd、addendum、.memlog、兩份審查）；`docs/v2/review-editorial.md` | 草稿，等 §0.1 的決定 |
+| BMAD PRD：39 條需求，已過三項審查並修正 | `docs/v2/prd/`（prd、addendum、.memlog、兩份審查）；`docs/v2/review-editorial.md` | final（2026-11-05 §0.1 九題全部定案） |
 
 ## PRD §0.1 的決定
 
-**已定案（2026-11-05）**：
+九題都已定案（2026-11-05），細節在 PRD §0.1 與 `docs/v2/prd/.memlog.md`：
 
 - 第 1 題：試點期的實測用團隊情境。
 - 第 2 題：名冊更新每週提醒一次，同事說「檢查更新」才連網，預覽後才套用。
+- 第 3 題：回流的匯出檔與提案放 Teams 試點頻道的檔案區。頻道連結不寫進公開 repo。
 - 第 4 題：解凍「規劃與開發流程」槽位，RIA 不再當比較基準。
-
-**還沒決定**：
-
-- 第 3 題：回流用哪個非公開的共用資料夾。需要使用者指定；定了之後，PRD 才能改成 final。
-- 第 5 題：客觀實測的每週 token 上限。需要使用者給數字。
-- 第 6 到 9 題：主動建議提示的開啟門檻、試點期長度、本機模型槽位、試點名單。
+- 第 5 題：主動建議先靜默記錄 2 週，標註為「有用」的比例達 50% 以上才打開提示。
+- 第 6 題：客觀實測每週 token 上限 2,000 萬，含快取讀取。
+- 第 7 題：試點期 6 週。
+- 第 8 題：本機模型先用評估漏斗找候選工具，有 E3 以上的候選再決定要不要開槽位。
+- 第 9 題：試點前的閘門全部通過才開始；名單到時再確認，存在 repo 外。
 
 ## 下一步（依序）
 
-1. **一次問完 §0.1 還沒決定的題目**：把答案寫進 PRD 與 `.memlog.md`；第 3 題定了就把 PRD 改成 final。
-2. **先修現有的 4 個缺陷，再讓任何同事安裝**：
-   - 同事的 `git pull` 會自動套用設定：`install.ps1:20-23` 設定 git hooks，`.githooks/sync-data.sh` 會直接重新套用（FR-1、FR-36）。
-   - 免問核准用的是維護者的同意：`data/harness/claude-allow.txt:5`、`data/mcp/servers.yaml:23`（FR-10）。
-   - Codex 的規則被整份換掉：`engine/scripts/profiles.py:189-203`。要改成受管區塊（FR-10）。
-   - 使用者改過的 MCP 參數會被改回：`engine/scripts/agents.py:380-388`。要加帳本雜湊（FR-10）。
+1. ~~**一次問完 §0.1 還沒決定的題目**~~：2026-11-05 完成，PRD 已改成 final。
+2. ~~**先修現有的 4 個缺陷**~~：2026-11-05 完成，自我測試全過。新增「維護者版／同事版」（`engine/scripts/edition.py`），兩版只差 git hook 與免問核准：
+   - 同事版不設 git hook；萬一跑到 `sync-data.sh` 也只提醒、不同步（FR-1、FR-36）。`install.ps1 -Edition maintainer|colleague`，沒指定時分版前就裝過的電腦是維護者版。
+   - 免問核准每個工具問本人，記在 `%LOCALAPPDATA%\omnikit\consent.json`；`agents.py approvals` 查看、`--grant`、`--revoke`（FR-10）。
+   - Codex 規則改成受管區塊，原本的留在區塊外照常生效；舊版整份換掉的自動轉成只有區塊（FR-10）。兩版都用。
+   - MCP 帳本：`agents.json` 記 OmniKit 管的欄位的雜湊；被改過、被移除、同名不是 OmniKit 的就停下來問，`agents.py resolve <名稱> --use-omnikit|--keep-mine`。Codex 原地更新，工具核准紀錄與使用者加的欄位留著（FR-10）。兩版都用。
+   - 這台（維護者）唯讀比對：判斷為維護者版，三個 chrome_devtools 都會直接接手、沒有衝突；下次同步時 `~/.codex/AGENTS.md` 會轉成區塊格式。
 3. **階段 0a（約 2 週）**：做評估漏斗的批次工具（FR-22 到 FR-24）、安裝前檢查（FR-35）與 doctor。
+   - 這次沒做、之後要補的同步層項目：FR-36 的「檢查更新」流程（目前同事要先跑 `install.ps1 -WhatIf` 再跑 `install.ps1`）、受管區塊內容的雜湊（區塊裡的手改還是會被蓋掉）、`AGENTS.override.md` 偵測（FR-32）、Windows CI 跑 `install.ps1 -SelfTest`（FR-34）、架構地圖還沒有 `edition.py`。
 4. **階段 0b（4 到 6 週）**：用漏斗處理 active 槽位與訪談會用到的槽位；找資料分析的候選工具。名冊目前沒有任何資料分析相關的卡片。
 5. **同時開發** v2.0 其他需求。分組見 PRD §6.1。
 6. **調整 `4a4fc38` 的行為**：另一個 session 已推上「不評估就不裝 omnikit-eval」。PRD 的 FR-37 要求個人週報跟訪談第 5 題脫鉤。

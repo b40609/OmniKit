@@ -3,11 +3,14 @@ OmniKit 移除：把 install.ps1 對這台電腦做的改動還原，可以重�
 
 1. Claude Code：拿掉 ~/.claude/CLAUDE.md 的受管區塊。檔案因此變空時，有安裝前的備份
    （CLAUDE.md.pre-omnikit）就還原，沒有就刪掉這個空檔。
-2. Codex：~/.codex/AGENTS.md 回到接上 OmniKit 之前的樣子（有備份就還原）。
+2. Codex：舊版整份換掉的 ~/.codex/AGENTS.md 回到接上 OmniKit 之前的樣子（有備份就還原）；
+   新版的受管區塊交給下一步的 agents.py。
 3. agents.py disconnect：拿掉 OmniKit 的 skills（連結與複製品）與 MCP server（三邊都是），
-   原地拿掉 ~/.gemini/GEMINI.md 的受管區塊，清掉舊版 skillshare 設定裡 OmniKit 的部分，刪掉 agents.json。
-   同名但不是 OmniKit 的 skill 與 MCP server 不碰。
-4. 刪掉 %LOCALAPPDATA%\omnikit 裡接好的規則（rules\AGENTS.md）與 profile 選擇（profile.json）。
+   原地拿掉 ~/.codex/AGENTS.md 與 ~/.gemini/GEMINI.md 的受管區塊（只剩區塊就還原安裝前的備份），
+   清掉舊版 skillshare 設定裡 OmniKit 的部分，刪掉 agents.json。
+   同名但不是 OmniKit 的 skill 與 MCP server 不碰；OmniKit 寫入之後被使用者改過的 MCP server 也留著。
+4. 刪掉 %LOCALAPPDATA%\omnikit 裡接好的規則（rules\AGENTS.md）、profile 選擇（profile.json）、
+   版本（edition.json）與免問核准的同意紀錄（consent.json）。
 5. 權限與提醒 hook：從 ~/.claude/settings.json 拿掉安裝紀錄裡、由 OmniKit 加的規則與 Stop hook；
    從 ~/.codex/config.toml 拿掉 OmniKit 加的 Stop hook。
 6. git hook：這個 repo 不再使用 .githooks。
@@ -42,6 +45,9 @@ $AgentsFile = Join-Path $env:LOCALAPPDATA 'omnikit\agents.json'
 # profiles.py 產生的：底線 + profile 接成一份的規則（比對 Codex 用）與這台選的 profile
 $ComposedRules = Join-Path $env:LOCALAPPDATA 'omnikit\rules'
 $ProfileFile = Join-Path $env:LOCALAPPDATA 'omnikit\profile.json'
+# edition.py 記的：這台是哪一版，以及免問核准的同意
+$EditionFile = Join-Path $env:LOCALAPPDATA 'omnikit\edition.json'
+$ConsentFile = Join-Path $env:LOCALAPPDATA 'omnikit\consent.json'
 $BlockPattern = '(?s)<!-- omnikit:rules:begin -->.*?<!-- omnikit:rules:end -->\r?\n?'
 $OursHeader = '<!-- 由 OmniKit 產生，不要手改：'
 $Utf8 = New-Object Text.UTF8Encoding($false)
@@ -77,20 +83,29 @@ $legacyCodex = $ssText -match '(?m)^\s*- name: rules-codex\s*$'
 $legacySkillshare = $legacyCodex -or ($ssText -match '(?m)^  mcp: .*servers\.yaml') -or
   (Test-Path (Join-Path $SkillshareDir 'skills\_omnikit'))
 $claudeHasBlock = (Get-FileText $ClaudeMd) -match $BlockPattern
-$codexOurs = (Get-FileText $CodexMd).TrimStart().StartsWith($OursHeader) -or $legacyCodex
+$codexHasBlock = (Get-FileText $CodexMd) -match $BlockPattern
+# 舊版整份換掉的格式；新版用受管區塊，交給 agents.py disconnect
+$codexOurs = -not $codexHasBlock -and ((Get-FileText $CodexMd).TrimStart().StartsWith($OursHeader) -or $legacyCodex)
 $geminiHasBlock = (Get-FileText $GeminiMd) -match $BlockPattern
 $hasAgents = (Test-Path $AgentsFile) -or $legacySkillshare
+$hasEditionState = (Test-Path $EditionFile) -or (Test-Path $ConsentFile)
 $hooksOn = (git -C $Repo config --get core.hooksPath) -eq '.githooks'
 $npmPackages = @($record['npm'] | Where-Object { $_ })
 $paths = @($record['paths'] | Where-Object { $_ -and (Test-Path $_) })
 
 $plan = @()
 if ($claudeHasBlock) { $plan += '拿掉 ~/.claude/CLAUDE.md 的 OmniKit 區塊' }
-if ($codexOurs -or (Test-Path "$CodexMd.pre-omnikit")) { $plan += '把 ~/.codex/AGENTS.md 還原成接上 OmniKit 之前的樣子' }
-if ($hasAgents) { $plan += '移除 OmniKit 的 skills 與 MCP server（Claude Code、Codex、Antigravity；不是 OmniKit 的不碰）' }
+if ($codexHasBlock) {
+  $plan += '拿掉 ~/.codex/AGENTS.md 的 OmniKit 區塊，原本的規則留著（只剩區塊就還原安裝前的備份）'
+} elseif ($codexOurs -or (Test-Path "$CodexMd.pre-omnikit")) {
+  $plan += '把 ~/.codex/AGENTS.md 還原成接上 OmniKit 之前的樣子'
+}
+if ($hasAgents) { $plan += '移除 OmniKit 的 skills 與 MCP server（Claude Code、Codex、Antigravity；不是 OmniKit 的、你改過的不碰）' }
 if ($geminiHasBlock) { $plan += '拿掉 ~/.gemini/GEMINI.md 的 OmniKit 區塊（原地改寫，硬連結不會斷）' }
 if ($legacySkillshare) { $plan += '拿掉舊版 skillshare 設定裡 OmniKit 的部分' }
-if ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile)) { $plan += '刪除接好的規則與 profile 選擇（%LOCALAPPDATA%\omnikit）' }
+if ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile) -or $hasEditionState) {
+  $plan += '刪除接好的規則、profile 選擇、版本與免問核准的同意紀錄（%LOCALAPPDATA%\omnikit）'
+}
 if ($record['claude_allow']) { $plan += "從 ~/.claude/settings.json 拿掉權限規則：$($record['claude_allow'] -join ', ')" }
 if ($record['claude_hooks']) { $plan += '從 ~/.claude/settings.json 拿掉開新對話提醒 hook' }
 if ($record['codex_hooks']) { $plan += '從 ~/.codex/config.toml 拿掉開新對話提醒 hook' }
@@ -144,8 +159,10 @@ function Remove-ClaudeRules {
   }
 }
 
-# 有備份就還原；沒有備份、而且檔案是 OmniKit 的副本，就刪掉
+# 舊版整份換掉的格式：有備份就還原；沒有備份、而且檔案是 OmniKit 的副本，就刪掉。
+# 新版的受管區塊交給 agents.py disconnect（Disconnect-Agents）
 function Remove-CodexRules {
+  if ($codexHasBlock) { return }
   if (-not ($codexOurs -or (Test-Path "$CodexMd.pre-omnikit"))) { return }
   $backup = "$CodexMd.pre-omnikit"
   $ours = Join-Path $ComposedRules 'AGENTS.md'
@@ -165,12 +182,12 @@ function Remove-CodexRules {
   Write-Host '已還原 Codex 規則'
 }
 
-# skills、MCP、Antigravity 規則與舊版 skillshare 設定交給 agents.py；它也會刪掉 agents.json
+# skills、MCP、Codex 與 Antigravity 的規則區塊、舊版 skillshare 設定交給 agents.py；它也會刪掉 agents.json
 function Disconnect-Agents {
-  if (-not ($hasAgents -or $geminiHasBlock)) { return }
+  if (-not ($hasAgents -or $geminiHasBlock -or $codexHasBlock)) { return }
   $uv = Get-Uv
   if (-not $uv) {
-    Write-Warning '找不到 uv，OmniKit 的 skills、MCP server 與 ~/.gemini/GEMINI.md 的區塊沒有移除；裝好 uv 再重跑'
+    Write-Warning '找不到 uv，OmniKit 的 skills、MCP server 與 ~/.codex/AGENTS.md、~/.gemini/GEMINI.md 的區塊沒有移除；裝好 uv 再重跑'
     return
   }
   & $uv run --quiet $AgentsPy disconnect
@@ -179,10 +196,10 @@ function Disconnect-Agents {
 
 # 要在 Remove-CodexRules 之後：它拿接好的規則比對 ~/.codex/AGENTS.md 有沒有被改過
 function Remove-ProfileState {
-  if (-not ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile))) { return }
+  if (-not ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile) -or $hasEditionState)) { return }
   Remove-Item -Recurse -Force $ComposedRules -ErrorAction SilentlyContinue
-  Remove-Item -Force $ProfileFile -ErrorAction SilentlyContinue
-  Write-Host '已刪除接好的規則與 profile 選擇'
+  Remove-Item -Force $ProfileFile, $EditionFile, $ConsentFile -ErrorAction SilentlyContinue
+  Write-Host '已刪除接好的規則、profile 選擇、版本與免問核准的同意紀錄'
 }
 
 function Remove-ClaudePermissions {

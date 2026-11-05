@@ -14,11 +14,12 @@ agent 讀到的規則是兩層接在一起：
 
 接上的方式（只接 agents.py 記錄裡的 agent，記在 %LOCALAPPDATA%\\omnikit\\agents.json）：
 - Claude Code：~/.claude/CLAUDE.md 開頭的受管區塊 import 底線與 profile 兩份，改完開新 session 就生效。
-- Codex：不支援 import，~/.codex/AGENTS.md 整份換成兩份接在一起的內容（第一個字串是產生標記）。
-- Antigravity：~/.gemini/GEMINI.md 開頭的受管區塊放兩份接在一起的內容。這個檔案常跟其他工具
-  共用（硬連結），所以原地改寫，不換掉檔案。
+- Codex：不支援 import，~/.codex/AGENTS.md 開頭的受管區塊放兩份接在一起的內容；原本的規則留在區塊外，
+  照常生效。舊版整份換掉的（開頭是產生標記），同步時換成只有區塊，規則內容一樣。
+- Antigravity：~/.gemini/GEMINI.md 開頭的受管區塊，內容跟 Codex 一樣。
+Codex 與 Antigravity 的檔案常跟其他工具共用（硬連結），所以原地改寫，不換掉檔案。
 第一次接上時（install.ps1 透過 agents.py connect），原本的 Codex 與 Antigravity 規則先備份成
-<檔名>.pre-omnikit；之後的同步（git hook、--set）只改 OmniKit 產生的內容，被手動換掉的不覆蓋。
+<檔名>.pre-omnikit；之後的同步（git hook、--set）只改受管區塊，區塊被拿掉的不加回去。
 
 用法：
   uv run engine/scripts/profiles.py                 用目前的 profile 重新接上
@@ -75,10 +76,12 @@ def write(path, content):
 
 
 def write_in_place(path, content):
-    """原地改寫，不換掉檔案：硬連結到同一個檔案的其他名字會一起更新，不會斷開。"""
-    data = content.encode("utf-8")
+    """原地改寫，不換掉檔案：硬連結到同一個檔案的其他名字會一起更新，不會斷開。content 是 bytes 就原樣寫。"""
+    data = content if isinstance(content, bytes) else content.encode("utf-8")
     if not path.exists():
-        return write(path, content)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        return True
     if path.read_bytes() == data:
         return False
     with open(path, "r+b") as f:
@@ -158,7 +161,8 @@ def connected(state, paths=None, skillshare_config=SKILLSHARE_CONFIG):
     paths = paths or RULES
     try:
         agents = json.loads(text(state / "agents.json")).get("agents")
-        if isinstance(agents, list):
+        # 空的清單：還沒接上就先記了別的（例如 agents.py resolve），一樣從現有的檔案推斷
+        if isinstance(agents, list) and agents:
             return [a for a in agents if a in RULES]
     except (OSError, ValueError, AttributeError):
         pass
@@ -186,33 +190,17 @@ def connect_claude(claude_md, block):
     return write(claude_md, with_block(old, block))
 
 
-def connect_codex(path, content, take_over, legacy=False):
-    """回傳（狀態, 備份檔）。狀態：updated、unchanged、skipped（不是 OmniKit 產生的，同步時不覆蓋）。"""
-    if not path.exists():
-        write(path, content)
-        return "updated", None
-    old = text(path)
-    if old == content:
-        return "unchanged", None
-    saved = None
-    if not (is_ours(old) or legacy):
-        if not take_over:
-            return "skipped", None
-        saved = backup(path)
-    write(path, content)
-    return "updated", saved
-
-
-def gemini_block(content):
+def content_block(content):
     return f"{BEGIN}\n{content.rstrip()}\n{END}"
 
 
-def connect_gemini(path, content, take_over):
-    """回傳（狀態, 備份檔）。同步時區塊不見了（使用者拿掉）就不再加回去。"""
+def connect_block(path, content, take_over):
+    """Codex 與 Antigravity：受管區塊放在開頭，區塊以外的內容不動，原地改寫（硬連結不會斷）。
+    回傳（狀態, 備份檔）。狀態：updated、unchanged、skipped（同步時區塊不見了，是使用者拿掉的，不加回去）。"""
     old = text(path) if path.exists() else ""
     if not BLOCK.search(old) and old.strip() and not take_over:
         return "skipped", None
-    new = with_block(old, gemini_block(content))
+    new = with_block(old, content_block(content))
     if new == old:
         return "unchanged", None
     saved = backup(path) if take_over and old.strip() and not BLOCK.search(old) else None
@@ -220,14 +208,30 @@ def connect_gemini(path, content, take_over):
     return "updated", saved
 
 
-def disconnect_gemini(path):
-    """原地拿掉受管區塊。檔案只剩區塊（OmniKit 建的）就刪掉；跟備份一樣時，多餘的備份也刪掉。回傳訊息。"""
+def connect_codex(path, content, take_over, legacy=False):
+    """Codex 也用受管區塊，原本的規則留在區塊外照常生效（以前整份換掉，原本的只剩備份）。
+    舊版整份都是 OmniKit 的內容（開頭是產生標記，或舊版 skillshare 複製的）：換成只有區塊，
+    安裝前的備份（.pre-omnikit）不動。"""
+    old = text(path) if path.exists() else ""
+    if not BLOCK.search(old) and (is_ours(old) or (legacy and old.strip())):
+        write_in_place(path, content_block(content) + "\n")
+        return "updated", None
+    return connect_block(path, content, take_over)
+
+
+def disconnect_block(path):
+    """原地拿掉受管區塊，回傳訊息。只剩區塊時：有安裝前的備份就還原，沒有（OmniKit 建的）就刪掉；
+    還有別的內容時：跟備份一樣，多餘的備份也刪掉。"""
     if not path.exists() or not BLOCK.search(text(path)):
         return []
     rest = BLOCK.sub("", text(path), count=1)
     rest = rest[1:] if rest.startswith("\n") else rest
     saved = path.with_name(path.name + ".pre-omnikit")
-    if not rest.strip() and not saved.exists():
+    if not rest.strip():
+        if saved.exists():
+            write_in_place(path, saved.read_bytes())
+            saved.unlink()
+            return [f"已拿掉 {path} 的 OmniKit 區塊，還原安裝前的內容"]
         path.unlink()
         return [f"已刪除只剩 OmniKit 區塊的 {path}"]
     write_in_place(path, rest)
@@ -258,11 +262,11 @@ def apply(data, state, paths=None, wanted=None, agents=None, take_over=False, sk
         legacy = skillshare_config.exists() and CODEX_EXTRA.search(text(skillshare_config)) is not None
         status, saved = connect_codex(paths["codex"], content, take_over, legacy)
         done.append(NAMES["codex"]) if status != "skipped" else notes.append(
-            f"{paths['codex']} 不是 OmniKit 產生的，沒有覆蓋；要接上請重跑 install.ps1")
+            f"{paths['codex']} 的 OmniKit 區塊被拿掉了，沒有加回去；要接上請重跑 install.ps1")
         if saved:
-            notes.append(f"已備份原本的 Codex 規則：{saved}")
+            notes.append(f"已備份原本的 Codex 規則：{saved}（原本的規則留在區塊外，照常生效）")
     if "antigravity" in agents:
-        status, saved = connect_gemini(paths["antigravity"], content, take_over)
+        status, saved = connect_block(paths["antigravity"], content, take_over)
         done.append(NAMES["antigravity"]) if status != "skipped" else notes.append(
             f"{paths['antigravity']} 的 OmniKit 區塊被拿掉了，沒有加回去；要接上請重跑 install.ps1")
         if saved:
@@ -344,8 +348,9 @@ def selftest():
               and (data / "profiles" / "default" / "AGENTS.md").resolve().as_posix() in md)
         check("Claude：區塊以外的內容與 CRLF 不動", md.endswith("\r\n# 我自己的規則\r\nkeep\r\n"))
         codex = text(paths["codex"])
-        check("Codex：整份換成底線加 profile，第一行是產生標記",
-              is_ours(codex) and codex.index("不碰金鑰") < codex.index("保守") and "\r" not in codex)
+        check("Codex：受管區塊加在開頭，放底線加 profile；原本的規則留在區塊外照常生效",
+              codex.startswith(BEGIN) and codex.index("不碰金鑰") < codex.index("保守") < codex.index(END)
+              and codex.endswith(END + "\n# 我原本的 Codex 規則\n") and "\r" not in codex)
         check("Codex：原本的規則先備份", text(paths["codex"].with_name("AGENTS.md.pre-omnikit")) == "# 我原本的 Codex 規則\n")
         gemini = text(paths["antigravity"])
         check("Antigravity：受管區塊加在開頭，原本的內容保留",
@@ -366,11 +371,17 @@ def selftest():
               and "放手" in text(paths["codex"]) and "放手" in text(paths["antigravity"]) and "放手" in text(shared))
         check("--set：不會多出第二份備份", not list(paths["codex"].parent.glob("AGENTS.md.pre-omnikit-*")))
         check("選過之後：不再提醒", not any("還沒選" in line for line in run(agents=all3)))
+        write(paths["codex"], text(paths["codex"]) + "# 之後自己加的\n")
+        run(agents=all3, wanted="default")
+        codex = text(paths["codex"])
+        check("Codex 換 profile：只換區塊，區塊外原本的與之後自己加的都留著",
+              "保守" in codex and "放手" not in codex and codex.endswith(END + "\n# 我原本的 Codex 規則\n# 之後自己加的\n"))
+        run(agents=all3, wanted="x")
 
         write(paths["codex"], "# 使用者自己換掉的\n")
         lines = run(agents=all3)
-        check("同步時：被手動換掉的 Codex 規則不覆蓋", text(paths["codex"]) == "# 使用者自己換掉的\n"
-              and any("不是 OmniKit 產生的" in line for line in lines))
+        check("同步時：被拿掉的 Codex 區塊不加回去", text(paths["codex"]) == "# 使用者自己換掉的\n"
+              and any(str(paths["codex"]) in line and "區塊被拿掉了" in line for line in lines))
         write_in_place(paths["antigravity"], "# 使用者拿掉了區塊\n")
         lines = run(agents=all3)
         check("同步時：被拿掉的 Antigravity 區塊不加回去", text(paths["antigravity"]) == "# 使用者拿掉了區塊\n"
@@ -382,8 +393,19 @@ def selftest():
         write(legacy_config, "extras:\n  - name: rules-codex\n")
         check("舊版 skillshare 安裝：推斷 Codex 有接上", connected(state, paths, legacy_config) == ["claude-code", "codex"])
         lines = run(agents=["codex"])
-        check("舊版 skillshare 管的 Codex 規則：直接接手，不另外備份", is_ours(text(paths["codex"]))
+        check("舊版 skillshare 管的 Codex 規則：直接接手換成只有區塊，不另外備份",
+              text(paths["codex"]) == content_block(compose(data, "x")) + "\n"
               and not list(paths["codex"].parent.glob("AGENTS.md.pre-omnikit-*")))
+        legacy_config.unlink()
+        write(paths["codex"], compose(data, "x"))  # 舊版整份換掉的格式：開頭是產生標記
+        run(agents=["codex"])
+        check("舊版整份換掉的 Codex 規則：換成只有區塊，內容一樣，安裝前的備份不動",
+              text(paths["codex"]) == content_block(compose(data, "x")) + "\n"
+              and text(paths["codex"].with_name("AGENTS.md.pre-omnikit")) == "# 我原本的 Codex 規則\n")
+        lines = disconnect_block(paths["codex"])
+        check("移除 Codex 區塊：只剩區塊時還原安裝前的備份，備份收掉",
+              text(paths["codex"]) == "# 我原本的 Codex 規則\n" and not paths["codex"].with_name("AGENTS.md.pre-omnikit").exists()
+              and any("還原安裝前的內容" in line for line in lines))
 
         check("不存在的 profile 失敗", fails(lambda: run(wanted="nope")))
         check("名稱格式不對失敗", fails(lambda: run(wanted="Bad_Name")))
@@ -395,14 +417,14 @@ def selftest():
         write(gem, "# 原本\n")
         link = tmp / "g" / "AGENTS.md"
         os.link(gem, link)
-        connect_gemini(gem, compose(data, "default"), take_over=True)
-        lines = disconnect_gemini(gem)
+        connect_block(gem, compose(data, "default"), take_over=True)
+        lines = disconnect_block(gem)
         check("移除 Antigravity 區塊：還原成原本的內容，硬連結還在",
               text(gem) == "# 原本\n" and os.path.samefile(gem, link) and any("已拿掉" in line for line in lines))
         check("移除後跟備份一樣：多餘的備份刪掉", not gem.with_name("GEMINI.md.pre-omnikit").exists())
         fresh = tmp / "f" / "GEMINI.md"
-        connect_gemini(fresh, compose(data, "default"), take_over=True)
-        disconnect_gemini(fresh)
+        connect_block(fresh, compose(data, "default"), take_over=True)
+        disconnect_block(fresh)
         check("OmniKit 建的 GEMINI.md：移除時整個刪掉", not fresh.exists())
 
         calls = []

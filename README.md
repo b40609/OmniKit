@@ -63,6 +63,8 @@ Fork 一份，換成你自己的規則與情境。fork 會帶著原作者已經�
 
    已經有自己的 profile，就加上 `-ProfileName <名稱>`，指定一次就會記住。
 
+   自己維護這份 fork 的話，加上 `-Edition maintainer`（指定一次就會記住）：commit 前驗證名冊、掃金鑰，commit 或 pull 後自動同步。沒加就是同事版，不設 git hook，見[維護者版與同事版](#維護者版與同事版)。
+
    偵測到這是 fork 時，會自動把 `data/omnikit.yaml` 的 `repo`、`owner`、`marketplace` 改成你的、看板用的 `profile` 改回 `default`，並重新產生 marketplace 清單，避免跟原作者的撞名。
 
 5. **推上去。** 推到 main 之後，GitHub Actions 會部署看板到 `https://<你的帳號>.github.io/OmniKit/`。
@@ -188,7 +190,7 @@ flowchart LR
 
 1. **評估**：把工具的 GitHub 連結貼給 agent，`omnikit-eval` 會查 GitHub 現況、對照槽位情境，寫成一張工具卡。
 2. **產生**：commit 時 git hook 驗證名冊並重新產生 marketplace 清單；推到 main 之後，GitHub Actions 重建看板。
-3. **同步**：`install.ps1` 把規則（安全底線 + 你選的 profile）、skills、MCP 接到 Claude Code、Codex 與 Antigravity（`engine/scripts/agents.py`），權限與提醒 hook 接到 Claude Code 與 Codex；之後 commit 或 pull 動到這些檔案時，git hook 會自動再同步。
+3. **同步**：`install.ps1` 把規則（安全底線 + 你選的 profile）、skills、MCP 接到 Claude Code、Codex 與 Antigravity（`engine/scripts/agents.py`），權限與提醒 hook 接到 Claude Code 與 Codex。維護者版之後 commit 或 pull 動到這些檔案時，git hook 會自動再同步；同事版不設 git hook，pull 不會改任何設定。
 
 想看每個部分、每個檔案在做什麼，打開[互動架構地圖](https://b40609.github.io/OmniKit/map.html)：每個檔案都有白話說明，另有 3 條逐步導覽（評估新工具、改規則、第一次安裝）。建議用電腦開。
 
@@ -203,22 +205,34 @@ flowchart LR
 
 | 位置 | 做什麼 |
 |---|---|
-| `%LOCALAPPDATA%\Programs\` | 安裝固定版本的 uv、gh、gitleaks；比對 SHA256，不改 PATH。這台已經有 uv、gh 就沿用 |
+| `%LOCALAPPDATA%\Programs\` | 安裝固定版本的 uv、gh，以及維護者版才裝的 gitleaks；比對 SHA256，不改 PATH。這台已經有 uv、gh 就沿用 |
 | `data/omnikit.yaml` | fork 出來的 repo，改成你的 `repo`、`owner`、`marketplace`，`profile` 改回 `default`，並重新產生 marketplace 清單 |
 | `~/.claude/CLAUDE.md` | 在開頭加一段受管區塊，import `data/rules/baseline.md` 與你選的 `data/profiles/<名稱>/AGENTS.md`；其他內容不動 |
-| `~/.codex/AGENTS.md` | 換成底線與 profile 接在一起的內容；第一次接上時，原本的內容先備份成 `AGENTS.md.pre-omnikit`。之後被手動換掉的話，同步時不覆蓋 |
+| `~/.codex/AGENTS.md` | 在開頭加一段受管區塊，放底線與 profile 接在一起的內容；原本的規則留在區塊外，照常生效，也先備份成 `AGENTS.md.pre-omnikit`。舊版整份換掉的，同步時換成只有區塊（規則內容一樣）；區塊被拿掉的話，同步時不加回去 |
 | `~/.gemini/GEMINI.md` | Antigravity 的規則：在開頭加一段受管區塊，放底線與 profile 接在一起的內容；原本的先備份成 `GEMINI.md.pre-omnikit`。原地改寫，這個檔案跟其他工具共用（硬連結）時，其他名字會一起更新，連結不會斷 |
 | `~/.claude/skills` | `engine/skills` 的每個 skill 用資料夾連結接上，改完馬上生效 |
 | `~/.agents/skills` | Codex 與 Antigravity 共用：`engine/skills` 的每個 skill 複製一份（Antigravity 不跟隨資料夾連結），裡面的 `.omnikit.json` 記來源；同名但不是 OmniKit 的不碰 |
-| `~/.claude.json`、`~/.codex/config.toml`、`~/.gemini/config/mcp_config.json` | 寫入 `data/mcp/servers.yaml` 的 MCP server，只動這些 server。Claude 用 `claude mcp add-json`；Codex 寫入前驗證其他設定沒被動到；Antigravity 不寫 BOM（它讀到 BOM 會整份失敗）。`config.toml` 結尾另加一段 `[[hooks.Stop]]` 開新對話提醒 |
-| `%LOCALAPPDATA%\omnikit\` | `profile.json` 記這台選的 profile；`agents.json` 記接上了哪些 agent、OmniKit 管了哪些 skills 與 MCP；`rules\AGENTS.md` 是底線與 profile 接在一起的內容（移除時比對用） |
+| `~/.claude.json`、`~/.codex/config.toml`、`~/.gemini/config/mcp_config.json` | 寫入 `data/mcp/servers.yaml` 的 MCP server，只動這些 server 裡 OmniKit 管的欄位；你加的欄位（例如停用）與 Codex 的工具核准紀錄都留著。被你改過、被你移除，或同名但不是 OmniKit 的，先停下來問，見 [MCP 有衝突時](#mcp-有衝突時)。Claude 用 `claude mcp add-json`；Codex 寫入前驗證其他設定沒被動到；Antigravity 不寫 BOM（它讀到 BOM 會整份失敗）。`config.toml` 結尾另加一段 `[[hooks.Stop]]` 開新對話提醒 |
+| `%LOCALAPPDATA%\omnikit\` | `profile.json` 記這台選的 profile；`edition.json` 記這台是維護者版還是同事版；`consent.json` 記你同意了哪些工具免問；`agents.json` 記接上了哪些 agent、OmniKit 管了哪些 skills，以及每個 MCP server 寫入時的雜湊（判斷有沒有被改過）；`rules\AGENTS.md` 是底線與 profile 接在一起的內容（移除時比對用） |
 | 舊版的 skillshare | 以前用 skillshare 接的電腦，重跑 `install.ps1` 會改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分；skillshare 本身不刪 |
 | npm 全域套件 | 安裝 `data/mcp/packages.txt` 指定的固定版本 |
-| `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪；在 `hooks.Stop` 加上開新對話提醒（`engine/scripts/session_nudge.py`） |
-| 這個 repo | `core.hooksPath` 指到 `.githooks`：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、skills、MCP、權限、提醒 hook 時自動同步 |
+| `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪；同事版只補你同意過的工具。在 `hooks.Stop` 加上開新對話提醒（`engine/scripts/session_nudge.py`） |
+| 這個 repo | 維護者版：`core.hooksPath` 指到 `.githooks`，commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、skills、MCP、權限、提醒 hook 時自動同步。同事版不設 git hook |
 | `%LOCALAPPDATA%\omnikit\install-record.json` | 安裝紀錄：記下這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，移除時只動這些 |
 
 加上 `-Fresh` 會把 `~/.claude/CLAUDE.md` 受管區塊以外的舊規則移除（先備份成 `CLAUDE.md.pre-omnikit`），適合想讓 OmniKit 的規則完全取代舊規則的人。
+
+### 維護者版與同事版
+
+兩版的規則、skills、MCP 接法都一樣，只差下面三件事。用 `install.ps1 -Edition maintainer` 或 `-Edition colleague` 指定，指定一次就會記住；沒指定過的話，分版之前就裝過的電腦是維護者版，其他都是同事版。
+
+| | 維護者版 | 同事版（預設） |
+|---|---|---|
+| git hook | commit 前掃金鑰、驗證名冊；commit 或 pull 後自動同步 | 不設。pull 不會改任何設定；要套用更新，先跑 `install.ps1 -WhatIf` 預覽，再跑 `install.ps1` |
+| 免問核准 | 照 `data/harness/claude-allow.txt` 與 `data/mcp/servers.yaml` 寫入，那是維護者自己同意的 | 每個工具先問你，同意了才寫入（預設否）。之後可以改：`uv run engine/scripts/agents.py approvals` 查看，`--grant <名稱>` 同意、`--revoke <名稱>` 撤回 |
+| gitleaks | 裝，給 pre-commit 用 | 不裝 |
+
+看這台是哪一版：`uv run engine/scripts/edition.py`。
 
 ## 移除
 
@@ -276,9 +290,26 @@ uv run engine/scripts/profiles.py --set <名稱>    # 換成 data/profiles/<名�
 uv run engine/scripts/usage.py --days 60
 ```
 
+### MCP 有衝突時
+
+OmniKit 寫入 MCP server 之後，`agents.json` 會記下它管的欄位的雜湊。下次同步發現下面三種情況，就先停下來，規則、skills、MCP 都不寫，並列出不同的欄位名稱（不列值，值可能是金鑰）：
+
+- 你在 agent 裡改過 OmniKit 管的欄位，例如 `args`。
+- OmniKit 加過的 server 被你移除了。
+- 已經有同名的 server，但不是 OmniKit 加的。
+
+`install.ps1` 會逐一問你；不能互動的時候（例如 git hook），決定之後執行其中一個，再重跑剛才的指令：
+
+```powershell
+uv run engine/scripts/agents.py resolve <名稱> --use-omnikit   # 改用 data/mcp/servers.yaml 的設定
+uv run engine/scripts/agents.py resolve <名稱> --keep-mine     # 保留你的設定，OmniKit 之後不再管它
+```
+
+選了 `--keep-mine` 之後想改回由 OmniKit 管，再執行一次 `--use-omnikit` 就好。
+
 ### 改名冊
 
-改完 `data/` 直接 commit：pre-commit hook 會驗證名冊，並重新產生 marketplace 清單一起放進 commit。要手動檢查：
+改完 `data/` 直接 commit：維護者版的 pre-commit hook 會驗證名冊，並重新產生 marketplace 清單一起放進 commit。要手動檢查：
 
 ```powershell
 uv run engine/scripts/validate.py
