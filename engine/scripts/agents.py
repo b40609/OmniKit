@@ -343,7 +343,7 @@ def profile_skips(env, profile=None):
         name, _ = profiles.resolve(env.data, env.state, profile)
     except SystemExit:
         return None, {}
-    return name, profiles.skipped_skills(env.data, name)
+    return name, profiles.skipped_skills(env.data, env.state, name)
 
 
 def sync_skills(env, agents, rec, profile=None):
@@ -1212,10 +1212,11 @@ def selftest():
         check("刪掉 skill：兩邊都拿掉", not present(home / ".claude" / "skills" / "gamma")
               and not present(home / ".agents" / "skills" / "gamma"))
 
-        # 訪談第 5 題答「不要」（answers.json 的 evaluate_tools 是 false）：不裝 omnikit-eval
+        # 訪談第 5 題答「不要」（answers.json 的 evaluate_tools 是 false）：不裝 omnikit-eval。
+        # 訪談產生的 profile 存在 repo 外（state/profiles，FR-38）
         put(src / "omnikit-eval" / "SKILL.md", "---\nname: omnikit-eval\n---\n")
-        put(repo / "data" / "profiles" / "bob" / "AGENTS.md", "# bob\n")
-        bob_answers = repo / "data" / "profiles" / "bob" / "answers.json"
+        put(state / "profiles" / "bob" / "AGENTS.md", "# bob\n")
+        bob_answers = state / "profiles" / "bob" / "answers.json"
         put(bob_answers, json.dumps({"name": "bob", "evaluate_tools": False}))
         claude_eval, shared_eval = home / ".claude" / "skills" / "omnikit-eval", home / ".agents" / "skills" / "omnikit-eval"
         sync(env, mcp=False)

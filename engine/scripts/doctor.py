@@ -60,7 +60,8 @@ def check_rules(env, rec):
     out = []
     for agent in rec["agents"]:
         path = env.rules[agent]
-        want = profiles.claude_block(env.data, name) if agent == "claude-code" else profiles.content_block(profiles.compose(env.data, name))
+        want = (profiles.claude_block(env.data, env.state, name) if agent == "claude-code"
+                else profiles.content_block(profiles.compose(env.data, env.state, name)))
         found = profiles.BLOCK.search(profiles.text(path)) if path.exists() else None
         label = profiles.NAMES[agent]
         if not found:
