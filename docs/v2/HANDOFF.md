@@ -44,6 +44,7 @@ OmniKit v2 做給同事：裝完 → 可選的環境掃描與專案掃描 → �
    - MCP 帳本：`agents.json` 記 OmniKit 管的欄位的雜湊；被改過、被移除、同名不是 OmniKit 的就停下來問，`agents.py resolve <名稱> --use-omnikit|--keep-mine`。Codex 原地更新，工具核准紀錄與使用者加的欄位留著（FR-10）。兩版都用。
    - 這台（維護者）唯讀比對：判斷為維護者版，三個 chrome_devtools 都會直接接手、沒有衝突；下次同步時 `~/.codex/AGENTS.md` 會轉成區塊格式。
 3. ~~**階段 0a**~~：2026-11-05 完成工具與第一輪實跑，自我測試全過（見下方「階段 0a 的成果」）。
+   - git hook 在 linked worktree 同步錯 repo（2026-11-05 已修）：在 `.claude/worktrees/<名稱>` 裡 commit，post-commit 用 worktree 自己的 `agents.py sync`，`~/.claude/skills` 的連結、`~/.agents/skills` 的複製品與 `.omnikit.json` 都改指向 worktree，worktree 清掉後就斷。現在 `sync-data.sh` 比對 `git rev-parse --git-dir` 與 `--git-common-dir`，不同就只印一行提醒、不同步；pre-commit 的金鑰檢查與名冊驗證照跑。測試在 `edition.py --selftest`（暫存 repo 與 linked worktree，假腳本只寫記號檔）。
    - 同步層之後要補的項目（0a 沒做）：FR-36 的「檢查更新」流程（目前同事要先跑 `install.ps1 -WhatIf` 再跑 `install.ps1`）、受管區塊內容的雜湊（區塊裡的手改還是會被蓋掉）、`AGENTS.override.md` 偵測（FR-32）、Windows CI 跑 `install.ps1 -SelfTest`（FR-34）、架構地圖還沒有 `edition.py`。
 4. **階段 0b（4 到 6 週）**：用漏斗處理 active 槽位與訪談會用到的槽位；找資料分析的候選工具。2026-11-05 跑完第一輪（見下方「階段 0b 第一輪的成果」）：
    1. ~~勾選 `candidates.yaml` 並寫回卡片、重跑第 0 層~~：完成。

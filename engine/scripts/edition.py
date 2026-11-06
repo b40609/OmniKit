@@ -188,9 +188,9 @@ def selftest():
             if os.environ.get("LOCALAPPDATA") and not os.environ.get("UV_CACHE_DIR"):
                 hook_env["UV_CACHE_DIR"] = str(Path(os.environ["LOCALAPPDATA"]) / "uv" / "cache")
 
-            def hook(changed):
-                r = subprocess.run([sh, str(ROOT / ".githooks" / "sync-data.sh")], input=changed, cwd=ROOT,
-                                   env=hook_env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+            def hook(changed, cwd=ROOT, env=hook_env):
+                r = subprocess.run([sh, str(ROOT / ".githooks" / "sync-data.sh")], input=changed, cwd=cwd,
+                                   env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
                 return r.returncode, r.stdout.strip(), r.stderr.strip()
 
             code, out, err = hook("data/mcp/servers.yaml\nengine/scripts/agents.py\n")
@@ -201,6 +201,37 @@ def selftest():
             set_edition(tmp / "hook" / "omnikit", "maintainer")
             code, out, _ = hook("docs/v2/prd/prd.md\n")
             check("git hook：維護者版沒動到同步的檔案，什麼都不做", code == 0 and out == "")
+
+            # linked worktree：暫存 repo 放假的 edition.py（固定維護者版）與 agents.py（只寫記號檔），
+            # 實際同步什麼都碰不到；主 checkout 要寫出記號，證明假腳本有接上，worktree 不寫才有意義
+            main, wt, mark = tmp / "wt-main", tmp / "wt-linked", tmp / "synced.txt"
+            scripts = main / "engine" / "scripts"
+            scripts.mkdir(parents=True)
+            (scripts / "edition.py").write_text('print("maintainer")\n', encoding="utf-8")
+            (scripts / "agents.py").write_text(
+                "import os, sys\n"
+                f"with open({str(mark)!r}, 'a', encoding='utf-8') as f:\n"
+                "    f.write(' '.join(sys.argv[1:]) + ' @ ' + os.getcwd() + '\\n')\n", encoding="utf-8")
+            (tmp / "no-hooks").mkdir()
+            git_env = {k: v for k, v in hook_env.items() if not k.startswith("GIT_")}
+            git = ["git", "-c", f"core.hooksPath={tmp / 'no-hooks'}", "-c", "commit.gpgsign=false",
+                   "-c", "user.name=OmniKit selftest", "-c", "user.email=selftest@example.invalid"]
+            setup_ok = all(subprocess.run(git + args, cwd=main, env=git_env, capture_output=True, timeout=60).returncode == 0
+                           for args in (["init", "--quiet"], ["add", "-A"], ["commit", "--quiet", "-m", "init"],
+                                        ["worktree", "add", "--quiet", "-b", "wt", str(wt)]))
+            if not setup_ok:
+                check("git hook：建立暫存 repo 與 linked worktree", False)
+            else:
+                skills = "engine/skills/demo/SKILL.md\n"
+                code, out, err = hook(skills, cwd=wt, env=git_env)
+                check("git hook：linked worktree 動到 skills，只印一行提醒、不同步",
+                      code == 0 and len(out.splitlines()) == 1 and "worktree" in out and not err and not mark.exists())
+                code, out, err = hook("docs/v2/prd/prd.md\n", cwd=wt, env=git_env)
+                check("git hook：linked worktree 只動到文件，什麼都不印", code == 0 and out == "" and not err)
+                code, out, err = hook(skills, cwd=main, env=git_env)
+                synced = mark.read_text(encoding="utf-8") if mark.exists() else ""
+                check("git hook：主 checkout 照常同步 skills",
+                      code == 0 and not err and synced.startswith("sync --skills") and "worktree" not in out)
 
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0

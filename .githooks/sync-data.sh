@@ -9,14 +9,28 @@
 #   data/harness/、claude_allow.py、session_nudge.py：把權限規則與開新對話提醒補進 Claude Code 的使用者設定
 #   codex_hooks.py、claude_allow.py、session_nudge.py：把開新對話提醒補進 Codex 的 config.toml
 # 只有維護者版會自動同步。同事版不設 git hook；萬一還是跑到這裡，也只提醒、不改任何設定（edition.py）
+# linked worktree（例如 .claude/worktrees/ 底下）也不同步：worktree 共用主 repo 的 core.hooksPath，
+# 在這裡同步會把 skills 連結與複製品改指向 worktree，worktree 清掉後就斷了。合進 main 後由主 checkout 同步。
 changed=$(cat)
 uv=$(command -v uv || echo "$LOCALAPPDATA/Programs/uv/uv.exe")
+# 會觸發下面任何一種同步的檔案
+syncable='^(data/(rules|profiles|mcp|harness)/|engine/(skills/|scripts/))'
 
 # Windows 的 Python 印出來是 CRLF，比對前拿掉 \r；判斷失敗就當成同事版，不自動套用
 edition=$("$uv" run --quiet engine/scripts/edition.py --show 2>/dev/null | tr -d '\r')
 if [ "$edition" != "maintainer" ]; then
-  if printf '%s\n' "$changed" | grep -qE '^(data/(rules|profiles|mcp|harness)/|engine/(skills/|scripts/))'; then
+  if printf '%s\n' "$changed" | grep -qE "$syncable"; then
     echo "OmniKit：這台不是維護者版，這次的更新沒有自動套用；要套用就先跑 install.ps1 -WhatIf 預覽，再跑 install.ps1"
+  fi
+  exit 0
+fi
+
+# git-dir 跟 git-common-dir 不同就是 linked worktree；兩個都換成實際路徑再比，避免相對路徑或斜線寫法不同
+git_dir=$(cd "$(git rev-parse --git-dir 2>/dev/null)" 2>/dev/null && pwd -P)
+common_dir=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd -P)
+if [ -n "$git_dir" ] && [ -n "$common_dir" ] && [ "$git_dir" != "$common_dir" ]; then
+  if printf '%s\n' "$changed" | grep -qE "$syncable"; then
+    echo "OmniKit：在 worktree 裡，不同步；合進 main 後主 checkout 會同步"
   fi
   exit 0
 fi

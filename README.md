@@ -255,7 +255,7 @@ flowchart LR
 
 | | 維護者版 | 同事版（預設） |
 |---|---|---|
-| git hook | commit 前掃金鑰、驗證名冊；commit 或 pull 後自動同步 | 不設。pull 不會改任何設定；要套用更新，先跑 `install.ps1 -WhatIf` 預覽，再跑 `install.ps1` |
+| git hook | commit 前掃金鑰、驗證名冊；commit 或 pull 後自動同步。在 git worktree（例如 `.claude/worktrees/` 底下）裡只掃金鑰、驗證名冊，不同步，合進 main 後由主 checkout 同步 | 不設。pull 不會改任何設定；要套用更新，先跑 `install.ps1 -WhatIf` 預覽，再跑 `install.ps1` |
 | 免問核准 | 照 `data/harness/claude-allow.txt` 與 `data/mcp/servers.yaml` 寫入，那是維護者自己同意的 | 每個工具先問你，同意了才寫入（預設否）。之後可以改：`uv run engine/scripts/agents.py approvals` 查看，`--grant <名稱>` 同意、`--revoke <名稱>` 撤回 |
 | gitleaks | 裝，給 pre-commit 用 | 不裝 |
 
