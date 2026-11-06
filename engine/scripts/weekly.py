@@ -8,13 +8,15 @@
 """個人週報（FR-37）：每位同事每週一份。跟訪談第 5 題（要不要參與評估）無關，裝了 OmniKit 就有（FR-4）：
 omnikit-weekly 這個 skill 不在 profiles.OPTIONAL_SKILLS 裡，第 5 題選「先不要」也照裝。
 
-內容依 PRD 的順序有五個區塊。查得到的照實列；還查不到的標「未知」並寫出原因，不當成「沒有」：
+內容依 PRD 的順序有六個區塊。查得到的照實列；還查不到的標「未知」並寫出原因，不當成「沒有」：
 1. 沒在用的工具：usage.py 讀三個 agent 的本機紀錄（預設 30 天沒用到；裝不到 30 天的先不判斷）。
 2. 上游有新版的工具：要等工具包 lock（FR-14）與「檢查更新」（FR-36），目前未知。
 3. 有更好的選擇（E3、E4）：要等工具卡的證據等級（FR-28）與通知規則（FR-16），目前未知。
 4. 設定被手動改過的項目：doctor.py 的寫入檢查（規則受管區塊、skills、MCP、權限與提醒 hook），只讀檔案，
    不跑 agent 的指令。
 5. 主動建議的接受率：要等主動建議開始記錄（FR-18 到 FR-21），目前未知。
+6. 成本（FR-40 到 FR-44，cost.py）：新裝的工具與開頭成本、成本高又沒在用的（不用等 30 天）、背景與非互動的
+   模型用量、對話開頭的大小與跟上週比、名冊比對。存檔時一併記下這次看到的清單與這週的開頭大小，下週拿來比。
 
 不連網、不上傳；只輸出名稱、次數與日期，不輸出對話內容。完整內容存在
 %LOCALAPPDATA%\\omnikit\\weekly\\<年>-W<週>.md，同一週重跑就換成最新的。
@@ -35,12 +37,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import agents  # noqa: E402
+import cost  # noqa: E402
 import doctor  # noqa: E402
 import profiles  # noqa: E402
 import usage  # noqa: E402
+import validate  # noqa: E402
 
 SKILL = "omnikit-weekly"
-SECTIONS = ("沒在用的工具", "上游有新版的工具", "有更好的選擇（E3、E4）", "設定被手動改過的項目", "主動建議的接受率")
+SECTIONS = ("沒在用的工具", "上游有新版的工具", "有更好的選擇（E3、E4）", "設定被手動改過的項目", "主動建議的接受率", "成本")
 # 還沒有資料來源的區塊：原因與之後由哪條需求補上
 PENDING = {
     "上游有新版的工具": "還沒有工具包 lock（FR-14）記下每個工具裝的版本，也還沒有「檢查更新」（FR-36）",
@@ -83,19 +87,40 @@ def drift_section(rows):
     return lines, len(bad)
 
 
-def build(env, record_path, today, days=30, collect_usage=None):
-    """組出週報（Markdown 的每一行）。只讀本機檔案，不連網。"""
+def roster_tools(env):
+    """名冊的工具卡（給成本的名冊比對）；名冊讀不到或驗證失敗回 None。"""
+    try:
+        errors, roster = validate.check(env.data, state=env.state)
+    except Exception:  # 名冊壞了不影響週報的其他區塊
+        return None
+    return None if errors else roster["tools"]
+
+
+def cost_section(result):
+    """成本；result 是 cost.measure 的結果，量不到時是例外。回傳（行, 摘要）。"""
+    if isinstance(result, Exception):
+        return [f"- 未知：量不到（{result}）"], "成本：未知"
+    return cost.report(result), cost.summary(result)
+
+
+def build(env, record_path, today, days=30, collect_usage=None, collect_cost=None, persist=False):
+    """組出週報（Markdown 的每一行）。只讀本機檔案，不連網。persist：存下成本監測要比對的清單與開頭大小。"""
     try:
         result = collect_usage() if collect_usage else usage.collect(env.home, days=days)
     except Exception as e:  # 使用紀錄讀不到，不影響其他區塊
         result = e
+    try:
+        costs = collect_cost() if collect_cost else cost.measure(env.home, env.state, roster=roster_tools(env), persist=persist)
+    except Exception as e:  # 成本量不到，不影響其他區塊
+        costs = e
     unused_lines, unused = unused_section(result)
     drift_lines, drift = drift_section(doctor.collect(env, record_path, lists=False))
+    cost_lines, cost_summary = cost_section(costs)
     known = lambda n, label: f"{label} {n} 項" if n is not None else f"{label}：未知"  # noqa: E731
     lines = [f"# OmniKit 本週週報（{week_of(today)}，{today}）", "",
-             f"摘要：{known(unused, '沒在用的工具')}；{known(drift, '設定被手動改過')}；"
+             f"摘要：{known(unused, '沒在用的工具')}；{known(drift, '設定被手動改過')}；{cost_summary}；"
              "上游新版、更好的選擇、主動建議接受率：還沒有資料（未知）"]
-    bodies = {"沒在用的工具": unused_lines, "設定被手動改過的項目": drift_lines}
+    bodies = {"沒在用的工具": unused_lines, "設定被手動改過的項目": drift_lines, "成本": cost_lines}
     for number, title in enumerate(SECTIONS, 1):
         body = bodies.get(title) or [f"- 未知：{PENDING[title]}。不是沒有，是還查不到"]
         lines += ["", f"## {number}. {title}", "", *body]
@@ -170,7 +195,12 @@ def selftest():
         text = "\n".join(lines)
         check("不連網也能產生（連網的呼叫都換成會失敗的）", lines[0] == "# OmniKit 本週週報（2026-W45，2026-11-05）")
         heads = [line for line in lines if line.startswith("## ")]
-        check("五個區塊照 PRD 的順序", heads == [f"## {n}. {t}" for n, t in enumerate(SECTIONS, 1)])
+        check("六個區塊照 PRD 的順序（第 6 個是成本）", heads == [f"## {n}. {t}" for n, t in enumerate(SECTIONS, 1)])
+        part6 = text[text.index("## 6. 成本"):]
+        check("成本區塊：新裝的工具、成本高又沒在用的、背景用量、對話開頭的大小、名冊比對都在（FR-40 到 FR-44）",
+              all(h in part6 for h in ("### 新裝的工具", "### 成本高又沒在用的", "### 背景與非互動", "### 對話開頭的大小",
+                                       "### 名冊比對")))
+        check("摘要也帶成本", "新裝 " in lines[2] and "成本高又沒在用" in lines[2])
         check("沒在用的工具：列出名稱，有用到的不列成沒在用",
               "30 天沒用到：1 個" in text and "old-helper（Claude Code，~/.claude/skills" in text and "會先問你" in text)
         check("剛接上：設定都跟寫入時一樣", "被改過或不見了 0 項" in text and "沒有被手動改過的項目" in text)
@@ -192,13 +222,20 @@ def selftest():
         text = "\n".join(build(env, record, today, collect_usage=broken))
         check("使用紀錄讀不到：那一區標未知，其他照常", "- 未知：讀不到使用紀錄（紀錄檔被鎖住）" in text
               and "沒在用的工具：未知" in text and "## 5. 主動建議的接受率" in text)
+        text = "\n".join(build(env, record, today, collect_usage=lambda: fake, collect_cost=broken))
+        check("成本量不到：那一區標未知，其他照常", "## 6. 成本\n\n- 未知：量不到（紀錄檔被鎖住）" in text and "old-helper" in text)
+
+        check("沒存檔（--no-save）：不記成本監測要比對的清單", not (state / "weekly" / "inventory.json").exists())
+        build(env, record, today, collect_usage=lambda: fake, persist=True)
+        check("存檔時：記下這次看到的清單與這週的開頭大小，下週拿來比",
+              (state / "weekly" / "inventory.json").exists() and (state / "weekly" / "startup.json").exists())
 
         path = save(lines, state, today)
         check("完整內容存在 %LOCALAPPDATA%\\omnikit\\weekly\\<年>-W<週>.md",
               path == state / "weekly" / "2026-W45.md" and path.read_text(encoding="utf-8").startswith("# OmniKit 本週週報"))
         save(["# OmniKit 本週週報（重跑）"], state, date(2026, 11, 8))
         check("同一週重跑：換成最新的，不另外多一份", (state / "weekly" / "2026-W45.md").read_text(encoding="utf-8")
-              == "# OmniKit 本週週報（重跑）\n" and len(list((state / "weekly").iterdir())) == 1)
+              == "# OmniKit 本週週報（重跑）\n" and len(list((state / "weekly").glob("*.md"))) == 1)
 
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0
@@ -214,7 +251,7 @@ def main(argv=None):
     if args.selftest:
         return selftest()
     env = agents.real_env()
-    lines = build(env, env.state / "install-record.json", args.today, args.days)
+    lines = build(env, env.state / "install-record.json", args.today, args.days, persist=not args.no_save)
     if not args.no_save:
         lines += ["", f"完整內容存在：{save(lines, env.state, args.today)}"]
     print("\n".join(lines))

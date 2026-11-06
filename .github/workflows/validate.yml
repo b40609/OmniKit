@@ -47,7 +47,9 @@ jobs:
       - run: uv run engine/scripts/scan.py --selftest
       - run: uv run engine/scripts/profile_new.py --selftest
       - run: uv run engine/skills/omnikit-setup/scripts/setup.py scan > /dev/null
-      # 個人週報（FR-37）：五個區塊、不連網、第 5 題選不評估也照裝；skill 入口能找到 repo
+      # 個人週報（FR-37）：六個區塊、不連網、第 5 題選不評估也照裝；skill 入口能找到 repo
+      # 成本監測（FR-40 到 FR-44）：開頭成本照對話紀錄實際載入的量、背景用量去重、開頭大小的趨勢、名冊比對
+      - run: uv run engine/scripts/cost.py --selftest
       - run: uv run engine/scripts/weekly.py --selftest
       - run: uv run engine/skills/omnikit-weekly/scripts/report.py --no-save > /dev/null
 
