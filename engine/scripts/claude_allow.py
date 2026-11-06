@@ -26,6 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import edition  # noqa: E402  同一個資料夾，沒有相依套件
+from fsretry import flaky, retry  # noqa: E402  防毒短暫鎖住檔案時等一下再試（FR-34）
 
 ROOT = Path(__file__).resolve().parents[2]
 RECORD = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "omnikit" / "install-record.json"
@@ -41,7 +42,7 @@ def save(path: Path, data: dict) -> None:
     # 沿用檔案原本的換行；Windows 上 write_text 預設會把 LF 換成 CRLF
     newline = "\r\n" if path.exists() and b"\r\n" in path.read_bytes() else "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline=newline)
+    retry(path.write_text, json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline=newline)
 
 
 def rules(repo: Path = ROOT) -> list:
@@ -190,8 +191,12 @@ def selftest() -> int:
         def run():
             return apply(settings, record, state, repo, no_git)
 
-        lines = run()
+        # 第一次寫 settings.json 就遇到防毒短暫鎖住（FR-34）：等一下再試，照樣寫進去
+        with flaky(Path, "write_text", times=2, match=lambda p, *_, **__: p == settings) as st:
+            lines = run()
         allow = load(settings)["permissions"]["allow"]
+        check("settings.json 被防毒短暫鎖住：等一下再試，照樣寫進去", st.calls == 3 and st.waits == [0.25, 0.5]
+              and any(is_nudge(h) for g in load(settings)["hooks"]["Stop"] for h in g["hooks"]))
         check("同事版、還沒問過：權限規則都不加，提醒怎麼同意",
               allow == ["Bash(ls)"] and any("還沒問過你" in line and "chrome_devtools、other" in line for line in lines))
         check("同事版：提醒 hook 照樣註冊，其他設定不動",

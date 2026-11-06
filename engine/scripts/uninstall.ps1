@@ -17,6 +17,8 @@ OmniKit 移除：把 install.ps1 對這台電腦做的改動還原，可以重�
 7. 沒加 -KeepTools 時：移除安裝紀錄裡、由 OmniKit 裝的 npm 套件與工具（uv、gh、gitleaks；
    舊版裝的 skillshare 與它的設定資料夾也在紀錄裡的話一併移除）。
 
+用 uv 跑 Python 腳本時，防毒短暫鎖住 uv 剛建好的暫存執行檔的話，等 3 秒重試一次（engine/scripts/uv-run.ps1，FR-34）。
+
 只動安裝紀錄（%LOCALAPPDATA%\omnikit\install-record.json）與 agents.json 裡記下的東西；
 安裝前就有的工具、套件與權限規則都保留。repo 資料夾本身不刪。
 訪談產生的 profile（%LOCALAPPDATA%\omnikit\profiles）是你的個人資料，也不刪：重新安裝就能接著用，
@@ -56,10 +58,14 @@ $BlockPattern = '(?s)<!-- omnikit:rules:begin -->.*?<!-- omnikit:rules:end -->\r
 $OursHeader = '<!-- 由 OmniKit 產生，不要手改：'
 $Utf8 = New-Object Text.UTF8Encoding($false)
 
+# Invoke-UvRun：跑 uv，防毒短暫鎖住 uv 的暫存執行檔時等一下重試一次（FR-34）
+. (Join-Path $PSScriptRoot 'uv-run.ps1')
+
 function Read-Text($path) { [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8) }
 
+# 只找執行檔：Invoke-UvRun 直接啟動它，不經過 PowerShell
 function Get-Uv {
-  $onPath = (Get-Command uv -ErrorAction SilentlyContinue).Source
+  $onPath = (Get-Command uv -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
   if ($onPath) { return $onPath }
   if (Test-Path $UvExe) { return $UvExe }
   return $null
@@ -195,8 +201,8 @@ function Disconnect-Agents {
     Write-Warning '找不到 uv，OmniKit 的 skills、MCP server 與 ~/.codex/AGENTS.md、~/.gemini/GEMINI.md 的區塊沒有移除；裝好 uv 再重跑'
     return
   }
-  & $uv run --quiet $AgentsPy disconnect
-  if ($LASTEXITCODE -ne 0) { throw "agents.py disconnect 失敗（exit $LASTEXITCODE）" }
+  $r = Invoke-UvRun $uv @('run', '--quiet', $AgentsPy, 'disconnect')
+  if ($r.Code -ne 0) { throw "agents.py disconnect 失敗（exit $($r.Code)）" }
 }
 
 # 要在 Remove-CodexRules 之後：它拿接好的規則比對 ~/.codex/AGENTS.md 有沒有被改過
@@ -214,8 +220,8 @@ function Remove-ClaudePermissions {
     Write-Warning "找不到 uv，請自己從 ~/.claude/settings.json 拿掉：$($record['claude_allow'] -join ', ') 與 hooks.Stop 裡的 session_nudge.py"
     return
   }
-  & $uv run --quiet (Join-Path $Repo 'engine\scripts\claude_allow.py') --uninstall
-  if ($LASTEXITCODE -ne 0) { throw "claude_allow.py --uninstall 失敗（exit $LASTEXITCODE）" }
+  $r = Invoke-UvRun $uv @('run', '--quiet', (Join-Path $Repo 'engine\scripts\claude_allow.py'), '--uninstall')
+  if ($r.Code -ne 0) { throw "claude_allow.py --uninstall 失敗（exit $($r.Code)）" }
 }
 
 function Remove-CodexHook {
@@ -225,8 +231,8 @@ function Remove-CodexHook {
     Write-Warning '找不到 uv，請自己從 ~/.codex/config.toml 拿掉 OmniKit 加的 [[hooks.Stop]]（session_nudge.py）'
     return
   }
-  & $uv run --quiet (Join-Path $Repo 'engine\scripts\codex_hooks.py') --uninstall
-  if ($LASTEXITCODE -ne 0) { throw "codex_hooks.py --uninstall 失敗（exit $LASTEXITCODE）" }
+  $r = Invoke-UvRun $uv @('run', '--quiet', (Join-Path $Repo 'engine\scripts\codex_hooks.py'), '--uninstall')
+  if ($r.Code -ne 0) { throw "codex_hooks.py --uninstall 失敗（exit $($r.Code)）" }
 }
 
 function Disable-GitHooks {

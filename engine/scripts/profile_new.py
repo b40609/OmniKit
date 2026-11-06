@@ -38,6 +38,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import profiles  # noqa: E402
 import validate  # noqa: E402
+from fsretry import flaky, retry  # noqa: E402  防毒短暫鎖住檔案時等一下再試（FR-34）
 
 DATA = profiles.DATA
 STATE = profiles.STATE
@@ -257,10 +258,10 @@ def write_profile(folder, files):
             bak = folder / f"{name}.bak"
             if bak.exists():
                 bak = folder / f"{name}.bak-{datetime.now():%Y%m%d%H%M%S}"
-            old.replace(bak)
+            retry(old.replace, bak)
             backups.append(bak)
     for name, text in files.items():
-        (folder / name).write_bytes(text.encode("utf-8"))
+        retry((folder / name).write_bytes, text.encode("utf-8"))
     return backups
 
 
@@ -389,9 +390,14 @@ def selftest():
 
         code, out = quiet(answers_file("alice", autonomy="hands-off"), data, write=True)
         check("已經存在：沒加 --force 不覆蓋", code == 1 and "--force" in out)
-        code, out = quiet(answers_file("alice", autonomy="hands-off"), data, write=True, force=True)
+        # 備份與寫入都遇到防毒短暫鎖住（FR-34）：等一下再試
+        rules_md = alice / "AGENTS.md"
+        with flaky(Path, "replace", times=1, match=lambda p, *_: p == rules_md) as moved, \
+                flaky(Path, "write_bytes", times=2, match=lambda p, *_: p == rules_md) as wrote:
+            code, out = quiet(answers_file("alice", autonomy="hands-off"), data, write=True, force=True)
         check("加 --force：覆蓋並備份舊檔", code == 0 and (alice / "AGENTS.md.bak").exists()
-              and "下載、安裝套件可以直接做" in (alice / "AGENTS.md").read_text(encoding="utf-8"))
+              and "下載、安裝套件可以直接做" in rules_md.read_text(encoding="utf-8"))
+        check("備份與寫入時檔案被防毒短暫鎖住：等一下再試，照樣完成", moved.calls == 2 and wrote.calls == 3)
 
         code, out = quiet(answers_file("bob", evaluate_tools=False, projects=None), data)
         check("不評估工具：預覽說明不裝 omnikit-eval", code == 0 and "套用時不裝 omnikit-eval" in out)
