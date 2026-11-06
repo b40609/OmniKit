@@ -8,7 +8,7 @@ tools:
     name: agent-os
     query: agent-os
     match: ambiguous
-    chosen: null
+    chosen: buildermethods/agent-os
     checked: '2026-11-05'
     options:
     - repo: buildermethods/agent-os
@@ -40,14 +40,14 @@ tools:
     name: agentops reverse-engineer
     query: agentops reverse-engineer
     match: none_found
-    chosen: null
+    chosen: boshu2/agentops
     checked: '2026-11-05'
     options: []
   anthropic-product-management:
     name: Anthropic Product Management
     query: Anthropic Product Management
     match: ambiguous
-    chosen: null
+    chosen: anthropics/knowledge-work-plugins
     checked: '2026-11-05'
     options:
     - repo: costrict-plugins-repo/anthropics-knowledge-work-plugins-product-management
@@ -59,7 +59,7 @@ tools:
     name: Browserbase
     query: Browserbase
     match: ambiguous
-    chosen: null
+    chosen: browserbase/stagehand
     checked: '2026-11-05'
     options:
     - repo: browserbase/stagehand
@@ -91,7 +91,7 @@ tools:
     name: chinese-pm-skills
     query: chinese-pm-skills
     match: ambiguous
-    chosen: null
+    chosen: Timi-Fish/chinese-pm-skills
     checked: '2026-11-05'
     options:
     - repo: Timi-Fish/chinese-pm-skills
@@ -103,7 +103,7 @@ tools:
     name: claude-competitive-intel
     query: claude-competitive-intel
     match: ambiguous
-    chosen: null
+    chosen: momentumfurkan/claude-competitive-intel
     checked: '2026-11-05'
     options:
     - repo: momentumfurkan/claude-competitive-intel
@@ -120,7 +120,7 @@ tools:
     name: Claude 官方 LSP plugin
     query: claude-lsp
     match: ambiguous
-    chosen: null
+    chosen: anthropics/claude-plugins-official
     checked: '2026-11-05'
     options:
     - repo: Piebald-AI/claude-code-lsps
@@ -152,7 +152,7 @@ tools:
     name: codex-security
     query: codex-security
     match: likely
-    chosen: null
+    chosen: openai/codex-security
     suggested: openai/codex-security
     checked: '2026-11-05'
     options:
@@ -185,14 +185,14 @@ tools:
     name: CometWeb product-teardown
     query: CometWeb product-teardown
     match: none_found
-    chosen: null
+    chosen: CometWeb-io/agent-skills
     checked: '2026-11-05'
     options: []
   competitors-analysis:
     name: competitors-analysis（daymade）
     query: competitors-analysis
     match: ambiguous
-    chosen: null
+    chosen: daymade/claude-code-skills
     checked: '2026-11-05'
     options:
     - repo: PromptAndChill/competitors-analysis
@@ -224,7 +224,7 @@ tools:
     name: Context7
     query: Context7
     match: likely
-    chosen: null
+    chosen: upstash/context7
     suggested: upstash/context7
     checked: '2026-11-05'
     options:
@@ -257,7 +257,7 @@ tools:
     name: DeepGit
     query: DeepGit
     match: likely
-    chosen: null
+    chosen: zamalali/DeepGit
     suggested: zamalali/DeepGit
     checked: '2026-11-05'
     options:
@@ -290,13 +290,13 @@ tools:
     query: DeepWiki MCP
     match: error
     error: 'gh: Validation Failed (HTTP 422)'
-    chosen: null
+    chosen: none
     checked: '2026-11-05'
   deepwiki-open:
     name: DeepWiki-Open
     query: DeepWiki-Open
     match: likely
-    chosen: null
+    chosen: AsyncFuncAI/deepwiki-open
     suggested: AsyncFuncAI/deepwiki-open
     checked: '2026-11-05'
     options:
@@ -329,14 +329,14 @@ tools:
     name: DeerFlow github-deep-research
     query: DeerFlow github-deep-research
     match: none_found
-    chosen: null
+    chosen: bytedance/deer-flow
     checked: '2026-11-05'
     options: []
   exa:
     name: Exa
     query: Exa
     match: ambiguous
-    chosen: null
+    chosen: exa-labs/exa-mcp-server
     checked: '2026-11-05'
     options:
     - repo: ogham/exa
@@ -368,7 +368,7 @@ tools:
     name: feature-dev（Anthropic）
     query: feature-dev
     match: ambiguous
-    chosen: null
+    chosen: anthropics/claude-plugins-official
     checked: '2026-11-05'
     options:
     - repo: danielbraun89/devcontainer-features
@@ -400,7 +400,7 @@ tools:
     name: find-skills
     query: find-skills
     match: ambiguous
-    chosen: null
+    chosen: vercel-labs/skills
     checked: '2026-11-05'
     options:
     - repo: su-ron/find-skills
@@ -465,7 +465,7 @@ tools:
     name: GitHub 搜尋（gh）
     query: gh-search
     match: ambiguous
-    chosen: null
+    chosen: cli/cli
     checked: '2026-11-05'
     options:
     - repo: janeklb/gh-search
@@ -497,7 +497,7 @@ tools:
     name: Git Forage（matcluck）
     query: Git Forage
     match: ambiguous
-    chosen: null
+    chosen: matcluck/gitforage
     checked: '2026-11-05'
     options:
     - repo: Surekha413/https-github.com-vagabond-systems-forage-midas
@@ -529,7 +529,7 @@ tools:
     name: GPT Researcher
     query: GPT Researcher
     match: likely
-    chosen: null
+    chosen: assafelovic/gpt-researcher
     suggested: assafelovic/gpt-researcher
     checked: '2026-11-05'
     options:
@@ -562,7 +562,7 @@ tools:
     name: GSD
     query: GSD
     match: ambiguous
-    chosen: null
+    chosen: open-gsd/gsd-core
     checked: '2026-11-05'
     options:
     - repo: nigelpoulton/gsd
@@ -594,14 +594,14 @@ tools:
     name: HaoNan product-research
     query: HaoNan product-research
     match: none_found
-    chosen: null
+    chosen: none
     checked: '2026-11-05'
     options: []
   harbor:
     name: Harbor
     query: Harbor
     match: ambiguous
-    chosen: null
+    chosen: harbor-framework/harbor
     checked: '2026-11-05'
     options:
     - repo: goharbor/harbor
@@ -633,7 +633,7 @@ tools:
     name: HN Algolia API
     query: HN Algolia API
     match: ambiguous
-    chosen: null
+    chosen: none
     checked: '2026-11-05'
     options:
     - repo: Nightwing627/hn.algolia_API
@@ -645,14 +645,14 @@ tools:
     name: hoopyAI competitive-analysis-skill
     query: hoopyAI competitive-analysis-skill
     match: none_found
-    chosen: null
+    chosen: none
     checked: '2026-11-05'
     options: []
   hyperresearch:
     name: hyperresearch
     query: hyperresearch
     match: likely
-    chosen: null
+    chosen: jordan-gibbs/hyperresearch
     suggested: jordan-gibbs/hyperresearch
     checked: '2026-11-05'
     options:
@@ -718,7 +718,7 @@ tools:
     name: Karpathy 風格準則（multica-ai）
     query: karpathy-guidelines
     match: ambiguous
-    chosen: null
+    chosen: multica-ai/andrej-karpathy-skills
     checked: '2026-11-05'
     options:
     - repo: BurukalaManiReethika/Karpathy-Inspired-Claude-Code-Guidelines
@@ -750,7 +750,7 @@ tools:
     name: 官方 MCP Registry
     query: mcp-registry
     match: ambiguous
-    chosen: null
+    chosen: modelcontextprotocol/registry
     checked: '2026-11-05'
     options:
     - repo: docker/mcp-registry
@@ -782,7 +782,7 @@ tools:
     name: MiroThinker
     query: MiroThinker
     match: likely
-    chosen: null
+    chosen: MiroMindAI/MiroThinker
     suggested: MiroMindAI/MiroThinker
     checked: '2026-11-05'
     options:
@@ -815,7 +815,7 @@ tools:
     name: moai-adk
     query: moai-adk
     match: likely
-    chosen: null
+    chosen: modu-ai/moai-adk
     suggested: modu-ai/moai-adk
     checked: '2026-11-05'
     options:
@@ -848,7 +848,7 @@ tools:
     name: OKX skills
     query: OKX skills
     match: ambiguous
-    chosen: null
+    chosen: okx/onchainos-skills
     checked: '2026-11-05'
     options:
     - repo: okx/onchainos-skills
@@ -898,7 +898,7 @@ tools:
     name: OpenSpec
     query: OpenSpec
     match: likely
-    chosen: null
+    chosen: Fission-AI/OpenSpec
     suggested: Fission-AI/OpenSpec
     checked: '2026-11-05'
     options:
@@ -931,7 +931,7 @@ tools:
     name: Parallel
     query: Parallel
     match: ambiguous
-    chosen: null
+    chosen: parallel-web/search-mcp
     checked: '2026-11-05'
     options:
     - repo: grosser/parallel
@@ -963,7 +963,7 @@ tools:
     name: promptfoo
     query: promptfoo
     match: likely
-    chosen: null
+    chosen: promptfoo/promptfoo
     suggested: promptfoo/promptfoo
     checked: '2026-11-05'
     options:
@@ -996,7 +996,7 @@ tools:
     name: repo-analyzer
     query: repo-analyzer
     match: ambiguous
-    chosen: null
+    chosen: yzddmr6/repo-analyzer
     checked: '2026-11-05'
     options:
     - repo: yzddmr6/repo-analyzer
@@ -1028,7 +1028,7 @@ tools:
     name: RIA
     query: RIA
     match: ambiguous
-    chosen: null
+    chosen: none
     checked: '2026-11-05'
     options:
     - repo: basho/riak
@@ -1060,7 +1060,7 @@ tools:
     name: SGRX
     query: SGRX
     match: ambiguous
-    chosen: null
+    chosen: alzenkastrati/sgrx
     checked: '2026-11-05'
     options:
     - repo: alzenkastrati/sgrx
@@ -1092,7 +1092,7 @@ tools:
     name: Stanford STORM
     query: Stanford STORM
     match: ambiguous
-    chosen: null
+    chosen: stanford-oval/storm
     checked: '2026-11-05'
     options:
     - repo: stanford-oval/storm
@@ -1124,7 +1124,7 @@ tools:
     name: SuperClaude
     query: SuperClaude
     match: likely
-    chosen: null
+    chosen: SuperClaude-Org/SuperClaude_Framework
     suggested: SuperClaude-Org/SuperClaude_Framework
     checked: '2026-11-05'
     options:
@@ -1157,7 +1157,7 @@ tools:
     name: task-master
     query: task-master
     match: likely
-    chosen: null
+    chosen: eyaltoledano/claude-task-master
     suggested: eyaltoledano/claude-task-master
     checked: '2026-11-05'
     options:
@@ -1190,7 +1190,7 @@ tools:
     name: Tavily
     query: Tavily
     match: ambiguous
-    chosen: null
+    chosen: tavily-ai/tavily-mcp
     checked: '2026-11-05'
     options:
     - repo: tavily-ai/tavily-mcp
@@ -1235,14 +1235,14 @@ tools:
     name: Alibaba Tongyi DeepResearch
     query: Alibaba Tongyi DeepResearch
     match: none_found
-    chosen: null
+    chosen: Alibaba-NLP/DeepResearch
     checked: '2026-11-05'
     options: []
   zapier-mcp:
     name: Zapier MCP
     query: Zapier MCP
     match: likely
-    chosen: null
+    chosen: zapier/zapier-mcp
     suggested: zapier/zapier-mcp
     checked: '2026-11-05'
     options:

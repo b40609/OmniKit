@@ -3,6 +3,7 @@ name: DeepWiki-Open
 slots:
 - code-understanding
 status: pending
+url: https://github.com/AsyncFuncAI/deepwiki-open
 sources:
 - RIA:C010
 added: '2026-11-04'

@@ -1,0 +1,64 @@
+{
+ "layer": 1,
+ "tool_id": "mattpocock-to-spec",
+ "name": "to-spec（mattpocock）",
+ "url": "https://github.com/mattpocock/skills",
+ "slots": [
+  "dev-workflow"
+ ],
+ "scenarios": [
+  "V1"
+ ],
+ "summary": "to-spec 是 mattpocock/skills 中的單一 skill，會把目前對話整理成 spec 並發布到 issue tracker，不做訪談。它只對得上 dev-workflow 的 V1，而且只涵蓋大功能重流程中的 spec 階段，不是完整流程。現任 BMAD-METHOD 已涵蓋 spec 階段，目前看不出它有現任沒有的能力；Codex 與 SKILL.md 的相容性旗標也互相矛盾，還沒核實。因此先收著，不進入深度評估。",
+ "differences": "相較現任 BMAD-METHOD：to-spec 較輕、只做單一步驟、可與其他 skill 組合，不擁有整個流程。但它沒有 assessment、獨立審查、授權、驗收與 closeout 等階段，而且要先設定 issue tracker 才能發布。若 V1 的痛點是流程常跑偏、重工，它或許有幫助，但目前只是推測，需要實測。",
+ "claims": [
+  {
+   "claim": "可作為 Claude Code plugin 安裝（第 0 層 claude_plugin、claude_marketplace 皆為 true）",
+   "kind": "capability",
+   "how_to_verify": "在 Windows 的 Claude Code 執行 README 列出的 plugin install 指令，確認 to-spec 出現在可用 skill 清單中。"
+  },
+  {
+   "claim": "Codex plugin 安裝狀況未確認：第 0 層記為 false，但 README 列有 codex plugin add 指令",
+   "kind": "compat",
+   "how_to_verify": "在 Codex CLI 實際執行 README 中的 marketplace add 與 plugin add 指令，記錄是否安裝成功。"
+  },
+  {
+   "claim": "repo 沒有在 Windows 上做 CI 測試（第 0 層 windows_ci 為 false）",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 的 CI 設定檔（如 .github/workflows）是否包含 windows runner。"
+  },
+  {
+   "claim": "to-spec 會把 spec 發布到 issue tracker，且需先執行 setup-matt-pocock-skills 設定 tracker",
+   "kind": "capability",
+   "how_to_verify": "閱讀 skills/engineering/to-spec/SKILL.md 與 setup-matt-pocock-skills 的說明，確認發布步驟與前置條件。"
+  },
+  {
+   "claim": "發布 spec 是對外寫入 issue tracker 的動作，應在發布前取得使用者確認",
+   "kind": "security",
+   "how_to_verify": "檢查 to-spec 的 SKILL.md 在發布前是否要求確認；並在測試用 repo 或測試 tracker 上試跑一次。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-workflow"
+  ],
+  "note": "原生 plan mode 能討論並規劃，但沒有 spec 產出與發布到 tracker 的步驟，也不涵蓋重流程的其他階段。"
+ },
+ "cluster": "conversation-spec-synthesis",
+ "recommendation": "keep_pending",
+ "needs_user": "dev-workflow 的 V1 是完整的重流程，to-spec 只涵蓋其中的 spec 一段。請維護者決定：只覆蓋單一階段、可組合的 skill 是否算這個槽位的有效候選；若算，才進入深度評估並與 BMAD 的 spec 階段比較。另外，第 0 層的 Codex 與 SKILL.md 旗標與 README 說法不一致，需要先核實。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 13844,
+   "cached": 3694,
+   "output": 5603
+  },
+  "readme_sha": "345041d56cf1",
+  "readme_chars": 16449
+ }
+}

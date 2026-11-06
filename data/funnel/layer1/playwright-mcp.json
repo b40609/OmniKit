@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "playwright-mcp",
+ "name": "Playwright MCP",
+ "url": "https://github.com/microsoft/playwright-mcp",
+ "slots": [
+  "browser"
+ ],
+ "scenarios": [
+  "U1"
+ ],
+ "summary": "對得上 browser 槽位的 U1：改完前端後開 dev server、看畫面與 console 錯誤。工具宣告同時支援 Claude Code 與 Codex，並可跨 Chromium、Firefox、WebKit，這是內建瀏覽器做不到的部分。代價是它以 MCP 形式運作，工具 schema 與無障礙樹快照都會進 context，token 成本較高；作者本身也建議 coding agent 改用 CLI。",
+ "differences": "對照現任 Chrome DevTools MCP 與原生瀏覽器：多了 Firefox、WebKit 支援，Claude Code 與 Codex 可共用同一套設定，操作以無障礙樹快照為主、不靠截圖。少了或待確認的部分：每次呼叫的 token 成本較高；Chrome DevTools MCP 在效能與網路追蹤的能力尚未比對；Windows 上的實際穩定度尚未實測。",
+ "claims": [
+  {
+   "claim": "可同時註冊到 Claude Code 與 Codex 兩邊（README 提供 claude mcp add 與 codex mcp add 指令）",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 上實際執行兩組註冊指令，再分別在 Claude Code 與 Codex 內確認工具清單出現 playwright 項目。"
+  },
+  {
+   "claim": "支援 Chromium、Firefox、WebKit 三種引擎（設定檔 browserName 與 --browser 選項）",
+   "kind": "capability",
+   "how_to_verify": "分別以 --browser 或設定檔切換引擎啟動，開同一個本機頁面，確認三者都能載入並回傳快照。"
+  },
+  {
+   "claim": "以無障礙樹（accessibility snapshot）描述頁面，不需要截圖",
+   "kind": "capability",
+   "how_to_verify": "開一個本機頁面，檢查工具回傳內容是否為結構化的無障礙樹文字，並比較回傳大小與同頁截圖的 token 估算。"
+  },
+  {
+   "claim": "可回傳 console 訊息，並以 --console-level 過濾等級（error、warning、info、debug）",
+   "kind": "capability",
+   "how_to_verify": "做一個會在載入時 console.error 的頁面，設定 --console-level error 後呼叫 console 相關工具，確認錯誤訊息有出現。"
+  },
+  {
+   "claim": "需要 Node.js 18 以上，以 npx 啟動（不需雲端帳號）",
+   "kind": "compat",
+   "how_to_verify": "執行 node --version 確認版本，再執行 npx @playwright/mcp@latest --help 確認可啟動且不要求登入。"
+  },
+  {
+   "claim": "原生 Windows 可用（第 0 層的 windows_ci 線索只是 CI 紀錄，不等於本機可用）",
+   "kind": "compat",
+   "how_to_verify": "在本機 PowerShell 執行上述啟動與一次完整操作（開頁、快照、點擊），記錄是否有錯誤與耗時。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-browser"
+  ],
+  "note": "Claude Code 內建瀏覽器可開 dev server、截圖、看 DOM 與點擊，但 console 錯誤未明講。Codex 只有 localhost 的 in-app browser，且不涵蓋 Firefox 與 WebKit。"
+ },
+ "cluster": "browser-cli-snapshot",
+ "recommendation": "deep_eval",
+ "needs_user": "請決定這個工具是要取代現任 Chrome DevTools MCP，還是只當跨 agent 的補充；另外 MCP 的 token 成本是否可接受，或只保留 Playwright CLI 作為備案。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 20392,
+   "cached": 3694,
+   "output": 4315
+  },
+  "readme_sha": "b3a0d1f804f4",
+  "readme_chars": 69038
+ }
+}

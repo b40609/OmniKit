@@ -1,0 +1,37 @@
+{
+ "tool": "impeccable",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "pbakaus/impeccable",
+  "sha": "c8891a9ae865d6ee311836ae5199bfce0fe115b1"
+ },
+ "executable": [
+  "skill 附可執行檔（.cmd、.js）"
+ ],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99205,
+   "with_bytes": 113397,
+   "delta_bytes": 14192,
+   "delta_tokens_est": 3548,
+   "mentions": [
+    "audit",
+    "impeccable"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70357,
+   "with_bytes": 84753,
+   "delta_bytes": 14396,
+   "delta_tokens_est": 3599,
+   "mentions": [
+    "audit",
+    "impeccable"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "24 個 skill、plugin"
+ }
+}

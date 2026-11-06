@@ -1,0 +1,55 @@
+{
+ "tool": "agent-browser",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "vercel-labs/agent-browser",
+  "sha": "1f66e398d8ae31f2601fe142af0c84852b2fa896"
+ },
+ "executable": [
+  "skill 附可執行檔（.sh）"
+ ],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99208,
+   "with_bytes": 104674,
+   "delta_bytes": 5466,
+   "delta_tokens_est": 1367,
+   "mentions": [
+    "agent-browser",
+    "agentcore",
+    "core",
+    "derive-client",
+    "dogfood",
+    "electron",
+    "protected-vercel-deployments",
+    "slack",
+    "technical-writer",
+    "vercel-sandbox",
+    "webmcp-gen"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70358,
+   "with_bytes": 76261,
+   "delta_bytes": 5903,
+   "delta_tokens_est": 1476,
+   "mentions": [
+    "agent-browser",
+    "agentcore",
+    "core",
+    "derive-client",
+    "dogfood",
+    "electron",
+    "protected-vercel-deployments",
+    "slack",
+    "technical-writer",
+    "vercel-sandbox",
+    "webmcp-gen"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "11 個 skill"
+ }
+}

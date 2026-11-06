@@ -1,0 +1,83 @@
+{
+ "tool": "addy-agent-skills",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "addyosmani/agent-skills",
+  "sha": "301b02b12bff98e4688e6984af6556802322bbde"
+ },
+ "executable": [
+  "skill 附可執行檔（.mjs、.sh）"
+ ],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99212,
+   "with_bytes": 120490,
+   "delta_bytes": 21278,
+   "delta_tokens_est": 5321,
+   "mentions": [
+    "api-and-interface-design",
+    "browser-testing-with-devtools",
+    "ci-cd-and-automation",
+    "code-review-and-quality",
+    "code-simplification",
+    "constraint-driven-development",
+    "context-engineering",
+    "debugging-and-error-recovery",
+    "deprecation-and-migration",
+    "documentation-and-adrs",
+    "doubt-driven-development",
+    "frontend-ui-engineering",
+    "git-workflow-and-versioning",
+    "idea-refine",
+    "incremental-implementation",
+    "interview-me",
+    "observability-and-instrumentation",
+    "performance-optimization",
+    "planning-and-task-breakdown",
+    "security-and-hardening",
+    "shipping-and-launch",
+    "source-driven-development",
+    "spec-driven-development",
+    "test-driven-development",
+    "using-agent-skills"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70363,
+   "with_bytes": 81539,
+   "delta_bytes": 11176,
+   "delta_tokens_est": 2796,
+   "mentions": [
+    "api-and-interface-design",
+    "browser-testing-with-devtools",
+    "ci-cd-and-automation",
+    "code-review-and-quality",
+    "code-simplification",
+    "constraint-driven-development",
+    "context-engineering",
+    "debugging-and-error-recovery",
+    "deprecation-and-migration",
+    "documentation-and-adrs",
+    "doubt-driven-development",
+    "frontend-ui-engineering",
+    "git-workflow-and-versioning",
+    "idea-refine",
+    "incremental-implementation",
+    "interview-me",
+    "observability-and-instrumentation",
+    "performance-optimization",
+    "planning-and-task-breakdown",
+    "security-and-hardening",
+    "shipping-and-launch",
+    "source-driven-development",
+    "spec-driven-development",
+    "test-driven-development",
+    "using-agent-skills"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "25 個 skill、plugin"
+ }
+}

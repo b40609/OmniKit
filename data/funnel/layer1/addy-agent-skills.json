@@ -1,0 +1,77 @@
+{
+ "layer": 1,
+ "tool_id": "addy-agent-skills",
+ "name": "agent-skills（addyosmani）",
+ "url": "https://github.com/addyosmani/agent-skills",
+ "slots": [
+  "behavior-rules",
+  "browser",
+  "dev-workflow",
+  "review"
+ ],
+ "scenarios": [
+  "B1",
+  "U1",
+  "V1",
+  "R1"
+ ],
+ "summary": "這是一組 25 個工程流程 skill（需求、規劃、實作、審查、上線），本質是純 Markdown 的流程指引，不是工具程式。對得上四個槽位：behavior-rules（B1，目前沒有現任，最有機會）、browser（U1，流程指引疊在現任 Chrome DevTools MCP 上）、dev-workflow（V1，比現任 BMAD-METHOD 輕，但缺少評估與授權關卡）、review（R1，有五面向審查清單與可選的跨模型升級，但現任原生審查已可用）。frontend-design 不收：它處理的是元件架構與無障礙，不做從參考風格重新設計的視覺工作。memory、code-understanding、output-compression 等沒有對應內容。",
+ "differences": "相對現任：review 比原生審查多了五面向清單與跨模型升級選項，少了原生 slash 指令的直接整合；browser 沒有新增能力，只是在現任 MCP 上加一層流程，沒有新的執行能力；dev-workflow 比 BMAD 輕，沒有評估與授權關卡，對小改動較友善，但大功能的重流程要自己補；behavior-rules 是現任沒有的能力，相對原生多了可執行的最小範圍與驗證準則。",
+ "claims": [
+  {
+   "claim": "提供 Claude Code plugin 與 marketplace 安裝方式",
+   "kind": "compat",
+   "how_to_verify": "檢查倉庫是否有 .claude-plugin/ 目錄與 marketplace 設定檔，並在 Claude Code 內實際執行 /plugin marketplace add 與 /plugin install。"
+  },
+  {
+   "claim": "提供 Codex plugin 安裝方式（Codex CLI v0.122+）",
+   "kind": "compat",
+   "how_to_verify": "檢查 .codex-plugin/ 與 .agents/plugins/ 是否存在，並在 Codex CLI 實際執行 codex plugin marketplace add 與 codex plugin add。"
+  },
+  {
+   "claim": "skills/ 目錄內含 25 個 SKILL.md 工作流",
+   "kind": "capability",
+   "how_to_verify": "執行 find skills -name SKILL.md 計數，應為 25（含 using-agent-skills）。"
+  },
+  {
+   "claim": "doubt-driven-development 含可選的跨模型升級（需使用者授權）",
+   "kind": "capability",
+   "how_to_verify": "閱讀 skills/doubt-driven-development/SKILL.md，確認是否有跨模型升級段落與授權條件。"
+  },
+  {
+   "claim": "browser-testing-with-devtools 以 Chrome DevTools MCP 為執行基礎，不是獨立的瀏覽器工具",
+   "kind": "capability",
+   "how_to_verify": "閱讀 skills/browser-testing-with-devtools/SKILL.md，確認依賴的 MCP 與工具名稱，並比對是否需要使用者另外安裝 Chrome DevTools MCP。"
+  },
+  {
+   "claim": "本身不含可執行的 MCP server 或 CLI，只是 Markdown 指引",
+   "kind": "security",
+   "how_to_verify": "檢查倉庫檔案樹是否有 server、bin 或 package 可執行入口；README 自述為 plain Markdown。安裝後也要確認 hooks/ 目錄裡的腳本內容，因為它們會在 Claude Code 生命週期執行。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-review",
+   "native-browser",
+   "native-workflow"
+  ],
+  "note": "原生審查與瀏覽器已涵蓋基本能力，原生工作流只有 plan mode 與 /goal。但原生沒有可執行的最小範圍準則、跨模型交叉審的流程化指引，也沒有完整的 spec 到 ship 流程。"
+ },
+ "cluster": "workflow-skill-pack",
+ "recommendation": "deep_eval",
+ "needs_user": "需要維護者決定：(1) 是否整包安裝還是只挑 behavior-rules 相關的 skill，因為 README 指出單一 skill 安裝會缺少共用的 references/；(2) dev-workflow 與 review 槽位是否要替換現任，還是只當補充；(3) 跨模型升級是否需要獨立授權流程。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 17227,
+   "cached": 3694,
+   "output": 6088
+  },
+  "readme_sha": "b74ab722eeee",
+  "readme_chars": 25184
+ }
+}

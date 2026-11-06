@@ -1,0 +1,13 @@
+id: anthropic-data
+name: Anthropic data plugin
+kind: plugin
+slots:
+- data-analysis
+status: pending
+url: https://github.com/anthropics/knowledge-work-plugins
+works_with:
+- claude
+sources:
+- GitHub 搜尋
+notes: knowledge-work-plugins 的 data 子目錄，Apache-2.0。10 個 skill：explore-data、statistical-analysis、create-viz、data-visualization、validate-data、sql-queries 等。附的 .mcp.json 接 Snowflake、BigQuery、Hex 等雲端資料倉儲，要帳號，本機分析只用 skills。主要給 Claude Cowork，Codex 要另外搬 skill。
+added: '2026-11-05'

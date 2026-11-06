@@ -1,0 +1,14 @@
+id: marimo-skills
+name: marimo skills
+kind: collection
+slots:
+- data-analysis
+status: pending
+url: https://github.com/marimo-team/skills
+works_with:
+- claude
+- codex
+sources:
+- GitHub 搜尋
+notes: marimo 官方，Apache-2.0，177 星（marimo 本體 23k 星）。marimo-notebook、jupyter-to-marimo 等 10 個 skill；notebook 存成純 Python，agent 好改、git 好比對。要改用 marimo 格式，習慣 Jupyter 的人轉換成本高。
+added: '2026-11-05'

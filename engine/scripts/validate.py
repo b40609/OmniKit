@@ -138,6 +138,14 @@ def check(data, profile=None):
     slot_ids = [s.get("id") for s in slots]
     for dup in sorted({i for i in slot_ids if slot_ids.count(i) > 1}):
         errors.append(f"{show(slots_path)}: 槽位 id 重複：{dup}")
+    # 情境 id 跨槽位也不能重複：評估紀錄與第 1 層結果只記情境 id，重複就分不出是哪個槽位
+    owner = {}
+    for s in slots:
+        for sc in s.get("scenarios") or []:
+            sid = sc.get("id") if isinstance(sc, dict) else None
+            if sid in owner and owner[sid] != s.get("id"):
+                errors.append(f"{show(slots_path)}: 情境 id「{sid}」同時用在槽位「{owner[sid]}」與「{s.get('id')}」")
+            owner.setdefault(sid, s.get("id"))
 
     check_tool = validator("tool.schema.json")
     tools = {}
@@ -167,6 +175,12 @@ def check(data, profile=None):
 
     found_errors, found = check_profiles(data, slot_ids)
     errors += found_errors
+    for pname, scen in found.items():
+        for slot, items in scen.items():
+            for sc in items or []:
+                sid = sc.get("id") if isinstance(sc, dict) else None
+                if owner.get(sid) not in (None, slot):
+                    errors.append(f"data/profiles/{pname}/scenarios.yaml: 槽位「{slot}」的情境 id「{sid}」已經是槽位「{owner[sid]}」的")
     board = (config or {}).get("profile") if isinstance(config, dict) else None
     if board and board not in found:
         errors.append(f"{show(config_path)}: 找不到 profile「{board}」（data/profiles/{board}/AGENTS.md）")

@@ -201,3 +201,27 @@ cards:
   credibility: 4
   certainty: very-low
   expires: '2026-12-23'
+- id: ev-20261105-agent-browser-09
+  tool: agent-browser
+  tool_version_tested: unknown
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/vercel-labs/agent-browser/issues/150
+    author: YangWang0514
+    published: '2026-01-18'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: headed
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 使用者回報執行 --headed 參數時沒有跳出瀏覽器視窗，詢問解法；原文未附版本與作業系統。
+  quote: 没有浏览器弹出
+  reliability: D
+  credibility: 3
+  certainty: very-low
+  expires: '2026-04-18'

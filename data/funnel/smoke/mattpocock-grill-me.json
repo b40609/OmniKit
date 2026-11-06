@@ -1,0 +1,32 @@
+{
+ "tool": "mattpocock-grill-me",
+ "date": "2026-11-05",
+ "source": {
+  "path": "grill-me"
+ },
+ "executable": [],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99214,
+   "with_bytes": 99210,
+   "delta_bytes": -4,
+   "delta_tokens_est": -1,
+   "mentions": [
+    "grill-me"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70365,
+   "with_bytes": 70359,
+   "delta_bytes": -6,
+   "delta_tokens_est": -1,
+   "mentions": [
+    "grill-me"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "1 個 skill"
+ }
+}

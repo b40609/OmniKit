@@ -1,0 +1,32 @@
+{
+ "tool": "ce-handoff",
+ "date": "2026-11-05",
+ "source": {
+  "path": "ce-handoff"
+ },
+ "executable": [],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99205,
+   "with_bytes": 99414,
+   "delta_bytes": 209,
+   "delta_tokens_est": 52,
+   "mentions": [
+    "ce-handoff"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70355,
+   "with_bytes": 70676,
+   "delta_bytes": 321,
+   "delta_tokens_est": 81,
+   "mentions": [
+    "ce-handoff"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "1 個 skill"
+ }
+}

@@ -4,6 +4,7 @@ kind: cli
 slots:
 - product-research
 status: pending
+url: https://github.com/cli/cli
 sources:
 - RIA:C044
 notes: 比較基準。

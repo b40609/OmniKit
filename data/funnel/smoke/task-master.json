@@ -1,0 +1,29 @@
+{
+ "tool": "task-master",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "eyaltoledano/claude-task-master",
+  "sha": "c0c98d367c55296bfe69e65680625b6db437af02"
+ },
+ "executable": [],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99206,
+   "with_bytes": 99202,
+   "delta_bytes": -4,
+   "delta_tokens_est": -1,
+   "mentions": []
+  },
+  "codex": {
+   "baseline_bytes": 70354,
+   "with_bytes": 70353,
+   "delta_bytes": -1,
+   "delta_tokens_est": 0,
+   "mentions": []
+  }
+ },
+ "install": {
+  "ok": false,
+  "detail": "0 個 skill"
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "layer": 1,
+ "tool_id": "mcp-registry",
+ "name": "官方 MCP Registry",
+ "url": "https://registry.modelcontextprotocol.io",
+ "slots": [
+  "tool-discovery"
+ ],
+ "scenarios": [
+  "N1"
+ ],
+ "summary": "官方 MCP Registry 是 MCP server 的集中目錄，對得上 tool-discovery 的 N1（掌握新工具從哪裡出現）。現任沒有，內建功能也沒有對應項目，所以不是重複。限制是仍在 preview，而且它是目錄而非推播，OmniKit 收件匣需要自己輪詢與過濾。建議深入評估。",
+ "differences": "跟現任比（沒有現任，改跟內建功能比）：多了一個集中列出 MCP server 的目錄與 API，可以查到新出現的 server。少了：不是 feed 或推播，無法直接進收件匣；內容只涵蓋 MCP server，不含 skills、plugins 等其他形式；目前是 preview，API 與資料可能變動或重置。",
+ "claims": [
+  {
+   "claim": "提供 MCP server 的目錄與 live API，可查詢已登錄的 server",
+   "kind": "capability",
+   "how_to_verify": "開啟 https://registry.modelcontextprotocol.io/docs 查看列表或搜尋的 endpoint，並實際呼叫一次確認回傳內容"
+  },
+  {
+   "claim": "目前仍是 preview，可能有破壞性變更或資料重置",
+   "kind": "compat",
+   "how_to_verify": "對照 README 中 2025-09-08 的更新說明與 tool card 的 notes 欄位"
+  },
+  {
+   "claim": "v0.1 API 已宣布凍結，凍結期間不做破壞性變更",
+   "kind": "compat",
+   "how_to_verify": "對照 README 中 2025-10-24 的更新說明，並檢查 docs 中的版本與 changelog"
+  },
+  {
+   "claim": "本地開發需要 Docker、Go、ko 與 golangci-lint；只使用線上 API 則不需要",
+   "kind": "cost",
+   "how_to_verify": "檢查 README 的 Pre-requisites 段落，並用 curl 呼叫線上 API 確認不需安裝這些工具"
+  },
+  {
+   "claim": "沒有推播或變更 feed，需自行定期輪詢 API 才能發現新 server",
+   "kind": "capability",
+   "how_to_verify": "檢查 API 文件是否有 webhook、event stream 或 updated_since 之類的參數；若沒有，即為輪詢"
+  },
+  {
+   "claim": "倉庫授權在 metadata 中為 NOASSERTION，無法從 GitHub 欄位判定授權條款",
+   "kind": "security",
+   "how_to_verify": "檢查倉庫根目錄的 LICENSE 檔案與 GitHub 授權頁面，確認實際條款後再決定是否依賴"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單中沒有工具來源探索或新工具發現的項目，無法由內建功能取代。"
+ },
+ "cluster": "mcp-server-registry",
+ "recommendation": "deep_eval",
+ "needs_user": "空",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 10778,
+   "cached": 3694,
+   "output": 2784
+  },
+  "readme_sha": "b3c9172e5aca",
+  "readme_chars": 8303
+ }
+}

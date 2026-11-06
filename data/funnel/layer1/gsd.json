@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "gsd",
+ "name": "GSD",
+ "url": "https://github.com/open-gsd/gsd-core",
+ "slots": [
+  "dev-workflow"
+ ],
+ "scenarios": [
+  "V1"
+ ],
+ "summary": "GSD 是規格驅動的階段式開發框架，用全新脈絡的子代理執行重工作，並以 STATE.md、CONTEXT.md 等檔案跨 session 保存進度。它對得上「規劃與開發流程」槽位的 V1 情境（小改動與大功能分流），但 README 沒有說明小改動有輕量路徑，所以對應程度只能暫定。內建的 plan mode 只是通用計畫功能，沒有完整方法論，因此內建覆蓋只算部分。",
+ "differences": "相對現任 BMAD-METHOD：資料中沒有 BMAD 的細節，無法判斷哪一個比較輕。GSD 多了五步階段循環（討論、規劃、執行、驗證、交付）、子代理隔離脈絡、以檔案跨 session 交接，以及多 runtime 安裝器。少了或未知的部分：README 沒見小改動的輕量流程，全流程套在小改動上可能偏重；Codex 是靠安裝器支援，不是 plugin。相對內建 native-workflow：多了完整方法論與文件檔，少了原生 plan mode 的即時性與零安裝成本。",
+ "claims": [
+  {
+   "claim": "透過 npx 安裝器支援 Claude Code 與 Codex 等多個 runtime，Codex 不是以 plugin 形式提供",
+   "kind": "compat",
+   "how_to_verify": "在乾淨環境執行 npx @opengsd/gsd-core@latest，分別選 Codex 與 Claude Code 安裝，檢查安裝結果是否符合 codex_plugin=false 的線索。"
+  },
+  {
+   "claim": "提供 Claude Code plugin 與 marketplace 安裝方式",
+   "kind": "compat",
+   "how_to_verify": "在 Claude Code 中搜尋 plugin marketplace，確認能找到 gsd 並成功安裝。"
+  },
+  {
+   "claim": "採用 discuss、plan、execute、verify、ship 五步循環，逐階段推進",
+   "kind": "capability",
+   "how_to_verify": "閱讀 docs/explanation/the-phase-loop.md，並實際跑完一個 phase，確認五個步驟都有產出。"
+  },
+  {
+   "claim": "用 STATE.md、CONTEXT.md 等檔案在 session 之間保存進度",
+   "kind": "capability",
+   "how_to_verify": "跑一個 phase 後關閉 session，在新 session 只讀取這些檔案接續工作，記錄需要重講的脈絡量。"
+  },
+  {
+   "claim": "CI 含 Windows 執行環境",
+   "kind": "quality",
+   "how_to_verify": "檢查 repo 的 .github/workflows（例如 test.yml）是否有 windows 執行環境，並確認最近一次執行結果為通過。"
+  },
+  {
+   "claim": "安裝需要 Node.js，沒有 Node 時需另行處理",
+   "kind": "compat",
+   "how_to_verify": "在沒有 Node.js 的環境執行安裝指令，記錄錯誤訊息與替代安裝路徑。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-workflow"
+  ],
+  "note": "native-workflow 只有 plan mode 與 /goal，沒有完整方法論；GSD 的五步循環與跨 session 檔案交接是它沒有覆蓋的部分。"
+ },
+ "cluster": "spec-phase-loop",
+ "recommendation": "deep_eval",
+ "needs_user": "(1) GSD 的 STATE.md、CONTEXT.md 跨 session 交接與 memory 槽位的 M1 有重疊；目前只列 dev-workflow，是否也要評估 memory 槽位？(2) 需要 BMAD-METHOD 的現況資料（小改動流程與重工比例），才能實際比較差異。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 10199,
+   "cached": 3694,
+   "output": 5170
+  },
+  "readme_sha": "66fe062ee370",
+  "readme_chars": 5845
+ }
+}

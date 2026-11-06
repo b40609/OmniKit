@@ -4,6 +4,7 @@ kind: app
 slots:
 - product-research
 status: pending
+url: https://github.com/Alibaba-NLP/DeepResearch
 sources:
 - RIA:C002
 - RIA:C052

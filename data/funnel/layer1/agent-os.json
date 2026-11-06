@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "agent-os",
+ "name": "agent-os",
+ "url": "https://github.com/buildermethods/agent-os",
+ "slots": [
+  "dev-workflow"
+ ],
+ "scenarios": [
+  "V1"
+ ],
+ "summary": "Agent OS 主打規格驅動與規範注入，只部分對得上 dev-workflow 的 V1（小改動與大功能流程常跑偏、重工）。它有規格塑造功能，但 README 沒有提到討論核准、獨立審查、驗收、closeout 等閘門。第 0 層沒有 plugin、AGENTS.md、skill 與 Windows CI 線索，Windows 相容性尚未證實。先收著，等查證後再決定。",
+ "differences": "相較現任 BMAD-METHOD：多了從既有程式碼抽取規範、依任務注入相關規範、規格索引等功能；少了（就 README 所見）分級的完整流程，以及獨立審查、驗收、closeout 等閘門。BMAD-METHOD 的實際內容不在本次資料中，比較只依工具卡與第 0 層資料，尚未實測。",
+ "claims": [
+  {
+   "claim": "提供四項核心功能：發掘規範、部署規範、規格塑造、規範索引",
+   "kind": "capability",
+   "how_to_verify": "對照 repo README 與官方文件（buildermethods.com/agent-os）列出的功能，逐項確認是否有對應指令或檔案"
+  },
+  {
+   "claim": "可與 Claude Code、Cursor 等工具並用",
+   "kind": "compat",
+   "how_to_verify": "依官方安裝說明在 Claude Code 中實際安裝並執行一次規格流程，記錄是否成功"
+  },
+  {
+   "claim": "repo 內沒有 Claude plugin、marketplace、Codex plugin、AGENTS.md、SKILL.md 與 skills 目錄",
+   "kind": "compat",
+   "how_to_verify": "列出 repo 檔案樹，檢查根目錄與 .claude、.codex 等路徑是否存在上述檔案（對應第 0 層相容線索）"
+  },
+  {
+   "claim": "repo 沒有 Windows 的 CI 設定",
+   "kind": "compat",
+   "how_to_verify": "檢查 .github/workflows 內是否有 windows-latest 之類的 runner 設定"
+  },
+  {
+   "claim": "README 未描述獨立審查、授權、驗收與 closeout 等閘門式流程",
+   "kind": "capability",
+   "how_to_verify": "在 README、CHANGELOG 與官方文件中搜尋 review、approval、acceptance、closeout 等關鍵字，確認是否有對應流程"
+  },
+  {
+   "claim": "Windows 上可以正常安裝與執行規格流程",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 11 與 PowerShell 環境中依安裝說明從頭執行一次，記錄失敗步驟與錯誤輸出"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-workflow",
+   "native-review"
+  ],
+  "note": "內建 plan mode、/goal 與 /review 能做計畫與審查，但沒有 V1 所描述的分級閘門流程，也沒有規格與規範的管理。"
+ },
+ "cluster": "spec-driven-standards",
+ "recommendation": "keep_pending",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 8298,
+   "cached": 3694,
+   "output": 3203
+  },
+  "readme_sha": "17ad160218b6",
+  "readme_chars": 1607
+ }
+}

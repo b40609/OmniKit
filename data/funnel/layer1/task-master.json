@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "task-master",
+ "name": "task-master",
+ "url": "https://github.com/eyaltoledano/claude-task-master",
+ "slots": [
+  "dev-workflow"
+ ],
+ "scenarios": [
+  "V1"
+ ],
+ "summary": "task-master 的主要做法是把 PRD 拆成可追蹤的任務、依賴與標籤，並提供 CLI 與 MCP 介面。它落在 dev-workflow 的 active 槽位，對得上 V1 中「大功能走 spec 流程」的部分。不過 README 沒有提到核准關卡或獨立審查，所以「常跑偏、重工」這個問題是否解決，仍無法從文件判斷。原生 plan mode 能處理小改動的討論與核准，但沒有跨 session 的任務拆解與依賴追蹤，因此只算部分覆蓋。",
+ "differences": "相較於現任 BMAD-METHOD，多了：PRD 解析成任務、子任務展開、任務依賴與 tags 跨標籤搬移，以及 MCP server 與 CLI 兩種入口。少了（或在 README 中找不到）：核准關卡、獨立審查、驗收與 closeout 等重流程環節。相較於內建 native-workflow，它補的是任務層級的追蹤，不是流程關卡。",
+ "claims": [
+  {
+   "claim": "提供 MCP server，並可用 claude mcp add 指令安裝到 Claude Code",
+   "kind": "capability",
+   "how_to_verify": "在乾淨環境執行 README 的 Claude Code Quick Install 指令，再用 claude mcp list 確認出現 taskmaster-ai。"
+  },
+  {
+   "claim": "支援從 PRD 解析出任務（parse-prd）並展開子任務（expand）",
+   "kind": "capability",
+   "how_to_verify": "在一份範例 PRD 上執行 task-master parse-prd 與 expand，檢查產出的任務檔是否含子任務與狀態欄位。"
+  },
+  {
+   "claim": "支援任務依賴與 tags 之間的任務搬移（move --from-tag --to-tag）",
+   "kind": "capability",
+   "how_to_verify": "建立兩個 tag、搬移一筆有依賴的任務，用 task-master list 確認依賴與狀態有跟著移動。"
+  },
+  {
+   "claim": "README 未明示原生 Windows 支援，且 repo 的 Windows CI 為 false",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 11 執行 npx -y task-master-ai --help 觀察是否可執行；並檢查 .github/workflows 是否有 windows runner。"
+  },
+  {
+   "claim": "AI 相關指令需要外部 API key；若用 Claude Code 或 Codex CLI 的 OAuth 則可免 key",
+   "kind": "cost",
+   "how_to_verify": "讀 README 的 Requirements 段；在未設定任何 key 的環境執行 research 指令，確認錯誤訊息與文件一致。"
+  },
+  {
+   "claim": "授權為 MIT with Commons Clause，不是標準 OSI 開源授權，且禁止以託管服務形式提供",
+   "kind": "security",
+   "how_to_verify": "讀 repo 根目錄的 LICENSE 與 docs/licensing.md，確認限制條款；repo 的授權欄位顯示為 NOASSERTION，與之相符。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-workflow"
+  ],
+  "note": "原生 plan mode 與 /goal 涵蓋小改動的討論與核准，但沒有跨 session 的任務拆解、依賴追蹤與 PRD 解析，因此只算部分覆蓋。"
+ },
+ "cluster": "spec-task-decomposition",
+ "recommendation": "deep_eval",
+ "needs_user": "請維護者確認 dev-workflow 槽位的 V1 是否以「核准與獨立審查關卡」為必要條件。若是，task-master 的文件沒有顯示這部分，評估重點會偏向確認它是否能補上 BMAD 之外的任務追蹤能力。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 15467,
+   "cached": 3694,
+   "output": 4210
+  },
+  "readme_sha": "5a159c3bb773",
+  "readme_chars": 17398
+ }
+}

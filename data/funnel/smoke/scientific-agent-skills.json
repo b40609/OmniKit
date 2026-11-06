@@ -1,0 +1,46 @@
+{
+ "tool": "scientific-agent-skills",
+ "date": "2026-11-05",
+ "source": {
+  "path": "scientific-data"
+ },
+ "executable": [
+  "skill 附可執行檔（.py）"
+ ],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99218,
+   "with_bytes": 102074,
+   "delta_bytes": 2856,
+   "delta_tokens_est": 714,
+   "mentions": [
+    "exploratory-data-analysis",
+    "matplotlib",
+    "polars",
+    "scikit-learn",
+    "seaborn",
+    "statistical-analysis",
+    "statsmodels"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70368,
+   "with_bytes": 73558,
+   "delta_bytes": 3190,
+   "delta_tokens_est": 797,
+   "mentions": [
+    "exploratory-data-analysis",
+    "matplotlib",
+    "polars",
+    "scikit-learn",
+    "seaborn",
+    "statistical-analysis",
+    "statsmodels"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "7 個 skill"
+ }
+}

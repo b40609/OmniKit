@@ -1,0 +1,14 @@
+id: motherduck-mcp
+name: DuckDB MCP（MotherDuck）
+kind: mcp
+slots:
+- data-analysis
+status: pending
+url: https://github.com/motherduckdb/mcp-server-motherduck
+works_with:
+- claude
+- codex
+sources:
+- GitHub 搜尋
+notes: MIT，v1.1.0（2026-10-07），539 星。本機 DuckDB，用 SQL 查 CSV 與 Parquet，資料大於記憶體也能跑；可以唯讀。只用本機 DuckDB 不需要 MotherDuck 帳號。2026-11-05 程式碼審查（強模型）：本身不連網；DuckDB SQL 可以讀寫任意檔案、自動下載 extension，要用 --init-sql 鎖住（allowed_directories、enable_external_access=false、關自動安裝 extension、lock_configuration=true）；記憶體資料庫（:memory:）要加 --read-write；fastmcp 沒釘版本，要另外釘，並設 FASTMCP_CHECK_FOR_UPDATES=off。Windows Sandbox 安裝與交握成功：4 個工具、定義 2,914 bytes。
+added: '2026-11-05'

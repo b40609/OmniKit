@@ -1,0 +1,62 @@
+{
+ "layer": 1,
+ "tool_id": "agent-desktop",
+ "name": "agent-desktop（Vercel Labs）",
+ "url": "https://github.com/vercel-labs/agent-desktop",
+ "slots": [],
+ "scenarios": [],
+ "summary": "與任何 active 槽位都對不上，卡片也標明目前沒有要解決的情境。它是桌面版的 agent-browser，透過作業系統無障礙樹讀取畫面元素並以 ref 操作，做法與已用過的 browser-cli-snapshot 群組相同，但操作對象是桌面應用程式，不是瀏覽器。",
+ "differences": "相較於內建功能，原生瀏覽器只限瀏覽器，內建沒有任何能操作 Windows、macOS、Linux 桌面應用程式的能力，這是它多出來的部分。另一方面，它不內含模型，迴圈要由 agent 自己跑；它也依賴作業系統無障礙 API 暴露的元素，元素暴露不完整的應用程式會看不到內容。卡片寫 13k 星、v1.1.0，第 0 層記錄是 15936 星，README 範例的版本號是 2.6，兩邊對不上，需要再查證。",
+ "claims": [
+  {
+   "claim": "提供 `agent-desktop mcp` 指令，以 stdio 方式把每個命令當成 MCP 工具",
+   "kind": "capability",
+   "how_to_verify": "安裝後執行 agent-desktop mcp --help 或 agent-desktop --help，確認 mcp 子命令存在；再用 MCP client 列出工具清單，確認有 desktop_snapshot 等工具"
+  },
+  {
+   "claim": "Windows 版透過 UI Automation 讀取畫面元素，支援 Windows 10 1809 以上的 x64 與 ARM64",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 11 執行 agent-desktop status，看平台與支援的 surface；再對一個 Windows 應用程式執行 snapshot --app <名稱> -i，確認回傳含 ref 的 JSON"
+  },
+  {
+   "claim": "版本與星數：卡片寫 v1.1.0、13k 星，第 0 層記錄 15936 星，README 範例版本號為 2.6",
+   "kind": "quality",
+   "how_to_verify": "執行 agent-desktop version 比對版本；到 GitHub releases 與 repo 頁面確認目前的版本與星數，更新卡片數字"
+  },
+  {
+   "claim": "安裝方式為 npm install -g agent-desktop，或從 GitHub Releases 下載原生 archive；不需要雲端帳號",
+   "kind": "compat",
+   "how_to_verify": "在乾淨的 Windows 環境執行 npm install -g agent-desktop 後執行 agent-desktop status，確認不需登入；另檢查 README 與 Releases 頁面的安裝說明"
+  },
+  {
+   "claim": "快照、剪貼簿、截圖與除錯產物可能含私人桌面內容，README 要求不要放進公開 log 或上傳",
+   "kind": "security",
+   "how_to_verify": "執行 snapshot、clipboard-get、screenshot 後檢查輸出與 trace 檔位置，確認是否會寫入預設路徑；若要用於 OmniKit，需先確認輸出不會進入 repo 或 log"
+  },
+  {
+   "claim": "預設 headless，ref 操作透過無障礙 API 進行，不移動滑鼠、不搶焦點；--headed 才允許實體輸入",
+   "kind": "capability",
+   "how_to_verify": "在 Windows 上執行 click 的 ref 操作前後量測滑鼠位置與前景視窗，確認沒有移動或搶焦點"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能中，native-browser 只涵蓋瀏覽器內的操作與截圖，沒有任何能力操作一般桌面應用程式的無障礙樹。app-explore 是比較基準，沒有列出可對照的桌面操作功能。"
+ },
+ "cluster": "browser-cli-snapshot",
+ "recommendation": "reject",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 12084,
+   "cached": 3694,
+   "output": 3673
+  },
+  "readme_sha": "373b4616cbdb",
+  "readme_chars": 10016
+ }
+}

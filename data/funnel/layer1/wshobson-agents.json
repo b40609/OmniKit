@@ -1,0 +1,65 @@
+{
+ "layer": 1,
+ "tool_id": "wshobson-agents",
+ "name": "agents（wshobson）",
+ "url": "https://github.com/wshobson/agents",
+ "slots": [],
+ "scenarios": [],
+ "summary": "這是多 harness 的 agents、skills、commands 合集，主打 Claude Code 與 Codex CLI 的外掛市集安裝，另有 OpenCode、Copilot、Pi 等安裝路徑。README 列出的內容是 Python、JavaScript、程式碼審查、安全掃描等通用開發外掛，沒有對應到任何 active 槽位的情境：沒有前端設計、跨 harness 交叉審查、交接記憶、呼叫者搜尋、輸出壓縮、瀏覽器驗證、資料分析或開發流程規範。審查功能已有原生 /review 與 /code-review 涵蓋。plugin-eval 的靜態 skill 檢查只與 K1（skill 評估）部分相關，但 README 沒有提供與「不裝時」的對照證明。",
+ "differences": "相較於內建功能，多了大量預先寫好的專門 agents、skills 與 commands（Python、JS、安全、測試等），以及 plugin-eval 靜態檢查。少了的部分：README 沒有 Windows CI 紀錄，多 harness 安裝路徑需要 uv 與 Python 3.12 以上，也沒有針對 CatOS 或 OmniKeep 的前端、後端、記憶或瀏覽器情境。Claude Code 與 Codex 的市集安裝只拿到 skills 與 agents，不含 hooks 與 MCP 設定，這點要以文件為準再確認。",
+ "claims": [
+  {
+   "claim": "支援在 Claude Code 內以 /plugin marketplace add 加入市集並安裝外掛",
+   "kind": "capability",
+   "how_to_verify": "在 Claude Code 中執行 README 指令，確認 python-development 外掛能列出並安裝。"
+  },
+  {
+   "claim": "支援 Codex CLI 的原生外掛市集（codex plugin marketplace add）",
+   "kind": "capability",
+   "how_to_verify": "用目前版本的 Codex CLI 執行 README 指令，確認市集加入與外掛安裝成功。"
+  },
+  {
+   "claim": "目錄含 94 個外掛、202 個 agents、185 個 skills、105 個 commands",
+   "kind": "capability",
+   "how_to_verify": "在 repo 內統計 plugins/、agents、skills、commands 的實際檔案數量並與 README 比對。"
+  },
+  {
+   "claim": "make install-opencode、install-copilot、install-pi、install-antigravity 需要 uv 與 Python 3.12 以上；repo 未見 Windows CI",
+   "kind": "compat",
+   "how_to_verify": "檢查 Makefile 與 .github/workflows 是否有 Windows 執行環境；在 Windows 上實際執行 make 目標（或確認其不可用）。"
+  },
+  {
+   "claim": "plugin-eval 的靜態 skill 檢查不需要模型呼叫",
+   "kind": "quality",
+   "how_to_verify": "執行 README 中的 uv run plugin-eval score 指令，確認過程沒有 API 呼叫或登入需求。"
+  },
+  {
+   "claim": "LLM judge 與 Monte Carlo 層屬實驗性、未與人工標籤驗證，且呼叫會計費到 ANTHROPIC_API_KEY 帳號",
+   "kind": "cost",
+   "how_to_verify": "閱讀 docs/plugin-eval.md 的限制說明，並確認環境變數存在時的計費行為。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-review"
+  ],
+  "note": "原生有 /review 與 /code-review 等審查功能，可涵蓋合集中的程式碼審查部分；但 Python、JS、安全等專門 agents 與 skills 內建沒有。"
+ },
+ "cluster": "multi-harness-plugin-bundle",
+ "recommendation": "reject",
+ "needs_user": "K1（skill-authoring）與 plugin-eval 的靜態 skill 檢查只部分相關，且 README 沒有與「不裝時」的對照證明。若維護者認為它足以納入 K1 的評估情境，請告知；目前依規則判為不在任何 active 槽位範圍。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 11182,
+   "cached": 3694,
+   "output": 5793
+  },
+  "readme_sha": "8469d4f011ce",
+  "readme_chars": 9662
+ }
+}

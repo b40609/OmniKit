@@ -4,6 +4,7 @@ kind: app
 slots:
 - product-research
 status: pending
+url: https://github.com/langchain-ai/open_deep_research
 sources:
 - RIA:C020
 - RIA:C049

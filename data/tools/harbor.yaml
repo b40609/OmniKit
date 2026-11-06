@@ -4,6 +4,7 @@ kind: app
 slots:
 - skill-authoring
 status: pending
+url: https://github.com/harbor-framework/harbor
 sources:
 - RIA:C061
 notes: 已改名為 harbor-framework/harbor。

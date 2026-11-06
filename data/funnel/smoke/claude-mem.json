@@ -1,0 +1,101 @@
+{
+ "tool": "claude-mem",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "thedotmack/claude-mem",
+  "sha": "21d00983cb223a9b09603df4db8558e56980b521"
+ },
+ "executable": [
+  "skill 附可執行檔（.js、.mjs、.py、.sh、.ts）"
+ ],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99205,
+   "with_bytes": 109580,
+   "delta_bytes": 10375,
+   "delta_tokens_est": 2598,
+   "mentions": [
+    "agent-cost-report",
+    "babysit",
+    "backup-setup",
+    "build",
+    "build-and-release",
+    "ccs-align",
+    "childhood",
+    "cloud-sync",
+    "design-is",
+    "do",
+    "handoff",
+    "host-observer",
+    "how-it-works",
+    "install",
+    "knowledge-agent",
+    "learn-codebase",
+    "make-plan",
+    "mem-search",
+    "mem-setup",
+    "mode-creator",
+    "oh-my-issues",
+    "openclaw",
+    "owner-goals",
+    "pathfinder",
+    "release",
+    "request-progress",
+    "screenpipe",
+    "smart-explore",
+    "standup",
+    "timeline-report",
+    "version-bump",
+    "weekly-digests",
+    "what-the",
+    "wowerpoint"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70357,
+   "with_bytes": 82811,
+   "delta_bytes": 12454,
+   "delta_tokens_est": 3118,
+   "mentions": [
+    "agent-cost-report",
+    "babysit",
+    "backup-setup",
+    "build",
+    "build-and-release",
+    "ccs-align",
+    "childhood",
+    "cloud-sync",
+    "design-is",
+    "do",
+    "handoff",
+    "host-observer",
+    "how-it-works",
+    "install",
+    "knowledge-agent",
+    "learn-codebase",
+    "make-plan",
+    "mem-search",
+    "mem-setup",
+    "mode-creator",
+    "oh-my-issues",
+    "openclaw",
+    "owner-goals",
+    "pathfinder",
+    "release",
+    "request-progress",
+    "screenpipe",
+    "smart-explore",
+    "standup",
+    "timeline-report",
+    "version-bump",
+    "weekly-digests",
+    "what-the",
+    "wowerpoint"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "39 個 skill、plugin"
+ }
+}

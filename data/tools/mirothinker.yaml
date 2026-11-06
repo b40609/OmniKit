@@ -4,6 +4,7 @@ kind: app
 slots:
 - product-research
 status: pending
+url: https://github.com/MiroMindAI/MiroThinker
 sources:
 - RIA:C021
 added: '2026-11-04'

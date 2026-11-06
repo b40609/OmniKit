@@ -3,6 +3,7 @@ name: GSD
 slots:
 - dev-workflow
 status: pending
+url: https://github.com/open-gsd/gsd-core
 sources:
 - RIA:C040
 notes: 規格驅動系列。

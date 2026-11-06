@@ -1,0 +1,102 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: planning-with-files
+cards:
+- id: ev-20261105-planning-with-files-01
+  tool: planning-with-files
+  tool_version_tested: unknown
+  slot: memory
+  source:
+    type: issue
+    url: https://github.com/OthmanAdi/planning-with-files/issues/254
+    author: OthmanAdi
+    published: '2026-09-17'
+    retrieved: '2026-11-05'
+  independence: vendor
+  setup:
+    os: Windows
+    mode: named-plan init-session.ps1，多個同時進行的初始化
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: Windows 上多個 named-plan 同時初始化時，可能在替換指標檔時失敗，並留下 ReplaceFile 暫存檔。
+  quote: concurrent named-plan inits can fail on the pointer replacement
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2026-12-16'
+- id: ev-20261105-planning-with-files-02
+  tool: planning-with-files
+  tool_version_tested: v3.17.0
+  slot: memory
+  source:
+    type: issue
+    url: https://github.com/OthmanAdi/planning-with-files/issues/240
+    author: sunznx
+    published: '2026-09-08'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Codex
+    mode: named gated flow，compaction 之後
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: v3.17.0 的命名 gated 計畫可能讓同一目錄下的多個 Codex 工作階段互相綁到錯誤的計畫。
+  quote: named gated plans can cross-bind same-cwd Codex sessions
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2026-12-07'
+- id: ev-20261105-planning-with-files-03
+  tool: planning-with-files
+  tool_version_tested: v3.24.3
+  slot: memory
+  source:
+    type: issue
+    url: https://github.com/OthmanAdi/planning-with-files/issues/329
+    author: OthmanAdi
+    published: '2026-10-20'
+    retrieved: '2026-11-05'
+  independence: vendor
+  setup:
+    agent: Gemini
+    mode: SessionStart、BeforeAgent、AfterTool 生命週期 hook
+  method: controlled-ab
+  comparator: baseline
+  runs: 6
+  kind: quality
+  direction: '-'
+  claim: 設定 PLANNING_DISABLED=1 後，Gemini 生命週期 hook 仍會輸出規劃內容，無法讓無關的呼叫關閉規劃。
+  quote: still emit planning context when PLANNING_DISABLED=1 is set
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2027-01-18'
+- id: ev-20261105-planning-with-files-04
+  tool: planning-with-files
+  tool_version_tested: unknown
+  slot: memory
+  source:
+    type: issue
+    url: https://github.com/OthmanAdi/planning-with-files/issues/358
+    author: OthmanAdi
+    published: '2026-11-02'
+    retrieved: '2026-11-05'
+  independence: vendor
+  setup:
+    mode: attest-plan 的 shell 與 PowerShell 兩條路徑，兩個命名計畫且未設定 PLAN_ID
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 有兩個計畫且未設定 PLAN_ID 時，attest-plan 在 shell 與 PowerShell 兩條路徑回報的訊息互相矛盾。
+  quote: report the multiple-plans refusal once, on both routes
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2027-02-03'

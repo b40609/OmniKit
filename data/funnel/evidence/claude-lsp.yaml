@@ -1,0 +1,28 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: claude-lsp
+cards:
+- id: ev-20261105-claude-lsp-01
+  tool: claude-lsp
+  tool_version_tested: unknown
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/anthropics/claude-plugins-official/issues/261
+    author: corylanou
+    published: '2026-01-20'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+    mode: 多個並行工作階段
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: gopls-lsp 每個 Claude Code 工作階段各自啟動一個 gopls，作者估計每個約吃 500–800MB 記憶體，同時開 3–4 個就可能耗用 2–3GB。
+  quote: Each instance consumes ~500-800MB of RAM
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'

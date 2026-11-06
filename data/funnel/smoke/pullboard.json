@@ -1,0 +1,45 @@
+{
+ "tool": "pullboard",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "pullboard-dev/pullboard",
+  "sha": "6231e10d4f22673b41ec5797a642b7b6f8e9fd06"
+ },
+ "executable": [],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99204,
+   "with_bytes": 102470,
+   "delta_bytes": 3266,
+   "delta_tokens_est": 816,
+   "mentions": [
+    "pullboard-decompose",
+    "pullboard-plan",
+    "pullboard-run",
+    "pullboard-signoff",
+    "pullboard-spec-review",
+    "pullboard-triage",
+    "pullboard-verify"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70356,
+   "with_bytes": 74118,
+   "delta_bytes": 3762,
+   "delta_tokens_est": 940,
+   "mentions": [
+    "pullboard-decompose",
+    "pullboard-plan",
+    "pullboard-run",
+    "pullboard-signoff",
+    "pullboard-spec-review",
+    "pullboard-triage",
+    "pullboard-verify"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "11 個 skill"
+ }
+}

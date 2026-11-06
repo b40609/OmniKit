@@ -4,6 +4,7 @@ kind: app
 slots:
 - product-research
 status: pending
+url: https://github.com/assafelovic/gpt-researcher
 sources:
 - RIA:C015
 added: '2026-11-04'

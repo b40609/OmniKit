@@ -4,6 +4,7 @@ kind: app
 slots:
 - product-research
 status: pending
+url: https://github.com/bytedance/deer-flow
 sources:
 - RIA:C011
 - RIA:C054

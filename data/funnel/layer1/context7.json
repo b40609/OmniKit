@@ -1,0 +1,63 @@
+{
+ "layer": 1,
+ "tool_id": "context7",
+ "name": "Context7",
+ "url": "https://github.com/upstash/context7",
+ "slots": [],
+ "scenarios": [],
+ "summary": "Context7 是把函式庫最新文件與程式碼範例提供給 coding agent 的 MCP server 加上 ctx7 CLI，查的是外部函式庫的文件，不是使用者本地的 repo。code-understanding 槽位的 C1（找本地函式的呼叫者與影響範圍）與 C2（附行號的第三方 repo 研究筆記）都不是查函式庫文件的需求，因此沒有任何情境對得上。原生搜尋已涵蓋 C1 的本地搜尋。建議 reject；若維護者想保留「查函式庫文件」這類需求，應另立槽位，這不在本次判斷範圍內。",
+ "differences": "與現任原生搜尋相比：多了外部函式庫依版本對應的文件與範例查詢，以及函式庫 ID 解析。少了本地 repo 的呼叫者追蹤與影響範圍分析，也不會產出附行號的原始碼閱讀筆記。",
+ "claims": [
+  {
+   "claim": "提供 MCP server，遠端端點為 mcp.context7.com/mcp，並提供 resolve-library-id 與 query-docs 兩個工具。",
+   "kind": "capability",
+   "how_to_verify": "檢查 README 的 MCP Tools 段落；實際在 MCP 客戶端列出工具清單確認名稱。"
+  },
+  {
+   "claim": "提供 ctx7 CLI（library、docs 子命令），需要 Node.js 22.13 以上。",
+   "kind": "compat",
+   "how_to_verify": "執行 npx ctx7 --help 確認子命令；node -v 確認版本需求。"
+  },
+  {
+   "claim": "查詢來源是遠端的函式庫文件索引，不會讀取使用者本地 repo 的程式碼。",
+   "kind": "capability",
+   "how_to_verify": "用本地專案的函式名稱呼叫 query-docs，看回傳內容是否來自函式庫文件而非本地檔案。"
+  },
+  {
+   "claim": "首次安裝需要 OAuth 或 API key；免費 API key 可取得較高的 rate limit。",
+   "kind": "cost",
+   "how_to_verify": "依 README 執行 npx ctx7 setup，觀察是否要求 OAuth 登入，並比對 dashboard 上的免費額度說明。"
+  },
+  {
+   "claim": "repo 沒有 Windows CI 設定。",
+   "kind": "compat",
+   "how_to_verify": "檢查 upstash/context7 的 .github/workflows 目錄是否有 windows-latest 執行環境的 job（Layer 0 記錄為 windows_ci: false）。"
+  },
+  {
+   "claim": "MCP 伺服器原始碼在此 repo，但 API 後端、解析與爬蟲引擎為私有，未開源。",
+   "kind": "security",
+   "how_to_verify": "閱讀 README 的 Disclaimer 第 2 點，並確認 repo 內只有 MCP server 相關原始碼、沒有後端實作。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建清單沒有查詢外部函式庫文件的功能。native-search 只涵蓋本地的 grep、glob 搜尋，不等同於查函式庫文件。"
+ },
+ "cluster": "library-docs-mcp",
+ "recommendation": "reject",
+ "needs_user": "工具卡宣告的槽位是 code-understanding，但實際功能是查函式庫文件，兩者不符。是否另立「函式庫文件查詢」之類的槽位，或改歸類，請維護者決定。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 14678,
+   "cached": 3694,
+   "output": 3825
+  },
+  "readme_sha": "387e015c40c4",
+  "readme_chars": 12837
+ }
+}

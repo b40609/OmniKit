@@ -3,6 +3,7 @@ name: competitors-analysis（daymade）
 slots:
 - product-research
 status: pending
+url: https://github.com/daymade/claude-code-skills
 sources:
 - RIA:C007
 - RIA:C055

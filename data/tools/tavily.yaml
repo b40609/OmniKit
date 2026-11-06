@@ -4,6 +4,7 @@ kind: service
 slots:
 - product-research
 status: pending
+url: https://github.com/tavily-ai/tavily-mcp
 sources:
 - RIA:C048
 notes: 付費搜尋 API。

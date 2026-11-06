@@ -1,0 +1,217 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: superpowers
+cards:
+- id: ev-20261105-superpowers-01
+  tool: superpowers
+  tool_version_tested: v7
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/obra/superpowers/issues/2530
+    author: mbcrawfo
+    published: '2026-10-16'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+    model: Opus 5.5
+    mode: brainstorming skill
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: 作者認為 v7 的 brainstorm 釐清問題相當惱人，僅為個人感受，未附重現步驟。
+  quote: v7's brainstorm questions are rather annoying
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-superpowers-02
+  tool: superpowers
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/obra/superpowers/issues/743
+    author: fawad-mahdi
+    published: '2026-03-15'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: 安裝 superpowers 後 Claude Code 回應明顯變慢，作者懷疑技能內容佔用過多上下文，未附數據。
+  quote: Im seeing slowness in responses
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-superpowers-03
+  tool: superpowers
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/obra/superpowers/issues/429
+    author: evrenverse
+    published: '2026-02-05'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: capability
+  direction: '-'
+  claim: 尚未支援 Claude Code 實驗性的 Agent Teams 功能（TeammateTool、SendMessage 等）。
+  quote: Support for Claude Code Agent Teams
+  reliability: C
+  credibility: 3
+  certainty: very-low
+  expires: '2027-02-03'
+- id: ev-20261105-superpowers-04
+  tool: superpowers
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/obra/superpowers/issues/895
+    author: qdon314
+    published: '2026-03-23'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: writing-plans skill
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: writing-plans 產出的計畫規格過細，留給執行者判斷的空間不足（issue 已關閉）。
+  quote: plans over-specify implementation, leaving no room for executor judgment
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-06-21'
+- id: ev-20261105-superpowers-05
+  tool: superpowers
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/obra/superpowers/issues/1581
+    author: jfiscman
+    published: '2026-05-19'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: capability
+  direction: '-'
+  claim: 尚未提供 Hermes Agent 的原生技能格式支援（issue 已關閉）。
+  quote: 'Feature Request: Hermes Agent harness support'
+  reliability: C
+  credibility: 3
+  certainty: very-low
+  expires: '2026-08-17'
+- id: ev-20261105-superpowers-06
+  tool: superpowers
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/obra/superpowers/issues/512
+    author: iiian-crayon
+    published: '2026-02-20'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+    mode: brainstorming / writing-plans skill
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: cost
+  direction: '-'
+  claim: brainstorming/writing-plans 把所有任務寫進單一 plan 檔，可能增加 token 耗用，作者也表示影響輕微。
+  quote: Sticking all of the tasks in a single file
+  reliability: C
+  credibility: 3
+  certainty: very-low
+  expires: '2027-02-03'
+- id: ev-20261105-superpowers-07
+  tool: superpowers
+  tool_version_tested: 5.0.7
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/obra/superpowers/issues/1152
+    author: aIacoella
+    published: '2026-04-13'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Codex
+    mode: subagent-driven-development
+  method: single-run
+  comparator: none
+  runs: 1
+  kind: cost
+  direction: '-'
+  claim: 在 Codex 上以 subagent-driven development 執行一個相對簡單的計畫，單次就耗盡 5 小時 token 額度。
+  quote: consumes full 5h token budget in a single run
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-superpowers-08
+  tool: superpowers
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/obra/superpowers/issues/503
+    author: yoshimi-I
+    published: '2026-02-18'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: capability
+  direction: '-'
+  claim: 尚未提供 Kiro CLI 的專屬目錄結構與支援。
+  quote: Add Support for Kiro CLI as an AI Provider
+  reliability: C
+  credibility: 3
+  certainty: very-low
+  expires: '2027-02-03'
+- id: ev-20261105-superpowers-09
+  tool: superpowers
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: hn
+    url: https://news.ycombinator.com/item?id=50147492
+    author: iheatuchriswogu
+    published: '2026-10-19'
+    retrieved: '2026-11-05'
+  independence: competitor
+  method: marketing
+  comparator: none
+  runs: 0
+  kind: cost
+  direction: '-'
+  claim: 競品 Superlite 宣稱速度比 Superpowers 快，僅見文章標題，沒有可查證的數據。
+  quote: 'Superlite: A Faster Alternatie to Superpowers'
+  reliability: D
+  credibility: 6
+  certainty: very-low
+  expires: '2027-01-17'

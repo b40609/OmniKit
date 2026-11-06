@@ -1,0 +1,150 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: playwright-mcp
+cards:
+- id: ev-20261105-playwright-mcp-01
+  tool: playwright-mcp
+  tool_version_tested: 0.0.83
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/microsoft/playwright-mcp/issues/1798
+    author: Mainfurr
+    published: '2026-10-19'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude custom connector (Claude Code remote session)
+    os: Windows 11 Home 26H2
+    mode: HTTP transport (--port) with --cdp-endpoint to local Edge, via Caddy reverse proxy
+  method: single-run
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 新 session 或 browser_close 後的第一次工具呼叫會卡住超過 60 秒，等待 roots/list（HTTP 傳輸、Windows）。
+  quote: First tool call after a new session or browser_close stalls over 60 s
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-01-17'
+- id: ev-20261105-playwright-mcp-02
+  tool: playwright-mcp
+  tool_version_tested: 0.0.83
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/microsoft/playwright-mcp/issues/1783
+    author: Taran-Douley
+    published: '2026-10-01'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: tools/list unchanged; 10 'open X' requests per category
+  method: single-run
+  comparator: baseline
+  runs: 10
+  kind: quality
+  direction: '-'
+  claim: 遇到不認識的公司名稱時，代理會自行猜測網域並直接導航過去，而不是先確認。
+  quote: Agents navigate to guessed domains when asked to open a site they don't recognise
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-12-30'
+- id: ev-20261105-playwright-mcp-03
+  tool: playwright-mcp
+  tool_version_tested: 0.0.82
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/microsoft/playwright-mcp/issues/1770
+    author: dsifry
+    published: '2026-09-24'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: autonomous AI agent fleet
+    mode: stdio, headless chromium, per-agent containers
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 使用者在安全審查中要求提供伺服器端關閉 browser_run_code_unsafe 的方式，並希望 WebMCP 預設關閉。
+  quote: a server-side way to disable browser_run_code_unsafe
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-12-23'
+- id: ev-20261105-playwright-mcp-04
+  tool: playwright-mcp
+  tool_version_tested: 0.0.80 / 0.0.82
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/microsoft/playwright-mcp/issues/1767
+    author: drawkkwast
+    published: '2026-09-22'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: source reading of src/tools/wait.ts in coreBundle.js; reproduction with time=70
+  method: single-run
+  comparator: none
+  runs: 2
+  kind: quality
+  direction: '-'
+  claim: browser_wait_for 的 time 參數被靜默截在 30 秒，但回報的文字卻是要求的時間。
+  quote: silently caps `time` at 30 s but reports the requested duration
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2026-12-21'
+- id: ev-20261105-playwright-mcp-05
+  tool: playwright-mcp
+  tool_version_tested: 0.0.81
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/microsoft/playwright-mcp/issues/1757
+    author: q7793527
+    published: '2026-09-17'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: --cdp-endpoint on a long-lived real Chrome profile
+  method: single-run
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 若 --cdp-endpoint 連到的真實 Chrome 有分頁被 Memory Saver 凍結，initializeServer 會卡 30 秒，所有工具呼叫都失敗。
+  quote: initializeServer hangs 30s when any background tab is discarded
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-12-16'
+- id: ev-20261105-playwright-mcp-06
+  tool: playwright-mcp
+  tool_version_tested: unknown
+  slot: browser
+  source:
+    type: issue
+    url: https://github.com/microsoft/playwright-mcp/issues/1821
+    author: karansinghneu
+    published: '2026-11-03'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: npm registry listing inspection
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: npm 上的 @playwright/mcp 仍有 18 個舊 pre-release 版本（1.52.0-alpha-*）未棄用，依版本號排序會選到 2025 年 3 月的舊建置。
+  quote: Deprecate the old 1.52.0-alpha-* versions of @playwright/mcp on npm
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2027-02-01'

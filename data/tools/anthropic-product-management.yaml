@@ -4,6 +4,7 @@ kind: plugin
 slots:
 - product-research
 status: pending
+url: https://github.com/anthropics/knowledge-work-plugins
 sources:
 - RIA:C028
 added: '2026-11-04'

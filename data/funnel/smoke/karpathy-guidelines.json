@@ -1,0 +1,33 @@
+{
+ "tool": "karpathy-guidelines",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "multica-ai/andrej-karpathy-skills",
+  "sha": "2c606141936f1eeef17fa3043a72095b4765b9c2"
+ },
+ "executable": [],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99214,
+   "with_bytes": 99721,
+   "delta_bytes": 507,
+   "delta_tokens_est": 127,
+   "mentions": [
+    "karpathy-guidelines"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70364,
+   "with_bytes": 70734,
+   "delta_bytes": 370,
+   "delta_tokens_est": 92,
+   "mentions": [
+    "karpathy-guidelines"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "1 個 skill、plugin"
+ }
+}

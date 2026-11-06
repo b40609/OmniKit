@@ -3,6 +3,7 @@ name: moai-adk
 slots:
 - dev-workflow
 status: pending
+url: https://github.com/modu-ai/moai-adk
 sources:
 - RIA:C040
 - RIA:C058

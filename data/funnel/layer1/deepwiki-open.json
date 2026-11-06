@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "deepwiki-open",
+ "name": "DeepWiki-Open",
+ "url": "https://github.com/AsyncFuncAI/deepwiki-open",
+ "slots": [
+  "code-understanding"
+ ],
+ "scenarios": [
+  "C2"
+ ],
+ "summary": "DeepWiki-Open 是自架服務，以 LLM 為第三方 repo 自動產生 wiki、圖表與 codemap，對得上 code-understanding 槽位的 C2（深讀第三方 repo）。它不對應 C1（OmniKeep、CatOS 的呼叫者查找）。README 沒有說明輸出是否附行號引用，這點要實測。",
+ "differences": "相較於現任「原生搜尋」（grep、glob）：多了整體文件、圖表與導覽式 wiki，適合第一次接觸一個大 repo 時快速建立地圖。少了本地即時搜尋與呼叫者追蹤；需要部署服務並自備 LLM 金鑰；生成內容由模型產出，可能有錯，需要回到原始碼核對。",
+ "claims": [
+  {
+   "claim": "提供 Helm chart，可部署到 Kubernetes，並需要 Secret 內的 LLM provider 金鑰（README 範例為 GOOGLE_API_KEY、OPENAI_API_KEY）",
+   "kind": "cost",
+   "how_to_verify": "檢查 charts/deepwiki-open 與環境變數設定檔，確認必要的 provider 金鑰與預設 provider；實際用 Docker 啟動一次，看是否缺金鑰就無法產生 wiki。"
+  },
+  {
+   "claim": "支援 GitHub、GitLab、Bitbucket 倉庫",
+   "kind": "capability",
+   "how_to_verify": "分別輸入一個公開的 GitHub、GitLab、Bitbucket repo 網址，確認都能產生 wiki。"
+  },
+  {
+   "claim": "產生的 wiki 含 Mermaid 等圖表與 codemap 導覽",
+   "kind": "capability",
+   "how_to_verify": "對一個小型 repo（例如 100 個檔案以內）產生 wiki，檢查頁面是否有圖表，以及 codemap 能否導到對應檔案。"
+  },
+  {
+   "claim": "生成內容附 file:line 行號引用，足以當 C2 的研究筆記",
+   "kind": "quality",
+   "how_to_verify": "抽查 5 條生成內容中的函式或模組描述，回到原始碼比對行號與行為是否一致；比對錯誤率作為判斷依據。"
+  },
+  {
+   "claim": "不提供 MCP server、Claude plugin 或 Codex plugin，只能以網頁或 API 使用",
+   "kind": "compat",
+   "how_to_verify": "搜尋 repo 中是否有 MCP 設定、.claude-plugin 或 .codex-plugin 目錄；確認 tool card 的相容線索（claude_plugin、codex_plugin 皆為 false）仍成立。"
+  },
+  {
+   "claim": "需要把待分析的程式碼送到外部 LLM provider",
+   "kind": "security",
+   "how_to_verify": "閱讀 provider 呼叫的程式碼路徑，確認原始碼內容是否會以 prompt 形式送出；若要分析私有的 OmniKeep 或 CatOS，須先確認這件事是否可接受。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-search"
+  ],
+  "note": "原生搜尋能找呼叫者與函式定義，也能讀檔，但沒有整體 wiki、圖表或 codemap 導覽；C2 的深讀需要人或 agent 自己整理。"
+ },
+ "cluster": "agent-generated-map",
+ "recommendation": "deep_eval",
+ "needs_user": "如果要拿它分析私有的 OmniKeep 或 CatOS 程式碼，需要維護者確認：能否把程式碼送到外部 LLM provider。C2 的範圍（第三方 repo）不受影響。另外，若 C2 的研究筆記一定要附行號，也請維護者決定這點是否為硬性要求。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 9004,
+   "cached": 3694,
+   "output": 3406
+  },
+  "readme_sha": "589340c3f4d7",
+  "readme_chars": 2720
+ }
+}

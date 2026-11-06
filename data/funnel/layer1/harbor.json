@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "harbor",
+ "name": "Harbor",
+ "url": "https://github.com/harbor-framework/harbor",
+ "slots": [
+  "skill-authoring"
+ ],
+ "scenarios": [
+  "K1"
+ ],
+ "summary": "Harbor 是評估 agent 與模型的框架，可在容器裡跑 benchmark，支援 Claude Code、Codex CLI 等 agent，並能接雲端沙箱平行執行。它不是寫 skill 的工具，對 K1 只有間接幫助：可以拿來比較「有裝 skill」與「沒裝」的結果。K1 屬於 watch 槽位且只是部分相符，所以先收著。",
+ "differences": "相較現任 skill-creator：多了容器化 benchmark 執行、跨 agent 比較（Claude Code、Codex CLI）、雲端沙箱平行跑；少了寫 skill、產生 SKILL.md、檢查 skill 結構的功能（第 0 層 skill_md 為 false）。它評估的對象是整個 agent 與模型，不是單一 skill。",
+ "claims": [
+  {
+   "claim": "支援以 Claude Code、Codex CLI 等 agent 執行 benchmark",
+   "kind": "capability",
+   "how_to_verify": "執行 harbor run --help，檢查 --agent 選項是否列出 claude-code 與 codex。"
+  },
+  {
+   "claim": "本機執行需要 Docker",
+   "kind": "compat",
+   "how_to_verify": "在沒有 Docker 的 Windows 11 環境執行 harbor run --dataset terminal-bench@2.0，看錯誤訊息是否指向 Docker。"
+  },
+  {
+   "claim": "可用 --env 指定雲端沙箱（如 Daytona）並以 --n-concurrent 平行執行",
+   "kind": "capability",
+   "how_to_verify": "檢查 harbor run --help 的 --env 與 --n-concurrent 選項；實測需要對應雲端服務的 API key。"
+  },
+  {
+   "claim": "可用 uv tool install harbor 或 pip install harbor 安裝；原生 Windows 支援尚未確認（repo 有 windows_ci 線索，但不等於原生支援）",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 11 原生 PowerShell 執行 uv tool install harbor，再執行 harbor --help 確認可以啟動。"
+  },
+  {
+   "claim": "repo 內沒有寫 skill 或產生 SKILL.md 的功能",
+   "kind": "capability",
+   "how_to_verify": "在 repo 內搜尋 SKILL.md、skill 產生或 skill 驗證相關程式碼，確認沒有結果。"
+  },
+  {
+   "claim": "跑 benchmark 會產生模型 API 費用與雲端沙箱費用",
+   "kind": "cost",
+   "how_to_verify": "用小型 dataset 試跑，查看 token 用量與沙箱計費，再依 n-concurrent 與資料集大小推估總費用。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "claude-plugin-eval"
+  ],
+  "note": "內建的官方 plugin 評估指令涵蓋部分評估需求；容器化、跨 agent、雲端平行執行的 benchmark 不在內建清單中。"
+ },
+ "cluster": "container-benchmark-harness",
+ "recommendation": "keep_pending",
+ "needs_user": "請維護者確認：K1（寫評估 skill 並證明它比沒裝好）是否要涵蓋「用容器跑 agent 基準做 with/without 比較」。若要涵蓋，Harbor 可升為 deep_eval 候選；若不涵蓋，建議改為 reject。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 55148,
+   "cached": 7388,
+   "output": 5409
+  },
+  "readme_sha": "7b5e24d0974e",
+  "readme_chars": 2986
+ }
+}

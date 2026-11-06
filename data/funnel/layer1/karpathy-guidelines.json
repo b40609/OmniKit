@@ -1,0 +1,67 @@
+{
+ "layer": 1,
+ "tool_id": "karpathy-guidelines",
+ "name": "Karpathy 風格準則（multica-ai）",
+ "url": "https://github.com/multica-ai/andrej-karpathy-skills",
+ "slots": [
+  "behavior-rules"
+ ],
+ "scenarios": [
+  "B1"
+ ],
+ "summary": "這是一組以 CLAUDE.md 形式提供的行為準則（第三方整理，非 Karpathy 官方），內容是四條原則：先講假設、簡單優先、只改必要處、以可驗證的目標收尾。它對得上 behavior-rules 的 B1 情境（只寫需要的程式碼、不擴大範圍）。內建沒有行為準則包，現任也沒有，因此有深入評估的價值。主要疑慮是來源與授權資料不一致、第 0 層標示 stale，以及規則常駐於 context 的成本。",
+ "differences": "相對於現任（無）與內建（無）：多出四條行為原則，以純文字規則生效，沒有執行或檢查機制，成效完全取決於模型是否遵守。少了的部分：對安全與錯誤處理沒有明確規定，B1 要求這兩者照做，而原則二「不為不可能的情境寫錯誤處理」與 B1 有張力，需要在評估時確認。另外，文件允許小改動略過完整規則，這個判斷要由使用者自己拿捏。",
+ "claims": [
+  {
+   "claim": "可以當成 Claude Code plugin 透過 marketplace 安裝",
+   "kind": "capability",
+   "how_to_verify": "檢查 repo 是否有 plugin 與 marketplace 的 manifest 檔；在 Claude Code 實際執行 /plugin marketplace add 與 /plugin install，確認能載入。"
+  },
+  {
+   "claim": "同時提供單一 CLAUDE.md 檔，可複製或附加到既有專案",
+   "kind": "compat",
+   "how_to_verify": "確認 repo 根目錄有 CLAUDE.md，內容是否只有四條原則與必要說明，並在測試專案中實際載入它。"
+  },
+  {
+   "claim": "沒有 AGENTS.md、SKILL.md，也沒有 Codex plugin，Codex 無法直接安裝，只能手動複製規則內容",
+   "kind": "compat",
+   "how_to_verify": "列出 repo 完整檔案樹，確認第 0 層的 agents_md、skill_md、codex_plugin 旗標皆為 false。"
+  },
+  {
+   "claim": "授權資料不一致：第 0 層記錄為無授權，README 卻寫 MIT",
+   "kind": "security",
+   "how_to_verify": "檢查 repo 根目錄的 LICENSE 檔內容，並比對 GitHub 側邊欄的授權欄位，確認實際授權條款。"
+  },
+  {
+   "claim": "來源不一致：工具卡 URL 為 multica-ai/andrej-karpathy-skills，但 README 的安裝指令指向 forrestchang/andrej-karpathy-skills",
+   "kind": "security",
+   "how_to_verify": "比對工具卡 URL、README 安裝指令與 GitHub 上的原始與 fork 關係，確認實際發布來源與原作者。"
+  },
+  {
+   "claim": "規則以 CLAUDE.md 形式常駐載入，每個 session 都佔用 context",
+   "kind": "cost",
+   "how_to_verify": "量測 CLAUDE.md 的字數與 token 數，比較有無載入時一個 session 開場的 context 用量差異。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單沒有行為準則包；plan mode、/goal 屬於流程控制，不是行為規則，無法取代這組原則。"
+ },
+ "cluster": "claude-md-rules",
+ "recommendation": "deep_eval",
+ "needs_user": "請維護者確認：(1) 要用哪個來源（工具卡的 multica-ai 或 README 的 forrestchang），以及實際授權是 MIT 還是無授權；(2) 是否接受規則常駐 CLAUDE.md 的 context 成本；(3) 評估時需確認 B1 要求的安全與錯誤處理不會被「簡單優先」原則弱化。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 10052,
+   "cached": 3694,
+   "output": 4402
+  },
+  "readme_sha": "daf314efb318",
+  "readme_chars": 6162
+ }
+}

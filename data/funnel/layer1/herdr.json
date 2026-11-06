@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "herdr",
+ "name": "Herdr 桌面版",
+ "url": "https://github.com/herdrdev/herdr-app",
+ "slots": [
+  "permissions"
+ ],
+ "scenarios": [
+  "W1"
+ ],
+ "summary": "Herdr 桌面版把多個終端與 coding agent 集中在同一個視窗，側邊欄能看到哪個 agent 在等你（Blocked）或已完成（Done），但沒有減少權限提示的功能，文件也沒寫明會發出系統通知。它只部分對得上 W1，而且槽位是 watch。專案約三週、尚無 GitHub release，Windows 穩定度也還有疑慮，建議先收著。",
+ "differences": "相較現任「原生權限與通知」：多了跨 space、跨 SSH 機器的 agent 狀態總覽（Working、Blocked、Done、Idle）與 peek 預覽；少了權限 allowlist 與 auto mode 這類減少提示的設定，文件也沒有提到作業系統通知。",
+ "claims": [
+  {
+   "claim": "側邊欄依 Working、Blocked、Done、Idle 列出各 agent 的狀態，點一下可 peek",
+   "kind": "capability",
+   "how_to_verify": "在 Windows 上開兩個 Claude Code session，讓其中一個等待權限確認，確認側邊欄是否顯示 Blocked，完成後是否顯示 Done。"
+  },
+  {
+   "claim": "Windows 有原生安裝路徑：PowerShell 執行 install.ps1，安裝到 %LOCALAPPDATA%\\Programs\\herdr-app 並加入使用者 PATH",
+   "kind": "compat",
+   "how_to_verify": "先讀 install.ps1 內容，再到乾淨的 Windows 11 VM 執行安裝，確認開始功能表與 PATH 的結果。"
+  },
+  {
+   "claim": "關閉視窗後終端仍由背景 herdr-core 繼續執行；重開機或 core 當機後，pane 只拿到新 shell，原程式不會恢復",
+   "kind": "capability",
+   "how_to_verify": "開長任務後關閉視窗，確認程序仍在執行；再重開機，確認原程式不會回來。"
+  },
+  {
+   "claim": "正式版預設開啟每日匿名使用報告，可在 Settings → Privacy 關閉",
+   "kind": "security",
+   "how_to_verify": "安裝後檢查 Settings → Privacy 的預設值，並用網路監控確認關閉後沒有相關流量；對照 docs/security.md 的說法。"
+  },
+  {
+   "claim": "JavaScript mods 沒有沙箱，屬於信任的程式碼而非受限擴充",
+   "kind": "security",
+   "how_to_verify": "閱讀 docs/security.md 與 mod API 文件，確認 mod 能否存取檔案系統與網路。"
+  },
+  {
+   "claim": "GitHub 上的桌面版沒有 release，安裝檔來自 releases.herdr.dev，與 repo 的發布紀錄分開",
+   "kind": "security",
+   "how_to_verify": "到 github.com/herdrdev/herdr-app/releases 確認沒有 release；比對安裝腳本下載的來源與 checksum 是否可驗證。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-permissions"
+  ],
+  "note": "原生的權限 allowlist、auto mode 與通知可以處理單一 session 的提示與完成通知；但沒有跨視窗、跨 space、跨 SSH 機器的 agent 狀態總覽，這是 Herdr 的主要差異。"
+ },
+ "cluster": "agent-terminal-dashboard",
+ "recommendation": "keep_pending",
+ "needs_user": "請維護者決定兩件事：(1) W1 的「做完會通知」是否要把側邊欄的 Blocked/Done 狀態算進去，還是要先實測是否有系統通知；(2) watch 槽位是否要先升為 active 再評估。另外卡片中 Windows 相關 issue「近兩天還開著的有」一句沒寫完，需要補上實際數字才能判斷 Windows 風險。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 10824,
+   "cached": 3694,
+   "output": 4392
+  },
+  "readme_sha": "93638999b3f8",
+  "readme_chars": 7535
+ }
+}

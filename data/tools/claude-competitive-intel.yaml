@@ -3,6 +3,7 @@ name: claude-competitive-intel
 slots:
 - product-research
 status: pending
+url: https://github.com/momentumfurkan/claude-competitive-intel
 sources:
 - RIA:C005
 added: '2026-11-04'

@@ -1,0 +1,98 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: mattpocock-grill-me
+cards:
+- id: ev-20261105-mattpocock-grill-me-01
+  tool: mattpocock-grill-me
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/mattpocock/skills/issues/240
+    author: ovsw
+    published: '2026-05-22'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    model: GPT 5.5
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: 問完所有問題後，grill-me 常直接開始實作，使用者需手動中止並改用 /to-prd；作者在 skill 結尾加了禁止實作的提示後改善。
+  quote: When GPT runs out of questions, it begins implementing directly.
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2026-08-20'
+- id: ev-20261105-mattpocock-grill-me-02
+  tool: mattpocock-grill-me
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/mattpocock/skills/issues/113
+    author: jackgillardccg
+    published: '2026-05-01'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code CLI vs Claude Desktop App
+  method: anecdote
+  comparator: baseline
+  runs: 0
+  kind: elimination
+  direction: '-'
+  claim: 2026-05 回報：grill-me 等 skills 只能在 CLI 使用，Claude Desktop App 無法使用（issue 已關閉，現況未確認）。
+  quote: the skills can only be used within the CLI, not the desktop app
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2026-07-30'
+- id: ev-20261105-mattpocock-grill-me-03
+  tool: mattpocock-grill-me
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/mattpocock/skills/issues/692
+    author: codymikol
+    published: '2026-07-29'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+    mode: CLI plugin install
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 文件寫可用 claude plugins install mattpocock-skills 安裝，但作者回報找不到 plugin、安裝失敗（2026-07 回報，仍為 open）。
+  quote: Plugin "mattpocock-skills" not found in any configured marketplace
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-mattpocock-grill-me-04
+  tool: mattpocock-grill-me
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: hn
+    url: https://news.ycombinator.com/item?id=49939665
+    author: a-laughlin
+    published: '2026-10-02'
+    retrieved: '2026-11-05'
+  independence: competitor
+  method: marketing
+  comparator: baseline
+  runs: 0
+  kind: cost
+  direction: '-'
+  claim: 競品 clarify 作者宣稱決策速度比 grill-me 快 2-4 倍，但標題未附測試方法與數據。
+  quote: Reach Decisions 2-4x Faster than Grill-me
+  reliability: D
+  credibility: 6
+  certainty: very-low
+  expires: '2026-12-31'

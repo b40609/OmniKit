@@ -1,0 +1,158 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: alirezarezvani-claude-skills
+cards:
+- id: ev-20261105-alirezarezvani-claude-skills-01
+  tool: alirezarezvani-claude-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/alirezarezvani/claude-skills/issues/1019
+    author: LudwigJMarx
+    published: '2026-09-21'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: c-level-agents 未列入 sync-codex-skills.py 的 SKILL_DOMAINS，導致其 22 個技能不在任何索引中。
+  quote: c-level-agents is not in SKILL_DOMAINS, so its 22 skills are in no index
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-20'
+- id: ev-20261105-alirezarezvani-claude-skills-02
+  tool: alirezarezvani-claude-skills
+  tool_version_tested: 2.8.0
+  source:
+    type: issue
+    url: https://github.com/alirezarezvani/claude-skills/issues/1027
+    author: ynakos
+    published: '2026-10-05'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Codex
+  method: single-run
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: BizOps 的 process-mapper 與 capacity-planner 兩個技能無法通過目前 Codex quick_validate.py 的 schema 驗證。
+  quote: fail the current Codex `quick_validate.py` schema
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2027-01-03'
+- id: ev-20261105-alirezarezvani-claude-skills-03
+  tool: alirezarezvani-claude-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/alirezarezvani/claude-skills/issues/1020
+    author: LudwigJMarx
+    published: '2026-09-21'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: sync 腳本的 --validate 不會檢查 .codex/skills/ 內殘留的孤立符號連結，卻仍回報成功。
+  quote: '`--validate` reports success'
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-20'
+- id: ev-20261105-alirezarezvani-claude-skills-04
+  tool: alirezarezvani-claude-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/alirezarezvani/claude-skills/issues/995
+    author: alirezarezvani
+    published: '2026-08-26'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 維護者自述 derive_counters.py --check 不涵蓋差額聲明與 CHANGELOG.md，錯誤計數可能通過 CI。
+  quote: A wrong counter can be written into CHANGELOG.md
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2026-11-24'
+- id: ev-20261105-alirezarezvani-claude-skills-05
+  tool: alirezarezvani-claude-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/alirezarezvani/claude-skills/issues/885
+    author: sdkkds
+    published: '2026-07-02'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: si 外掛的 status、review 技能名稱與 Claude Code 內建 /status、/review 衝突，會遮蔽內建指令。
+  quote: causing the plugin skill to shadow the built-in
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-09-30'
+- id: ev-20261105-alirezarezvani-claude-skills-06
+  tool: alirezarezvani-claude-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/alirezarezvani/claude-skills/issues/968
+    author: NandoValle
+    published: '2026-08-19'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    os: Windows 11 Pro
+    mode: git clone --depth 1
+  method: single-run
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: Windows 預設 git 設定下，鏡像目錄的符號連結會被簽出成只含路徑文字的純文字檔。
+  quote: checked out as regular 1-line text files
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2026-11-17'
+- id: ev-20261105-alirezarezvani-claude-skills-07
+  tool: alirezarezvani-claude-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/alirezarezvani/claude-skills/issues/969
+    author: NandoValle
+    published: '2026-08-19'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    os: Windows 11 Pro
+    mode: Python 3.12, cp1252 console
+  method: single-run
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 在 Windows cp1252 主控台下，部分腳本輸出框線字元或「≥」時會拋出 UnicodeEncodeError。
+  quote: UnicodeEncodeError when scripts print box-drawing
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2026-11-17'

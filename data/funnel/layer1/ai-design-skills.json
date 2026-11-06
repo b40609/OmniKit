@@ -1,0 +1,64 @@
+{
+ "layer": 1,
+ "tool_id": "ai-design-skills",
+ "name": "AI Design Skills（elayadesign）",
+ "url": "https://github.com/elayadesign/ai-design-skills",
+ "slots": [
+  "frontend-design"
+ ],
+ "scenarios": [
+  "F2"
+ ],
+ "summary": "這是一組 markdown 格式的設計 skill，共兩個：landing-page-design（先問需求，再排頁面結構、轉換文案與視覺系統）與 figma-designer（在 Figma 內做有結構的設計）。對 frontend-design 槽位的 F2（決定後端完成後的產品介紹頁怎麼呈現）有直接對應；對 F1（CatOS 應用介面改版）幫助有限，因為它偏行銷著陸頁，沒有應用介面或儀表板的說明。F3（照原版重建）不在範圍內，改版既有網站另有獨立 repo。內建的 claude-design 只能部分涵蓋，且有方案與研究預覽的限制。",
+ "differences": "相較現任 frontend-design：多了一套固定流程，先問需求、再定頁面結構與轉換文案、最後套用含字型、間距、圓角與動效的視覺系統，並附 Figma 設計規範。少了的部分：沒有應用介面與儀表板的範例，沒有照原版重建的能力，沒有 Claude plugin 或 marketplace 安裝方式，沒有正式 release，也沒有 Windows CI 紀錄。現任的具體內容資料不足，此比較以工具卡與 README 為準。",
+ "claims": [
+  {
+   "claim": "repo 提供兩個 skill：landing-page-design 與 figma-designer，位於 skills/ 目錄下。",
+   "kind": "capability",
+   "how_to_verify": "瀏覽 github.com/elayadesign/ai-design-skills 的 skills/ 目錄，確認只有這兩個子目錄，並檢查各自的 SKILL.md。"
+  },
+  {
+   "claim": "沒有 Claude plugin 或 Claude marketplace 的安裝格式，安裝方式是 npx skills CLI 或手動複製檔案。",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 根目錄是否有 .claude-plugin 或 marketplace 設定檔；確認 README 的安裝段落只提到 npx skills add 與手動複製。"
+  },
+  {
+   "claim": "README 寫 npx skills add 會把 skill 裝到 .agents/skills/，供 Codex 等工具使用；repo 根目錄沒有 AGENTS.md。",
+   "kind": "compat",
+   "how_to_verify": "在暫存目錄執行 npx skills add elayadesign/ai-design-skills --list 與 -a codex 的安裝流程，確認安裝後的路徑；並確認根目錄沒有 AGENTS.md。"
+  },
+  {
+   "claim": "repo 目前沒有正式 release 或 tag。",
+   "kind": "quality",
+   "how_to_verify": "打開 repo 的 Releases 與 Tags 頁面，確認沒有任何 release 或 tag。"
+  },
+  {
+   "claim": "repo 沒有 Windows 的 CI 設定。",
+   "kind": "compat",
+   "how_to_verify": "檢查 .github/workflows 目錄是否存在，以及裡面的 runs-on 是否包含 windows。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "claude-design"
+  ],
+  "note": "claude-design 能在畫布上出設計稿，對 F2 的版面構想有部分重疊；但它是研究預覽，只限 Pro、Max、Team、Enterprise，且不涵蓋這個工具的文案與視覺規範流程。Codex 端沒有列出對應的內建設計功能。"
+ },
+ "cluster": "markdown-skill-pack",
+ "recommendation": "deep_eval",
+ "needs_user": "請維護者確認兩件事：(1) 現任 frontend-design 的具體內容，因為目前資料只寫了名稱，無法做實質比較；(2) F1 是否要算進來。工具偏行銷頁，對 CatOS 應用介面的幫助有限，我目前只把 F2 放進 slots。另外，claude-design 算部分涵蓋還是完全不算，也請一併確認。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 9389,
+   "cached": 3694,
+   "output": 3805
+  },
+  "readme_sha": "df1e48989d63",
+  "readme_chars": 3624
+ }
+}

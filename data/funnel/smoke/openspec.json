@@ -1,0 +1,63 @@
+{
+ "tool": "openspec",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "Fission-AI/OpenSpec",
+  "sha": "3e4d5f0769e2857c8eb54f149cbf5e4f703fa04c"
+ },
+ "executable": [],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99203,
+   "with_bytes": 103985,
+   "delta_bytes": 4782,
+   "delta_tokens_est": 1196,
+   "mentions": [
+    "draft-openspec-docs",
+    "openspec-apply-change",
+    "openspec-archive-change",
+    "openspec-bulk-archive-change",
+    "openspec-continue-change",
+    "openspec-explore",
+    "openspec-ff-change",
+    "openspec-new-change",
+    "openspec-onboard",
+    "openspec-propose",
+    "openspec-sync-specs",
+    "openspec-update-change",
+    "openspec-verify-change",
+    "release-openspec",
+    "verify-openspec-docs",
+    "write-openspec-docs"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70354,
+   "with_bytes": 75869,
+   "delta_bytes": 5515,
+   "delta_tokens_est": 1379,
+   "mentions": [
+    "draft-openspec-docs",
+    "openspec-apply-change",
+    "openspec-archive-change",
+    "openspec-bulk-archive-change",
+    "openspec-continue-change",
+    "openspec-explore",
+    "openspec-ff-change",
+    "openspec-new-change",
+    "openspec-onboard",
+    "openspec-propose",
+    "openspec-sync-specs",
+    "openspec-update-change",
+    "openspec-verify-change",
+    "release-openspec",
+    "verify-openspec-docs",
+    "write-openspec-docs"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "16 個 skill"
+ }
+}

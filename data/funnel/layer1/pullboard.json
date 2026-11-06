@@ -1,0 +1,72 @@
+{
+ "layer": 1,
+ "tool_id": "pullboard",
+ "name": "Pullboard",
+ "url": "https://github.com/pullboard-dev/pullboard",
+ "slots": [
+  "review",
+  "dev-workflow"
+ ],
+ "scenarios": [
+  "R1",
+  "V1"
+ ],
+ "summary": "多 agent 協作佇列：人先核准規格，builder 在各自的 worktree 認領項目，另一個 agent 驗證同一個 commit 後才合併並留紀錄。對應 R1 的跨 agent 審查最直接；V1 的重流程也相符，但較像整套流程工具而非單純審查。Windows 未經官方 CI 測試，是本次評估要先驗證的主要風險。",
+ "differences": "相較現任「原生審查」（Claude Code 的 /code-review、/security-review，Codex 的 /review）：多了驗證者必須是另一個 agent、綁定送審的確切 commit、測試閘門未過就不能送出、驗收結果留可查紀錄。少了：安裝與初始化成本（需 Node 22.13 以上與 git，init 會寫入規格、規則與 hooks），以及官方沒有在 Windows 上測過。對 V1 而言，相較現任 BMAD-METHOD，它把核准、認領、驗證做成強制的狀態機，但不提供 BMAD 那套規劃角色與文件範本；dev-workflow 槽位的狀態見 needs_user。",
+ "claims": [
+  {
+   "claim": "官方 CI 只在 Linux 與 macOS 執行，Windows 未測試。",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 的 .github/workflows 內 runs-on 與 OS matrix 是否缺 windows；另外在 Windows 上實際執行 pullboard init 與 pullboard tour，記錄是否成功。"
+  },
+  {
+   "claim": "需要 Node 22.13 以上與 git，透過 npm 全域安裝。",
+   "kind": "compat",
+   "how_to_verify": "檢查 package.json 的 engines 欄位；在乾淨的 Windows 環境執行 npm i -g pullboard 後跑 pullboard --version。"
+  },
+  {
+   "claim": "看板資料存在 .git 內的單一 SQLite 檔，不進版控。",
+   "kind": "capability",
+   "how_to_verify": "在測試 repo 執行 pullboard init 與幾個 add/claim 指令後，檢視 .git 目錄下的資料庫檔，並確認 git status 沒有它。"
+  },
+  {
+   "claim": "gate 未通過時 submit 會被拒絕，且驗證 agent 只能對同一個送審 commit 給 accept 或 reject。",
+   "kind": "quality",
+   "how_to_verify": "在 pullboard.json 設定一個必定失敗的 gate，執行 pullboard submit 應被拒；再用第二個 worktree 執行 verify，確認紀錄的 commit hash 與送審的相同。"
+  },
+  {
+   "claim": "支援 Claude Code 與 Codex：Claude Code 有 skills，Codex 透過 AGENTS.md 與 pullboard prompt 讀取角色指示。",
+   "kind": "compat",
+   "how_to_verify": "執行 pullboard init 後比對產生的 AGENTS.md 與 Claude Code skills 目錄；在 Codex 中確認它會讀取 AGENTS.md 並照做。"
+  },
+  {
+   "claim": "提供 MCP 介面，可接任意 MCP client。",
+   "kind": "capability",
+   "how_to_verify": "檢查 pullboard --help 的子命令列表與 docs/api.md 是否有 MCP server 或 mcp 指令；若沒有，此主張不成立。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-review",
+   "native-workflow"
+  ],
+  "note": "原生審查能在單一 agent 內做程式碼與安全審查，但沒有「另一個 agent 驗證同一 commit、未過不能合併」的強制流程與紀錄。原生 plan mode 能規劃，但沒有規格核准、認領與交接佇列。"
+ },
+ "cluster": "spec-gated-queue",
+ "recommendation": "deep_eval",
+ "needs_user": "dev-workflow 槽位衝突：工具卡的槽位清單把它列為 active，但工具卡備註寫「規劃與開發流程槽位凍結中，等 RIA 結果再比」。請維護者決定是否保留 V1 的比較；若凍結，深入評估只針對 review 槽位的 R1 進行。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 15919,
+   "cached": 3694,
+   "output": 5555
+  },
+  "readme_sha": "8e40e840f8d3",
+  "readme_chars": 21002
+ }
+}

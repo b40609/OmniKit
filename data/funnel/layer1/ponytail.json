@@ -1,0 +1,67 @@
+{
+ "layer": 1,
+ "tool_id": "ponytail",
+ "name": "ponytail",
+ "url": "https://github.com/DietrichGebert/ponytail",
+ "slots": [
+  "behavior-rules"
+ ],
+ "scenarios": [
+  "B1"
+ ],
+ "summary": "ponytail 對應 behavior-rules 槽位的 B1：改功能時只寫需要的程式碼、不擴大範圍，同時保留驗證、錯誤處理與安全。內建功能沒有對應的行為準則，現任也是空的，所以不算重複。它以 prompt 加 hooks 注入，宣稱同時支援 Claude Code 與 Codex。第 0 層沒有 Windows CI，README 的效益數字是維護者自己的基準，尚未查證，因此只能進 deep_eval，不宜直接採用。",
+ "differences": "相較於內建（只有 plan mode、/goal 等通用功能，沒有行為準則）：多了一份常駐的最小寫碼準則，可安裝到 Claude Code 與 Codex，並附精簡版 AGENTS.md。少了或有代價的地方：每個 session 都會注入提示，佔用 context；Codex 端需要手動信任 hooks；目前沒有 Windows CI 的證據，與使用者的 Windows 11 環境有落差。",
+ "claims": [
+  {
+   "claim": "同時提供 Claude Code plugin 與 Codex plugin 兩種安裝路徑",
+   "kind": "compat",
+   "how_to_verify": "在乾淨的 Claude Code 與 Codex 環境分別執行 marketplace add 與 plugin install，確認兩邊都能載入並列出指令。"
+  },
+  {
+   "claim": "repo 根目錄提供 AGENTS.md 精簡版",
+   "kind": "capability",
+   "how_to_verify": "檢查 repo 根目錄是否存在 AGENTS.md，並比對其內容與 skill 本體是否一致。"
+  },
+  {
+   "claim": "安裝後 hooks 會在每個 session 自動注入提示",
+   "kind": "security",
+   "how_to_verify": "閱讀 hooks 設定與腳本內容，確認注入的指令與觸發時機；在 Codex 的 /hooks 介面查看實際登錄的 hook。"
+  },
+  {
+   "claim": "在 Windows 11 可正常運作",
+   "kind": "compat",
+   "how_to_verify": "第 0 層 windows_ci 為 false，沒有 Windows CI 證據。需在本機 Windows 11 實際安裝，兩邊各跑一次 B1 情境並記錄結果。"
+  },
+  {
+   "claim": "repo 內的 skill 檔 skills/ponytail/SKILL.md 存在",
+   "kind": "capability",
+   "how_to_verify": "第 0 層 skill_md 旗標為 false，與 README 的描述不一致。需直接檢查該路徑是否存在，確認後再採信。"
+  },
+  {
+   "claim": "維護者基準顯示程式碼量與 token 用量下降，同時有測試的風險邏輯比例上升",
+   "kind": "quality",
+   "how_to_verify": "檢查 benchmarks/results 內的原始 run 資料與任務定義；另用自家的 B1 任務做有裝與沒裝的對照重跑，比較程式碼量、測試覆蓋與安全檢查是否退步。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建的 native-workflow 只是不裝方法論的比較基準；沒有任何內建功能提供行為準則，因此 B1 沒有被涵蓋。"
+ },
+ "cluster": "prompt-rules-hooks",
+ "recommendation": "deep_eval",
+ "needs_user": "請維護者決定兩件事：一是是否接受 hooks 在每個 session 全域注入（舊桌機兩邊都掛過，需要確認是否要移除）；二是 deep_eval 要不要在 Windows 11 實機、Claude Code 與 Codex 雙邊做 B1 的有裝與沒裝對照。另外 skill_md 旗標與 README 不一致，也需要先確認檔案是否存在。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 13758,
+   "cached": 3694,
+   "output": 4643
+  },
+  "readme_sha": "9608191c42ef",
+  "readme_chars": 14816
+ }
+}

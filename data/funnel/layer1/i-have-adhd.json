@@ -1,0 +1,68 @@
+{
+ "layer": 1,
+ "tool_id": "i-have-adhd",
+ "name": "i-have-adhd",
+ "url": "https://github.com/ayghri/i-have-adhd",
+ "slots": [
+  "concise-output"
+ ],
+ "scenarios": [
+  "O1"
+ ],
+ "summary": "i-have-adhd 是一組輸出風格規則（skill），目標是讓回覆先給行動、少寒暄、步驟編號、結尾給一個下一步。它只對得上 watch 槽位 concise-output 的 O1 情境。現任是原生 Concise 輸出，已能壓縮廢話；但這個 skill 規則以英文撰寫，沒有保證保留 file:line 與測試輸出這類證據，也沒有處理繁體中文輸出。槽位是 watch 而非 active，所以先收著，不進入深度評估。",
+ "differences": "相較於現任原生精簡輸出，多了固定結構：先給下一步、步驟編號、每則結尾一個具體下一步，以及 10 條規則。少了的是：沒有保證保留證據（file:line、測試輸出），規則以英文撰寫、未規範繁體中文，且結尾不留提示的要求可能把必要的驗證細節一併刪掉。Codex 端與 caveman 同時安裝時無法分離效果，桌機也沒有安裝，因此目前沒有可靠的對照數據。",
+ "claims": [
+  {
+   "claim": "提供 Claude Code 外掛與 marketplace 安裝方式",
+   "kind": "capability",
+   "how_to_verify": "檢查 repo 內的 plugin 與 marketplace 清單檔，並在乾淨環境照 README 的 claude plugin marketplace add 與 install 指令執行，確認 skill 可載入。"
+  },
+  {
+   "claim": "提供 Codex 外掛",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 內的 Codex plugin 清單檔，在單獨安裝（不與其他輸出風格 skill 同裝）的 Codex 環境中確認 skill 被載入。"
+  },
+  {
+   "claim": "skill 實體檔位於 skills/i-have-adhd/SKILL.md",
+   "kind": "compat",
+   "how_to_verify": "第 0 層記錄 skill_md 為 false，但 README 連結指向該路徑，兩者不一致。確認該路徑檔案是否存在、內容是否為 skill 本體。"
+  },
+  {
+   "claim": "規則共 10 條，且全文寫在 SKILL.md",
+   "kind": "quality",
+   "how_to_verify": "數 SKILL.md 中的規則條目，確認與 README 所列的 10 條一致。"
+  },
+  {
+   "claim": "相較於未裝 skill，輸出更精簡且仍保留 file:line 與測試輸出",
+   "kind": "quality",
+   "how_to_verify": "用固定的 O1 題組（日常問答與改程式回報各數題），在同一模型、同一 Claude Code 或 Codex 版本下比較裝與不裝的字數、證據保留率與繁體中文一致性；Codex 端需單獨跑、不與 caveman 同裝。"
+  },
+  {
+   "claim": "Codex 端與 caveman 同時安裝時無法分離 skill 的效果",
+   "kind": "quality",
+   "how_to_verify": "檢查維護者的工具卡備註，並在隔離環境分別跑單裝 i-have-adhd、單裝 caveman、兩者都不裝的對照，看輸出差異是否可以歸因。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-concise"
+  ],
+  "note": "原生 Concise 輸出與 Codex 的 model_verbosity 已能減少冗詞，但沒有固定的先給下一步、步驟編號與結尾提示結構，也沒有保證保留證據或繁體中文。"
+ },
+ "cluster": "response-style-rules",
+ "recommendation": "keep_pending",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 9473,
+   "cached": 3694,
+   "output": 4373
+  },
+  "readme_sha": "e9a043ffdcf5",
+  "readme_chars": 3806
+ }
+}

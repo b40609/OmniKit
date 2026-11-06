@@ -1,0 +1,63 @@
+{
+ "layer": 1,
+ "tool_id": "typesafe-ai",
+ "name": "typesafe-ai",
+ "url": "https://github.com/typesafe-ai/skills",
+ "slots": [],
+ "scenarios": [],
+ "summary": "這是一個串接 TypeSafe System One 決策與機率 API 的 skill。它不對應任何 active 或 watch 槽位（前端、審查、記憶、搜尋、輸出壓縮、工具發現、行為準則、瀏覽器、開發流程、資料分析等），OmniKit 的評估情境裡也沒有「呼叫外部決策 API」這一類。依預設假設沒效果，因此不列入槽位。",
+ "differences": "與內建功能相比，它多出的是 TypeSafe 專用的 API 串接指引與決策機率的用法；少的是 OmniKit 需要的任何一個既有槽位能力。它沒有 Codex 外掛，根目錄也沒有 AGENTS.md 或 SKILL.md（SKILL.md 位於 skills/ 子目錄），跨 agent 的相容性不如內建功能。",
+ "claims": [
+  {
+   "claim": "提供 Claude Code 外掛安裝方式（marketplace add 加 plugin install）",
+   "kind": "compat",
+   "how_to_verify": "在乾淨的 Claude Code 環境執行 README 的兩行指令，確認 plugin 可以安裝並列出 typesafe-ai skill"
+  },
+  {
+   "claim": "可透過 skills.sh（npx skills add）安裝到其他 agent",
+   "kind": "compat",
+   "how_to_verify": "在非 Claude 的 agent 目錄執行 npx skills add typesafe-ai/skills --skill typesafe-ai，確認檔案落在該 agent 的 skill 路徑"
+  },
+  {
+   "claim": "SKILL.md 位於 skills/typesafe-ai/ 子目錄，而非 repo 根目錄",
+   "kind": "compat",
+   "how_to_verify": "檢視 typesafe-ai/skills 的檔案樹，確認 skills/typesafe-ai/SKILL.md 存在且根目錄沒有 SKILL.md 或 AGENTS.md"
+  },
+  {
+   "claim": "功能是串接 TypeSafe System One 的決策與機率模型",
+   "kind": "capability",
+   "how_to_verify": "閱讀 SKILL.md 與 docs.typesafe.ai，確認 API 端點與回傳的決策及機率欄位"
+  },
+  {
+   "claim": "使用需要 TypeSafe 帳號與 API 金鑰（雲端服務相依）",
+   "kind": "cost",
+   "how_to_verify": "查 docs.typesafe.ai 的安裝與認證章節，確認是否需要註冊與金鑰，以及是否有免費額度"
+  },
+  {
+   "claim": "Windows 環境與 CI 支援情況不明（第 0 層 windows_ci 為 null）",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 11 與 PowerShell 下安裝並執行 skill 的範例指令；檢查 repo 是否有 Windows CI 設定"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能沒有外部決策或機率 API 的串接能力；native-workflow、native-memory 等都不涵蓋這類需求。"
+ },
+ "cluster": "external-api-guide",
+ "recommendation": "reject",
+ "needs_user": "沒有",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 8279,
+   "cached": 3694,
+   "output": 2318
+  },
+  "readme_sha": "e3e5a0d970bd",
+  "readme_chars": 1355
+ }
+}

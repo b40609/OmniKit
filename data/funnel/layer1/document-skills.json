@@ -1,0 +1,63 @@
+{
+ "layer": 1,
+ "tool_id": "document-skills",
+ "name": "document-skills",
+ "url": "https://github.com/anthropics/skills",
+ "slots": [
+  "docs-output"
+ ],
+ "scenarios": [
+  "D1"
+ ],
+ "summary": "工具是 Anthropic 官方 skills repo 裡的文件類 skill（docx、pdf、pptx、xlsx），用途與原生文件產出幾乎相同。它落在 docs-output 槽位，但沒有比內建更多的能力，且 Codex 端沒有對應的 plugin。判定為確定的重複，建議拒絕。",
+ "differences": "相較現任的原生文件產出：Claude 端是同一批 docx、pdf、pptx、xlsx skills，沒有多出能力。Codex 端原生已有 documents、presentations、spreadsheets、pdf plugin，這個工具的 codex_plugin 為 false，無法補上。少了的是 Codex 端支援；授權未標示，README 說明文件類 skill 是 source-available 而非開源，且聲明僅供示範，實際行為可能與 Claude 內建不同。",
+ "claims": [
+  {
+   "claim": "repo 內含 docx、pdf、pptx、xlsx 四個文件類 skill 資料夾",
+   "kind": "capability",
+   "how_to_verify": "檢視 anthropics/skills 的 skills/ 目錄，確認 docx、pdf、pptx、xlsx 四個資料夾存在且各含 SKILL.md"
+  },
+  {
+   "claim": "可用 Claude Code 的 plugin marketplace 安裝（/plugin marketplace add anthropics/skills）",
+   "kind": "compat",
+   "how_to_verify": "在 Claude Code 執行 /plugin marketplace add anthropics/skills，再執行 /plugin install document-skills@anthropic-agent-skills，確認安裝成功"
+  },
+  {
+   "claim": "repo 沒有 Codex plugin 清單（codex_plugin 為 false）",
+   "kind": "compat",
+   "how_to_verify": "在 repo 根目錄與 skills 子目錄搜尋 Codex plugin 的 manifest 檔，確認沒有對應檔案"
+  },
+  {
+   "claim": "根目錄沒有 SKILL.md 與 AGENTS.md",
+   "kind": "compat",
+   "how_to_verify": "列出 repo 根目錄檔案，確認沒有 SKILL.md 與 AGENTS.md（SKILL.md 只在各 skill 子資料夾中）"
+  },
+  {
+   "claim": "授權未標示；文件類 skill 為 source-available，不是開源",
+   "kind": "security",
+   "how_to_verify": "查看 repo 的 LICENSE 檔與 README 的 About This Repository 段落，確認 docx、pdf、pptx、xlsx 的授權說明"
+  }
+ ],
+ "native_coverage": {
+  "level": "covered",
+  "by": [
+   "native-docs"
+  ],
+  "note": "原生文件產出已涵蓋：Claude 端為同系列 docx、pdf、pptx、xlsx skills，Codex 端為 documents、presentations、spreadsheets、pdf plugin。工具本身不增加能力。"
+ },
+ "cluster": "vendor-document-skills",
+ "recommendation": "reject",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 10174,
+   "cached": 3694,
+   "output": 2749
+  },
+  "readme_sha": "2fb9c4cc0263",
+  "readme_chars": 5552
+ }
+}

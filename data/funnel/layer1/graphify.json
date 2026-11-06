@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "graphify",
+ "name": "graphify",
+ "url": "https://github.com/Graphify-Labs/graphify",
+ "slots": [
+  "code-understanding"
+ ],
+ "scenarios": [
+  "C1",
+  "C2"
+ ],
+ "summary": "graphify 用本地 tree-sitter 把程式碼建成可查詢的知識圖譜，agent 改用 graphify query、path、explain 取代逐檔 grep。它對得上 code-understanding 槽位的 C1（找呼叫者與影響範圍），也能讓節點附來源行號，對 C2 有部分幫助。原生搜尋只能做直接的 grep，沒有預先建好的圖與傳遞影響範圍，所以不算完全涵蓋。它是 Python 套件，不是 Claude 或 Codex 的 plugin，且在 Windows 上未經 CI 驗證。",
+ "differences": "相較於原生搜尋（grep、glob）：多了預先建好的圖、可追蹤傳遞關係的 query 與 path 指令、每條邊標示 EXTRACTED 或 INFERRED、節點附來源行號。相較之下少了：需要先建圖並在改動後更新，否則圖會過時；Windows 沒有 CI 驗證；Codex 平行抽取要手動開 multi_agent；非程式碼的語意處理需要模型或 API 金鑰。",
+ "claims": [
+  {
+   "claim": "程式碼以本地 tree-sitter 解析，不呼叫 LLM，程式碼不離開本機",
+   "kind": "security",
+   "how_to_verify": "斷網或設防火牆後，在一個小型範例 repo 執行 graphify extract，確認只產出 graph 檔案且沒有對外網路請求。"
+  },
+  {
+   "claim": "支援 Codex 安裝（graphify install --platform codex），Codex 平行抽取需在 ~/.codex/config.toml 的 [features] 設 multi_agent = true",
+   "kind": "compat",
+   "how_to_verify": "在 Codex 環境執行 graphify install --platform codex，檢查產生的 AGENTS.md 與 skill 檔；確認未設定 multi_agent 時抽取是否退回序列。"
+  },
+  {
+   "claim": "安裝方式是 PyPI 套件 graphifyy 加 graphify install，不是 Claude Code 或 Codex 的 plugin（claude_plugin、codex_plugin 皆為 false）",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 是否有 plugin manifest 或 marketplace 設定；實際執行 uv tool install graphifyy 與 graphify install，看註冊的是 skill 還是 plugin。"
+  },
+  {
+   "claim": "建圖後產出 graph.html、GRAPH_REPORT.md、graph.json 三個檔案",
+   "kind": "capability",
+   "how_to_verify": "在小型範例 repo 執行 /graphify .，確認 graphify-out/ 下出現三個檔案，並打開 graph.json 檢查是否有節點與邊。"
+  },
+  {
+   "claim": "提供可選的 MCP stdio server（extra 為 mcp）",
+   "kind": "capability",
+   "how_to_verify": "執行 uv tool install \"graphifyy[mcp]\"，再依文件啟動 MCP server，確認 client 能列出工具並成功呼叫 query。"
+  },
+  {
+   "claim": "在 Windows 上有 CI 覆蓋（第 0 層判定為否）",
+   "kind": "compat",
+   "how_to_verify": "檢查 .github/workflows/ci.yml 的 runs-on 矩陣是否包含 windows-latest；在 Windows 11 上實際執行一次 extract 與 query 確認可用。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-search"
+  ],
+  "note": "原生 grep、glob 可找直接呼叫者，但沒有預先建好的圖，也無法追蹤傳遞影響範圍與節點來源行號。"
+ },
+ "cluster": "code-graph-index",
+ "recommendation": "deep_eval",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 19784,
+   "cached": 3694,
+   "output": 3878
+  },
+  "readme_sha": "102e71cf7963",
+  "readme_chars": 39667
+ }
+}

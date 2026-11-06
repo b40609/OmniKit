@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "serena",
+ "name": "Serena",
+ "url": "https://github.com/oraios/serena",
+ "slots": [
+  "code-understanding"
+ ],
+ "scenarios": [
+  "C1"
+ ],
+ "summary": "Serena 是以 MCP 提供的符號層級程式碼工具，靠語言伺服器做找引用、找定義與符號改寫。它對得上「程式碼理解與搜尋」槽位的 C1（找函式所有呼叫者、評估影響範圍）。現任原生搜尋只做文字比對，這部分它能補上。但既有實測沒證明品質優勢，Windows 上還有 CRLF 改寫風險，因此建議做深入評估，不預設掛載。",
+ "differences": "相較現任原生搜尋（grep、glob）：多了符號層級的找引用與找定義，對同名不同物比較準，也能做安全改名。少了的部分：要另外安裝 uv 與語言伺服器，多一個常駐 MCP 行程；agent 沒有被強制時不會主動呼叫（RIA 實測 0/6）；TypeScript 實測變慢；寫入時有把 LF 改成 CRLF 的風險。",
+ "claims": [
+  {
+   "claim": "後端為語言伺服器（LSP）時，提供「找引用符號」（find referencing symbols）功能。",
+   "kind": "capability",
+   "how_to_verify": "對照 README 的 Retrieval 表格（Language Servers 欄為 yes），並在 OmniKeep 實際對一個被多處呼叫的 Python 函式執行找引用，比對結果與 grep 的差異。"
+  },
+  {
+   "claim": "支援 Python 與 TypeScript，但部分語言需另外安裝語言伺服器相依套件。",
+   "kind": "capability",
+   "how_to_verify": "對照 README 的語言清單，以及 Quick Start 提到的 Language Support 頁面；在 CatOS 與 OmniKeep 各跑一次 serena init 確認可用。"
+  },
+  {
+   "claim": "以 MCP server 形式運作，可設定到 Claude Code 與 Codex。",
+   "kind": "compat",
+   "how_to_verify": "查看 README 的 Configuring Your Client 段落與文件 02-usage/030_clients，確認兩個 client 的啟動指令都能成功列出 Serena 的工具。"
+  },
+  {
+   "claim": "安裝前置需求只有 uv，指令為 uv tool install -p 3.13 serena-agent。",
+   "kind": "cost",
+   "how_to_verify": "在乾淨的 Windows 環境照 README 執行安裝指令，記錄是否成功、耗時，以及是否還需要額外安裝語言伺服器。"
+  },
+  {
+   "claim": "應用程式授權為 GPL-3.0-or-later；SolidLSP 元件為 MIT。授權在 repo 的 metadata 顯示為 NOASSERTION，需人工確認。",
+   "kind": "security",
+   "how_to_verify": "閱讀 repo 根目錄的 LICENSE、LICENSES/ 目錄與 README 的 License 段落，確認 GPL 對 OmniKit 的散布與使用方式是否可接受。"
+  },
+  {
+   "claim": "RIA 的實測顯示 TypeScript 下比原生工具慢，且寫入時會把 LF 改成 CRLF。",
+   "kind": "quality",
+   "how_to_verify": "檢視 RIA 2026-10-31 的 34 次實測紀錄；另在 Windows 上用 Serena 的符號編輯工具改一個 LF 檔案，用 git diff 或位元組檢查是否出現 CRLF 轉換。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-search"
+  ],
+  "note": "grep、glob 只能做文字比對，無法區分同名不同物的符號，也無法可靠找出動態呼叫的呼叫者；找影響範圍要靠人工讀檔。"
+ },
+ "cluster": "lsp-semantic-navigation",
+ "recommendation": "deep_eval",
+ "needs_user": "RIA 2026-10-31 的 34 次實測結論是不預設掛載。若要進入 deep_eval，需要維護者決定：是否重跑 C1 情境（在 OmniKeep 找函式呼叫者），比較「有 Serena」與「只用原生搜尋」的正確率與 token 用量；以及 LF→CRLF 改寫是否算不通過的驗收標準。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 13740,
+   "cached": 3694,
+   "output": 4732
+  },
+  "readme_sha": "26c1db5a9165",
+  "readme_chars": 15307
+ }
+}

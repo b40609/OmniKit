@@ -1,0 +1,60 @@
+{
+ "layer": 1,
+ "tool_id": "browserbase",
+ "name": "Browserbase",
+ "url": "https://browserbase.com",
+ "slots": [],
+ "scenarios": [],
+ "summary": "Browserbase 是雲端瀏覽器服務，要帳號與 API key，主打無人值守、平行跑大量網站任務。它宣告的 browser 槽位只有 U1（改完本機前端後在瀏覽器驗證 dev server），但卡片自己寫明不列入 U1 比較，README 也以託管站點為主，對不上任何 active 情境，因此不放入槽位。",
+ "differences": "相對於 browser 槽位現任（Chrome DevTools MCP、原生瀏覽器）：多了雲端執行、託管代理、平行任務與錄影回放，也多了帳號與 API key 的成本；少了直接讀取本機 localhost dev server 與即時 console 錯誤的能力，這正是 U1 需要的。",
+ "claims": [
+  {
+   "claim": "需要 Browserbase 帳號與 API key（README 寫「Get an API key」，並以 BROWSERBASE_API_KEY 環境變數呼叫）",
+   "kind": "cost",
+   "how_to_verify": "檢查 README 的 Run it on Browserbase 段落與程式碼範例中的 BROWSERBASE_API_KEY，並確認官方註冊流程需要帳號。"
+  },
+  {
+   "claim": "提供託管 MCP server（https://mcp.browserbase.com/mcp），以 HTTP 傳輸、不需本機安裝",
+   "kind": "capability",
+   "how_to_verify": "檢查 README 的 Give your coding agent a browser 段落中的 claude mcp add 指令，並實際對該 URL 做一次連線測試。"
+  },
+  {
+   "claim": "Stagehand 開源 SDK 採 MIT 授權，支援 TypeScript、Python、Go 三種語言",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 根目錄的 LICENSE 檔案，以及 README 的 Three languages 與 Install 段落。"
+  },
+  {
+   "claim": "本機執行需要事先安裝 Chrome",
+   "kind": "compat",
+   "how_to_verify": "檢查 README 的 Install 段落末尾（Local runs need Chrome 的說明），並在 Windows 上確認本機啟動流程。"
+  },
+  {
+   "claim": "repo 未偵測到 Windows CI（windows_ci=false），也沒有 Claude plugin 或 skill 格式",
+   "kind": "compat",
+   "how_to_verify": "檢查 .github/workflows 是否有 windows-latest 的 runner，以及 repo 中是否有 .claude-plugin、SKILL.md。"
+  }
+ ],
+ "native_coverage": {
+  "level": "covered",
+  "by": [
+   "native-browser"
+  ],
+  "note": "原生瀏覽器已可自己開 dev server、截圖、看 DOM 與 console、點擊與填表，改完檔案後自動驗證；Codex 另有 in-app browser 可開 localhost。Browserbase 無法直接連到本機 localhost，對 U1 沒有額外增益。"
+ },
+ "cluster": "cloud-hosted-browser",
+ "recommendation": "reject",
+ "needs_user": "\"\"",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 15194,
+   "cached": 3694,
+   "output": 2628
+  },
+  "readme_sha": "bd8cc7b9148a",
+  "readme_chars": 17523
+ }
+}

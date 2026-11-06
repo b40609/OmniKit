@@ -1,0 +1,62 @@
+{
+ "layer": 1,
+ "tool_id": "composio",
+ "name": "Composio",
+ "url": "https://github.com/ComposioHQ/composio",
+ "slots": [],
+ "scenarios": [],
+ "summary": "Composio 是託管的 SaaS 工具連接服務，主打代管登入與授權、可透過 MCP 或 CLI 呼叫上千個應用程式。它不對應 frontend-design、review、memory、code-understanding、output-compression、tool-discovery、behavior-rules、browser、permissions、concise-output、docs-output、reverse-engineering、skill-authoring、dev-workflow、data-analysis 任一槽位的真實情境（F/R/M/C/T/N/B/U/W/O/D/X/K/V 的描述都不涉及第三方 SaaS 連接）。依規則，槽位與情境皆給空陣列，建議 reject。",
+ "differences": "相對於內建功能（沒有任何同類項目）：多出的是託管的第三方應用授權、上千個 SaaS 連接器、按使用者劃分的 session，以及 MCP 端點與 CLI。少的是本地執行與資料留存的控制權：呼叫必須經過雲端帳號與 API 金鑰，OmniKeep 或 CatOS 的資料會經過第三方服務。在目前已定義的槽位中，沒有任何一個需要這些能力。",
+ "claims": [
+  {
+   "claim": "提供 MCP 端點：建立 session 時加上 mcp 參數後，會給出可供 MCP client 連線的 URL。",
+   "kind": "capability",
+   "how_to_verify": "在官方文件或 SDK 原始碼中搜尋 mcp 參數與 session.mcp.url，確認實際回傳的端點可被 Claude Code 連上。"
+  },
+  {
+   "claim": "提供 composio CLI，可搜尋、執行與連結工具，並支援以 TypeScript 腳本組合流程。",
+   "kind": "capability",
+   "how_to_verify": "依官方安裝指令安裝後執行 composio --help，確認 search、execute、link、run 子指令存在。"
+  },
+  {
+   "claim": "使用前必須有雲端帳號與 COMPOSIO_API_KEY，連接的第三方帳號授權也由服務代管。",
+   "kind": "security",
+   "how_to_verify": "依 README 的快速開始流程，在沒有金鑰的環境執行一次呼叫，確認是否被拒絕，並查閱資料保存與傳輸的條款。"
+  },
+  {
+   "claim": "專案在 CI 中包含 Windows 測試。",
+   "kind": "compat",
+   "how_to_verify": "檢視儲存庫 .github/workflows 內是否有 windows 相關的 runner 設定，並確認最近一次執行結果。"
+  },
+  {
+   "claim": "聲稱提供 1000 個以上的預先授權工具包。",
+   "kind": "capability",
+   "how_to_verify": "透過官方 API 或文件列出可用的 toolkit 數量，比對宣稱的數字。"
+  },
+  {
+   "claim": "以 MIT 授權釋出。",
+   "kind": "quality",
+   "how_to_verify": "檢查儲存庫根目錄的 LICENSE 檔案內容。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單中沒有第三方 SaaS 連接器這一項。工具卡提到 Claude 的 connectors 與 Codex 的 plugins 已有類似能力，但它們不在本清單內，因此不列入 by。"
+ },
+ "cluster": "hosted-tool-gateway",
+ "recommendation": "reject",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 11656,
+   "cached": 3694,
+   "output": 3222
+  },
+  "readme_sha": "740d67751189",
+  "readme_chars": 9237
+ }
+}

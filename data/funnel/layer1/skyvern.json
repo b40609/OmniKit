@@ -1,0 +1,65 @@
+{
+ "layer": 1,
+ "tool_id": "skyvern",
+ "name": "Skyvern",
+ "url": "https://github.com/Skyvern-AI/skyvern",
+ "slots": [],
+ "scenarios": [],
+ "summary": "Skyvern 是用 LLM 加電腦視覺操作第三方網站的無人值守流程工具（例如批次填表、下載檔案）。工具卡雖登記在 browser 槽位，但它要解決的問題不是 U1 的情境：U1 是 agent 在本機改完前端後自己開 dev server、看畫面與 console 錯誤來驗證。Skyvern 不符合任何列出的情境，因此不放入槽位，建議直接排除。",
+ "differences": "相較於 browser 槽位現任（Chrome DevTools MCP、原生瀏覽器），Skyvern 多了：以 LLM 與視覺理解跨網站執行任務、無人值守的工作流程編排、以及雲端代管的瀏覽器。少了的部分：README 沒提到本機 dev server 的畫面驗證，也沒提到讀取 console 錯誤，這正是 U1 要的。",
+ "claims": [
+  {
+   "claim": "提供 pip 安裝的 Python SDK 與本機伺服器（pip install \"skyvern[all]\"）",
+   "kind": "capability",
+   "how_to_verify": "在乾淨的 Python 3.11–3.13 環境執行 pip install \"skyvern[all]\"，再執行 skyvern quickstart，確認服務能起來。"
+  },
+  {
+   "claim": "需要設定外部 LLM 供應商的 API 金鑰才能運作",
+   "kind": "cost",
+   "how_to_verify": "查看 .env.example 與 LLM 設定文件，確認不設定金鑰時任務無法執行。"
+  },
+  {
+   "claim": "核心程式碼以 AGPL-3.0 授權，但反爬蟲等功能只在雲端版提供",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 根目錄的 LICENSE，並比對 README 的授權段落與 Skyvern Cloud 文件中的功能說明。"
+  },
+  {
+   "claim": "Windows 可用，但 pip 路徑需要 Rust 與 VS Code C++ 工具鏈",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 11 上照 README 的 pip 步驟安裝，記錄是否需要先裝 Rust 與 Windows SDK；同時確認 repo 的 CI 是否有 Windows 工作流程（目前旗標為 false）。"
+  },
+  {
+   "claim": "支援 MCP，可讓 MCP 客戶端呼叫 Skyvern",
+   "kind": "capability",
+   "how_to_verify": "依官方 MCP 文件啟動 MCP server，用 Claude Code 或 Codex 的 MCP 設定連上，列出可用工具。"
+  },
+  {
+   "claim": "提供 Skyvern Cloud 代管服務，可平行執行多個實例",
+   "kind": "capability",
+   "how_to_verify": "註冊 app.skyvern.com 帳號，確認可建立雲端瀏覽器工作階段並平行執行任務。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-browser"
+  ],
+  "note": "原生瀏覽器涵蓋本機 dev server 的畫面、DOM 與 console 驗證，對應 U1；但不涵蓋 Skyvern 的主要用途，也就是無人值守地在第三方網站上執行 LLM 驅動的表單與下載流程。"
+ },
+ "cluster": "llm-vision-browser",
+ "recommendation": "reject",
+ "needs_user": "\"\"",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 17857,
+   "cached": 3694,
+   "output": 2820
+  },
+  "readme_sha": "68fda9452558",
+  "readme_chars": 25243
+ }
+}

@@ -1,0 +1,75 @@
+{
+ "layer": 1,
+ "tool_id": "ecc",
+ "name": "ECC",
+ "url": "https://github.com/affaan-m/ecc",
+ "slots": [
+  "memory",
+  "dev-workflow",
+  "behavior-rules"
+ ],
+ "scenarios": [
+  "M2",
+  "V1",
+  "B1"
+ ],
+ "summary": "ECC 是大型的 agent 方法論與 skill／agent 集合，適合當零件庫。它的 README 宣稱有會話摘要、持續學習與 instincts，可能對應 memory 槽位的 M2（compaction 後仍記得進度）；固定的「規劃、測試、實作、審查」流程可能對應 dev-workflow 的 V1；always-loaded 的 rules 可能對應 behavior-rules 的 B1。這些對應都只是依文字推測，尚未實際驗證。跨 harness 的交接（M1）與 frontend、review、browser 等槽位沒有足夠證據，因此不列入。",
+ "differences": "相較於 memory 的現任（原生記憶）：多了會話摘要與持續學習（文件宣稱），但 Claude 的 auto memory 與 Codex 的 memories 仍不互通，ECC 是否解決這點需實測。相較於 dev-workflow 的現任（BMAD-METHOD）：ECC 的流程較輕、以 agent 分工為主，但整體定位也是「大而全」，是否會重工需要實際試用。behavior-rules 沒有現任，相較於內建：多了一組可選的 rules 規則包，但 Claude 外掛不能散佈 rules，要手動複製到 ~/.claude/rules。",
+ "claims": [
+  {
+   "claim": "同時提供 Claude Code 外掛（ecc@ecc）與 Codex 原生 marketplace 外掛安裝路徑",
+   "kind": "compat",
+   "how_to_verify": "檢查 README 的 /plugin marketplace add 與 codex plugin marketplace add 指令；確認 repo 內的 .codex-plugin/ 與 Claude 外掛清單存在，並在 Windows 實際執行安裝。"
+  },
+  {
+   "claim": "提供 Windows 安裝路徑（install.ps1），且 repo 有 Windows CI",
+   "kind": "compat",
+   "how_to_verify": "確認 repo 根目錄有 install.ps1；查看 .github/workflows 中是否有 windows-latest 的執行項目，並在本機跑 .\\install.ps1 --profile minimal --target claude --dry-run。"
+  },
+  {
+   "claim": "內含約 71 個 agents、314 個 skills、98 個 command shims",
+   "kind": "capability",
+   "how_to_verify": "在 repo 內統計 agents/*.md、skills/ 下含 SKILL.md 的目錄數與 legacy-command-shims/ 或 commands/ 的檔案數，與 README 數字比對。"
+  },
+  {
+   "claim": "Claude Code 外掛無法散佈 rules，需要手動把 rules/ 複製到 ~/.claude/rules/ecc",
+   "kind": "compat",
+   "how_to_verify": "閱讀 README 中關於 rules 的段落；安裝外掛後檢查 ~/.claude/rules 是否有對應檔案。"
+  },
+  {
+   "claim": "提供會話摘要、持續學習（instincts）等記憶相關 hooks",
+   "kind": "capability",
+   "how_to_verify": "在 hooks/ 與 scripts/ 中搜尋 session summary、instinct、continuous learning 相關實作，確認會寫入哪些檔案、是否在 compaction 後仍可讀取。"
+  },
+  {
+   "claim": "需要 Node.js 18 以上、Git 與 Claude Code 2.1 以上在 PATH 中",
+   "kind": "cost",
+   "how_to_verify": "依 README 的 Important 區塊列出前置需求，分別執行 node --version、git --version、claude --version 檢查。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-review",
+   "native-memory",
+   "native-workflow"
+  ],
+  "note": "內建的審查、記憶與 plan mode 能做到部分功能；ECC 額外提供的多 agent 分工、會話摘要與 rules 規則包，內建沒有完整對應，且 Claude 與 Codex 之間的記憶仍不互通。"
+ },
+ "cluster": "skill-plugin-bundle",
+ "recommendation": "deep_eval",
+ "needs_user": "請維護者確認：memory 的 M2、dev-workflow 的 V1 與 behavior-rules 的 B1 這三項對應是否成立（目前是依 README 文字推測）；另外 ECC 的 review 是否要視為 R1 的跨模型審查，目前未納入。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 19901,
+   "cached": 3694,
+   "output": 5407
+  },
+  "readme_sha": "bce393127a2e",
+  "readme_chars": 116553
+ }
+}

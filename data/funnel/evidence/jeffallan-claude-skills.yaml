@@ -1,0 +1,68 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: jeffallan-claude-skills
+cards:
+- id: ev-20261105-jeffallan-claude-skills-01
+  tool: jeffallan-claude-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/Jeffallan/claude-skills/issues/226
+    author: Jeffallan
+    published: '2026-08-07'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 文件網站（site/）的相依套件留有 5 項稽核警告（2 高、3 低），修復都需要大版本升級。
+  quote: All of them require semver-major upgrades
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-11-05'
+- id: ev-20261105-jeffallan-claude-skills-02
+  tool: jeffallan-claude-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/Jeffallan/claude-skills/issues/252
+    author: Jeffallan
+    published: '2026-10-15'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: execute-ticket 指令原本把實作步驟排在撰寫測試之前，作者提議改為先寫失敗測試。
+  quote: Execute implementation steps from the plan
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2027-01-13'
+- id: ev-20261105-jeffallan-claude-skills-03
+  tool: jeffallan-claude-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/Jeffallan/claude-skills/issues/264
+    author: s1ngh-code
+    published: '2026-10-22'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: common-ground 指令在 Claude Code 中註冊為 fullstack-dev-skills:common-ground:COMMAND，與文件寫的 /common-ground 不符。
+  quote: Claude Code loads commands/common-ground/COMMAND.md as the command
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2027-01-20'

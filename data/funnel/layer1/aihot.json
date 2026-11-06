@@ -1,0 +1,67 @@
+{
+ "layer": 1,
+ "tool_id": "aihot",
+ "name": "aihot",
+ "url": "https://github.com/KKKKhazix/khazix-skills",
+ "slots": [
+  "tool-discovery"
+ ],
+ "scenarios": [
+  "N1"
+ ],
+ "summary": "aihot 是 SKILL.md 格式的中文 AI 新聞、日報與熱點查詢技能，查詢與整理在 aihot.news 服務端完成。它只能勉強對到 tool-discovery 的 N1，因為 N1 要追蹤的是新的 agent 工具從哪裡出現，而 aihot 是一般 AI 新聞來源，不專門追蹤 agent 工具，也沒有送進收件匣的機制。沒有內建功能涵蓋新聞查詢，但這個弱相關性讓它不適合直接進 deep_eval，先收著待維護者判斷。",
+ "differences": "相對於 tool-discovery 沒有現任的情況，對照內建功能也沒有對應項目，它多出的是：中文 AI 日報、熱點排序、按時間窗與關鍵詞的新聞查詢，且不需要 API Key。它少了的是：不以 agent 工具為追蹤對象、沒有 OmniKit 收件匣的輸出管道，也沒有針對新工具的分類或來源過濾。結果品質與可用性取決於外部服務 aihot.news。",
+ "claims": [
+  {
+   "claim": "不需要 API Key 與 MCP server，安裝後由 SKILL.md 直接觸發查詢",
+   "kind": "cost",
+   "how_to_verify": "閱讀 aihot/SKILL.md 與 README 的安裝段，確認沒有金鑰或 MCP 設定步驟；在乾淨環境安裝後直接下中文查詢，觀察是否需要任何額外設定。"
+  },
+  {
+   "claim": "查詢與整理在 aihot.news 服務端完成，本地 Skill 只負責提問與轉述",
+   "kind": "security",
+   "how_to_verify": "閱讀 aihot/SKILL.md 的請求流程，並在執行查詢時抓取網路請求，確認查詢內容會送到 aihot.news；注意這代表查詢內容會離開本機。"
+  },
+  {
+   "claim": "可透過 Claude Code 插件市場安裝（/plugin marketplace add KKKKhazix/khazix-skills）",
+   "kind": "compat",
+   "how_to_verify": "在乾淨的 Claude Code 環境執行 README 列出的兩行指令，確認 aihot 技能載入且可被觸發。"
+  },
+  {
+   "claim": "支援按時間窗（過去 24 小時、最近 7 天）與關鍵詞、公司、主題查詢",
+   "kind": "capability",
+   "how_to_verify": "實際執行「最近一週的 AI 論文」與「最近 OpenAI 有什麼發布」等查詢，比對回傳的時間範圍與關鍵字是否符合。"
+  },
+  {
+   "claim": "執行時需要連網到 aihot.news，離線無法取得結果",
+   "kind": "compat",
+   "how_to_verify": "在斷網或封鎖 aihot.news 的情況下執行查詢，觀察是否回傳明確錯誤而非假資料。"
+  },
+  {
+   "claim": "內容以中文 AI 新聞與產品動態為主，沒有 agent 工具目錄或來源分類",
+   "kind": "quality",
+   "how_to_verify": "檢查 SKILL.md 的分類（模型、產品、行業、論文、技巧）與回傳條目，確認是否有 agent 工具、MCP server 或 skill 的專屬來源；若沒有，N1 的對應就只是間接的。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單沒有新聞或熱點查詢類項目。app-explore 只是比較基準；native-search 只搜尋程式碼，與新聞無關。"
+ },
+ "cluster": "hosted-news-feed",
+ "recommendation": "keep_pending",
+ "needs_user": "請維護者判斷：N1「掌握新的 agent 工具從哪裡出現」是否涵蓋一般 AI 新聞來源。若不涵蓋，aihot 應改為 reject；若涵蓋，再進 deep_eval 驗證 SKILL.md 的實際查詢與輸出。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 15144,
+   "cached": 3694,
+   "output": 4539
+  },
+  "readme_sha": "53ddae4cb0dc",
+  "readme_chars": 8893
+ }
+}

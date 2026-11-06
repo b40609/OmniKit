@@ -1,0 +1,145 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: rtk
+cards:
+- id: ev-20261105-rtk-01
+  tool: rtk
+  tool_version_tested: unknown
+  slot: output-compression
+  source:
+    type: issue
+    url: https://github.com/rtk-ai/rtk/issues/682
+    author: fondoger
+    published: '2026-03-18'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+    os: Windows
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 在 Windows 改用 CLAUDE.md 而非 hook 時，仍會持續出現「未安裝 hook」警告，且沒有設定可以關閉。
+  quote: No hook installed — run `rtk init -g` for automatic token savings
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-06-16'
+- id: ev-20261105-rtk-02
+  tool: rtk
+  tool_version_tested: unknown
+  slot: output-compression
+  source:
+    type: issue
+    url: https://github.com/rtk-ai/rtk/issues/913
+    author: amaldevice
+    published: '2026-03-29'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: OpenCode
+    os: Windows
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 在 Windows 執行 rtk init -g --opencode 後，即使外掛已安裝成功，rtk gain 仍持續顯示「未安裝 hook」警告。
+  quote: Persistent "No hook installed" warning on Windows after rtk init -g --opencode
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-06-27'
+- id: ev-20261105-rtk-03
+  tool: rtk
+  tool_version_tested: v0.50.0
+  slot: output-compression
+  source:
+    type: issue
+    url: https://github.com/rtk-ai/rtk/issues/4318
+    author: mmuqiitf
+    published: '2026-09-28'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    os: Windows 10 / 11
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: Windows 的 winget 套件 rtk-ai.rtk 停在 v0.50.0，較新版本無法透過 winget 升級。
+  quote: winget package manifest for rtk-ai.rtk is stuck on version v0.50.0
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-27'
+- id: ev-20261105-rtk-04
+  tool: rtk
+  tool_version_tested: 0.42.0
+  slot: output-compression
+  source:
+    type: issue
+    url: https://github.com/rtk-ai/rtk/issues/2167
+    author: jbgutierrez
+    published: '2026-05-30'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    os: macOS arm64
+  method: anecdote
+  comparator: baseline
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: rtk grep 在 macOS 上會呼叫系統 grep 而非 ripgrep，導致 -g/--glob 參數無法使用。
+  quote: rtk grep calls system grep instead of ripgrep — breaks -g/--glob flags
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-08-28'
+- id: ev-20261105-rtk-05
+  tool: rtk
+  tool_version_tested: unknown
+  slot: output-compression
+  source:
+    type: issue
+    url: https://github.com/rtk-ai/rtk/issues/1436
+    author: Sediug
+    published: '2026-04-21'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: baseline
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: rtk grep 與 grep 行為不相容：單檔 -n 搜尋時會出現多餘的匹配與格式錯誤的輸出。
+  quote: 'rtk grep is not grep-compatible here: extra matches and malformed output'
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-07-20'
+- id: ev-20261105-rtk-06
+  tool: rtk
+  tool_version_tested: unknown
+  slot: output-compression
+  source:
+    type: hn
+    url: https://news.ycombinator.com/item?id=49656471
+    author: michalwarda
+    published: '2026-09-11'
+    retrieved: '2026-11-05'
+  independence: unknown
+  method: benchmark
+  comparator: baseline
+  runs: 0
+  kind: cost
+  direction: '-'
+  claim: 一篇第三方文章質疑 RTK 回報的 token 節省，其成本基準測試結果與 RTK 的說法不一致。
+  quote: RTK reports token savings, but our cost benchmarks disagree
+  reliability: F
+  credibility: 6
+  certainty: very-low
+  expires: '2026-12-10'

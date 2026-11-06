@@ -1,0 +1,637 @@
+{
+ "(未分配)": {
+  "browser-cli-snapshot": {
+   "members": [
+    "agent-desktop"
+   ],
+   "representatives": [
+    "agent-desktop"
+   ]
+  },
+  "browser-extension-relay": {
+   "members": [
+    "browser-mcp"
+   ],
+   "representatives": [
+    "browser-mcp"
+   ]
+  },
+  "cloud-hosted-browser": {
+   "members": [
+    "browserbase"
+   ],
+   "representatives": [
+    "browserbase"
+   ]
+  },
+  "code-video-styles": {
+   "members": [
+    "lemo-opuscar"
+   ],
+   "representatives": [
+    "lemo-opuscar"
+   ]
+  },
+  "experience-cost-control": {
+   "members": [
+    "token-economizer"
+   ],
+   "representatives": [
+    "token-economizer"
+   ]
+  },
+  "external-api-guide": {
+   "members": [
+    "typesafe-ai"
+   ],
+   "representatives": [
+    "typesafe-ai"
+   ]
+  },
+  "hosted-app-connector": {
+   "members": [
+    "zapier-mcp"
+   ],
+   "representatives": [
+    "zapier-mcp"
+   ]
+  },
+  "hosted-tool-gateway": {
+   "members": [
+    "composio"
+   ],
+   "representatives": [
+    "composio"
+   ]
+  },
+  "library-docs-mcp": {
+   "members": [
+    "context7"
+   ],
+   "representatives": [
+    "context7"
+   ]
+  },
+  "llm-vision-browser": {
+   "members": [
+    "skyvern"
+   ],
+   "representatives": [
+    "skyvern"
+   ]
+  },
+  "multi-harness-plugin-bundle": {
+   "members": [
+    "wshobson-agents"
+   ],
+   "representatives": [
+    "wshobson-agents"
+   ]
+  },
+  "onchain-cli-skills": {
+   "members": [
+    "okx-skills"
+   ],
+   "representatives": [
+    "okx-skills"
+   ]
+  },
+  "python-browser-agent": {
+   "members": [
+    "browser-use"
+   ],
+   "representatives": [
+    "browser-use"
+   ]
+  },
+  "python-browser-library": {
+   "members": [
+    "seleniumbase"
+   ],
+   "representatives": [
+    "seleniumbase"
+   ]
+  },
+  "simulated-judge-audit": {
+   "members": [
+    "ifixai"
+   ],
+   "representatives": [
+    "ifixai"
+   ]
+  }
+ },
+ "behavior-rules": {
+  "claude-md-rules": {
+   "members": [
+    "karpathy-guidelines"
+   ],
+   "representatives": [
+    "karpathy-guidelines"
+   ]
+  },
+  "prompt-rules-hooks": {
+   "members": [
+    "ponytail"
+   ],
+   "representatives": [
+    "ponytail"
+   ]
+  },
+  "skill-pack-catalog": {
+   "members": [
+    "alirezarezvani-claude-skills",
+    "claudekit-skills"
+   ],
+   "representatives": [
+    "alirezarezvani-claude-skills"
+   ]
+  },
+  "skill-plugin-bundle": {
+   "members": [
+    "ecc"
+   ],
+   "representatives": [
+    "ecc"
+   ]
+  },
+  "workflow-skill-pack": {
+   "members": [
+    "addy-agent-skills"
+   ],
+   "representatives": [
+    "addy-agent-skills"
+   ]
+  }
+ },
+ "browser": {
+  "browser-cdp-skill": {
+   "members": [
+    "browser-harness"
+   ],
+   "representatives": [
+    "browser-harness"
+   ]
+  },
+  "browser-cli-snapshot": {
+   "members": [
+    "agent-browser",
+    "playwright-cli",
+    "playwright-mcp"
+   ],
+   "representatives": [
+    "agent-browser",
+    "playwright-mcp"
+   ]
+  },
+  "skill-pack-catalog": {
+   "members": [
+    "claudekit-skills"
+   ],
+   "representatives": [
+    "claudekit-skills"
+   ]
+  },
+  "workflow-skill-pack": {
+   "members": [
+    "addy-agent-skills"
+   ],
+   "representatives": [
+    "addy-agent-skills"
+   ]
+  }
+ },
+ "code-understanding": {
+  "agent-generated-map": {
+   "members": [
+    "deepwiki-open",
+    "floorplan"
+   ],
+   "representatives": [
+    "deepwiki-open"
+   ]
+  },
+  "code-graph-index": {
+   "members": [
+    "codegraph",
+    "graphify"
+   ],
+   "representatives": [
+    "graphify"
+   ]
+  },
+  "lsp-semantic-navigation": {
+   "members": [
+    "claude-lsp",
+    "serena"
+   ],
+   "representatives": [
+    "claude-lsp"
+   ]
+  }
+ },
+ "concise-output": {
+  "response-style-rules": {
+   "members": [
+    "i-have-adhd"
+   ],
+   "representatives": [
+    "i-have-adhd"
+   ]
+  }
+ },
+ "data-analysis": {
+  "curated-skill-library": {
+   "members": [
+    "scientific-agent-skills"
+   ],
+   "representatives": [
+    "scientific-agent-skills"
+   ]
+  },
+  "live-kernel-bridge": {
+   "members": [
+    "jupyter-mcp-server"
+   ],
+   "representatives": [
+    "jupyter-mcp-server"
+   ]
+  },
+  "reactive-notebook-skills": {
+   "members": [
+    "marimo-skills"
+   ],
+   "representatives": [
+    "marimo-skills"
+   ]
+  },
+  "skill-plugin-bundle": {
+   "members": [
+    "anthropic-data"
+   ],
+   "representatives": [
+    "anthropic-data"
+   ]
+  },
+  "sql-query-mcp": {
+   "members": [
+    "motherduck-mcp"
+   ],
+   "representatives": [
+    "motherduck-mcp"
+   ]
+  }
+ },
+ "dev-workflow": {
+  "composable-skill-pack": {
+   "members": [
+    "mattpocock-skills"
+   ],
+   "representatives": [
+    "mattpocock-skills"
+   ]
+  },
+  "conversation-spec-synthesis": {
+   "members": [
+    "mattpocock-to-spec"
+   ],
+   "representatives": [
+    "mattpocock-to-spec"
+   ]
+  },
+  "interview-alignment": {
+   "members": [
+    "mattpocock-grill-me"
+   ],
+   "representatives": [
+    "mattpocock-grill-me"
+   ]
+  },
+  "phased-agent-workflow": {
+   "members": [
+    "feature-dev"
+   ],
+   "representatives": [
+    "feature-dev"
+   ]
+  },
+  "plan-review-loop": {
+   "members": [
+    "compound-engineering"
+   ],
+   "representatives": [
+    "compound-engineering"
+   ]
+  },
+  "skill-pack-catalog": {
+   "members": [
+    "alirezarezvani-claude-skills"
+   ],
+   "representatives": [
+    "alirezarezvani-claude-skills"
+   ]
+  },
+  "skill-plugin-bundle": {
+   "members": [
+    "ecc"
+   ],
+   "representatives": [
+    "ecc"
+   ]
+  },
+  "slash-command-framework": {
+   "members": [
+    "superclaude"
+   ],
+   "representatives": [
+    "superclaude"
+   ]
+  },
+  "spec-driven-changes": {
+   "members": [
+    "openspec"
+   ],
+   "representatives": [
+    "openspec"
+   ]
+  },
+  "spec-driven-standards": {
+   "members": [
+    "agent-os"
+   ],
+   "representatives": [
+    "agent-os"
+   ]
+  },
+  "spec-driven-workflow": {
+   "members": [
+    "spec-kit"
+   ],
+   "representatives": [
+    "spec-kit"
+   ]
+  },
+  "spec-gated-queue": {
+   "members": [
+    "pullboard"
+   ],
+   "representatives": [
+    "pullboard"
+   ]
+  },
+  "spec-phase-loop": {
+   "members": [
+    "gsd",
+    "moai-adk"
+   ],
+   "representatives": [
+    "moai-adk"
+   ]
+  },
+  "spec-task-decomposition": {
+   "members": [
+    "task-master"
+   ],
+   "representatives": [
+    "task-master"
+   ]
+  },
+  "workflow-skill-pack": {
+   "members": [
+    "addy-agent-skills",
+    "jeffallan-claude-skills",
+    "superpowers"
+   ],
+   "representatives": [
+    "addy-agent-skills",
+    "jeffallan-claude-skills"
+   ]
+  }
+ },
+ "docs-output": {
+  "curated-skill-library": {
+   "members": [
+    "anthropic-skills"
+   ],
+   "representatives": [
+    "anthropic-skills"
+   ]
+  },
+  "vendor-document-skills": {
+   "members": [
+    "document-skills"
+   ],
+   "representatives": [
+    "document-skills"
+   ]
+  }
+ },
+ "frontend-design": {
+  "composable-skill-pack": {
+   "members": [
+    "mattpocock-skills"
+   ],
+   "representatives": [
+    "mattpocock-skills"
+   ]
+  },
+  "curated-skill-library": {
+   "members": [
+    "anthropic-skills"
+   ],
+   "representatives": [
+    "anthropic-skills"
+   ]
+  },
+  "design-vocabulary-skill": {
+   "members": [
+    "impeccable"
+   ],
+   "representatives": [
+    "impeccable"
+   ]
+  },
+  "markdown-skill-pack": {
+   "members": [
+    "ai-design-skills"
+   ],
+   "representatives": [
+    "ai-design-skills"
+   ]
+  },
+  "reverse-rebuild-compare": {
+   "members": [
+    "craft-anything"
+   ],
+   "representatives": [
+    "craft-anything"
+   ]
+  }
+ },
+ "memory": {
+  "composable-skill-pack": {
+   "members": [
+    "mattpocock-skills"
+   ],
+   "representatives": [
+    "mattpocock-skills"
+   ]
+  },
+  "file-plan-hooks": {
+   "members": [
+    "planning-with-files"
+   ],
+   "representatives": [
+    "planning-with-files"
+   ]
+  },
+  "handoff-pointer-doc": {
+   "members": [
+    "ce-handoff"
+   ],
+   "representatives": [
+    "ce-handoff"
+   ]
+  },
+  "hook-observation-summary": {
+   "members": [
+    "claude-mem"
+   ],
+   "representatives": [
+    "claude-mem"
+   ]
+  },
+  "skill-pack-catalog": {
+   "members": [
+    "alirezarezvani-claude-skills"
+   ],
+   "representatives": [
+    "alirezarezvani-claude-skills"
+   ]
+  },
+  "skill-plugin-bundle": {
+   "members": [
+    "ecc"
+   ],
+   "representatives": [
+    "ecc"
+   ]
+  }
+ },
+ "output-compression": {
+  "command-output-filter": {
+   "members": [
+    "rtk"
+   ],
+   "representatives": [
+    "rtk"
+   ]
+  }
+ },
+ "permissions": {
+  "agent-terminal-dashboard": {
+   "members": [
+    "herdr"
+   ],
+   "representatives": [
+    "herdr"
+   ]
+  }
+ },
+ "reverse-engineering": {
+  "reverse-rebuild-compare": {
+   "members": [
+    "craft-anything"
+   ],
+   "representatives": [
+    "craft-anything"
+   ]
+  }
+ },
+ "review": {
+  "composable-skill-pack": {
+   "members": [
+    "mattpocock-skills"
+   ],
+   "representatives": [
+    "mattpocock-skills"
+   ]
+  },
+  "security-diff-scan": {
+   "members": [
+    "codex-security"
+   ],
+   "representatives": [
+    "codex-security"
+   ]
+  },
+  "spec-gated-queue": {
+   "members": [
+    "pullboard"
+   ],
+   "representatives": [
+    "pullboard"
+   ]
+  },
+  "workflow-skill-pack": {
+   "members": [
+    "addy-agent-skills"
+   ],
+   "representatives": [
+    "addy-agent-skills"
+   ]
+  }
+ },
+ "skill-authoring": {
+  "config-eval-harness": {
+   "members": [
+    "promptfoo"
+   ],
+   "representatives": [
+    "promptfoo"
+   ]
+  },
+  "container-benchmark-harness": {
+   "members": [
+    "harbor"
+   ],
+   "representatives": [
+    "harbor"
+   ]
+  },
+  "model-eval-harness": {
+   "members": [
+    "inspect-ai"
+   ],
+   "representatives": [
+    "inspect-ai"
+   ]
+  }
+ },
+ "tool-discovery": {
+  "hosted-news-feed": {
+   "members": [
+    "aihot"
+   ],
+   "representatives": [
+    "aihot"
+   ]
+  },
+  "mcp-server-registry": {
+   "members": [
+    "mcp-registry"
+   ],
+   "representatives": [
+    "mcp-registry"
+   ]
+  },
+  "skill-registry-cli": {
+   "members": [
+    "find-skills"
+   ],
+   "representatives": [
+    "find-skills"
+   ]
+  }
+ }
+}

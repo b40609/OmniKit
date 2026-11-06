@@ -1,0 +1,64 @@
+{
+ "layer": 1,
+ "tool_id": "ce-handoff",
+ "name": "ce-handoff（Compound Engineering）",
+ "url": "https://github.com/EveryInc/compound-engineering-plugin",
+ "slots": [
+  "memory"
+ ],
+ "scenarios": [
+  "M1"
+ ],
+ "summary": "ce-handoff 對得上記憶槽位的 M1 情境：在 Claude Code 與 Codex 之間、或換新 session 時，交接一個做到一半的 OmniKeep 任務，不用重講脈絡。現任原生記憶是各自的自動記憶，兩邊不互通，所以跨工具交接沒有內建替代。值得實測。",
+ "differences": "相較於現任原生記憶：多了一份明確的交接檔，寫入後不再修改、只放指標，接手方要先停下來等使用者確認才繼續。少的部分：不會自動累積記憶，交接是使用者或 agent 主動觸發的一次性動作；這次沒有看到它會在 compaction 後自動保住進度的證據，所以 M2 不算在內。",
+ "claims": [
+  {
+   "claim": "提供 ce-handoff 交接 skill，位於 skills 目錄中",
+   "kind": "capability",
+   "how_to_verify": "在 EveryInc/compound-engineering-plugin 的 skills/ 下確認 ce-handoff/SKILL.md 存在，並讀其觸發條件與步驟"
+  },
+  {
+   "claim": "同時以 Claude Code 外掛與 Codex 外掛形式安裝",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 的 Claude 外掛與 Codex 外掛 manifest；在兩個 host 各自安裝後用 skill 列表確認 ce-handoff 出現"
+  },
+  {
+   "claim": "交接檔寫入後不可修改，且只含指標、不含完整內容",
+   "kind": "quality",
+   "how_to_verify": "讀 ce-handoff SKILL.md 的寫入規則；實際跑一次交接，確認產出檔內容為指標，且接手方不會改寫原檔"
+  },
+  {
+   "claim": "接手方在繼續工作前會停下來等使用者確認",
+   "kind": "capability",
+   "how_to_verify": "在新 session 載入交接檔，觀察 agent 是否先回報狀態並等待確認，而不是直接動手"
+  },
+  {
+   "claim": "在原生 Windows 上可用（repo 有 Windows CI 線索，但不代表此 skill 在 Windows 上已驗證）",
+   "kind": "compat",
+   "how_to_verify": "在本機 Windows 11（PowerShell）安裝外掛後，實際執行一次交接與接手流程，記錄是否有路徑或換行問題"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-memory"
+  ],
+  "note": "原生記憶（Claude auto memory、Codex memories）只在各自工具內運作，兩邊不互通，無法跨工具交接；同一工具內換 session 有部分覆蓋。"
+ },
+ "cluster": "handoff-pointer-doc",
+ "recommendation": "deep_eval",
+ "needs_user": "請維護者確認：M2（長 session compaction 後仍記得進度與決定）是否也要歸到此槽位？ce-handoff 的設計重點是交接，若 M2 也要評，需另外的測試情境，目前不列入。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 16592,
+   "cached": 3694,
+   "output": 2821
+  },
+  "readme_sha": "e9bf58531fc2",
+  "readme_chars": 23266
+ }
+}

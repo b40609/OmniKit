@@ -1,0 +1,135 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: mcp-registry
+cards:
+- id: ev-20261105-mcp-registry-01
+  tool: mcp-registry
+  tool_version_tested: unknown
+  slot: tool-discovery
+  source:
+    type: issue
+    url: https://github.com/modelcontextprotocol/registry/issues/398
+    author: Kylejeong2
+    published: '2025-09-09'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: 已連結 GitHub 組織的伺服器無法透過 mcp-publisher 發佈，只能發佈連結本地伺服器的項目（已關閉）。
+  quote: You're unable to publish a server that is connected to an org
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2025-12-08'
+- id: ev-20261105-mcp-registry-02
+  tool: mcp-registry
+  tool_version_tested: mcp-publisher 1.7.9
+  slot: tool-discovery
+  source:
+    type: issue
+    url: https://github.com/modelcontextprotocol/registry/issues/1468
+    author: premnathm
+    published: '2026-07-20'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: 即使已是 GitHub 組織擁有者，發佈到組織命名空間仍回 403（未解決）。
+  quote: 'Publishing: mcp-publisher publish -> 403'
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-mcp-registry-03
+  tool: mcp-registry
+  tool_version_tested: unknown
+  slot: tool-discovery
+  source:
+    type: issue
+    url: https://github.com/modelcontextprotocol/registry/issues/1706
+    author: bl014h
+    published: '2026-10-13'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: single-run
+  comparator: baseline
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: 註冊表不會通知使用者，同名伺服器的發佈目標（遠端網域或套件擁有者）已經變更。
+  quote: Nothing tells the user when the target behind the name changes
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-mcp-registry-04
+  tool: mcp-registry
+  tool_version_tested: unknown
+  slot: tool-discovery
+  source:
+    type: issue
+    url: https://github.com/modelcontextprotocol/registry/issues/689
+    author: zzstoatzz
+    published: '2025-10-17'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: GitHub 命名空間權限區分大小寫，但 GitHub 名稱不分大小寫，小寫命名空間發佈會回 403。
+  quote: publish fails with a 403 error because the permission check
+  reliability: B
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-mcp-registry-05
+  tool: mcp-registry
+  tool_version_tested: unknown
+  slot: tool-discovery
+  source:
+    type: issue
+    url: https://github.com/modelcontextprotocol/registry/issues/982
+    author: domdomegg
+    published: '2026-02-19'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: PAT 驗證會給予使用者所有可見組織的 io.github.<org>/* 發佈權限，不論其實際角色，維護者稱此為刻意設計。
+  quote: regardless of their actual role
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2026-05-20'
+- id: ev-20261105-mcp-registry-06
+  tool: mcp-registry
+  tool_version_tested: unknown
+  slot: tool-discovery
+  source:
+    type: issue
+    url: https://github.com/modelcontextprotocol/registry/issues/1537
+    author: mrmclickstream
+    published: '2026-08-14'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 4
+  kind: capability
+  direction: '-'
+  claim: 即使組織成員身分公開並完成 OAuth 撤銷與重新授權，組織命名空間發佈仍回 403（已關閉）。
+  quote: claiming I have no permission to publish under my GitHub organization's namespace
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-11-12'

@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "superclaude",
+ "name": "SuperClaude",
+ "url": "https://github.com/SuperClaude-Org/SuperClaude_Framework",
+ "slots": [
+  "dev-workflow"
+ ],
+ "scenarios": [
+  "V1"
+ ],
+ "summary": "SuperClaude 是以斜線指令與行為模式注入為主的 Claude Code 框架（穩定版 v4.3.0，約 30 條 /sc 指令）。它與 V1（小改走中流程、大功能走重流程）有部分對應，但 README 沒有提到核准閘門、獨立審查、驗收與收尾等階段，也沒有可供直接比較現任 BMAD-METHOD 的資料，所以先收著。",
+ "differences": "相較現任 BMAD-METHOD（本次資料未包含其細節，無法逐項比較）：SuperClaude 多了 /sc 指令集，例如 brainstorm、implement、workflow 等入口，並可選擇接 MCP 整合。它看不到明確的核准、獨立審查、驗收與 closeout 階段，安裝方式是 Python 套件（pipx），不是 Claude plugin。",
+ "claims": [
+  {
+   "claim": "提供約 30 條 /sc 斜線指令，包含 workflow、implement、brainstorm 等入口",
+   "kind": "capability",
+   "how_to_verify": "安裝後執行 superclaude install --list，或檢視 docs/reference/commands-list.md，比對指令數量與名稱"
+  },
+  {
+   "claim": "安裝方式是 pipx 安裝 PyPI 套件後執行 superclaude install 寫入指令檔，不是 Claude plugin",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 依 README 步驟安裝，確認指令檔寫入位置；比對 compat 線索 claude_plugin 為 false、claude_marketplace 為 false"
+  },
+  {
+   "claim": "目前穩定版為 v4.x 斜線指令架構，TypeScript plugin 系統標示為 v5.0 規劃中、尚未釋出",
+   "kind": "compat",
+   "how_to_verify": "查看 README 的安裝段落、issue #419 的狀態，以及 GitHub 最新 release tag"
+  },
+  {
+   "claim": "內建核准閘門或獨立審查階段，可支撐 V1 的重流程",
+   "kind": "capability",
+   "how_to_verify": "閱讀 docs/user-guide/commands.md 與 agents.md，搜尋 approval、review、acceptance 等流程描述；再用一個小改動與一個大功能各實測一次"
+  },
+  {
+   "claim": "可選 MCP 整合，例如 Serena、Context7 等",
+   "kind": "capability",
+   "how_to_verify": "執行 superclaude mcp --list 列出可用 server，確認是否為可選而非必要"
+  },
+  {
+   "claim": "在 Windows 上有 CI 測試覆蓋",
+   "kind": "compat",
+   "how_to_verify": "檢視 .github/workflows/test.yml 的 runs-on 設定；目前 compat 線索 windows_ci 為 false"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-workflow"
+  ],
+  "note": "原生只有 plan mode 與 /goal，沒有完整的分階段開發流程，也沒有獨立審查與驗收機制，因此只是部分涵蓋。"
+ },
+ "cluster": "slash-command-framework",
+ "recommendation": "keep_pending",
+ "needs_user": "請決定是否要以現任 BMAD-METHOD 為基準進行 deep_eval。本次資料未提供 BMAD 的細節，無法判斷 SuperClaude 是否有 BMAD 沒有的能力。若要比較，請提供 BMAD 的對照資料，或同意以 V1 情境實測兩者。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 15902,
+   "cached": 3694,
+   "output": 4545
+  },
+  "readme_sha": "f477b0310168",
+  "readme_chars": 19237
+ }
+}

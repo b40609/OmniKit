@@ -1,0 +1,68 @@
+{
+ "tool": "mattpocock-skills",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "mattpocock/skills",
+  "sha": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+ },
+ "executable": [
+  "skill 附可執行檔（.cjs、.sh）"
+ ],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99212,
+   "with_bytes": 104310,
+   "delta_bytes": 5098,
+   "delta_tokens_est": 1274,
+   "mentions": [
+    "code-review",
+    "codebase-design",
+    "diagnosing-bugs",
+    "domain-modeling",
+    "git-guardrails-claude-code",
+    "grilling",
+    "handoff",
+    "implement",
+    "migrate-to-shoehorn",
+    "pr",
+    "prototype",
+    "research",
+    "scaffold-exercises",
+    "setup-pre-commit",
+    "software-factory",
+    "tdd",
+    "wizard",
+    "writing-for-agents"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70363,
+   "with_bytes": 74399,
+   "delta_bytes": 4036,
+   "delta_tokens_est": 1010,
+   "mentions": [
+    "code-review",
+    "codebase-design",
+    "diagnosing-bugs",
+    "domain-modeling",
+    "git-guardrails-claude-code",
+    "grilling",
+    "implement",
+    "migrate-to-shoehorn",
+    "pr",
+    "prototype",
+    "research",
+    "scaffold-exercises",
+    "setup-pre-commit",
+    "software-factory",
+    "tdd",
+    "wizard",
+    "writing-for-agents"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "39 個 skill、plugin"
+ }
+}

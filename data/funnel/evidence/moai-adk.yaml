@@ -1,0 +1,148 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: moai-adk
+cards:
+- id: ev-20261105-moai-adk-01
+  tool: moai-adk
+  tool_version_tested: 3.1.2
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/modu-ai/moai-adk/issues/1632
+    author: Al-Lukyanets
+    published: '2026-08-24'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: codex-cli 0.149.0
+    model: codex
+    os: Linux
+    mode: MCP server (moai mcp-server)
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: Codex 稽核閘門的結構化輸出為空，且閘門未被實際強制執行（3.1.2 版）。
+  quote: structured output is empty and the gate is not enforced
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2026-11-22'
+- id: ev-20261105-moai-adk-02
+  tool: moai-adk
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/modu-ai/moai-adk/issues/1658
+    author: jjjh7401
+    published: '2026-08-26'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: hook pre-tool
+  method: single-run
+  comparator: none
+  runs: 7
+  kind: quality
+  direction: '-'
+  claim: 危險指令防護的正規表示式雙向失準：旗標順序可繞過，引號內的字串會被誤判為危險（已關閉）。
+  quote: 양방향으로 틀렸습니다
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-11-24'
+- id: ev-20261105-moai-adk-03
+  tool: moai-adk
+  tool_version_tested: 3.1.2
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/modu-ai/moai-adk/issues/1827
+    author: RicoKim328
+    published: '2026-10-17'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: 範本 hooks 與腳本有 5 項缺陷（exec 重複執行、PATH 覆寫等），但作者未逐項重現，只轉述 Codex 審查結果。
+  quote: PATH를 통째로 덮어씀
+  reliability: D
+  credibility: 3
+  certainty: very-low
+  expires: '2027-01-15'
+- id: ev-20261105-moai-adk-04
+  tool: moai-adk
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/modu-ai/moai-adk/issues/1659
+    author: jjjh7401
+    published: '2026-08-26'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: worktree-isolated session
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 工作樹防護對 heredoc 本文中的大括號不做摺疊處理，同位置的命令替換卻正常處理，導致合法指令被以「無法驗證」拒絕。
+  quote: too complex to verify that it stays inside the worktree
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-11-24'
+- id: ev-20261105-moai-adk-05
+  tool: moai-adk
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/modu-ai/moai-adk/issues/1813
+    author: GoosLab
+    published: '2026-10-08'
+    retrieved: '2026-11-05'
+  independence: vendor
+  setup:
+    mode: CLI (moai cc -w <name>)
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: moai cc -w 遇到同名 .moai/worktrees 工作樹時，會悄悄另建分歧的 .claude 工作樹，而非回到既有工作樹（仍為開放狀態）。作者為專案成員。
+  quote: divergent .claude tree silently created
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-moai-adk-06
+  tool: moai-adk
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/modu-ai/moai-adk/issues/1687
+    author: mg10009
+    published: '2026-09-01'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: MCP codex_task (background=true)
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: codex_task 背景工作在啟動後數百毫秒內即中斷，卻回報「10 分鐘逾時」，錯誤原因被誤報。
+  quote: codex_task turn timed out after 10m0s
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-11-30'

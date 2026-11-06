@@ -1,0 +1,63 @@
+{
+ "layer": 1,
+ "tool_id": "lemo-opuscar",
+ "name": "lemo-opuscar",
+ "url": "https://github.com/lemomo-ai/lemo-opuscar",
+ "slots": [],
+ "scenarios": [],
+ "summary": "這是用程式碼逐幀繪製影片的風格工具箱，產出的是短片，不是網站或應用程式介面。目前所有 active 與 watch 槽位的情境都不涉及影片製作，因此不分配任何槽位，判定為範圍外。",
+ "differences": "跟內建功能比，多了一套影片風格庫與逐幀渲染流程；內建的原生文件產出只處理文件與簡報，沒有影片產製能力。與 frontend-design 的關係只是同樣用 canvas／WebGL 繪圖，但目標是影片，不能替代 F1 到 F3 任何一個情境。",
+ "claims": [
+  {
+   "claim": "可透過 Claude Code 外掛市集的指令安裝（plugin marketplace add 加 plugin install）",
+   "kind": "compat",
+   "how_to_verify": "檢查 README 安裝段落的指令，並確認 repo 內 plugin/ 目錄下有對應的 plugin 清單檔（manifest）。"
+  },
+  {
+   "claim": "影片以程式碼（canvas／WebGL 逐幀渲染）產生，不呼叫影片生成模型",
+   "kind": "capability",
+   "how_to_verify": "閱讀 TECHNIQUE.md 與 styles/ 下的 STYLE.md，搜尋是否有影片模型或外部生成 API 的呼叫。"
+  },
+  {
+   "claim": "內建 66 種風格，每種附一份 STYLE.md",
+   "kind": "capability",
+   "how_to_verify": "計算 styles/ 下含 STYLE.md 的子目錄數量，並與 README 的數字比對。"
+  },
+  {
+   "claim": "執行需要 Node 20 以上、ffmpeg 7 以上、Python 3.11 以上（或 uv）",
+   "kind": "compat",
+   "how_to_verify": "對照 README 的前置需求段落；在測試環境實際檢查各工具版本。"
+  },
+  {
+   "claim": "README 沒有提及 Windows 支援，repo 也沒有 Windows CI",
+   "kind": "compat",
+   "how_to_verify": "在 README 搜尋 Windows 相關說明，並檢查 .github/workflows 是否有 windows runner。"
+  },
+  {
+   "claim": "首次使用時會從網路下載指南、工具與風格提示到使用者家目錄的資料夾",
+   "kind": "security",
+   "how_to_verify": "檢查 plugin 的 skill 指令與下載程式碼，確認來源網址、寫入路徑，以及下載內容是否有完整性驗證。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能沒有影片產製。原生文件產出只涵蓋 docx、pptx、xlsx、pdf，與影片無關。"
+ },
+ "cluster": "code-video-styles",
+ "recommendation": "reject",
+ "needs_user": "\"\"",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 21843,
+   "cached": 3694,
+   "output": 3517
+  },
+  "readme_sha": "6515f3802c15",
+  "readme_chars": 36642
+ }
+}

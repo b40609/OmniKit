@@ -1,0 +1,73 @@
+{
+ "layer": 1,
+ "tool_id": "claudekit-skills",
+ "name": "ClaudeKit skills（mrgoonie）",
+ "url": "https://github.com/mrgoonie/claudekit-skills",
+ "slots": [
+  "browser",
+  "behavior-rules"
+ ],
+ "scenarios": [
+  "U1",
+  "B1"
+ ],
+ "summary": "這是一個多 skill 的合集，大多數 skill 與槽位無關。只有 browser（U1）與 behavior-rules（B1）部分對得上；frontend-design 也貼近，但與現任同名。Codex 相容性無法確認，且沒有授權、被標為陳舊，因此先收著。README 內的推廣與安裝文字不列入判斷。",
+ "differences": "browser：現任是 Chrome DevTools MCP 加原生瀏覽器。此合集的 chrome-devtools 是用 Puppeteer CLI 腳本操作，不走 MCP，可以單獨執行，但沒有證據顯示能同時給 Codex 用。behavior-rules：現任為空，比內建多了完成前先驗證的 skill（verification-before-completion），對得上 B1 的驗證與錯誤處理部分；但沒有「只寫需要的程式碼、不擴大範圍」的規範，B1 只有部分對上。",
+ "claims": [
+  {
+   "claim": "提供 Claude Code 外掛市集的安裝方式",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 是否有 marketplace 設定檔（第 0 層 claude_marketplace 為 true），在 Claude Code 加入市集後確認能列出外掛。"
+  },
+  {
+   "claim": "根目錄沒有 SKILL.md、AGENTS.md，也沒有 Codex 外掛",
+   "kind": "compat",
+   "how_to_verify": "檢視 repo 根目錄檔案樹；第 0 層 skill_md、agents_md、codex_plugin 皆為 false。"
+  },
+  {
+   "claim": "內含 chrome-devtools、verification-before-completion 等 skill 目錄",
+   "kind": "capability",
+   "how_to_verify": "瀏覽 .claude/skills/ 目錄，確認這些子目錄下各有 SKILL.md，並讀其內容是否符合 README 的描述。"
+  },
+  {
+   "claim": "授權欄位為空（None）",
+   "kind": "compat",
+   "how_to_verify": "查看 GitHub 側欄的授權欄位與根目錄是否有 LICENSE 檔。"
+  },
+  {
+   "claim": "近期活躍度不足（第 0 層標為 stale）",
+   "kind": "quality",
+   "how_to_verify": "查最後一次 commit 日期、近期 release 與 issue 的回覆狀況。"
+  },
+  {
+   "claim": "文件產出 skill（docx、pptx、xlsx、pdf）與 Claude 內建功能重疊",
+   "kind": "capability",
+   "how_to_verify": "比對 document-skills 目錄與 Claude 內建文件 skill 的功能範圍，看是否有額外能力。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-browser",
+   "native-docs",
+   "native-review"
+  ],
+  "note": "瀏覽器驗證與文件產出大致已被內建涵蓋；behavior-rules 的完成前驗證規則沒有內建對應，範圍限制也沒有。"
+ },
+ "cluster": "skill-pack-catalog",
+ "recommendation": "keep_pending",
+ "needs_user": "授權欄位為空，是否可以採用需要維護者確認。frontend-design 與現任同名，請確認是否為同一套。若 Codex 相容與授權都確認了，再決定要不要對 behavior-rules 做 deep_eval。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 14952,
+   "cached": 3694,
+   "output": 8113
+  },
+  "readme_sha": "289275c9b713",
+  "readme_chars": 18822
+ }
+}

@@ -1,0 +1,214 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: codex-security
+cards:
+- id: ev-20261105-codex-security-01
+  tool: codex-security
+  tool_version_tested: unknown
+  slot: review
+  source:
+    type: issue
+    url: https://github.com/openai/codex-security/issues/20
+    author: pjlsergeant
+    published: '2026-07-28'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    os: Linux, container, Windows
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 部分掃描完成模型工作後，因缺少必要的草稿產物而無法存檔報告（Linux、容器與 Windows 皆有回報）。
+  quote: Some scans finish model work but cannot save a report
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-codex-security-02
+  tool: codex-security
+  tool_version_tested: 0.1.1
+  slot: review
+  source:
+    type: issue
+    url: https://github.com/openai/codex-security/issues/73
+    author: onurtirpan
+    published: '2026-07-29'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    os: Windows, Linux container
+    mode: synthetic repository
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 追蹤 issue 指出 0.1.1 版在 Windows 與 Linux 容器中，以小型合成儲存庫重現相同的缺產物失敗。
+  quote: The original 0.1.1 reports reproduced the symptom on Windows
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-codex-security-03
+  tool: codex-security
+  tool_version_tested: unknown
+  slot: review
+  source:
+    type: issue
+    url: https://github.com/openai/codex-security/issues/25
+    author: ParsingMAINFRAME
+    published: '2026-07-28'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: cost
+  direction: '-'
+  claim: 使用者回報掃描可能在產出有用結果前耗盡 20 美元預算，且檔案數量無法預測成本。
+  quote: file count alone does not predict cost
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-codex-security-04
+  tool: codex-security
+  tool_version_tested: 0.1.1, 0.1.6
+  slot: review
+  source:
+    type: issue
+    url: https://github.com/openai/codex-security/issues/56
+    author: LSQzzx
+    published: '2026-07-29'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: CLI, Standard scan
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: Standard 掃描遭網路安全政策拒絕而中止時，已完成的探索與驗證工作可能無法形成可用報告。
+  quote: Standard scans have stopped after substantial discovery
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-codex-security-05
+  tool: codex-security
+  tool_version_tested: unknown
+  slot: review
+  source:
+    type: issue
+    url: https://github.com/openai/codex-security/issues/299
+    author: pfilbin90
+    published: '2026-08-07'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: scan --diff
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: scan --diff 每次都在存檔步驟失敗（snapshotDigest 為空），整個掃描結果被丟棄；該 issue 現已關閉。
+  quote: Every scan --diff run fails at the save step
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-11-05'
+- id: ev-20261105-codex-security-06
+  tool: codex-security
+  tool_version_tested: unknown
+  slot: review
+  source:
+    type: issue
+    url: https://github.com/openai/codex-security/issues/251
+    author: rohanpoudel2
+    published: '2026-08-04'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: SARIF 匯出只包含延後任務原因，沒有一般性的執行層級警告途徑，消費者可能漏掉執行期資訊。
+  quote: SARIF export includes deferred-task reasons but has no general route
+  reliability: B
+  credibility: 4
+  certainty: low
+  expires: '2026-11-02'
+- id: ev-20261105-codex-security-07
+  tool: codex-security
+  tool_version_tested: unknown
+  slot: review
+  source:
+    type: issue
+    url: https://github.com/openai/codex-security/issues/70
+    author: hujm2023
+    published: '2026-07-29'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: Standard scan
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: Standard 掃描的進度輸出與已保存的審查紀錄可能不一致，活動可能早於審查結果寫入。
+  quote: activity can occur before durable review results are published
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-codex-security-08
+  tool: codex-security
+  tool_version_tested: 0.1.32
+  slot: review
+  source:
+    type: issue
+    url: https://github.com/openai/codex-security/issues/2078
+    author: MX310-Ishioka
+    published: '2026-10-27'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: security diff scan
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 0.1.32 的安全差異掃描因副檔名白名單，會靜默排除 Perl 原始碼（.cgi、.pl、.pm、.t）。
+  quote: silently excludes Perl source files
+  reliability: B
+  credibility: 4
+  certainty: low
+  expires: '2027-01-25'
+- id: ev-20261105-codex-security-09
+  tool: codex-security
+  tool_version_tested: unknown
+  slot: review
+  source:
+    type: hn
+    url: https://news.ycombinator.com/item?id=49391823
+    author: janandonly
+    published: '2026-08-21'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: capability
+  direction: +
+  claim: Apple 的 iOS 26.6.1 安全說明提及 OpenAI Codex Security（僅依標題判斷，未核對內文）。
+  quote: OpenAI Codex Security Quoted in iOS 26.6.1
+  reliability: B
+  credibility: 2
+  certainty: very-low
+  expires: '2026-11-19'

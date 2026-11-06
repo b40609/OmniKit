@@ -3,6 +3,7 @@ name: chinese-pm-skills
 slots:
 - product-research
 status: pending
+url: https://github.com/Timi-Fish/chinese-pm-skills
 sources:
 - RIA:C004
 added: '2026-11-04'

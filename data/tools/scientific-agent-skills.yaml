@@ -1,0 +1,14 @@
+id: scientific-agent-skills
+name: Scientific Agent Skills（K-Dense）
+kind: collection
+slots:
+- data-analysis
+status: pending
+url: https://github.com/K-Dense-AI/scientific-agent-skills
+works_with:
+- claude
+- codex
+sources:
+- GitHub 搜尋
+notes: MIT，56k 星，177 個 skill，偏生醫與化學。只考慮資料分析的子集：exploratory-data-analysis、statistical-analysis、polars、matplotlib、seaborn、scikit-learn、statsmodels。官方標示支援 Claude Code、Codex、Antigravity。
+added: '2026-11-05'

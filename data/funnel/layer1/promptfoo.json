@@ -1,0 +1,64 @@
+{
+ "layer": 1,
+ "tool_id": "promptfoo",
+ "name": "promptfoo",
+ "url": "https://github.com/promptfoo/promptfoo",
+ "slots": [
+  "skill-authoring"
+ ],
+ "scenarios": [
+  "K1"
+ ],
+ "summary": "promptfoo 是以設定檔驅動的 LLM 評估與紅隊測試框架，能對同一組測資比較不同 prompt 或模型的輸出，對得上 skill-authoring 槽位的 K1（證明 skill 比沒裝好）。但它是通用評估工具，不是 skill 專用，也沒有 skill 撰寫流程，現任 skill-creator 仍負責寫 skill。槽位為 watch，依規則不能直接 deep_eval，先收著。",
+ "differences": "相較現任 skill-creator：多了通用的批次評估與 A/B 比較、CI/CD 整合、紅隊掃描等能力，可以用來做「有裝 skill 與沒裝」的對照實驗；少了 skill 專用的撰寫、結構與觸發描述流程，也不是 Claude 或 Codex 的 plugin 或 skill，需要自己寫設定檔與測資才能用。",
+ "claims": [
+  {
+   "claim": "提供 CLI 與 Node 套件，可經 npm 安裝",
+   "kind": "compat",
+   "how_to_verify": "執行 npm install -g promptfoo 後跑 promptfoo --version，確認可以執行"
+  },
+  {
+   "claim": "可用設定檔比較多個 prompt 或模型在同一組測資上的輸出",
+   "kind": "capability",
+   "how_to_verify": "依官方文件寫一個含兩組 prompt 與測資的 YAML，執行 promptfoo eval 後檢查結果矩陣是否並列兩組輸出"
+  },
+  {
+   "claim": "有 CI/CD 整合的文件與做法",
+   "kind": "capability",
+   "how_to_verify": "檢視官方 docs 的 CI/CD integrations 頁面，確認有 GitHub Actions 等範例"
+  },
+  {
+   "claim": "不是 Claude plugin、Codex plugin，也沒有 SKILL.md 或 skills 目錄",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 根目錄與 .claude-plugin、.codex-plugin、SKILL.md 是否存在；第 0 層 compat 線索顯示 claude_plugin、codex_plugin、skill_md 皆為 false，skills 為 0"
+  },
+  {
+   "claim": "repo 含 AGENTS.md，且 CI 有 Windows 執行環境",
+   "kind": "compat",
+   "how_to_verify": "確認根目錄有 AGENTS.md；檢查 .github/workflows 是否有 windows-latest 的 job 並查看近期執行結果"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "claude-plugin-eval"
+  ],
+  "note": "內建的 claude plugin eval 只涵蓋 plugin 評估，沒有針對 skill 的有無對照或通用批次 prompt 比較，所以只算部分覆蓋。"
+ },
+ "cluster": "config-eval-harness",
+ "recommendation": "keep_pending",
+ "needs_user": "skill-authoring 目前是 watch 狀態，依規則不能直接給 deep_eval。請維護者決定：是否把 skill-authoring 升為 active，或同意先把 K1 的 A/B 對照實驗做成小型 spike 再決定。另外，K1 的對得上與否屬於判斷題，也請確認。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 9703,
+   "cached": 3694,
+   "output": 2893
+  },
+  "readme_sha": "7fd57809624e",
+  "readme_chars": 4595
+ }
+}

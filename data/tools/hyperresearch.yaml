@@ -3,6 +3,7 @@ name: hyperresearch
 slots:
 - product-research
 status: pending
+url: https://github.com/jordan-gibbs/hyperresearch
 sources:
 - RIA:C019
 added: '2026-11-04'

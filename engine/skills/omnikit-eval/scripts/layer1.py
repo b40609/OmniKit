@@ -197,7 +197,7 @@ def run(roster, funnel, client, cheap, today, only=None, limit=None, jobs=4, age
     schema = json.loads((CONTRACTS / "layer1.schema.json").read_text(encoding="utf-8"))
     l0 = layer0_index(funnel)
     todo = [t for t in targets(roster, l0, only) if force or not fresh(funnel / "layer1" / f"{t['id']}.json", today)]
-    if limit:
+    if limit is not None:  # --max 0 是一張都不跑，不是不限
         todo = todo[:limit]
     seen = {d["cluster"] for p in (funnel / "layer1").glob("*.json") if (d := load_json(p)) and d.get("cluster")}
     done, failed, usage = [], [], {"input": 0, "cached": 0, "output": 0}

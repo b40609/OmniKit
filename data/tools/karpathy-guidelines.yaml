@@ -4,6 +4,7 @@ kind: rules
 slots:
 - behavior-rules
 status: pending
+url: https://github.com/multica-ai/andrej-karpathy-skills
 sources:
 - RIA:C022
 - RIA:C056

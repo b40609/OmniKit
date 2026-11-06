@@ -1,0 +1,71 @@
+{
+ "layer": 1,
+ "tool_id": "craft-anything",
+ "name": "Craft Anything（ArtCraft）",
+ "url": "https://github.com/storytold/craft-anything",
+ "slots": [
+  "frontend-design",
+  "reverse-engineering"
+ ],
+ "scenarios": [
+  "F3",
+  "X1"
+ ],
+ "summary": "Craft Anything 對得上兩個槽位：frontend-design 的 F3（照原版重建網站或畫面）與 reverse-engineering 的 X1（APK、.NET、Electron）。F3 是 active 槽位，但目前沒有專門工具，原生瀏覽器只能負責驗證，不能做重建流程。X1 在 watch 槽位，現任是 REA。專案 2026-10-31 才建立、才 4 天、自稱 early alpha，Codex 那條路徑還沒在真實環境驗證，setup 會改 agent 設定，Windows 安裝也未驗證。證據還不足以直接進第 2 層，先收著。",
+ "differences": "對 F3：現任 frontend-design 沒有「照原版重建並逐寬度比對、修正到接近」的流程，Craft Anything 多了這一段，但要裝桌面 app 或自己用 Rust 編，也要求 Codex 以外的 builder 才有實測。對 X1：現任 REA 靠 npm 安裝，原生程式要另外裝 Hopper、Ghidra 或 IDA；Craft Anything 內建解碼器、反組譯器與反編譯器，不裝外部程式也能看原生程式，但目前沒有 X1 的實測結果。兩邊都少了實測證據與穩定度。",
+ "claims": [
+  {
+   "claim": "提供 MCP server，並有約 320 個工具，每個工具也是 CLI 子命令",
+   "kind": "capability",
+   "how_to_verify": "安裝後執行 craft-anything-cli commands 計算工具數，並確認 craft-anything-cli mcp 能被 MCP client 連上。"
+  },
+  {
+   "claim": "Windows 有 x64 MSI 安裝檔，且已做程式碼簽章",
+   "kind": "security",
+   "how_to_verify": "從 GitHub Releases 下載 MSI，用 Get-AuthenticodeSignature 檢查簽章與發行者，並比對 SHA256SUMS.txt。"
+  },
+  {
+   "claim": "內建解碼器、反組譯器與反編譯器，不需要外部 Hopper、Ghidra 或 IDA 也能分析原生程式",
+   "kind": "capability",
+   "how_to_verify": "在沒有 Ghidra 的 Windows 環境，用同一個 .NET 或 Electron 目標跑 rebuild 或分析工具，看是否產出證據紀錄。"
+  },
+  {
+   "claim": "Codex 當 builder 的 adapter 尚未在真實 install 上驗證",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 上以 Codex 為 builder 跑一次完整 rebuild，確認 Study、Build、Check、Ready 四步都走完。"
+  },
+  {
+   "claim": "網站重做會在三種螢幕寬度下與原版比對",
+   "kind": "quality",
+   "how_to_verify": "用一個簡單網站跑 rebuild，檢查 checks/ 目錄是否有三種寬度的比對結果與差異清單。"
+  },
+  {
+   "claim": "craft-anything-cli setup 會修改 coding agent 的設定，選 npm 一律允許後之後的 npm 指令不再詢問",
+   "kind": "security",
+   "how_to_verify": "執行 setup 前後分別備份並比對 Claude Code 與 Codex 的設定檔，確認實際改了哪些欄位，並在隔離環境測試 npm 一律允許的效果。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-browser"
+  ],
+  "note": "原生瀏覽器能開 dev server、截圖與檢查 DOM，可以驗證重做後的畫面，但沒有重建、逐寬度比對或逆向分析的流程。X1 的逆向能力原生沒有覆蓋。"
+ },
+ "cluster": "reverse-rebuild-compare",
+ "recommendation": "keep_pending",
+ "needs_user": "需要維護者決定：目前是否有真實的 F3 重建目標或 X1 逆向目標？有的話就用同一個目標跑第 2 層，比對 REA 與 Craft Anything。另外 setup 會改 agent 設定，請決定是否允許在本機執行它。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 19271,
+   "cached": 3694,
+   "output": 4315
+  },
+  "readme_sha": "5cf7fe66d2fe",
+  "readme_chars": 26216
+ }
+}

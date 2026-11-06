@@ -1,0 +1,64 @@
+{
+ "layer": 1,
+ "tool_id": "marimo-skills",
+ "name": "marimo skills",
+ "url": "https://github.com/marimo-team/skills",
+ "slots": [
+  "data-analysis"
+ ],
+ "scenarios": [
+  "A1"
+ ],
+ "summary": "marimo 官方的 skill 合集，把分析 notebook 存成純 Python 的反應式 marimo 格式，適合 A1 的大型 CSV／Parquet 探索分析與可重跑的 notebook。它不處理既有 .ipynb（A2），jupyter-to-marimo 會改成 marimo 格式，不是原地修改。與原生資料分析相比，新增的是反應式、純 Python、好做 git diff 的 notebook 格式；代價是 Jupyter 使用者要轉換格式。",
+ "differences": "相較現任原生資料分析：多了反應式 marimo notebook（改一個 cell，相依 cell 自動重算）與純 Python 儲存，agent 好改、git 好比對。少了 .ipynb 原生相容，既有 Jupyter 流程要先轉成 marimo；A2 的「原地改 .ipynb 並確認重跑後數值與圖表沒壞」不在它的範圍內。",
+ "claims": [
+  {
+   "claim": "合集內含 10 個 skill，包含 marimo-notebook 與 jupyter-to-marimo。",
+   "kind": "capability",
+   "how_to_verify": "檢視 github.com/marimo-team/skills 的目錄，數出 skill 資料夾並確認這兩個名稱存在。"
+  },
+  {
+   "claim": "notebook 以純 Python（marimo 格式）儲存，而不是 .ipynb。",
+   "kind": "capability",
+   "how_to_verify": "用 marimo-notebook skill 產生一個 notebook，檢查檔案是否為 .py 且內容是純 Python。"
+  },
+  {
+   "claim": "根目錄沒有 SKILL.md，Claude Code 可能無法直接以標準 skill 載入。",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 根目錄與各 skill 子目錄是否有 SKILL.md；把其中一個 skill 複製到 ~/.claude/skills 後，確認 Claude Code 能否列出並觸發它。"
+  },
+  {
+   "claim": "標示支援 claude 與 codex 兩個 agent。",
+   "kind": "compat",
+   "how_to_verify": "在 Codex 的 skill 目錄放入同一個 skill，確認 Codex 能讀到；並確認 README 宣告的 npx skills 安裝流程在 Windows 可執行。"
+  },
+  {
+   "claim": "以 Apache-2.0 授權。",
+   "kind": "security",
+   "how_to_verify": "檢查 repo 的 LICENSE 檔內容。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-data"
+  ],
+  "note": "原生資料分析可以用 NotebookEdit 逐 cell 改 .ipynb，再用 shell 跑 python 或 nbconvert 重跑，能做出可重跑的 notebook；但沒有反應式相依與純 Python 格式，兩邊也都看不到 kernel 狀態。A1 大部分被覆蓋，反應式與純 Python 格式沒有被覆蓋。"
+ },
+ "cluster": "reactive-notebook-skills",
+ "recommendation": "deep_eval",
+ "needs_user": "需要維護者決定：是否接受 marimo 格式（Jupyter 使用者的轉換成本）。A2（改既有 .ipynb 並重跑驗證）不在此工具範圍，若要覆蓋 A2 需另找工具。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 8911,
+   "cached": 3694,
+   "output": 3446
+  },
+  "readme_sha": "4bed5ee9ca08",
+  "readme_chars": 1391
+ }
+}

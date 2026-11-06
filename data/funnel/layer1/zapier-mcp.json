@@ -1,0 +1,63 @@
+{
+ "layer": 1,
+ "tool_id": "zapier-mcp",
+ "name": "Zapier MCP",
+ "url": "https://github.com/zapier/zapier-mcp",
+ "slots": [],
+ "scenarios": [],
+ "summary": "Zapier MCP 是 Zapier 託管的 MCP 伺服器，讓 agent 透過 Zapier 接上大量第三方 App 的動作。它處理的是 App 連接，和六個 active 槽位的情境（前端、審查、記憶、程式碼搜尋、輸出壓縮、工具發現等）都對不上，所以不分配槽位，建議 reject。工具本身不另外收費，成本來自 Zapier task 額度與帳號。",
+ "differences": "同槽位沒有現任，改跟內建功能比；內建清單沒有 App 連接器這一項。相對內建，它多了託管的 MCP 伺服器、可接大量第三方 App 的動作，但需要 Zapier 帳號與連線授權，每次成功呼叫會扣 Zapier task。它沒有少掉任何內建已有的能力，代價是帳號與方案額度。",
+ "claims": [
+  {
+   "claim": "以託管的 HTTP 型 MCP 伺服器提供服務（設定為 type: http）",
+   "kind": "capability",
+   "how_to_verify": "查 README 的 VS Code 安裝連結與手動設定範例，確認 type 為 http、URL 為 mcp.zapier.com 的 connect 端點；再對照 docs.zapier.com/mcp 官方文件。"
+  },
+  {
+   "claim": "每次成功的工具呼叫扣 2 個 Zapier task",
+   "kind": "cost",
+   "how_to_verify": "查 Zapier MCP 官方計價或計費文件；用測試帳號實際呼叫一次工具，觀察 task 用量是否減少 2。"
+  },
+  {
+   "claim": "連線需要 Zapier 帳號授權",
+   "kind": "security",
+   "how_to_verify": "看 README 的 Gemini CLI 步驟（/mcp auth zapier）與 connect 流程；確認未登入時能否取得工具清單或執行動作。"
+  },
+  {
+   "claim": "Claude Code 可經 marketplace 安裝對應 plugin",
+   "kind": "compat",
+   "how_to_verify": "確認 README 列出的 zapier/marketplace 與 anthropics/claude-plugins-official 是否含 zapier 項目；本 repo 第 0 層 claude_plugin 旗標為 false，需檢查 plugins/zapier/ 的實際內容與 manifest。"
+  },
+  {
+   "claim": "原生 Windows 支援尚未確認",
+   "kind": "compat",
+   "how_to_verify": "第 0 層 windows_ci 為 null，沒有 Windows CI 證據；需查官方 client 設定文件，並在 Windows 11 上實測 Claude Code 或 Codex 連線。"
+  },
+  {
+   "claim": "可接約 9000 個 App 的動作",
+   "kind": "capability",
+   "how_to_verify": "查 Zapier 官方 App 目錄的實際數量與 MCP 可用的動作範圍；README 的數字只是宣稱，需以官方目錄為準。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建清單沒有 App 連接器功能。工具卡與 README 提到兩邊原生都有連接器，但那不在本清單內，所以這裡不列為內建涵蓋。"
+ },
+ "cluster": "hosted-app-connector",
+ "recommendation": "reject",
+ "needs_user": "\"\"",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 9478,
+   "cached": 3694,
+   "output": 3852
+  },
+  "readme_sha": "c4d369332a53",
+  "readme_chars": 3602
+ }
+}

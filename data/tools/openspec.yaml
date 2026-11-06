@@ -3,6 +3,7 @@ name: OpenSpec
 slots:
 - dev-workflow
 status: pending
+url: https://github.com/Fission-AI/OpenSpec
 sources:
 - RIA:C040
 notes: 規格驅動系列。

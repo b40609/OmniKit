@@ -3,6 +3,7 @@ name: CometWeb product-teardown
 slots:
 - product-research
 status: pending
+url: https://github.com/CometWeb-io/agent-skills
 sources:
 - RIA:C006
 added: '2026-11-04'

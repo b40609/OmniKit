@@ -4,6 +4,7 @@ kind: plugin
 slots:
 - dev-workflow
 status: pending
+url: https://github.com/anthropics/claude-plugins-official
 sources:
 - RIA:C038
 added: '2026-11-04'

@@ -72,6 +72,8 @@ uv run scripts/layer0.py <GitHub 網址或 owner/repo> [--scan]
 3. **第 1b 層證據卡**：`uv run scripts/evidence.py draft --from-layer1`，再 `evidence.py check`。引用原文最多 15 個字，到期日最多 90 天。
 4. **第 1c 層煙霧測試**：`uv run scripts/smoke.py env` 先確認隔離環境；`context` 不花 token 量每回合 context；`run` 真實非互動執行（隔離資料夾要先登入，見 `smoke.py login`）；有 hook、MCP 或可執行程式的，先做程式碼審查，再用 `sandbox` 在 Windows Sandbox 安裝與 MCP 交握。
 
+5. **第 2 層排程提案**：`uv run scripts/schedule.py`。優先序 = 槽位權重 × 痛點 × 使用頻率 × 證據等級，排進每週額度（客觀實測每週 2,000 萬 token、盲選每週 2 次）；不排凍結槽位、冷卻期、停滯或未知、同群不是代表的。各槽位是客觀或盲選、每次 token 的量級、手動痛點寫在 `data/funnel/schedule.yaml`。結果寫 `data/funnel/layer2-schedule.json`，週報列最近兩週；單組就超過每週上限的列在「排不進」，請維護者決定。
+
 便宜模型與煙霧測試的結果只用來排除與排序；要不要換工具只看第 2 層。
 
 ## 每週彙整

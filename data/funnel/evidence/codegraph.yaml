@@ -1,0 +1,143 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: codegraph
+cards:
+- id: ev-20261105-codegraph-01
+  tool: codegraph
+  tool_version_tested: 1.6.1
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/colbymchenry/codegraph/issues/2094
+    author: A-Van-Gestel
+    published: '2026-09-29'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code（MCP）
+    os: Windows 11 Pro 26200
+    mode: codegraph serve --mcp（共用 daemon）
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 'Windows 版 1.6.1 起每次自動同步都會閃出 git 主控台視窗（缺 windowsHide，為 #1728 的回歸），此 issue 已關閉。'
+  quote: console windows flash on every auto-sync
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2026-12-28'
+- id: ev-20261105-codegraph-02
+  tool: codegraph
+  tool_version_tested: unknown
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/colbymchenry/codegraph/issues/1431
+    author: Skace-VI
+    published: '2026-07-22'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: codegraph init（大型 Java 專案）
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 'codegraph init 在大型 Java 專案上主執行緒約卡住 60 秒，與 #1122 同類問題，此 issue 已關閉。'
+  quote: Main thread unresponsive for ~60s
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-10-20'
+- id: ev-20261105-codegraph-03
+  tool: codegraph
+  tool_version_tested: unknown
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/colbymchenry/codegraph/issues/617
+    author: ForinMH
+    published: '2026-06-01'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    os: Windows
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: Windows 上使用 codegraph 時，終端機視窗會頻繁閃現，使用者認為影響很大。
+  quote: Terminal/command prompt windows keep flashing/poping up
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-08-30'
+- id: ev-20261105-codegraph-04
+  tool: codegraph
+  tool_version_tested: unknown
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/colbymchenry/codegraph/issues/649
+    author: colbymchenry
+    published: '2026-06-02'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: marketing
+  comparator: none
+  runs: 0
+  kind: capability
+  direction: +
+  claim: 維護者表示 codegraph 是標準 MCP 伺服器，任何支援 MCP 的代理或 IDE 目前都能手動加入設定使用。
+  quote: any MCP-capable agent or IDE can use it today
+  reliability: C
+  credibility: 2
+  certainty: very-low
+  expires: '2027-02-03'
+- id: ev-20261105-codegraph-05
+  tool: codegraph
+  tool_version_tested: unknown
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/colbymchenry/codegraph/issues/1798
+    author: bompus
+    published: '2026-09-08'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: 引擎升級後，既有索引可能停留在舊行為而不會自動重建，此功能請求目前仍未實作（open）。
+  quote: existing graph can remain on the old behavior
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-codegraph-06
+  tool: codegraph
+  tool_version_tested: unknown
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/colbymchenry/codegraph/issues/648
+    author: colbymchenry
+    published: '2026-06-02'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: capability
+  direction: '-'
+  claim: 新語言支援以個別請求追蹤，並列入 1.0 之後的路線圖，目前未涵蓋所需語言者需等待。
+  quote: 'Tracking: language support requests (post-1.0 roadmap)'
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'

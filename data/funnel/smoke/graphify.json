@@ -1,0 +1,35 @@
+{
+ "tool": "graphify",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "Graphify-Labs/graphify",
+  "sha": "59b5ab1151e031fb42e39cfc9a50bf96f2d57ae0"
+ },
+ "executable": [
+  "skill 附可執行檔（.py、.ts）"
+ ],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99203,
+   "with_bytes": 99568,
+   "delta_bytes": 365,
+   "delta_tokens_est": 92,
+   "mentions": [
+    "graphify"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70355,
+   "with_bytes": 70349,
+   "delta_bytes": -6,
+   "delta_tokens_est": -1,
+   "mentions": [
+    "graphify"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "1 個 skill"
+ }
+}

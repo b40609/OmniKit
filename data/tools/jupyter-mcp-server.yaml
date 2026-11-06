@@ -1,0 +1,14 @@
+id: jupyter-mcp-server
+name: Jupyter MCP Server
+kind: mcp
+slots:
+- data-analysis
+status: pending
+url: https://github.com/datalayer/jupyter-mcp-server
+works_with:
+- claude
+- codex
+sources:
+- GitHub 搜尋
+notes: Datalayer 維護，BSD-3-Clause，v2.2.4（2026-10-11），1.3k 星。接上正在跑的 JupyterLab kernel，讓 agent 逐個 cell 執行並讀輸出；要另外裝 jupyterlab、jupyter-collaboration、jupyter-mcp-tools，並用環境變數 JUPYTER_TOKEN 連線。stdio 與 Streamable HTTP 都支援。2026-11-05 程式碼審查（強模型）：預設沒有遙測，只連設定的 Jupyter；execute_code 可以跑 shell 與 %pip；connect_to_jupyter 會把已設定的密碼帶到新主機。啟動要加 --start-new-code-sandbox false，不然 initialize 會先等 localhost:8888 最多 120 秒。Windows Sandbox 安裝與交握成功：18 個工具、定義 41,866 bytes（每回合約 1 萬 token）。
+added: '2026-11-05'

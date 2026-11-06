@@ -1,0 +1,65 @@
+{
+ "tool": "superpowers",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "obra/superpowers",
+  "sha": "22f0b463e7a5e579904dd6211a520321035526f7"
+ },
+ "executable": [
+  "skill 附可執行檔（.cjs、.js、.sh、.ts）",
+  "plugin 有 hook"
+ ],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99206,
+   "with_bytes": 101934,
+   "delta_bytes": 2728,
+   "delta_tokens_est": 683,
+   "mentions": [
+    "brainstorming",
+    "diagnosing-superpowers",
+    "dispatching-parallel-agents",
+    "executing-plans",
+    "finishing-a-development-branch",
+    "receiving-code-review",
+    "requesting-code-review",
+    "subagent-driven-development",
+    "systematic-debugging",
+    "test-driven-development",
+    "using-git-worktrees",
+    "using-superpowers",
+    "verification-before-completion",
+    "writing-plans",
+    "writing-skills"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70356,
+   "with_bytes": 73795,
+   "delta_bytes": 3439,
+   "delta_tokens_est": 860,
+   "mentions": [
+    "brainstorming",
+    "diagnosing-superpowers",
+    "dispatching-parallel-agents",
+    "executing-plans",
+    "finishing-a-development-branch",
+    "receiving-code-review",
+    "requesting-code-review",
+    "subagent-driven-development",
+    "systematic-debugging",
+    "test-driven-development",
+    "using-git-worktrees",
+    "using-superpowers",
+    "verification-before-completion",
+    "writing-plans",
+    "writing-skills"
+   ]
+  },
+  "note": "有 hook 或 MCP、還沒審查：只量 skill；MCP 的工具定義用 sandbox 指令量"
+ },
+ "install": {
+  "ok": true,
+  "detail": "15 個 skill、plugin"
+ }
+}

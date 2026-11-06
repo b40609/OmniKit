@@ -1,0 +1,70 @@
+{
+ "layer": 1,
+ "tool_id": "planning-with-files",
+ "name": "planning-with-files",
+ "url": "https://github.com/OthmanAdi/planning-with-files",
+ "slots": [
+  "memory"
+ ],
+ "scenarios": [
+  "M1",
+  "M2"
+ ],
+ "summary": "把計畫、發現與進度存成專案內的檔案，並用生命週期 hook 每輪重新注入，對應記憶槽位的 M1（Claude Code 與 Codex 之間交接）與 M2（compaction 後仍記得進度與決定）。內建原生記憶在 Claude 與 Codex 之間不互通，所以交接與 compaction 這兩個情境有可以比較的空間。",
+ "differences": "相較現任原生記憶：多了專案內的任務計畫檔（計畫、發現、進度三檔），以檔案為準，理論上兩邊都能讀；另有 hook 每輪注入與 /clear 後接續。少了的部分：不處理跨任務的偏好或全域記憶。成本與風險方面：檔案會寫進專案目錄（預設 gitignore）；每輪注入會增加 token 消耗；catchup 模式會讀取同專案的本機 session 紀錄，需要評估隱私。",
+ "claims": [
+  {
+   "claim": "同時提供 Claude Code 外掛與 Codex CLI 外掛（第 0 層旗標 claude_plugin、codex_plugin 為 true）。",
+   "kind": "compat",
+   "how_to_verify": "分別在 Claude Code 與 Codex CLI 安裝，確認 skill 與 hook 都有載入。"
+  },
+  {
+   "claim": "計畫、發現、進度以 task_plan.md、findings.md、progress.md 存在專案目錄；平行任務改用 .planning/ 子目錄。",
+   "kind": "capability",
+   "how_to_verify": "在測試 repo 執行一次任務，檢查產出的檔案與位置，並確認 Codex 能讀到 Claude Code 寫下的同一份檔案。"
+  },
+  {
+   "claim": "使用生命週期 hook 每輪重新注入計畫內容，/clear 之後仍能接續原進度。",
+   "kind": "capability",
+   "how_to_verify": "檢查 plugin 的 hook 設定檔；在 Claude Code 做 /clear 後觀察是否注入計畫，並量測注入前後的 token 差異。"
+  },
+  {
+   "claim": "專案有 Windows CI（第 0 層 windows_ci 為 true）。",
+   "kind": "compat",
+   "how_to_verify": "檢查 CI 設定檔，確認 Windows runner 真的執行測試並通過；本機再在 Windows 11 上實測一次。"
+  },
+  {
+   "claim": "自報 benchmark 通過率 96.7%（29/30）與盲測 A/B 3/3 勝，屬作者自報數據。",
+   "kind": "quality",
+   "how_to_verify": "閱讀 docs/evals.md 的題目、評分方式與樣本數；以 OmniKeep 的真實 M1、M2 任務做有無 skill 的對照重跑。"
+  },
+  {
+   "claim": "catchup 模式可讀取同專案的本機 agent session 紀錄，但需要明確啟用，預設不讀取。",
+   "kind": "security",
+   "how_to_verify": "檢查預設設定與 catchup 相關程式碼，確認未啟用時不會讀取 session 紀錄檔。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-memory"
+  ],
+  "note": "Claude auto memory 預設開、Codex memories 預設關，兩邊不互通；跨 agent 交接與 compaction 後保留具體任務進度只有部分覆蓋。"
+ },
+ "cluster": "file-plan-hooks",
+ "recommendation": "deep_eval",
+ "needs_user": "需要維護者決定：(1) 深評時是否允許安裝會每輪注入的 lifecycle hook，以及是否開啟會讀本機 session 紀錄的 catchup 模式；(2) 以前這個工具與其他 skill 同時安裝，分不出效果，需要確認採用單獨安裝的對照組設計。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 21087,
+   "cached": 3694,
+   "output": 4765
+  },
+  "readme_sha": "e0b3ebe1643a",
+  "readme_chars": 113181
+ }
+}

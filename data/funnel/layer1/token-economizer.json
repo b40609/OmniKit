@@ -1,0 +1,63 @@
+{
+ "layer": 1,
+ "tool_id": "token-economizer",
+ "name": "TokenEconomizer",
+ "url": "https://github.com/microsoft/TokenEconomizer",
+ "slots": [],
+ "scenarios": [],
+ "summary": "TokenEconomizer 是成本控制 plugin，靠跨 session 記住 repo 的做法、移除長期沒用的工具、攔截原地打轉的 turn 來省 token。它不壓縮或截斷指令輸出，所以對不上 output-compression 的 T1（pytest、前端 build 的長輸出）。工具卡把它掛在 output-compression，但實際機制與該槽位不符，因此不放進任何槽位。",
+ "differences": "相對內建（現任為沒有），它多了三件事：跨 session 學 repo 的固定事實、依使用紀錄修剪工具定義、偵測卡住的 turn 並給一次改道提示。它少了對單次指令輸出做壓縮或摘要的能力，省下的成本來自 session 層級，不是單一命令的輸出量。",
+ "claims": [
+  {
+   "claim": "支援以 marketplace 加 plugin install 的方式安裝到 Claude Code（2.1.300 至 2.1.310）與 Codex（0.153.1 至 0.164.0）",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 11 的 PowerShell 照 README 指令安裝，確認 /tokeneconomizer:status 與 $tokeneconomizer:status 能執行；對照 tool card 的 claude_plugin:false、codex_plugin:false 是否矛盾。"
+  },
+  {
+   "claim": "需要 PATH 上有 Python 3.10 以上，且不需要自己的 API key",
+   "kind": "compat",
+   "how_to_verify": "在沒有 API key 的環境執行 status，並確認 python --version 不低於 3.10。"
+  },
+  {
+   "claim": "Cursor Agent 介面不支援 Windows（hook 透過 PowerShell 執行，launcher 是 POSIX shell 腳本），而 repo 的 CI 有跑 Windows",
+   "kind": "compat",
+   "how_to_verify": "讀 plugin/README.md 與 .github/workflows，確認 Windows 測試是否涵蓋 Claude Code 與 Codex 的 hook 路徑。"
+  },
+  {
+   "claim": "在 SWE-Bench 上可降低平均成本 18.4% 至 30.9%（論文自報，含 plugin 自己的模型呼叫成本）",
+   "kind": "cost",
+   "how_to_verify": "依 experiments/README.md 重跑其中一組（例如 Claude Code 加 Sonnet）並比對 cost 與 Pass@1；論文自報，尚未獨立驗證。"
+  },
+  {
+   "claim": "不壓縮、不截斷指令輸出；機制只有 micro-skills、tool pruning、loop guard 三項",
+   "kind": "capability",
+   "how_to_verify": "在 tokeneconomizer/ 內搜尋對工具輸出的過濾或截斷邏輯，並讀 docs/ARCHITECTURE.md 與 docs/PLUGIN.md，確認沒有 hook 會改寫命令的 stdout。"
+  },
+  {
+   "claim": "工具修剪透過 .claude/settings.local.json 寫入 deny 規則，且 restore 只移除自己加的項目",
+   "kind": "capability",
+   "how_to_verify": "在測試 repo 跑 toolprune apply 與 toolprune restore，比對設定檔前後差異，確認使用者自己寫的 deny 規則保留不動。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建 native-concise 只控制回覆風格（Claude 的 Concise、Codex 的 model_verbosity），不壓縮指令輸出，因此 output-compression 沒有內建對應功能。"
+ },
+ "cluster": "experience-cost-control",
+ "recommendation": "reject",
+ "needs_user": "槽位歸類不符：工具卡掛在 output-compression，但 T1 要的是單次指令輸出壓縮，TokenEconomizer 做的是 session 層級成本控制。目前沒有 active 槽位能放它。請維護者決定是否另開成本控制槽位，或改掛其他槽位；在此之前不建議依 T1 評估它。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 17761,
+   "cached": 3694,
+   "output": 4212
+  },
+  "readme_sha": "8b10bd8d5a02",
+  "readme_chars": 25566
+ }
+}

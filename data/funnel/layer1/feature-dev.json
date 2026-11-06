@@ -1,0 +1,70 @@
+{
+ "layer": 1,
+ "tool_id": "feature-dev",
+ "name": "feature-dev（Anthropic）",
+ "url": "https://github.com/anthropics/claude-plugins-official",
+ "slots": [
+  "dev-workflow"
+ ],
+ "scenarios": [
+  "V1"
+ ],
+ "summary": "feature-dev 是 Anthropic 官方市集裡的 Claude Code 外掛，主打引導式功能開發流程，對得上 dev-workflow 槽位的 V1 情境。它適合中等規模的功能開發，但目前沒有證據顯示它涵蓋大功能需要的重流程（獨立審查、授權、驗收、closeout），也沒有 Codex 版本。第 0 層只看到市集與授權資料，流程內容與 Windows 實際表現都還沒驗證，所以建議進一步評估。",
+ "differences": "相較現任 BMAD-METHOD，資料裡沒有記錄它的細節，無法逐項比較。feature-dev 相對的優點是：官方維護、Apache-2.0 授權、以 Claude Code 外掛形式安裝，不必另外引入完整方法論框架。相對的缺點是：沒有證據顯示它有大功能所需的獨立審查、授權與 closeout 步驟；目前只確認到 Claude Code 版本，沒有 Codex 外掛（codex_plugin=false）；Windows CI 也沒有證據（windows_ci=false）。相較內建的原生開發流程（plan mode、/goal），它多了分階段的引導與子 agent 分工，但少了可以和現有 BMAD 流程對接的既有規範。",
+ "claims": [
+  {
+   "claim": "feature-dev 位於 Anthropic 官方 claude-plugins-official 市集，repo 授權為 Apache-2.0",
+   "kind": "compat",
+   "how_to_verify": "在 anthropics/claude-plugins-official 的 external 或 plugins 目錄下找到 feature-dev，並確認 LICENSE 為 Apache-2.0"
+  },
+  {
+   "claim": "提供分階段的功能開發流程（探索、設計、實作、審查），並以 commands 與 agents 組成",
+   "kind": "capability",
+   "how_to_verify": "閱讀 feature-dev 的 commands/ 與 agents/ 目錄與 README，列出各階段，對照 V1 的中流程與重流程步驟"
+  },
+  {
+   "claim": "它不含獨立審查、授權、驗收與 closeout 等重流程步驟，無法直接取代 BMAD 的大功能流程",
+   "kind": "quality",
+   "how_to_verify": "把 feature-dev 的階段清單與 V1 重流程的七個步驟逐一比對，並在 OmniKeep 的一個中型功能上實際跑一次，檢查是否有跳過審查或收尾"
+  },
+  {
+   "claim": "目前沒有 Codex 外掛格式（codex_plugin=false），Codex 不能直接安裝使用",
+   "kind": "compat",
+   "how_to_verify": "在 feature-dev 目錄下搜尋 Codex 外掛的 manifest 或說明，並在 Codex 內嘗試安裝"
+  },
+  {
+   "claim": "安裝方式為 /plugin install feature-dev@claude-plugins-official，且能在 Windows 原生的 Claude Code 中正常載入",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 11 的 Claude Code 執行安裝指令，再用 /plugin 列表與 /feature-dev 指令確認載入成功"
+  },
+  {
+   "claim": "外掛可以包含 MCP server 設定與可執行的指令或 hook，安裝前需要審查其內容",
+   "kind": "security",
+   "how_to_verify": "檢查 feature-dev 的 .mcp.json、hooks 與 commands 內容，確認沒有額外的網路呼叫或寫入使用者設定檔的行為"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-workflow",
+   "native-review"
+  ],
+  "note": "原生 plan mode 與 /goal 可以做規劃，/code-review 可以做審查，但沒有中流程以上的完整階段控制，也沒有獨立審查、授權與 closeout 等重流程的步驟。"
+ },
+ "cluster": "phased-agent-workflow",
+ "recommendation": "deep_eval",
+ "needs_user": "請維護者決定：feature-dev 要不要和現任 BMAD-METHOD 做正式比較，還是只當作 V1 中流程的候選。另外，目前 dev-workflow 的評估只涵蓋 Claude Code，若 OmniKit 需要同時支援 Codex，需要先決定 Codex 這一側的替代方案。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 9079,
+   "cached": 3694,
+   "output": 4089
+  },
+  "readme_sha": "f34b8730d2b6",
+  "readme_chars": 3807
+ }
+}

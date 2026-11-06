@@ -3,6 +3,7 @@ name: Git Forage（matcluck）
 slots:
 - product-research
 status: pending
+url: https://github.com/matcluck/gitforage
 sources:
 - RIA:C014
 added: '2026-11-04'

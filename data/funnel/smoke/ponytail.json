@@ -1,0 +1,46 @@
+{
+ "tool": "ponytail",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "DietrichGebert/ponytail",
+  "sha": "96608e078b2d5ea607c5c3b8b5a54d1c1fba6846"
+ },
+ "executable": [
+  "plugin 有 hook"
+ ],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99203,
+   "with_bytes": 101821,
+   "delta_bytes": 2618,
+   "delta_tokens_est": 655,
+   "mentions": [
+    "ponytail",
+    "ponytail-audit",
+    "ponytail-debt",
+    "ponytail-gain",
+    "ponytail-help",
+    "ponytail-review"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70353,
+   "with_bytes": 73454,
+   "delta_bytes": 3101,
+   "delta_tokens_est": 775,
+   "mentions": [
+    "ponytail",
+    "ponytail-audit",
+    "ponytail-debt",
+    "ponytail-gain",
+    "ponytail-help",
+    "ponytail-review"
+   ]
+  },
+  "note": "有 hook 或 MCP、還沒審查：只量 skill；MCP 的工具定義用 sandbox 指令量"
+ },
+ "install": {
+  "ok": true,
+  "detail": "12 個 skill、plugin"
+ }
+}

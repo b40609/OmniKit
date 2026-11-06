@@ -1,0 +1,65 @@
+{
+ "layer": 1,
+ "tool_id": "claude-mem",
+ "name": "claude-mem",
+ "url": "https://github.com/thedotmack/claude-mem",
+ "slots": [
+  "memory"
+ ],
+ "scenarios": [
+  "M1",
+  "M2"
+ ],
+ "summary": "claude-mem 落在 memory 槽位，對得上 M1（跨 Claude Code 與 Codex 接手）與 M2（compaction 後保留進度與決定）。它會自動記錄工具使用、壓縮成摘要，並在下次 session 注入，這是原生記憶沒有的做法。原生記憶只在各自工具內運作、彼此不互通，所以 M1 的跨工具部分是缺口。建議進 deep_eval，但要先確認隱私設定。",
+ "differences": "相對現任原生記憶，多了：工具使用的自動擷取、摘要壓縮、Claude 與 Codex 之間的 session 開始注入（可設定包含所有來源），以及 Chroma 向量搜尋。少了：原生記憶零設定，claude-mem 需要 Node 20 以上、Bun、uv、本機 worker 與 SQLite。預設的 observer 路徑要線上登入，會把對話內容送到外部服務，比原生多一層隱私與資料外流面。",
+ "claims": [
+  {
+   "claim": "Codex 也能掛上 claude-mem 的 hooks，同一份記憶可在 Codex 的 session 開始時注入",
+   "kind": "capability",
+   "how_to_verify": "在 Codex 安裝 claude-mem（npx claude-mem install 或 plugin），確認 hooks 有註冊，再把 CLAUDE_MEM_SESSION_START_INCLUDE_ALL_SOURCES 設為 true，開新的 Codex session 看是否出現 Claude Code 的觀察紀錄"
+  },
+  {
+   "claim": "需要 Node.js 20 以上，並會自動安裝 Bun 與 uv，另有本機 worker 服務與 SQLite",
+   "kind": "compat",
+   "how_to_verify": "在乾淨的 Windows 11 環境執行安裝，記錄新增的程序、埠號與資料目錄（~/.claude-mem），比對 README 的 System Requirements"
+  },
+  {
+   "claim": "原生 Windows 可用，hooks 不需要 Git Bash",
+   "kind": "compat",
+   "how_to_verify": "在 PowerShell（不裝 Git Bash）跑 npx claude-mem install，開一個 Claude Code session 做幾個工具呼叫，確認 settings.json 有 observation 寫入，且 hooks 沒有 Executable not found 錯誤"
+  },
+  {
+   "claim": "預設的記憶 provider 為 claude-mem observer（雲端），登入後會把對話內容送到外部；改用 --provider host 或 CLAUDE_MEM_ONLINE_OPTIN=false 才留在本機",
+   "kind": "security",
+   "how_to_verify": "安裝後檢查 ~/.claude-mem/settings.json 的 provider 欄位，用 --provider host 與預設兩種方式安裝，各跑一次 session，用網路監控（例如 Windows 防火牆紀錄或 Process Monitor）確認是否有外連到 claude-mem 服務"
+  },
+  {
+   "claim": "授權為 Apache-2.0，GitHub 星數約 113187，repo 建立於 2025-08-31",
+   "kind": "quality",
+   "how_to_verify": "用 GitHub API 查 thedotmack/claude-mem 的 license、stargazers_count、created_at，並確認 repo 根目錄的 LICENSE 檔案內容"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-memory"
+  ],
+  "note": "Claude 的 auto memory 預設開，Codex 的 memories 預設關，兩邊不互通。M2 在單一工具內部分涵蓋；M1 跨工具接手沒有內建功能可以做到。"
+ },
+ "cluster": "hook-observation-summary",
+ "recommendation": "deep_eval",
+ "needs_user": "卡片的「舊桌機的現任」寫的是 Claude 用量紀錄 46 次，這是另一台機器的使用紀錄，不是目前槽位的現任（目前現任是原生記憶）。請確認這 46 次是否可以當成評估證據。另外，預設的雲端 observer 會把對話送出本機，deep_eval 時要決定是否只測本機 provider（--provider host）。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 16591,
+   "cached": 3694,
+   "output": 4060
+  },
+  "readme_sha": "2abba90602d5",
+  "readme_chars": 20835
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "layer": 1,
+ "tool_id": "find-skills",
+ "name": "find-skills",
+ "url": "https://github.com/vercel-labs/skills",
+ "slots": [
+  "tool-discovery"
+ ],
+ "scenarios": [
+  "N1"
+ ],
+ "summary": "這個工具是 skill 套件的 CLI，主要功能是安裝、列出、更新、移除 skill，並能搜尋 skills.sh 上的 skill。它跟 N1 只有部分重疊：N1 要的是追蹤新的 agent 工具從哪裡出現，並送進 OmniKit 收件匣；這個工具搜尋的對象是 skill，不是工具，而且沒有看到收件匣或追蹤新工具的機制。目前 tool-discovery 槽位沒有現任，因此與內建功能比較，內建沒有對應項目。建議先收著，待維護者確認「搜尋 skill 目錄」是否算 N1。",
+ "differences": "相較於內建（沒有 tool-discovery 對應功能）：多了一個可以搜尋與安裝 skill 的命令列工具，並支援多種 agent 的安裝路徑。少了的部分：沒有看出它會主動追蹤「新工具」的來源，也沒有送進收件匣的機制；它查找的是 skill 目錄，範圍比 N1 窄。",
+ "claims": [
+  {
+   "claim": "需要 Node.js 22.20 以上版本才能執行",
+   "kind": "compat",
+   "how_to_verify": "查 README 的 Install 段落，並在 Windows 上實際執行 node -v 與 npx skills --help 確認可以啟動"
+  },
+  {
+   "claim": "提供 npx skills find [query] 搜尋 skill 目錄（skills.sh）",
+   "kind": "capability",
+   "how_to_verify": "在本機執行 npx skills find <關鍵字>，確認回傳結果來自 skills.sh 而不是本機檔案"
+  },
+  {
+   "claim": "支援 Claude Code、Codex 等多種 agent 的安裝路徑",
+   "kind": "compat",
+   "how_to_verify": "查 docs/agents.md 的 agent 清單與 skill 目錄對應，並用 -a claude-code 與 -a codex 實際安裝到測試專案確認路徑"
+  },
+  {
+   "claim": "有實驗性的 experimental_sync，可從 npm 依賴同步 skill 到專案",
+   "kind": "capability",
+   "how_to_verify": "查 docs/commands.md 的 experimental commands 段落，並在測試專案執行 npx skills experimental_sync 確認行為"
+  },
+  {
+   "claim": "遙測預設開啟，需設定 DISABLE_TELEMETRY=1 或 DO_NOT_TRACK=1 才會關閉",
+   "kind": "security",
+   "how_to_verify": "查 docs/troubleshooting.md 的 telemetry 段落；在 Windows PowerShell 設定環境變數後，用網路監看或 CLI 日誌確認不再送出審計與使用資料"
+  },
+  {
+   "claim": "repo 沒有 SKILL.md、沒有 Claude plugin 或 marketplace 設定，但有 AGENTS.md 與 Windows CI",
+   "kind": "compat",
+   "how_to_verify": "在 repo 根目錄與 .github/workflows 檢查檔案是否存在，對照第 0 層相容線索"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單沒有任何 tool-discovery 的對應項目；找新工具的來源與收件匣機制都要自己補。"
+ },
+ "cluster": "skill-registry-cli",
+ "recommendation": "keep_pending",
+ "needs_user": "請維護者判斷：這個工具的「搜尋 skill 目錄」是否算 N1 的「追蹤新工具來源」。若算，且要比較的是 OmniKit 收件匣流程，應另外確認它能否把結果送進收件匣；若不算，應改為 reject。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 9756,
+   "cached": 3694,
+   "output": 2720
+  },
+  "readme_sha": "d2626339f5ad",
+  "readme_chars": 5613
+ }
+}

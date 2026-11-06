@@ -1,0 +1,30 @@
+# 第 2 層排程的設定（FR-26；schedule.py 讀，維護者可以改）。
+# 優先序 = 槽位權重 × 痛點 × 使用頻率 × 證據等級（docs/v2/research/eval.md 7.2）。
+# judge：objective 客觀實測（吃每週 token 上限）；blind 維護者盲選（吃每週盲選次數）。
+# size：每次執行的 token 量級，用 tokens_per_run 換算；數字取自 2026-11-04 的實測，前 2 週跑完後用實際用量校正。
+# pain：不填就自動算（沒有現任 3、現任在試用 2、其他 1）；現任已知沒解決問題的手動填 3。
+# usage：不填就用 usage.py 近 30 天的對話數算（0 次 1、1 到 9 次 2、10 次以上 3；讀不到算 2 並標「未知」）。
+weekly_tokens: 20000000   # §0.1 第 6 題：每週 2,000 萬，含快取讀取
+runs_per_arm: 3           # FR-25：每組至少 3 次
+agents: 2                 # Claude Code 與 Codex 都要過
+max_challengers: 2        # FR-25：現任加最多 2 個挑戰者
+tokens_per_run:
+  short: 250000           # U1 型：Codex 每次 0.12M 到 0.25M（data/evals/2026-11-04-browser-u1.md）
+  medium: 1000000         # 推估：介於短題與重題之間
+  heavy: 3900000          # F1 型：每次 3.07M 到 3.90M（data/evals/2026-11-04-frontend-design-F1.md）
+slots:
+  frontend-design: {judge: blind, size: heavy, pain: 3}   # 現任卡片寫明沒解決核心痛點
+  browser: {judge: objective, size: short}
+  code-understanding: {judge: objective, size: short}
+  memory: {judge: objective, size: heavy}
+  review: {judge: objective, size: medium}
+  output-compression: {judge: objective, size: short}
+  tool-discovery: {judge: objective, size: short}
+  behavior-rules: {judge: objective, size: medium}
+  dev-workflow: {judge: objective, size: heavy}
+  data-analysis: {judge: objective, size: medium, pain: 3}   # 新槽位：試點前要有實測過的候選（FR-6），只有內建功能
+  docs-output: {judge: blind, size: medium}
+  reverse-engineering: {judge: blind, size: heavy}
+  skill-authoring: {judge: objective, size: medium}
+  concise-output: {judge: objective, size: short}
+  permissions: {judge: objective, size: short}

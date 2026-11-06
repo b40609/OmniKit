@@ -1,0 +1,70 @@
+{
+ "layer": 1,
+ "tool_id": "jupyter-mcp-server",
+ "name": "Jupyter MCP Server",
+ "url": "https://github.com/datalayer/jupyter-mcp-server",
+ "slots": [
+  "data-analysis"
+ ],
+ "scenarios": [
+  "A1",
+  "A2"
+ ],
+ "summary": "槽位 data-analysis 的 A1（大量 CSV/Parquet 探索分析與可重跑 notebook）與 A2（改既有 .ipynb 後重跑並驗證）都對得上。現任原生資料分析只能改 cell 再用 shell 重跑，看不到正在執行的 kernel 狀態；這個工具接上 live JupyterLab kernel，能逐 cell 執行並讀回輸出，是現任沒有的能力。代價是要另外裝 JupyterLab 與 jupyter-collaboration 等套件、設定 token，且 Windows 相容性尚未實測。值得深入評估。",
+ "differences": "相較現任原生資料分析：多了接上正在跑的 kernel、逐 cell 執行並讀回輸出（含圖表）、狀態跨 cell 保留，能在 A2 驗證數值與圖表是否壞掉。少了：依賴外部啟動的 JupyterLab 與額外套件、需要設定 JUPYTER_TOKEN，操作環境比現任複雜；在 Windows 上的實際行為未驗證。",
+ "claims": [
+  {
+   "claim": "同時支援 stdio 與 Streamable HTTP 兩種 MCP transport",
+   "kind": "capability",
+   "how_to_verify": "依文件啟動 server 並分別以 stdio 與 HTTP 模式連線，確認 MCP client 能列出工具"
+  },
+  {
+   "claim": "需先啟動 JupyterLab，並另外安裝 jupyterlab、jupyter-collaboration、jupyter-mcp-tools",
+   "kind": "compat",
+   "how_to_verify": "在乾淨的 Python 環境執行 pip install，啟動 jupyter lab 後確認 collaboration 與 mcp-tools 擴充有載入"
+  },
+  {
+   "claim": "以 JUPYTER_URL 與 JUPYTER_TOKEN 連到本機 Jupyter，就能讀寫 notebook 並執行 cell",
+   "kind": "capability",
+   "how_to_verify": "設定環境變數後呼叫列出 notebook 與執行單一 cell 的工具，確認 kernel 狀態在多個 cell 間保留"
+  },
+  {
+   "claim": "提供 Claude Code plugin 與 /datalayer 指令；第 0 層紀錄為沒有 claude_plugin，兩者互相矛盾",
+   "kind": "compat",
+   "how_to_verify": "在 Claude Code 執行 /plugin marketplace add 與 /plugin install，確認是否可安裝及指令是否出現；同時核對 repo 的 extensions/claude-plugin 目錄"
+  },
+  {
+   "claim": "可在 Windows 上執行（第 0 層 windows_ci 為 true）",
+   "kind": "compat",
+   "how_to_verify": "在本機 Windows 安裝套件並啟動 server，跑一個 A1 規模的 CSV 分析 cell，記錄失敗點與耗時"
+  },
+  {
+   "claim": "hosted 版需要 Datalayer 帳號登入，notebook 內容會傳到 Datalayer 雲端",
+   "kind": "security",
+   "how_to_verify": "閱讀 OAuth 與 hosted 文件的資料流說明，確認哪些資料會離開本機；本機模式應改用 localhost 測試且不連 hosted 端點"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-data"
+  ],
+  "note": "原生可用 NotebookEdit 改 cell、再用 shell 跑 python 或 nbconvert 重跑 notebook，能覆蓋 A2 的重跑需求；但看不到正在執行的 kernel 狀態，也不能逐 cell 互動式探索。"
+ },
+ "cluster": "live-kernel-bridge",
+ "recommendation": "deep_eval",
+ "needs_user": "若要評估 hosted 版（mcp.datalayer.run），會把 notebook 與資料送到 Datalayer 雲端，需要維護者先決定是否允許；本機評估不受影響。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 18356,
+   "cached": 3694,
+   "output": 3539
+  },
+  "readme_sha": "f3655b141e5d",
+  "readme_chars": 22283
+ }
+}

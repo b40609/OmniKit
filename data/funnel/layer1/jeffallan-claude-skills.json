@@ -1,0 +1,70 @@
+{
+ "layer": 1,
+ "tool_id": "jeffallan-claude-skills",
+ "name": "claude-skills（Jeffallan）",
+ "url": "https://github.com/Jeffallan/claude-skills",
+ "slots": [
+  "dev-workflow"
+ ],
+ "scenarios": [
+  "V1"
+ ],
+ "summary": "這是由 67 個 skill 組成的集合，主打全端開發。在 OmniKit 的槽位中，只有 dev-workflow（V1，大功能走重流程）對得上；其餘情境多是一般程式實作，或已由原生功能涵蓋，不在範圍內。建議深入評估 dev-workflow，但它依賴 Atlassian MCP，且沒有 Codex 外掛。",
+ "differences": "相較現任 BMAD-METHOD：從資料只能確認多了 Jira、Confluence 整合，以及 9 個從探索到回顧的專案流程指令，且需要 Atlassian MCP。少了哪些能力，資料無法判斷，需要實際對照 V1 的重流程步驟。相較原生 plan mode 與 /goal，多的是完整的流程指令群。目前只能在 Claude Code 使用，沒有 Codex 版本。",
+ "claims": [
+  {
+   "claim": "收錄 67 個 skill，各自位於 skills/ 底下的子目錄",
+   "kind": "capability",
+   "how_to_verify": "計算 skills/ 下的子目錄數，並確認每個子目錄有 SKILL.md。第 0 層的 skill_md 旗標為 false，與此說法矛盾，需先確認。"
+  },
+  {
+   "claim": "可透過 Claude Code plugin marketplace 安裝",
+   "kind": "compat",
+   "how_to_verify": "檢查 .claude-plugin/marketplace.json 是否存在，並依 README 的 /plugin 指令實際安裝一次。"
+  },
+  {
+   "claim": "沒有 Codex 外掛，也沒有 AGENTS.md",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 根目錄是否有 AGENTS.md，以及是否有 Codex 相關設定或安裝說明。"
+  },
+  {
+   "claim": "9 個專案流程指令需要 Atlassian MCP server（Jira、Confluence）",
+   "kind": "compat",
+   "how_to_verify": "閱讀 docs/ATLASSIAN_MCP_SETUP.md 與 docs/WORKFLOW_COMMANDS.md，確認不接 Atlassian 時哪些指令無法使用。"
+  },
+  {
+   "claim": "CI 沒有在 Windows 上執行",
+   "kind": "compat",
+   "how_to_verify": "檢查 .github/workflows/ci.yml 的 runs-on 欄位，是否只有 Linux 或 macOS。"
+  },
+  {
+   "claim": "流程指令與 skill 會把內容送到外部服務（Jira、Confluence）",
+   "kind": "security",
+   "how_to_verify": "逐一閱讀流程指令與 SKILL.md，確認哪些會寫入或讀取外部服務，以及是否需要額外授權。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-review",
+   "native-workflow"
+  ],
+  "note": "審查類指令與原生 /code-review、/review 重疊，沒有新增能力。流程指令只對應原生 plan mode 與 /goal，覆蓋不完整，且缺少 Jira、Confluence 整合。"
+ },
+ "cluster": "workflow-skill-pack",
+ "recommendation": "deep_eval",
+ "needs_user": "需要維護者決定：V1 的重流程是否要接 Atlassian（Jira、Confluence）。若不接，九個流程指令大多用不上，深入評估時只能測精簡子集。另外，skill_md 旗標與 67 個 skill 的數字互相矛盾，請先確認實際結構。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 61436,
+   "cached": 7388,
+   "output": 8394
+  },
+  "readme_sha": "ce184d7fbc18",
+  "readme_chars": 6358
+ }
+}

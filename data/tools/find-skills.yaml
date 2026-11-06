@@ -3,6 +3,7 @@ name: find-skills
 slots:
 - tool-discovery
 status: pending
+url: https://github.com/vercel-labs/skills
 sources:
 - RIA:C013
 added: '2026-11-04'

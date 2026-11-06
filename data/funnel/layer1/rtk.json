@@ -1,0 +1,67 @@
+{
+ "layer": 1,
+ "tool_id": "rtk",
+ "name": "RTK（Rust Token Killer）",
+ "url": "https://github.com/rtk-ai/rtk",
+ "slots": [
+  "output-compression"
+ ],
+ "scenarios": [
+  "T1"
+ ],
+ "summary": "RTK 對應「指令輸出壓縮」槽位的 T1 情境（OmniKeep 跑 pytest、CatOS 跑前端 build 時輸出過長）。它用 hook 把 shell 指令改寫成經過過濾的版本，只保留失敗項目與裁切後的 traceback，再把結果交給 agent。目前沒有內建功能能做到這件事，因此建議進入深入評估。",
+ "differences": "相較於沒有現任的基準：多了 Bash 指令輸出過濾（pytest、npm test、tsc 等）、按指令類別的壓縮規則，以及 rtk gain 的節省統計。少了的部分：hook 只攔截 Bash 工具呼叫，Read、Grep、Glob 等內建工具不經過它；需要在 Claude Code 與 Codex 各自安裝 hook；完整功能所在的 engine 採 BUSL-1.1，與純 Apache-2.0 的 rtk-oss 版本功能不同。",
+ "claims": [
+  {
+   "claim": "支援 Claude Code 與 Codex 的安裝（rtk init -g 與 rtk init -g --codex），Claude 用 PreToolUse hook，Codex 用 PreToolUse hook 加 AGENTS.md。",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 測試環境執行 rtk init -g 與 rtk init -g --codex，檢查產生的 hook 設定與 AGENTS.md 內容，再實際跑 git status 確認指令被改寫。"
+  },
+  {
+   "claim": "可在原生 Windows 安裝（winget install rtk-ai.rtk），不需要 WSL。",
+   "kind": "compat",
+   "how_to_verify": "在本機 Windows 11 執行 winget install rtk-ai.rtk，接著執行 rtk --version 與 rtk gain，確認指令可用且不是同名的其他專案。"
+  },
+  {
+   "claim": "hook 只攔截 Bash 工具呼叫，Read、Grep、Glob 不會經過 RTK；要用時得改用 rtk read、rtk grep 等指令。",
+   "kind": "capability",
+   "how_to_verify": "安裝後分別觸發 Bash 與 Read 工具，檢查輸出是否被壓縮，並查看 hook 的 matcher 設定。"
+  },
+  {
+   "claim": "對 pytest 與 npm test 只保留失敗項目並裁切 traceback，通過的測試折疊成數字；輸出長度相對原始輸出明顯變短。",
+   "kind": "quality",
+   "how_to_verify": "在 OmniKeep 準備一組含失敗與通過測試的 pytest，分別用原生指令與 rtk pytest 執行，比較輸出的行數與位元組數，並確認失敗訊息沒有遺失。"
+  },
+  {
+   "claim": "授權為 rtk CLI 採 Apache-2.0，但 rtk-engine 採 BUSL-1.1；公司內部使用免費，但對第三方提供商業服務需另行授權。",
+   "kind": "security",
+   "how_to_verify": "閱讀 repo 的 LICENSE、engine/LICENSE 與 README 的 License 段落，確認 Additional Use Grant 的條件，並交由法務判斷。"
+  },
+  {
+   "claim": "遙測預設關閉，需執行 rtk telemetry enable 才會開啟；RTK 聲稱不收集指令內容與檔案內容。",
+   "kind": "security",
+   "how_to_verify": "安裝後執行 rtk telemetry 查看狀態，並在隔離網路環境中用 Wireshark 或代理工具觀察安裝與執行期間的對外連線，確認沒有不預期的外送。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單中沒有任何項目處理 shell 指令輸出的壓縮。native-concise 只管模型回覆的精簡程度，不作用在工具輸出上。"
+ },
+ "cluster": "command-output-filter",
+ "recommendation": "deep_eval",
+ "needs_user": "請維護者確認兩件事：一是 CatOS 或 OmniKeep 是否會以商業服務形式對第三方提供，因為 engine 的 BUSL-1.1 授權會影響這點，若會，應改用 rtk-oss（Apache-2.0，但不含 engine）；二是評估時要用哪一組 pytest 與 CatOS build 的實際輸出當基準。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 17374,
+   "cached": 3694,
+   "output": 3037
+  },
+  "readme_sha": "4c6188e653a4",
+  "readme_chars": 22596
+ }
+}

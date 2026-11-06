@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "mattpocock-grill-me",
+ "name": "grill-me（mattpocock）",
+ "url": "https://github.com/mattpocock/skills",
+ "slots": [
+  "dev-workflow"
+ ],
+ "scenarios": [
+  "V1"
+ ],
+ "summary": "grill-me 是 mattpocock/skills 裡的單一訪談型 skill，會逐條追問計畫或設計，直到每個分支都解決。它對上 dev-workflow 的 V1 情境，主要補的是「討論計畫」這一段，用來降低開發跑偏與重工的機率。它不是完整流程，沒有核准、實作、驗收等階段。現任 BMAD-METHOD 是重流程，grill-me 較輕，值得實測。",
+ "differences": "相對現任 BMAD-METHOD：多了逐條追問、直到設計樹解完的早期對齊；少了 assessment、spec、獨立審查、授權、驗收、closeout 等階段與產出文件。適合小改動或中等改動的計畫討論，不能單獨取代 BMAD 管理大功能。相對原生 native-workflow：原生 plan mode 能先討論計畫，但沒有這種結構化的逐分支訪談。",
+ "claims": [
+  {
+   "claim": "可用 Claude Code 外掛安裝（claude plugin install mattpocock-skills@claude-plugins-official），安裝後 /grill-me 可用",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 的 Claude Code 執行安裝指令，確認成功且 /grill-me 出現在可用指令清單中"
+  },
+  {
+   "claim": "README 宣稱有 Codex 安裝路徑（codex plugin marketplace add 與 codex plugin add），但第 0 層旗標記為 codex_plugin false，兩者不一致",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 的 Codex 執行 README 列出的兩條指令，看是否成功安裝並能呼叫 grill-me；同時與第 0 層的 codex_plugin 旗標對照"
+  },
+  {
+   "claim": "grill-me 的 SKILL.md 位於 skills/productivity/grill-me/ 之下；第 0 層 skill_md 旗標為 false，需要確認",
+   "kind": "compat",
+   "how_to_verify": "檢視 repo 的 skills/productivity/grill-me/SKILL.md 是否存在，並核對第 0 層的 skill_md 偵測結果"
+  },
+  {
+   "claim": "grill-me 會逐條追問，直到設計樹每個分支都解決，而不是一次問完就結束",
+   "kind": "capability",
+   "how_to_verify": "用一個小型計畫跑 /grill-me，記錄追問輪數與結束條件，確認它是在分支解決後才停止"
+  },
+  {
+   "claim": "repo 採 MIT 授權",
+   "kind": "compat",
+   "how_to_verify": "檢視 repo 根目錄的 LICENSE 檔，確認授權類型為 MIT"
+  },
+  {
+   "claim": "repo 沒有 Windows CI（第 0 層 windows_ci 為 false），目前沒有在 Windows 上的自動化驗證",
+   "kind": "quality",
+   "how_to_verify": "檢視 .github/workflows 內是否有 windows runner 的設定；本機在 Windows 上實際執行的結果才是實際證據"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-workflow"
+  ],
+  "note": "原生 plan mode 等功能可以先討論計畫，但沒有逐分支、直到設計樹解完的結構化訪談。grill-me 的訪談部分沒有被內建涵蓋。"
+ },
+ "cluster": "interview-alignment",
+ "recommendation": "deep_eval",
+ "needs_user": "請維護者決定 grill-me 在 dev-workflow 的定位：它是 V1 中「討論計畫」這一步的子工具，還是要拿來取代整套 BMAD 流程？前者符合 V1 的範圍，應進 deep_eval；後者不成立，因為它沒有核准、實作、驗收等階段。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 13845,
+   "cached": 3694,
+   "output": 4575
+  },
+  "readme_sha": "345041d56cf1",
+  "readme_chars": 16449
+ }
+}

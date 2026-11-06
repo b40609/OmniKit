@@ -11,5 +11,5 @@ works_with:
 - codex
 sources:
 - 使用者提出
-notes: 多 agent 協作佇列：你核准 SPEC.md，builder 在各自的 worktree 認領項目，要另一個 agent 驗證後才合併並留紀錄；測試不過不能送出；資料放在 .git 裡的 SQLite，另有可選的 relay 支援手機。615 星、MIT、v0.9.3（2026-10-27），2026-10 才建立。官方說 CI 只跑 Linux 與 macOS、Windows 還沒測試，你只用 Windows，這是主要風險。設計跟第二輪想做的（手機觸發、交叉驗證）很像，可以當參考。規劃與開發流程槽位凍結中，等 RIA 結果再比。
+notes: 多 agent 協作佇列：你核准 SPEC.md，builder 在各自的 worktree 認領項目，要另一個 agent 驗證後才合併並留紀錄；測試不過不能送出；資料放在 .git 裡的 SQLite，另有可選的 relay 支援手機。615 星、MIT、v0.9.3（2026-10-27），2026-10 才建立。官方說 CI 只跑 Linux 與 macOS、Windows 還沒測試，你只用 Windows，這是主要風險。設計跟第二輪想做的（手機觸發、交叉驗證）很像，可以當參考。規劃與開發流程槽位已在 2026-11-05 解凍，RIA 不再當比較基準。
 added: '2026-11-04'

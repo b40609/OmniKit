@@ -1,0 +1,162 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: mattpocock-skills
+cards:
+- id: ev-20261105-mattpocock-skills-01
+  tool: mattpocock-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/mattpocock/skills/issues/483
+    author: N0tS0Lucky
+    published: '2026-07-09'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: /code-review 技能名稱與 Claude Code 內建的 /code-review 衝突，安裝後會覆蓋預設技能。
+  quote: The /code-review skill name clashes with Claude Code's own internal /code-review skill.
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-10-07'
+- id: ev-20261105-mattpocock-skills-02
+  tool: mattpocock-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/mattpocock/skills/issues/341
+    author: tuterx
+    published: '2026-06-13'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: grill-with-docs 產出的已確認答案，無法穩定追溯到後續的 PRD、issue 與實作。
+  quote: does not guarantee that those answers survive intact
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-mattpocock-skills-03
+  tool: mattpocock-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/mattpocock/skills/issues/240
+    author: ovsw
+    published: '2026-05-22'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    model: GPT 5.5
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 使用者回報 GPT 5.5 在 /grill-me 問完後常直接開始實作，需要手動中斷並改走 /to-prd。
+  quote: When GPT runs out of questions, it begins implementing directly.
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-08-20'
+- id: ev-20261105-mattpocock-skills-04
+  tool: mattpocock-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/mattpocock/skills/issues/113
+    author: jackgillardccg
+    published: '2026-05-01'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+    mode: CLI
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: elimination
+  direction: '-'
+  claim: 技能只能在 Claude Code CLI 中使用，無法在 Claude 桌面版 App 中使用。
+  quote: the skills can only be used within the CLI, not the desktop app
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-07-30'
+- id: ev-20261105-mattpocock-skills-05
+  tool: mattpocock-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/mattpocock/skills/issues/130
+    author: AKuederle
+    published: '2026-05-04'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Codex
+    model: GPT 5.5
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 使用 Codex 搭配 GPT 5.5 時，GLOSSARY.md（前身為 CONTEXT.md）被當成計畫文件，每一輪都被改寫。
+  quote: misuse the Context.md file as plan document
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-mattpocock-skills-06
+  tool: mattpocock-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/mattpocock/skills/issues/692
+    author: codymikol
+    published: '2026-07-29'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: 依文件執行 claude plugins install mattpocock-skills 會失敗，回報找不到該外掛。
+  quote: Plugin "mattpocock-skills" not found in any configured marketplace
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-mattpocock-skills-07
+  tool: mattpocock-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/mattpocock/skills/issues/931
+    author: luxi78
+    published: '2026-08-22'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: Wayfinder 任務可能在未經 TDD 與程式碼審查的情況下修改正式程式碼。
+  quote: A `wayfinder:task` was allowed to modify production code
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-11-20'

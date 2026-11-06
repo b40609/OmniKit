@@ -1,0 +1,70 @@
+{
+ "layer": 1,
+ "tool_id": "scientific-agent-skills",
+ "name": "Scientific Agent Skills（K-Dense）",
+ "url": "https://github.com/K-Dense-AI/scientific-agent-skills",
+ "slots": [
+  "data-analysis"
+ ],
+ "scenarios": [
+  "A1",
+  "A2"
+ ],
+ "summary": "只看 data-analysis 子集（EDA、統計、polars、matplotlib、seaborn、scikit-learn、statsmodels），對得上 A1（大型 CSV/Parquet 探索分析與圖表、可重跑 notebook）與 A2（改既有 .ipynb 並重跑確認）。原生資料分析對 A2 已能做到（NotebookEdit 加 nbconvert 重跑），對 A1 缺少大資料與套件層級的指引，所以只算部分覆蓋。現任是原生資料分析，這個工具多了套件指引，但需要實測 Windows 原生環境與 skill 能否在 Claude Code、Codex 中被發現，才能判斷效益。",
+ "differences": "相較現任「原生資料分析」：多了 polars 大資料處理、EDA、統計檢定、視覺化與 scikit-learn、statsmodels 等套件的版本感知工作流程與驗證步驟，對數十萬列以上的 A1 情境有實質幫助。少了的部分：沒有 NotebookEdit 那種逐 cell 編輯工具，裝完還要自己裝相依套件（官方說明安裝 skill 不會裝依賴），而且 README 寫 Windows 需透過 WSL2，與我們的原生 Windows 環境不符。A2 的 cell 編輯與重跑，原生已經能做，差異不大。",
+ "claims": [
+  {
+   "claim": "收錄 177 個 skill，授權為 MIT",
+   "kind": "capability",
+   "how_to_verify": "檢查倉庫根目錄的 LICENSE.md 與 skills/ 下的子目錄數量（應為 177）。"
+  },
+  {
+   "claim": "官方標示支援 Claude Code 與 Codex 兩種 agent host",
+   "kind": "compat",
+   "how_to_verify": "在 Claude Code 與 Codex 各自安裝此倉庫的 data-analysis 子集，確認 skill 能被發現並在對話中被觸發。"
+  },
+  {
+   "claim": "資料分析子集包含 exploratory-data-analysis、statistical-analysis、polars、matplotlib、seaborn、scikit-learn、statsmodels 等 skill",
+   "kind": "capability",
+   "how_to_verify": "列出 skills/exploratory-data-analysis、skills/polars 等目錄，確認各自有 SKILL.md 且版本資訊符合 metadata.version。"
+  },
+  {
+   "claim": "原生 Windows 可用：README 寫的是 macOS、Linux，或 Windows 需透過 WSL2，tool card 未標 windows_ci",
+   "kind": "compat",
+   "how_to_verify": "在本機原生 Windows PowerShell 安裝 skill，並執行一個 polars 讀取 Parquet 的範例；另確認 WSL2 是否為必要條件。"
+  },
+  {
+   "claim": "相容線索顯示 skill_md 為 false，與 README 宣稱每個 skill 都有 SKILL.md 相矛盾",
+   "kind": "quality",
+   "how_to_verify": "在 skills/exploratory-data-analysis、skills/polars 等目錄確認是否存在 SKILL.md，並檢查第 0 層的偵測規則是否只掃根目錄。"
+  },
+  {
+   "claim": "安裝 skill 不會自動安裝 Python 依賴，需要依各 skill 的 compatibility 欄位自行安裝",
+   "kind": "cost",
+   "how_to_verify": "在乾淨的 uv 虛擬環境只安裝 skill 檔案，確認 import polars 會失敗；再依 compatibility 欄位安裝後再測試一次。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-data"
+  ],
+  "note": "A2（改 .ipynb 並重跑）原生已可用 NotebookEdit 與 nbconvert 做到；A1 的大型資料處理、EDA 與套件版本指引原生沒有，只能靠一般 python 操作，所以整體為部分覆蓋。"
+ },
+ "cluster": "curated-skill-library",
+ "recommendation": "deep_eval",
+ "needs_user": "\"",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 20204,
+   "cached": 3694,
+   "output": 4098
+  },
+  "readme_sha": "2d4a9f2268c6",
+  "readme_chars": 83659
+ }
+}

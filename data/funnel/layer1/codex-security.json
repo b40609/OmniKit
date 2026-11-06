@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "codex-security",
+ "name": "codex-security",
+ "url": "https://github.com/openai/codex-security",
+ "slots": [
+  "review"
+ ],
+ "scenarios": [
+  "R1"
+ ],
+ "summary": "這是 Codex 的安全掃描工具，可掃描 Git diff 並驗證發現、產生修補建議，能對應 review 槽位的 R1 跨模型 diff 審查。但它只看安全面，不能取代一般正確性審查。原生 /security-review 已部分涵蓋，差別在於這裡是另一個模型來審。建議進入 deep_eval，實測在 Windows 上的可用性與成本。",
+ "differences": "相較現任「原生審查」：多了跨模型（Codex）做安全掃描、以 diff 範圍掃描、驗證候選發現並產生修補、可匯出 SARIF。少了一般程式正確性與邏輯審查；需要 Node.js 與 Python 3.10+，並需 OpenAI 登入或 API key；部分功能需另外的存取核准；每次掃描會計費。",
+ "claims": [
+  {
+   "claim": "提供 `cs scan . --diff <基準版本>` 指令，可掃描已提交的變更範圍",
+   "kind": "capability",
+   "how_to_verify": "在 Windows 安裝後執行 `cs scan --help`，並在一個有 commit 的測試 repo 跑 `cs scan . --diff HEAD~1`，確認只掃描 diff 範圍"
+  },
+  {
+   "claim": "需要 Node.js 22.13+（22.x）或 24.x／26.x，以及 Python 3.10+（3.10 另需 tomli）",
+   "kind": "compat",
+   "how_to_verify": "在 Windows PowerShell 執行 `node -v`、`python --version`，安裝後確認 `cs` 指令可用"
+  },
+  {
+   "claim": "需要 OpenAI 登入或 API key；雲端（Cloud）為選用，本機掃描不需要",
+   "kind": "cost",
+   "how_to_verify": "在無登入狀態下執行 `cs scan .`，確認錯誤訊息與是否能完成本機掃描"
+  },
+  {
+   "claim": "部分功能（Daybreak Blue、受保護發現）需要 Trusted Access for Cyber 核准",
+   "kind": "compat",
+   "how_to_verify": "檢查 `cs scan --help` 的 cyber-access-program 選項與文件說明，用一般帳號實際執行一次確認行為"
+  },
+  {
+   "claim": "工具為 Codex plugin，沒有 Claude Code 的 plugin 或 marketplace 安裝方式；Claude Code 只能透過 shell 呼叫 `cs` CLI",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 是否有 Claude plugin manifest 與 marketplace 條目（第 0 層顯示皆為 false），並在 Claude Code 中用 shell 呼叫 `cs --help` 驗證"
+  },
+  {
+   "claim": "CI 有 Windows 測試，但官方 GitHub Action 的 sandbox 設定只針對 Ubuntu；Windows 上的 Codex sandbox 需另外確認",
+   "kind": "quality",
+   "how_to_verify": "在 Windows 本機對一個小型 Python repo 跑完整 `cs scan .`，確認能完成並產出 report，且沒有 sandbox 錯誤"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-review"
+  ],
+  "note": "原生 /security-review 已涵蓋部分安全審查，但由 Claude 自己審；此工具用 Codex 跨模型審，並含驗證與修補流程，範圍只限安全。"
+ },
+ "cluster": "security-diff-scan",
+ "recommendation": "deep_eval",
+ "needs_user": "請確認 R1 的「審 diff」是否只限安全審查。若只要安全面，可與原生 /security-review 比較；若要一般正確性審查，此工具不在範圍內。另外工具卡寫 works_with codex，但第 0 層 codex_plugin 為 false，需確認實際安裝形式。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 11864,
+   "cached": 3694,
+   "output": 3934
+  },
+  "readme_sha": "f2075317097a",
+  "readme_chars": 10954
+ }
+}

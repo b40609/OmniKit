@@ -1,0 +1,57 @@
+{
+ "layer": 1,
+ "tool_id": "okx-skills",
+ "name": "OKX skills",
+ "url": "https://github.com/okx/onchainos-skills",
+ "slots": [],
+ "scenarios": [],
+ "summary": "OKX skills 是鏈上錢包、DEX 交換、行情、DeFi 與 DApp 路由的工具集，主要場景是加密資產交易與鏈上資料查詢。它不對應 OmniKit 任何一個 active 或 watch 槽位（前端設計、審查、記憶、程式碼理解、輸出壓縮、工具發現、行為準則、瀏覽器、權限、精簡輸出、文件產出、逆向、skill 製作、開發流程、資料分析），因此沒有可用的情境。依規則判定為 reject。",
+ "differences": "相較於內建功能，它多了鏈上錢包管理、代幣交換與廣播交易、鏈上行情與聰明錢追蹤、DeFi 存取等能力；內建功能裡沒有這些。它不包含前端、審查、記憶交接、程式碼搜尋、輸出壓縮、瀏覽器驗證等與 OmniKit 槽位相關的能力，因此在目前的槽位範圍內沒有可比較的對象。",
+ "claims": [
+  {
+   "claim": "倉庫內含 7 個 skill（第 0 層 skills 欄位為 7），但 skill_md 欄位為 false，skill 檔案的實際格式需要再確認。",
+   "kind": "capability",
+   "how_to_verify": "列出倉庫中的 skill 目錄與檔案，確認數量與各 skill 的入口檔名稱。"
+  },
+  {
+   "claim": "提供 Claude Code plugin 與 marketplace 項目，也提供 Codex plugin。",
+   "kind": "compat",
+   "how_to_verify": "檢查倉庫中的 plugin 清單、marketplace 設定檔與 Codex plugin 設定檔是否存在且格式有效。"
+  },
+  {
+   "claim": "README 說明可透過 onchainos CLI 作為原生 MCP server（指令為 onchainos mcp）。",
+   "kind": "capability",
+   "how_to_verify": "在本機安裝 CLI 後執行 onchainos mcp 的說明或 --help，確認有 MCP 模式並能列出工具。"
+  },
+  {
+   "claim": "安裝需要 Git 與 Node.js，並透過 npx 安裝 @okxweb3/onchainos-installer。",
+   "kind": "compat",
+   "how_to_verify": "閱讀 README 的 Prerequisites 與 Installation 段落，並在乾淨的 Windows 環境實際執行安裝指令確認。"
+  },
+  {
+   "claim": "第 0 層記錄的授權為 None，但 README 寫的是 MIT，兩者不一致。",
+   "kind": "quality",
+   "how_to_verify": "查看倉庫根目錄的 LICENSE 檔與 GitHub 授權欄位，確認實際授權條款。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單中沒有鏈上錢包、DEX 交換、鏈上行情或 DeFi 操作的對應項目，各內建功能都針對開發與文件工作流程，與這個工具的領域不重疊。"
+ },
+ "cluster": "onchain-cli-skills",
+ "recommendation": "reject",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 10048,
+   "cached": 3694,
+   "output": 2729
+  },
+  "readme_sha": "24d7071f5d2b",
+  "readme_chars": 5678
+ }
+}

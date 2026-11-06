@@ -97,6 +97,8 @@ def main():
     if (_omnikit.ROOT / "data" / "funnel" / "layer0.json").exists():
         check("彙整：有漏斗資料時列出第 0 層與外部證據", "## 評估漏斗" in digest and "- 第 0 層（" in digest
               and "值得實測的外部證據" in digest)
+    if (_omnikit.ROOT / "data" / "funnel" / "layer2-schedule.json").exists():
+        check("彙整：有排程檔時列出第 2 層排程提案", "- 第 2 層排程提案（" in digest)
     check("彙整：最後一節是沒用到的 skill 與 plugin（使用紀錄讀不到也不中斷）",
           "## 14 天沒用到的 skill 與 plugin" in digest and "- 讀" in digest.split("## 14 天沒用到的 skill 與 plugin")[1])
 

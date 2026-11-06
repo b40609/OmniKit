@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "spec-kit",
+ "name": "spec-kit（GitHub）",
+ "url": "https://github.com/github/spec-kit",
+ "slots": [
+  "dev-workflow"
+ ],
+ "scenarios": [
+  "V1"
+ ],
+ "summary": "spec-kit 是 GitHub 官方的規格驅動開發工具包，提供從規格、計畫、任務到實作與收斂的固定指令序列，也有 bug 修復與想法評估兩個可獨立使用的入口。它對應 dev-workflow 槽位的 V1 情境（小改動與大功能的流程分流、減少跑偏與重工），但目前只能確認流程骨架，無法從資料判斷它是否真的減少跑偏。它與現任 BMAD-METHOD 同類，建議先依工具卡的凍結備註收著，等 RIA 結果再比。",
+ "differences": "相較現任 BMAD-METHOD，spec-kit 多了：以 CLI（specify）安裝與初始化、可用 extension、preset、workflow、bundle 客製流程，以及 bug 修復與想法評估的獨立入口；對多種 agent 有 integration 機制。少了或未證實的部分：資料中沒有看到獨立審查閘門、授權關卡或小改動的中流程分支，也沒有 Claude Code 原生的 plugin 或 SKILL.md 整合（第 0 層線索為 false），因此對 Claude Code 的接入方式需要實測。",
+ "claims": [
+  {
+   "claim": "提供 specify CLI，需要 Python 3.11+ 與 uv 才能安裝",
+   "kind": "compat",
+   "how_to_verify": "在乾淨環境執行 uv tool install specify-cli，檢查 pyproject.toml 的 requires-python 與安裝輸出"
+  },
+  {
+   "claim": "SDD 流程的指令序列為 constitution、specify、plan、tasks、implement、converge，implement 與 converge 可重複到收斂",
+   "kind": "capability",
+   "how_to_verify": "執行 specify init 後，在支援的 agent 中逐一呼叫對應指令，確認產出的規格、計畫、任務文件與收斂狀態"
+  },
+  {
+   "claim": "沒有 Claude Code 的 plugin、marketplace 與 SKILL.md；Claude Code 需靠 integration 機制接入",
+   "kind": "compat",
+   "how_to_verify": "在 repo 中搜尋 .claude-plugin、marketplace.json 與 SKILL.md；執行 specify init --integration claude 看產出的指令檔"
+  },
+  {
+   "claim": "bug 修復與想法評估以 specify extension add bug、assess 安裝，可不經 SDD 流程獨立使用",
+   "kind": "capability",
+   "how_to_verify": "在測試專案執行兩個 extension add 指令，確認 .specify/bugs 與 .specify/assessments 目錄能產生"
+  },
+  {
+   "claim": "社群 catalog 的元件未經稽核，安裝或執行前需自行審查原始碼",
+   "kind": "security",
+   "how_to_verify": "閱讀 README 的 Discover community components 段落，並檢查安裝 extension 時是否會執行外部程式碼"
+  },
+  {
+   "claim": "授權為 MIT，且 repo 有 Windows CI 設定",
+   "kind": "quality",
+   "how_to_verify": "檢查 LICENSE 檔案與 .github/workflows 中是否含 windows 執行環境"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-workflow"
+  ],
+  "note": "原生的 plan mode 與 /goal 提供規劃與目標追蹤，但沒有規格文件、任務分解、收斂檢查這類方法論產出。"
+ },
+ "cluster": "spec-driven-workflow",
+ "recommendation": "keep_pending",
+ "needs_user": "工具卡 note 寫「規劃與開發流程槽位凍結中，等 RIA 結果再比」，但槽位清單把 dev-workflow 列為 active。請維護者確認：是否應先凍結、等 RIA 結果後再做深入評估。若確認為 active，建議改為 deep_eval，重點實測 V1 的小改動與大功能分流，以及 Claude Code 的接入方式。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 13335,
+   "cached": 3694,
+   "output": 3453
+  },
+  "readme_sha": "076c7ae6d7f5",
+  "readme_chars": 14291
+ }
+}

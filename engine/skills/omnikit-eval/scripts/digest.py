@@ -72,6 +72,10 @@ def funnel_section(root, today):
         lines.append(f"- 第 1 層建議排實測：{'、'.join(deep)}")
     lines += ["- " + line.lstrip("# ") if line.startswith("##") else "  " + line
               for line in evidence.summary_lines(evidence.summary(funnel, today))]
+    import schedule
+
+    lines += ["- " + line.lstrip("# ") if line.startswith("##") else "  " + line
+              for line in schedule.digest_lines(funnel)]
     return lines
 
 

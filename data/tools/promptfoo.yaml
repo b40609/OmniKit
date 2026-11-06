@@ -4,6 +4,7 @@ kind: app
 slots:
 - skill-authoring
 status: pending
+url: https://github.com/promptfoo/promptfoo
 sources:
 - RIA:C061
 added: '2026-11-04'

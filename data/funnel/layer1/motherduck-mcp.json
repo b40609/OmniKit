@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "motherduck-mcp",
+ "name": "DuckDB MCP（MotherDuck）",
+ "url": "https://github.com/motherduckdb/mcp-server-motherduck",
+ "slots": [
+  "data-analysis"
+ ],
+ "scenarios": [
+  "A1"
+ ],
+ "summary": "這是把 DuckDB 包成 MCP 的本機 SQL 查詢伺服器，能直接用 SQL 查本機的 CSV 與 Parquet，可設成唯讀。它對得上 A1 的前半段（大檔的探索查詢），但不產圖表、也不編輯或重跑 notebook，所以 A1 的後半與 A2 都對不上。相對於現任的原生 python 路線，多的是 SQL 介面與唯讀預設，少的是圖表與 notebook 產出。",
+ "differences": "相對現任（native-data）多了：用 SQL 直接查大檔的介面、唯讀預設、可列出資料庫與欄位的目錄工具。少了：不能編輯 .ipynb、不能重跑 cell、不產生圖表；還需要先安裝 uv 並設定 MCP，多一層環境依賴。",
+ "claims": [
+  {
+   "claim": "以 stdio MCP 伺服器的形式提供，官方文件有 Claude Code 與 Codex CLI 的設定指令。",
+   "kind": "compat",
+   "how_to_verify": "對照 README 的 Client Setup 段落，確認有 claude mcp add 與 codex mcp add 範例；實際在本機執行一次註冊並列出工具。"
+  },
+  {
+   "claim": "預設為唯讀，需加 --read-write 旗標才能寫入。",
+   "kind": "security",
+   "how_to_verify": "查 README 的 Command Line Parameters 表，--read-write 預設為 False；另以唯讀模式連線後嘗試 CREATE TABLE，應被拒絕或失敗。"
+  },
+  {
+   "claim": "只用本機 DuckDB 檔或記憶體模式時不需要 MotherDuck 帳號或 token。",
+   "kind": "capability",
+   "how_to_verify": "不設定 motherduck_token 環境變數，以 --db-path 指向本機檔案啟動並執行查詢，確認成功。"
+  },
+  {
+   "claim": "可直接以 SQL 查詢大於記憶體的本機 CSV 與 Parquet 檔案。",
+   "kind": "capability",
+   "how_to_verify": "準備一個超過可用記憶體的 Parquet 或 CSV（或用 DuckDB 的串流聚合），透過 execute_query 查詢，確認可完成且不會整個載入記憶體。"
+  },
+  {
+   "claim": "工具只有 execute_query、list_databases、list_tables、list_columns、switch_database_connection，沒有圖表或 notebook 相關工具。",
+   "kind": "capability",
+   "how_to_verify": "查 README 的 Tools 表，或啟動伺服器後列出工具清單，逐一比對。"
+  },
+  {
+   "claim": "在 Windows 上可用；但沒有 Windows CI，且 README 的 troubleshooting 提到 spawn uvx ENOENT 問題。",
+   "kind": "compat",
+   "how_to_verify": "在本機 Windows 11 安裝 uv，用 uvx 的完整路徑設定並啟動，執行一次 execute_query；檢查倉庫的 CI 設定是否含 windows。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-data"
+  ],
+  "note": "現任 native-data 可用 shell 跑 python 讀 CSV/Parquet 並改 .ipynb、重跑 notebook，因此 A1 的圖表與 notebook 段已由內建處理；但內建沒有以 SQL 直接查大檔的專用介面，這一塊只部分涵蓋。"
+ },
+ "cluster": "sql-query-mcp",
+ "recommendation": "deep_eval",
+ "needs_user": "A1 的核心交付包含圖表與可重跑的 notebook，此工具都不提供，只覆蓋查詢那一段。請維護者決定是否仍以 A1 的查詢段計入 data-analysis 槽位；若不計，應改為 keep_pending 或 reject。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 14218,
+   "cached": 3694,
+   "output": 4270
+  },
+  "readme_sha": "0dddca489475",
+  "readme_chars": 13055
+ }
+}

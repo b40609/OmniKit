@@ -1,0 +1,64 @@
+{
+ "layer": 1,
+ "tool_id": "browser-mcp",
+ "name": "Browser MCP",
+ "url": "https://github.com/BrowserMCP/mcp",
+ "slots": [],
+ "scenarios": [],
+ "summary": "Browser MCP 的主要用途是讓 agent 在使用者已登入的 Chrome 裡操作網站，這和 U1 要的「改完前端後在 dev server 看畫面與 console 錯誤」不是同一件事。它對不上 browser 槽位的任何情境，同類需求也已由原生瀏覽器與 Claude in Chrome 涵蓋。",
+ "differences": "相對 browser 槽位現任（Chrome DevTools MCP、原生瀏覽器）：多了「使用已登入的個人 Chrome」與同時支援多種 AI 應用的 MCP 介面；少了 U1 需要的 dev server 驗證流程，資料中也沒有 console 錯誤擷取的說明。另外需要安裝 Chrome 擴充功能並完成配對，流程比現任重。",
+ "claims": [
+  {
+   "claim": "需要安裝 Chrome 擴充功能，並在 Chrome 中按「Allow」完成六位數配對才能連線",
+   "kind": "security",
+   "how_to_verify": "閱讀 README「How it works」與「Build it yourself」第 4 步，確認配對流程與擴充功能角色"
+  },
+  {
+   "claim": "以 npx @browsermcp/mcp 提供 MCP server，可在 Claude Code、Codex 等 AI 應用設定",
+   "kind": "capability",
+   "how_to_verify": "閱讀 README 的 MCP server 段落與 npm 套件頁，確認套件名稱與設定方式"
+  },
+  {
+   "claim": "操作的是使用者自己的 Chrome 分頁與登入狀態，不是乾淨的獨立瀏覽器設定檔",
+   "kind": "security",
+   "how_to_verify": "閱讀 README 開頭與 How it works，確認是否透過使用者 Chrome profile 操作"
+  },
+  {
+   "claim": "自建需要 Node.js 24 以上、pnpm 與 Chromium 系瀏覽器，Firefox 不支援",
+   "kind": "compat",
+   "how_to_verify": "閱讀 README「Build it yourself」的前置需求段落"
+  },
+  {
+   "claim": "倉庫目前沒有 Windows CI 工作流程",
+   "kind": "compat",
+   "how_to_verify": "檢查倉庫 .github/workflows 目錄是否包含 windows-latest 的 job（第 0 層顯示 windows_ci 為 false）"
+  },
+  {
+   "claim": "授權為 Apache-2.0，且自建與團隊內部使用被允許",
+   "kind": "capability",
+   "how_to_verify": "閱讀 LICENSE 與 README「License」段落"
+  }
+ ],
+ "native_coverage": {
+  "level": "covered",
+  "by": [
+   "native-browser"
+  ],
+  "note": "Claude Code 的 native-browser 與 Claude in Chrome 已涵蓋已登入網站的操作；Codex 的 in-app browser 已涵蓋 localhost 的前端驗證。Browser MCP 的主要用途兩邊原生都有對應。"
+ },
+ "cluster": "browser-extension-relay",
+ "recommendation": "reject",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 10085,
+   "cached": 3694,
+   "output": 3789
+  },
+  "readme_sha": "9a321a857e80",
+  "readme_chars": 6197
+ }
+}

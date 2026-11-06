@@ -1,0 +1,144 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: addy-agent-skills
+cards:
+- id: ev-20261105-addy-agent-skills-01
+  tool: addy-agent-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/addyosmani/agent-skills/issues/404
+    author: federicobartoli
+    published: '2026-07-15'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: test-driven-development 的範例偏向 JavaScript/TypeScript，套用到 Java 等其他語言的適用性未經驗證。
+  quote: examples and supporting material appear specific to JavaScript and TypeScript
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-addy-agent-skills-02
+  tool: addy-agent-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/addyosmani/agent-skills/issues/433
+    author: lhoupert
+    published: '2026-07-29'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code + Cursor
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: cost
+  direction: '-'
+  claim: 使用者在對照 Claude 5 世代的 context 指引後移除了這套 pack，認為它是最大的單項 context 負擔（線索內文被截斷，僅依可見部分）。
+  quote: this pack ended up being the biggest single thing I removed
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-addy-agent-skills-03
+  tool: addy-agent-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/addyosmani/agent-skills/issues/445
+    author: hertzqula
+    published: '2026-08-02'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Antigravity CLI (agy) 1.1.9
+    mode: agy plugin install
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: Antigravity CLI（agy 1.1.9）透過 plugin 安裝後，8 個生命週期 slash commands 無法被搜尋到，即使 plugin validate 回報已處理；文件記載的安裝路徑也不符。
+  quote: don't appear as searchable commands
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-addy-agent-skills-04
+  tool: addy-agent-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/addyosmani/agent-skills/issues/214
+    author: DavOnGit
+    published: '2026-05-31'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+    os: Windows
+    mode: SessionStart hook
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 安裝在路徑含空白的 Windows 使用者資料夾時，SessionStart hook 因 CLAUDE_PLUGIN_ROOT 未加引號而啟動失敗；議題已關閉，線索中未確認修復版本。
+  quote: SessionStart hook fails when plugin path contains a space
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2026-08-29'
+- id: ev-20261105-addy-agent-skills-05
+  tool: addy-agent-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/addyosmani/agent-skills/issues/494
+    author: eliott-herbert-byrnes
+    published: '2026-08-14'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Cursor
+    mode: skill attached to chat prompt
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: 在 Cursor 對話中附上 skill 並送出後出現伺服器錯誤、上下文遺失，無法送到模型供應商；需改用明確指示繞過。是否為 skill 本身所致未經確認。
+  quote: an unexpected error occurs on our servers
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-addy-agent-skills-06
+  tool: addy-agent-skills
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/addyosmani/agent-skills/issues/715
+    author: monraza
+    published: '2026-10-19'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+    mode: slash commands
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 生命週期 slash commands 未設定 disable-model-invocation，Claude 可能自行觸發 /build、/ship 等有副作用的指令；議題已關閉，線索中未確認修復版本。
+  quote: Claude can start /build, /ship, /review and the rest on its own
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2027-01-17'

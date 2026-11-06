@@ -3,6 +3,7 @@ name: DeepGit
 slots:
 - product-research
 status: pending
+url: https://github.com/zamalali/DeepGit
 sources:
 - RIA:C009
 added: '2026-11-04'

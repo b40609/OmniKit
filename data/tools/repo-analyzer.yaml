@@ -3,6 +3,7 @@ name: repo-analyzer
 slots:
 - product-research
 status: pending
+url: https://github.com/yzddmr6/repo-analyzer
 sources:
 - RIA:C023
 added: '2026-11-04'

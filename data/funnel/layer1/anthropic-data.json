@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "anthropic-data",
+ "name": "Anthropic data plugin",
+ "url": "https://github.com/anthropics/knowledge-work-plugins",
+ "slots": [
+  "data-analysis"
+ ],
+ "scenarios": [
+  "A1"
+ ],
+ "summary": "這個工具對得上 data-analysis 槽位的 A1（大型本機資料的探索分析與圖表），但只有部分吻合。它是一組純 markdown 的分析 skill，沒有程式執行能力，也沒有說明如何處理數十萬列以上的檔案或異常偵測。A2（改既有 notebook 並重跑）不在它的範圍內，原生 native-data 已能處理。目前看不出它有現任沒有、又不會被內建涵蓋的必要能力，因此先收著，等有本機大檔的實測結果再決定。",
+ "differences": "相較現任原生資料分析：多了 10 個分析方法 skill（探索、統計分析、圖表、資料驗證、SQL 等）與對應的 slash command 包裝，可提供結構化的分析步驟。少了：沒有 notebook 編輯或 python 執行工具，無法直接產出可重跑的 notebook；附的 MCP 連線指向 Snowflake、BigQuery、Hex 等雲端倉儲，需要帳號，對本機 CSV 或 Parquet 沒有幫助；目前只對 Claude Cowork 與 Claude Code 有效，Codex 需要另外搬移 skill。",
+ "claims": [
+  {
+   "claim": "data 子目錄內含 10 個 skill，包含 explore-data、statistical-analysis、create-viz、validate-data、sql-queries 等。",
+   "kind": "capability",
+   "how_to_verify": "列出 data/skills 下的 SKILL.md，確認數量與名稱。"
+  },
+  {
+   "claim": "附的 .mcp.json 連接 Snowflake、BigQuery、Hex 等雲端資料倉儲，使用前需要帳號。",
+   "kind": "cost",
+   "how_to_verify": "閱讀 data/.mcp.json 的 server 設定，確認連線目標與認證方式。"
+  },
+  {
+   "claim": "內容全為 markdown 與 JSON，沒有可執行的分析程式或 notebook 執行工具。",
+   "kind": "capability",
+   "how_to_verify": "掃描 data 目錄的檔案類型，確認沒有 .py、.ipynb 或 build 腳本。"
+  },
+  {
+   "claim": "倉庫根目錄沒有 SKILL.md，skill 只存在於 data 子目錄，因此第 0 層的 skill 偵測結果為 0。",
+   "kind": "compat",
+   "how_to_verify": "在倉庫根目錄與 data 子目錄分別執行 find 指令尋找 SKILL.md。"
+  },
+  {
+   "claim": "授權為 Apache-2.0。",
+   "kind": "compat",
+   "how_to_verify": "檢查倉庫根目錄的 LICENSE 檔案。"
+  },
+  {
+   "claim": "主要目標是 Claude Cowork，Codex 需要另外移植 skill，不能直接安裝。",
+   "kind": "compat",
+   "how_to_verify": "依 README 的 Claude Code 安裝指令安裝後，在 Codex 中確認 skill 是否被載入。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-data"
+  ],
+  "note": "native-data 已涵蓋 notebook 的逐 cell 編輯與 python 重跑（A2 完全覆蓋）。A1 的探索分析與圖表有一部分可由原生做到，但沒有內建的異常偵測或資料驗證方法論，所以只算部分覆蓋。"
+ },
+ "cluster": "skill-plugin-bundle",
+ "recommendation": "keep_pending",
+ "needs_user": "請確認 A1 的主要情境是否為本機大型 CSV 或 Parquet。若是，需要一份實際的本機測試資料（數十萬列以上），才能判斷是否進入 deep_eval。另外，第 0 層顯示根目錄 skill 數為 0，是因為 skill 位於 data 子目錄，請確認這樣的偵測規則是否需要調整。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 10631,
+   "cached": 3694,
+   "output": 4090
+  },
+  "readme_sha": "6db45ae72534",
+  "readme_chars": 6059
+ }
+}

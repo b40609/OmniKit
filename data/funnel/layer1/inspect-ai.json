@@ -1,0 +1,64 @@
+{
+ "layer": 1,
+ "tool_id": "inspect-ai",
+ "name": "Inspect AI",
+ "url": "https://github.com/UKGovernmentBEIS/inspect_ai",
+ "slots": [
+  "skill-authoring"
+ ],
+ "scenarios": [
+  "K1"
+ ],
+ "summary": "Inspect 是 Python 寫的 LLM 評估框架，不是 skill 製作工具。它只在 K1 的「證明 skill 比沒裝好」有間接關係：理論上可以寫 task 做有／無 skill 的對照，但要自己寫評估流程。skill-authoring 是 watch 槽位，現任 skill-creator 已涵蓋撰寫，Inspect 也沒有 SKILL.md 或 Claude／Codex 外掛相容性，因此先收著。",
+ "differences": "相較於現任 skill-creator，Inspect 多了通用的模型評估能力（task、dataset、scorer、模型評分），可以做較嚴謹的有／無對照。但少了 skill 撰寫、SKILL.md 格式支援、Claude 與 Codex 的 skill 或外掛整合，也沒有針對 agent skill 的現成範本。相較於內建的 claude-plugin-eval，它的範圍更廣，但不是專為 plugin 或 skill 設計，使用前要自己接好流程。",
+ "claims": [
+  {
+   "claim": "這是以 Python 實作的 LLM 評估框架，依 pyproject.toml 以 uv 安裝。",
+   "kind": "capability",
+   "how_to_verify": "檢查 repo 根目錄的 pyproject.toml 與 README 的安裝步驟。"
+  },
+  {
+   "claim": "repo 沒有 SKILL.md、Claude plugin／marketplace 或 Codex plugin 檔案。",
+   "kind": "compat",
+   "how_to_verify": "列出 repo 檔案樹，搜尋 SKILL.md、.claude-plugin、plugin manifest；確認第 0 層旗標與實際結果一致。"
+  },
+  {
+   "claim": "repo 有 AGENTS.md，文件也提供給 coding agent 讀的 llms.txt 索引。",
+   "kind": "compat",
+   "how_to_verify": "確認 repo 根目錄有 AGENTS.md；開啟 https://inspect.aisi.org.uk/llms.txt 確認可讀。"
+  },
+  {
+   "claim": "CI 沒有 Windows 執行環境，原生 Windows 支援未經 CI 驗證。",
+   "kind": "compat",
+   "how_to_verify": "檢查 .github/workflows 的 runs-on 設定是否包含 windows-latest。"
+  },
+  {
+   "claim": "Inspect 的評估對象是語言模型，不是 agent skill 或 plugin；要評估 skill 需要自己寫 task 與對照設定。",
+   "kind": "capability",
+   "how_to_verify": "閱讀 docs 的 task、solver、scorer 章節，確認 API 以模型輸入輸出為單位。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "claude-plugin-eval"
+  ],
+  "note": "內建的 claude plugin eval 針對 plugin 與 skill 的評估有部分重疊；Inspect 是通用的模型評估框架，兩者範圍不同，內建並未完整涵蓋 K1 的需求。"
+ },
+ "cluster": "model-eval-harness",
+ "recommendation": "keep_pending",
+ "needs_user": "請維護者確認：通用的 LLM 評估框架（如 Inspect）是否算 K1「證明 skill 有效」的對應做法。若算，skill-authoring 槽位可以考慮接受它；若不算，這張工具卡應改判為 reject。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 8898,
+   "cached": 3694,
+   "output": 3728
+  },
+  "readme_sha": "4c589b974013",
+  "readme_chars": 3132
+ }
+}

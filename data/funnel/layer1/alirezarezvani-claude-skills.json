@@ -1,0 +1,74 @@
+{
+ "layer": 1,
+ "tool_id": "alirezarezvani-claude-skills",
+ "name": "claude-skills（alirezarezvani）",
+ "url": "https://github.com/alirezarezvani/claude-skills",
+ "slots": [
+  "memory",
+  "behavior-rules",
+  "dev-workflow"
+ ],
+ "scenarios": [
+  "M1",
+  "B1",
+  "V1"
+ ],
+ "summary": "這是一個約 411 個 skill 的合集，宣稱同時支援 Claude Code 與 Codex 等工具。能對上 OmniKit 槽位的只有三處：交接（memory M1）、行為準則（behavior-rules B1）與開發流程（dev-workflow V1）。其餘多數是行銷、財務、法遵等與本地 agent 工作流無關的領域，不列入槽位。",
+ "differences": "memory（M1）：現任是原生記憶，只在 Claude 內部運作、不跨工具。合集的交接類 skill 宣稱能在不同 agent 之間接續工作，但目前沒有證據顯示能讓 Claude Code 與 Codex 之間不重講脈絡。behavior-rules（B1）：沒有現任。karpathy-coder 偏向事後審查程式碼紀律，和事前寫入的行為準則包不是同一種做法。dev-workflow（V1）：現任是 BMAD-METHOD。合集以 agent-harness、human-gate 等機制取代，缺少小改動走輕量流程的分級，多了 gate 與 closeout 之類的關卡。整體相較內建少了 Windows 原生 CI 驗證（windows_ci 為 false），多了大量非工程領域的 skill。",
+ "claims": [
+  {
+   "claim": "Claude Code 可用 /plugin marketplace add 加入此 repo，並安裝 engineering-skills 套件",
+   "kind": "compat",
+   "how_to_verify": "在 Claude Code 執行 marketplace add 與 plugin install，確認 /plugin 清單出現該套件，且技能可被呼叫。"
+  },
+  {
+   "claim": "Codex 可用 npx agent-skills-cli 或 scripts/codex-install.sh 安裝",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 上實際執行兩種安裝方式，檢查 ~/.codex/skills 是否產生預期的技能目錄與 SKILL.md。"
+  },
+  {
+   "claim": "Windows 安裝需要開啟 symlink 並設定 PYTHONUTF8=1，否則鏡像目錄會變成一行指標檔",
+   "kind": "compat",
+   "how_to_verify": "不加 core.symlinks 參數 clone，檢查 .codex/ 與 .gemini/ 下的檔案內容是否變成指標文字；再設定 PYTHONUTF8=1 執行含 Unicode 輸出的腳本。"
+  },
+  {
+   "claim": "807 個 Python 工具只用標準函式庫，安裝時不需要 pip",
+   "kind": "cost",
+   "how_to_verify": "對 scripts 目錄做 import 掃描，比對標準函式庫清單，找出任何第三方套件的 import。"
+  },
+  {
+   "claim": "包含 karpathy-coder（程式碼紀律審查）與 handoff（交接）技能，可對應 B1 與 M1",
+   "kind": "capability",
+   "how_to_verify": "讀 .claude-plugin/marketplace.json 與兩個 SKILL.md，確認實際規則內容是否真的做到『不擴大範圍』與『跨 session 交接』。"
+  },
+  {
+   "claim": "每個 skill 都經過自然語言觸發測試，並公開 VERIFIED.md 結果",
+   "kind": "quality",
+   "how_to_verify": "讀 VERIFIED.md 的測試方法、樣本數與失敗案例，確認測試能否重跑、結果是否可重現。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-memory",
+   "native-workflow"
+  ],
+  "note": "原生記憶與 plan mode、/goal 能覆蓋部分交接與流程需求，但不跨工具，也沒有行為準則包。"
+ },
+ "cluster": "skill-pack-catalog",
+ "recommendation": "deep_eval",
+ "needs_user": "請維護者確認 B1 與 V1 的槽位對應是否接受：karpathy-coder 偏向審查、不是行為準則包；V1 與現任 BMAD-METHOD 有重疊。若不接受，可只保留 M1 並改為 keep_pending。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 20407,
+   "cached": 3694,
+   "output": 6231
+  },
+  "readme_sha": "f3dd87d00b96",
+  "readme_chars": 30666
+ }
+}

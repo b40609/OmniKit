@@ -4,6 +4,7 @@ kind: plugin
 slots:
 - review
 status: pending
+url: https://github.com/openai/codex-security
 works_with:
 - codex
 sources:

@@ -1,0 +1,53 @@
+{
+ "tool": "marimo-skills",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "marimo-team/skills",
+  "sha": "6454470960d3cd57151aaeffb1176dd55f598b18"
+ },
+ "executable": [
+  "skill 附可執行檔（.py）"
+ ],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99208,
+   "with_bytes": 100350,
+   "delta_bytes": 1142,
+   "delta_tokens_est": 286,
+   "mentions": [
+    "add-molab-badge",
+    "anywidget",
+    "auto-paper-demo",
+    "implement-paper",
+    "implement-paper-auto",
+    "jupyter-to-marimo",
+    "marimo-batch",
+    "marimo-notebook",
+    "streamlit-to-marimo",
+    "wasm-compatibility"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70359,
+   "with_bytes": 71940,
+   "delta_bytes": 1581,
+   "delta_tokens_est": 395,
+   "mentions": [
+    "add-molab-badge",
+    "anywidget",
+    "auto-paper-demo",
+    "implement-paper",
+    "implement-paper-auto",
+    "jupyter-to-marimo",
+    "marimo-batch",
+    "marimo-notebook",
+    "streamlit-to-marimo",
+    "wasm-compatibility"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "10 個 skill"
+ }
+}

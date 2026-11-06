@@ -1,0 +1,52 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: pullboard
+cards:
+- id: ev-20261105-pullboard-01
+  tool: pullboard
+  tool_version_tested: 0.9.3
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/pullboard-dev/pullboard/issues/16
+    author: anhtahaylove
+    published: '2026-11-03'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: pullboard CLI（tour）
+    os: Windows 11（Git Bash）
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 在 Windows 上，於 lane 工作樹執行 pullboard next 會另開席位並在該處認領，導致 pullboard tour 在第 3 步因 NOT_YOURS 停止。
+  quote: On Windows, `pullboard next` in a lane worktree opens a second seat and claims there
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-pullboard-02
+  tool: pullboard
+  tool_version_tested: d008e18（main）
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/pullboard-dev/pullboard/issues/11
+    author: McHersheys
+    published: '2026-10-25'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: 原始碼檢視
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: 作者依原始碼指出，中繼站與 Git 傳輸之外還依賴 GitHub App 權限檢查，防抖動 fetch/push 無法消除此相依，且目前未區分 GitHub 限流與存取拒絕。
+  quote: 'Relay-linked local work has two different dependencies:'
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'

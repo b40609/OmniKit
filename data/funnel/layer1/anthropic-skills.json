@@ -1,0 +1,68 @@
+{
+ "layer": 1,
+ "tool_id": "anthropic-skills",
+ "name": "Anthropic skills",
+ "url": "https://github.com/anthropics/skills",
+ "slots": [
+  "frontend-design",
+  "docs-output"
+ ],
+ "scenarios": [
+  "F1",
+  "F2",
+  "D1"
+ ],
+ "summary": "這是 Anthropic 官方的 Claude skills 範例集合（19 個子 skill），星數很高但性質偏示範。它和 frontend-design 現任同名，對 F1、F2 有對應，但我手上沒有現任內容，無法確認它比較強。docx、pptx、xlsx、pdf 這組與原生文件產出同源，對 D1 沒有額外價值。Codex 沒有 plugin 格式，F1 若要在 Codex 用，只能手動搬 SKILL.md。目前先收著，等確認現任來源再決定要不要深評。",
+ "differences": "對 frontend-design：現任也叫 frontend-design，但來源與內容未知，無法判斷多了或少了什麼；只能確定這個版本是 Claude 專用的 marketplace 格式，沒有 Codex plugin，在 Codex 上要手動搬檔，少了跨 agent 的安裝路徑。對 docs-output：docx、pptx、xlsx、pdf 這幾組與原生文件產出的來源相同（都是 Claude 文件 skill），沒有多出能力；另外授權是 source-available，不是開源，用在工作產出時要留意。",
+ "claims": [
+  {
+   "claim": "repo 內含 19 個子 skill 資料夾，且其中有 frontend-design 與 docx、pptx、xlsx、pdf 這些文件 skill",
+   "kind": "capability",
+   "how_to_verify": "列出 repo 的 skills/ 目錄，確認 frontend-design、docx、pptx、xlsx、pdf 各自的資料夾與 SKILL.md 是否存在"
+  },
+  {
+   "claim": "可用 Claude Code 的 plugin marketplace 安裝（/plugin marketplace add anthropics/skills）",
+   "kind": "compat",
+   "how_to_verify": "在 Claude Code 執行該指令，確認 marketplace 能加入且能列出 document-skills 與 example-skills"
+  },
+  {
+   "claim": "沒有 Codex plugin 格式（repo 內沒有 Codex 的 plugin manifest）",
+   "kind": "compat",
+   "how_to_verify": "搜尋 repo 中是否有 Codex plugin 的 manifest 檔；Layer 0 的 codex_plugin 為 false，可再以目錄樹確認"
+  },
+  {
+   "claim": "授權不一致：多數 skill 為 Apache 2.0，但 docx、pdf、pptx、xlsx 為 source-available 而非開源",
+   "kind": "security",
+   "how_to_verify": "檢查各子 skill 資料夾內的 LICENSE 檔，以及 README 中授權段落的說法是否一致"
+  },
+  {
+   "claim": "README 明言這些 skill 僅供示範與教育用途，實際 Claude 內建行為可能不同，不保證適用於關鍵任務",
+   "kind": "quality",
+   "how_to_verify": "閱讀 README 的 Disclaimer 段落原文"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-docs",
+   "claude-design"
+  ],
+  "note": "文件產出（docx、pptx、xlsx、pdf）原生已有相同來源的 skill，屬於 covered；前端設計只有 claude-design 這個 research preview 部分涵蓋，且限定付費方案，所以前端這塊只算 partial。"
+ },
+ "cluster": "curated-skill-library",
+ "recommendation": "keep_pending",
+ "needs_user": "請確認目前 frontend-design 現任是哪個來源（是否就是 anthropics/skills 的同一版）；若不是，才值得做 F1 的比較評估。另外請決定是否要把 19 個子 skill 拆開逐一評估，因為 Layer 0 的 skill_md 旗標為 false，與 skills 數量 19 不一致，需要先確認 SKILL.md 實際位置。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 10161,
+   "cached": 3694,
+   "output": 5751
+  },
+  "readme_sha": "2fb9c4cc0263",
+  "readme_chars": 5552
+ }
+}

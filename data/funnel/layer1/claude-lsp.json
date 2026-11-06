@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "claude-lsp",
+ "name": "Claude 官方 LSP plugin",
+ "url": "https://github.com/anthropics/claude-plugins-official",
+ "slots": [
+  "code-understanding"
+ ],
+ "scenarios": [
+  "C1"
+ ],
+ "summary": "此工具的「跳到定義、找參照」能力可能對得上 code-understanding 的 C1（找函式的呼叫者與影響範圍）。現任是原生 grep／glob 搜尋，只能做文字比對，抓不到語意上的參照。目前沒有實測，依規則預設視為沒效果；它只支援 Claude，Codex 沒有對應。C2 不太適用，因此不放進 slots。建議深入評估。",
+ "differences": "相較現任原生搜尋（grep／glob），多了語意層的定義跳轉與參照查找，能分辨同名函式與真正的呼叫關係。相對地，少了跨工具相容性：只支援 Claude，Codex 沒有對應；另外需要使用者另外安裝對應語言的伺服器，並會執行第三方程式。對 C2（第三方 repo 研究筆記）幫助有限。",
+ "claims": [
+  {
+   "claim": "提供跳到定義與找出參照（呼叫者）的功能",
+   "kind": "capability",
+   "how_to_verify": "在 Claude Code 安裝此 plugin，於一個小型 Python 專案對某函式執行定義跳轉與找參照，比對輸出是否列出真正的呼叫點。"
+  },
+  {
+   "claim": "目前只支援 Claude（works_with 只列 claude），Codex 沒有對應",
+   "kind": "compat",
+   "how_to_verify": "檢查 plugin 目錄的 plugin.json 與 README 的 works_with 或相容性說明，並確認 Codex 的 plugin 清單中沒有對應項目。"
+  },
+  {
+   "claim": "需要使用者另外安裝各語言的語言伺服器才能運作",
+   "kind": "capability",
+   "how_to_verify": "閱讀此 plugin 的設定檔（如 .lsp.json 或 .mcp.json）列出的執行檔，在乾淨的 Windows 11 環境中不裝伺服器執行，確認失敗訊息。"
+  },
+  {
+   "claim": "在 Windows 11（win32）上可以正常運作",
+   "kind": "compat",
+   "how_to_verify": "在本機 win32 安裝並對 OmniKeep 的 Python 程式執行找參照，記錄是否成功、輸出內容與錯誤訊息。"
+  },
+  {
+   "claim": "找呼叫者的準確率高於純 grep 搜尋",
+   "kind": "quality",
+   "how_to_verify": "從 OmniKeep 挑 10 個函式，人工標出真正的呼叫點作為標準答案，分別統計 LSP 與 grep 的漏抓與誤判數量。"
+  },
+  {
+   "claim": "執行時會啟動第三方語言伺服器程式，安裝前需要確認來源與權限",
+   "kind": "security",
+   "how_to_verify": "檢視 plugin 設定檔指定的執行檔來源（發行者、版本、雜湊），確認它只讀取專案檔案、沒有額外的網路或寫入行為。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-search"
+  ],
+  "note": "原生 grep／glob 可做文字搜尋，但無法做語意上的定義跳轉與參照查找；內建功能清單中沒有 LSP 類功能。"
+ },
+ "cluster": "lsp-semantic-navigation",
+ "recommendation": "deep_eval",
+ "needs_user": "請維護者確認：(1) 評估範圍是否只限 C1，C2 是否也要納入；(2) 這個 claude-lsp 條目指的是 marketplace 中哪一個具體 plugin，因為 L0 的 claude_plugin 旗標為 false，需要先確認對應的 plugin 目錄；(3) 是否同意在 OmniKeep 的 Python 程式上做實測。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 9126,
+   "cached": 3694,
+   "output": 3928
+  },
+  "readme_sha": "f34b8730d2b6",
+  "readme_chars": 3807
+ }
+}

@@ -1,0 +1,145 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: ecc
+cards:
+- id: ev-20261105-ecc-01
+  tool: ecc
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/affaan-m/ECC/issues/3685
+    author: alexpostnik
+    published: '2026-10-24'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Codex
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: cost
+  direction: '-'
+  claim: 回報代理人將工作切成過多階段與獨立任務，任務間行政準備耗時，延遲也未單獨量測。
+  quote: excessive fragmentation into stages and separate tasks
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-01-22'
+- id: ev-20261105-ecc-02
+  tool: ecc
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/affaan-m/ECC/issues/3680
+    author: alexpostnik
+    published: '2026-10-24'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Codex
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 回報在既有連接器已涵蓋多數診斷時，代理人仍提議另外建立獨立的監控方案。
+  quote: Add a compact search-first example/evaluation
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-01-22'
+- id: ev-20261105-ecc-03
+  tool: ecc
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/affaan-m/ECC/issues/3682
+    author: alexpostnik
+    published: '2026-10-24'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Codex
+    mode: ECC Cloud workflow
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 回報在 ECC Cloud 流程中，代理人未將新建協議綁定到實際記錄，需使用者提醒。
+  quote: binding newly created agreements to the actual records
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-01-22'
+- id: ev-20261105-ecc-04
+  tool: ecc
+  tool_version_tested: 1.8.0
+  source:
+    type: issue
+    url: https://github.com/affaan-m/ECC/issues/2074
+    author: jkiwen
+    published: '2026-05-27'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: OpenCode
+    os: Windows 11
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: ECC 外掛 1.8.0 在 Windows 11 的 OpenCode TUI 中頻繁出現「bun 找不到」的錯誤。
+  quote: 'Frequent "bun: command not found" Error in OpenCode TUI'
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-08-25'
+- id: ev-20261105-ecc-05
+  tool: ecc
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/affaan-m/ECC/issues/3699
+    author: alexpostnik
+    published: '2026-10-24'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Codex
+    mode: second-hand historical report
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 回報建議先驗證已準備的驗證指令，並在後續驗證失敗時保留已接受變更的結果。
+  quote: validate prepared verifier commands and preserve accepted effects
+  reliability: D
+  credibility: 3
+  certainty: low
+  expires: '2027-01-22'
+- id: ev-20261105-ecc-06
+  tool: ecc
+  tool_version_tested: unknown
+  source:
+    type: issue
+    url: https://github.com/affaan-m/ECC/issues/3722
+    author: alexpostnik
+    published: '2026-10-25'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Codex
+    mode: instructions-based ECC Cloud package 0.1.3
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 回報代理人僅讀取 ECC 指引、未完成其流程，卻宣稱已使用 ECC；監測者未獨立稽核套件執行。
+  quote: distinguish reading ECC guidance from completing its workflow
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-01-23'

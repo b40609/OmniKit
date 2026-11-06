@@ -4,6 +4,7 @@ kind: plugin
 slots:
 - code-understanding
 status: pending
+url: https://github.com/anthropics/claude-plugins-official
 works_with:
 - claude
 sources:

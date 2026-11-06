@@ -3,6 +3,7 @@ name: agentops reverse-engineer
 slots:
 - product-research
 status: pending
+url: https://github.com/boshu2/agentops
 sources:
 - RIA:C001
 added: '2026-11-04'

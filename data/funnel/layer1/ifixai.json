@@ -1,0 +1,63 @@
+{
+ "layer": 1,
+ "tool_id": "ifixai",
+ "name": "iFixAi",
+ "url": "https://github.com/ifixai-ai/iFixAi",
+ "slots": [],
+ "scenarios": [],
+ "summary": "iFixAi 是拿來稽核「已經在跑的 chat agent」有沒有越權、被誘導、洩漏資料的工具：建一個模擬業務環境，送出含越權請求的對話，再由另一家的 LLM judge 評分。它對不上任何 active 或 watch 槽位。frontend-design、review、memory、code-understanding、output-compression、tool-discovery、behavior-rules、browser、dev-workflow、data-analysis 都是給 coding agent 的日常工作；iFixAi 不改程式、不審 diff、不做記憶交接，也不處理瀏覽器操作。最接近的是 review 與 behavior-rules，但前者審的是程式碼 diff，後者是寫程式時的行為準則，兩者都不是對外部 agent 做執行期稽核。工具卡裡「稽核 agent 有沒有守本分」是好奇點，目前沒有對應情境，建議不收。",
+ "differences": "跟內建功能比（現有槽位沒有可比的現任）：多了對執行中 agent 做模擬業務環境的越權與注入稽核、LLM judge 評分、A 到 F 等級與必過的最低標準。少了所有 coding 工作流會用到的能力：改前端、審 diff、跨 session 交接、程式碼搜尋、指令輸出壓縮、工具發現、行為準則、瀏覽器驗證。它要的是一個正在運作的 chat endpoint 與另一家的 judge API key，不是本機 coding agent 的外掛。",
+ "claims": [
+  {
+   "claim": "提供 Claude Code 外掛，可從 marketplace 安裝",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 的 plugin 目錄與 marketplace 設定檔，並在 Claude Code 執行 /plugin marketplace add ifixai-ai/iFixAi 確認可以加入。"
+  },
+  {
+   "claim": "Codex 外掛的相容性有衝突：README 寫有 Codex 外掛，第 0 層卻標示 codex_plugin 為 false",
+   "kind": "compat",
+   "how_to_verify": "在 Codex 執行 codex plugin marketplace add ifixai-ai/iFixAi，再看 codex plugin add 是否成功，並比對第 0 層的偵測結果。"
+  },
+  {
+   "claim": "以 Python 套件 ifixai 發布到 PyPI，需要 Python 3.10 以上",
+   "kind": "compat",
+   "how_to_verify": "查 PyPI 頁面的版本與 requires_python 欄位，並在乾淨的 venv 內執行 pip install ifixai。"
+  },
+  {
+   "claim": "內建 mock 的 demo agent，不需要 API key 就能跑完預設的 10 項檢查",
+   "kind": "capability",
+   "how_to_verify": "在乾淨環境依 README 執行 ifixai run --provider mock --eval-mode self --fixture reference.yaml，確認有產出 ifixai-results/ 的報告。"
+  },
+  {
+   "claim": "正式稽核時需要另一家 LLM 提供者的 judge API key，且 judge 不能與被測 agent 同一家",
+   "kind": "cost",
+   "how_to_verify": "讀 README 與 docs/testing-your-agent.md 的 judge 選擇規則，並以 --dry-run 看看計畫的 judge 呼叫次數與費用提示。"
+  },
+  {
+   "claim": "授權條款為 Apache-2.0，並在 CI 中跑 Windows",
+   "kind": "compat",
+   "how_to_verify": "檢查 LICENSE 檔案內容，以及 .github/workflows/ci.yml 的 runs-on 是否包含 windows 系統。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能沒有對執行中的 chat agent 做越權或注入稽核的能力；native-review 只審程式碼 diff，native-permissions 只管權限提示與通知。"
+ },
+ "cluster": "simulated-judge-audit",
+ "recommendation": "reject",
+ "needs_user": "目前所有槽位都對不上這個工具。如果維護者想為「agent 行為稽核」另開一個槽位，需要你自己決定要不要開，以及它的範圍。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 13108,
+   "cached": 3694,
+   "output": 3326
+  },
+  "readme_sha": "6b2fcd469f06",
+  "readme_chars": 12884
+ }
+}

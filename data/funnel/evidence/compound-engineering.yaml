@@ -1,0 +1,154 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: compound-engineering
+cards:
+- id: ev-20261105-compound-engineering-01
+  tool: compound-engineering
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/EveryInc/compound-engineering-plugin/issues/1300
+    author: nathanvale
+    published: '2026-08-01'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: ce-work 跨模型 integrate／verify-run
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: 在已安裝 node_modules 的 JS/TS 專案中，ce-work 的 integrate 與 verify-run 會因忽略檔快照上限（寫死 512 筆）而被拒，實際上無法使用。
+  quote: MAX_IGNORED_SNAPSHOT_ENTRIES = 512
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-10-30'
+- id: ev-20261105-compound-engineering-02
+  tool: compound-engineering
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/EveryInc/compound-engineering-plugin/issues/1797
+    author: Redmega
+    published: '2026-09-28'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: OpenCode 2.0.18
+    mode: ce-doc-review 的 OpenCode 跨模型路線
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: OpenCode 2.0.18 的 opencode run 已不接受 --dir，ce-doc-review 的 OpenCode 跨模型路線在模型回應前就失敗，並靜默降級為「無產出」。
+  quote: '`opencode run` no longer accepts --dir'
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-27'
+- id: ev-20261105-compound-engineering-03
+  tool: compound-engineering
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/EveryInc/compound-engineering-plugin/issues/1734
+    author: GodsBoy
+    published: '2026-09-17'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Devin（CLI 與 Devin Local）
+    mode: 通用子代理派送
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: CE 在 Devin 上派送的通用子代理無法選擇具名 worker profile；run_subagent 只依 profile 選取，不依原始 model id 選取，審查與修補等角色因此無法指定。
+  quote: run_subagent selects a worker by named profile, not by raw model id.
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-compound-engineering-04
+  tool: compound-engineering
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/EveryInc/compound-engineering-plugin/issues/1776
+    author: Fetterj
+    published: '2026-09-24'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Codex CLI
+    model: gpt-6-luna
+    mode: ChatGPT 帳號登入
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: Codex 以 ChatGPT 帳號登入時，ce-code-review 與 ce-doc-review 的跨模型對抗審查每次都因預設模型被拒而失敗，且不會退回同系列模型，改由主機內建審查者接手。
+  quote: fails on every run under ChatGPT login
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-23'
+- id: ev-20261105-compound-engineering-05
+  tool: compound-engineering
+  tool_version_tested: 3.21.0
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/EveryInc/compound-engineering-plugin/issues/1314
+    author: t851029
+    published: '2026-08-02'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Codex 與 Grok 轉接器（cross-model-work.sh）
+    os: macOS
+    mode: ce-work 跨模型工作路線
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: v3.21.0 的 ce-work 跨模型轉接器中，Codex 工作路線未設定 reasoning effort，Grok 工作路線的寫入一律被取消，兩者都讓工作路線的行為與同等的審查路線不一致。
+  quote: grok writes always cancelled
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-10-31'
+- id: ev-20261105-compound-engineering-06
+  tool: compound-engineering
+  tool_version_tested: 3.24.0
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/EveryInc/compound-engineering-plugin/issues/1606
+    author: kesslerio
+    published: '2026-08-31'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Cursor（PR 上的 eyes 反應）
+    mode: ce-babysit-pr 就緒判定
+  method: single-run
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: Cursor 留在 PR 上的 eyes 反應會被 ce-babysit-pr 誤判為進行中的審查，使已可合併的 PR 多等 15 到 30 分鐘（直到 stale-review 逾時）。
+  quote: persistent eyes reaction delays ce-babysit-pr readiness
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-11-29'

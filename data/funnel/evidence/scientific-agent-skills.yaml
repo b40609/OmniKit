@@ -1,0 +1,159 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: scientific-agent-skills
+cards:
+- id: ev-20261105-scientific-agent-skills-01
+  tool: scientific-agent-skills
+  tool_version_tested: 895b4be37ef0ca1cd55c6e628e7ff937ba5a1cf1
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/K-Dense-AI/scientific-agent-skills/issues/240
+    author: atiqur-rahman-pro
+    published: '2026-08-29'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: README 同時寫 161 與 163 個技能，但 skills/ 目錄實際有 163 個，數字前後不一致。
+  quote: the README uses both 161 and 163
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-11-27'
+- id: ev-20261105-scientific-agent-skills-02
+  tool: scientific-agent-skills
+  tool_version_tested: unknown
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/K-Dense-AI/scientific-agent-skills/issues/229
+    author: vnbochkarev-netizen
+    published: '2026-08-19'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: marketing
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 第三方 QA 服務（ViBo SkillQA）對 gtars 技能評為 C 級（62/100），指出 frontmatter 缺少 version；報告來自推銷付費服務的廠商。
+  quote: 'Grade: C (62/100)'
+  reliability: D
+  credibility: 4
+  certainty: very-low
+  expires: '2026-11-17'
+- id: ev-20261105-scientific-agent-skills-03
+  tool: scientific-agent-skills
+  tool_version_tested: unknown
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/K-Dense-AI/scientific-agent-skills/issues/292
+    author: aniruddhaadak80
+    published: '2026-09-29'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    os: Windows（cp1252 主控台）
+  method: single-run
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 約 35 個技能腳本輸出 ✓、✗、→ 等 cp1252 無法編碼的符號，在預設 Windows 主控台會以 UnicodeEncodeError 直接崩潰。
+  quote: they crash on Windows before reporting anything
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-28'
+- id: ev-20261105-scientific-agent-skills-04
+  tool: scientific-agent-skills
+  tool_version_tested: unknown
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/K-Dense-AI/scientific-agent-skills/issues/286
+    author: aniruddhaadak80
+    published: '2026-09-29'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: deeptools 的 validate_files 以 str.replace 推導 .bai 路徑，父目錄名含 .bam 時，已建索引的 BAM 會被誤判為未建索引。
+  quote: str.replace is global, not suffix-anchored
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-28'
+- id: ev-20261105-scientific-agent-skills-05
+  tool: scientific-agent-skills
+  tool_version_tested: unknown
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/K-Dense-AI/scientific-agent-skills/issues/279
+    author: aniruddhaadak80
+    published: '2026-09-28'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: single-run
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: experimental-design 的 _normalize_ratio 未檢查分配比是否為整數，小數比例會被 int() 無聲截斷，實驗組被靜默丟掉。
+  quote: silently drops a treatment arm when an allocation ratio is fractional
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-27'
+- id: ev-20261105-scientific-agent-skills-06
+  tool: scientific-agent-skills
+  tool_version_tested: unknown
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/K-Dense-AI/scientific-agent-skills/issues/295
+    author: aniruddhaadak80
+    published: '2026-09-30'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: analytical-method-validation 的 CSV 分支會去除欄位空白，JSON 分支不會，同一筆資料依輸入格式被接受或拒絕。
+  quote: accepts or rejects the same record depending on
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-29'
+- id: ev-20261105-scientific-agent-skills-07
+  tool: scientific-agent-skills
+  tool_version_tested: unknown
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/K-Dense-AI/scientific-agent-skills/issues/284
+    author: aniruddhaadak80
+    published: '2026-09-29'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: arbor 的 set-evidence 不驗證 --status，錯誤的狀態值會被寫入並以 exit code 0 結束，之後 validate 才拒絕它。
+  quote: a typo persists a status the tool itself rejects
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-28'

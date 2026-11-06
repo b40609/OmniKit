@@ -1,0 +1,168 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: serena
+cards:
+- id: ev-20261105-serena-01
+  tool: serena
+  tool_version_tested: unknown
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/oraios/serena/issues/1263
+    author: D3strukt0r
+    published: '2026-04-01'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    os: macOS
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: Dashboard 即使設為不開啟，仍會以 Python 程式在背景開啟並最小化，佔用工具列。
+  quote: Do not distract me with programs opening in the background
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-06-30'
+- id: ev-20261105-serena-02
+  tool: serena
+  tool_version_tested: unknown
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/oraios/serena/issues/2029
+    author: Serg2000Mr
+    published: '2026-09-13'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 專案登錄檔會無限增長：activate_project 的路徑一律自動登錄，且沒有移除指令或選項。
+  quote: autoregister=True is hardcoded in the CLI
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2026-12-12'
+- id: ev-20261105-serena-03
+  tool: serena
+  tool_version_tested: 1.7.0
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/oraios/serena/issues/2145
+    author: opcode81
+    published: '2026-10-08'
+    retrieved: '2026-11-05'
+  independence: vendor
+  setup:
+    os: Windows 11
+    mode: MCP streamable HTTP
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: LSP 後端每次查詢都會做檔案系統輪詢，對未變動的大型 C# 專案有額外開銷；維護者正在評估是否加入節流或關閉選項。
+  quote: option to throttle or disable the per-query file-system poll
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-serena-04
+  tool: serena
+  tool_version_tested: unknown
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/oraios/serena/issues/1976
+    author: TyceHerrman
+    published: '2026-09-02'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: Java 語言伺服器的專案匯入相關設定（Maven、Gradle 等）沒有文件化的調整方式。
+  quote: Serena does not provide a documented way to change
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-12-01'
+- id: ev-20261105-serena-05
+  tool: serena
+  tool_version_tested: unknown
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/oraios/serena/issues/1389
+    author: opcode81
+    published: '2026-04-21'
+    retrieved: '2026-11-05'
+  independence: vendor
+  setup:
+    os: Windows
+    mode: WebView2 dashboard renderer
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 儀表板前端疑似有記憶體洩漏：舊的 WebView2 程序執行約 22 小時後明顯較大，但未附上任何傾印資料。
+  quote: No dump data is attached
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-serena-06
+  tool: serena
+  tool_version_tested: unknown
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/oraios/serena/issues/805
+    author: meatballs
+    published: '2025-12-03'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: 在 git 工作樹（worktree）底下工作時，Serena 會把它當成新專案，忽略上層的記憶。
+  quote: Is this workflow supported?
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-03-03'
+- id: ev-20261105-serena-07
+  tool: serena
+  tool_version_tested: unknown
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/oraios/serena/issues/2153
+    author: wzh5550123
+    published: '2026-10-10'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Codex
+    mode: stdio MCP
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: cost
+  direction: '-'
+  claim: 透過 stdio MCP 在 Codex 中使用時，單一對話會出現多個 Serena 程序，子代理開啟時更多，資源消耗偏高。
+  quote: causes at least several Serena processes to appear
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-01-08'

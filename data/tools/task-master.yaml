@@ -3,6 +3,7 @@ name: task-master
 slots:
 - dev-workflow
 status: pending
+url: https://github.com/eyaltoledano/claude-task-master
 sources:
 - RIA:C040
 notes: 規格驅動系列。

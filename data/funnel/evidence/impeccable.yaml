@@ -1,0 +1,186 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: impeccable
+cards:
+- id: ev-20261105-impeccable-01
+  tool: impeccable
+  tool_version_tested: unknown
+  slot: frontend-design
+  source:
+    type: issue
+    url: https://github.com/pbakaus/impeccable/issues/403
+    author: ramhaidar
+    published: '2026-07-23'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    os: Windows cmd.exe
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 在 Windows cmd.exe 下，detect 指令的網址若含 & 查詢參數，會被 shell 切開而失敗
+  quote: is not recognized as an internal or external command
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-10-21'
+- id: ev-20261105-impeccable-02
+  tool: impeccable
+  tool_version_tested: unknown
+  slot: frontend-design
+  source:
+    type: issue
+    url: https://github.com/pbakaus/impeccable/issues/479
+    author: dt-memyrlabs
+    published: '2026-08-02'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: install／update 從網站下載 zip 並寫入技能腳本與 hook 清單，但未驗證檔案完整性（安全強化議題，非已確認事件）
+  quote: Nothing verifies that the bytes are the ones you shipped.
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-10-31'
+- id: ev-20261105-impeccable-03
+  tool: impeccable
+  tool_version_tested: unknown
+  slot: frontend-design
+  source:
+    type: issue
+    url: https://github.com/pbakaus/impeccable/issues/857
+    author: ghulamalitg
+    published: '2026-09-25'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 回報者於 npx impeccable install 時，每次重試都因技能包缺少 sha256 檔而回傳 HTTP 404 並安裝失敗
+  quote: 'Could not verify skill bundle: HTTP 404'
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-24'
+- id: ev-20261105-impeccable-04
+  tool: impeccable
+  tool_version_tested: 0.1.0
+  slot: frontend-design
+  source:
+    type: issue
+    url: https://github.com/pbakaus/impeccable/issues/740
+    author: Zakiel91
+    published: '2026-09-05'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+    os: Windows 11
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 回報者的 ESET NOD32 將 Impeccable 的 Windows 執行檔誤判為木馬（疑似誤報），其他外掛則無此情況
+  quote: Win64/Agent.BYG trojan
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-12-04'
+- id: ev-20261105-impeccable-05
+  tool: impeccable
+  tool_version_tested: unknown
+  slot: frontend-design
+  source:
+    type: issue
+    url: https://github.com/pbakaus/impeccable/issues/386
+    author: pbakaus
+    published: '2026-07-18'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: 維護者表示 Vue 預覽模式因缺少 Svelte 的接受路徑而被撤下，目前尚不能出貨
+  quote: needs Svelte-parity accept path before it can ship
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2027-02-03'
+- id: ev-20261105-impeccable-06
+  tool: impeccable
+  tool_version_tested: unknown
+  slot: frontend-design
+  source:
+    type: issue
+    url: https://github.com/pbakaus/impeccable/issues/434
+    author: supercu00
+    published: '2026-07-27'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 以技能形式安裝時缺少 package.json，靜態 HTML 引擎無法載入，.html 掃描會靜默降級為 detectText
+  quote: silently degrades to `detectText`
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-10-25'
+- id: ev-20261105-impeccable-07
+  tool: impeccable
+  tool_version_tested: 4.2.1
+  slot: frontend-design
+  source:
+    type: issue
+    url: https://github.com/pbakaus/impeccable/issues/744
+    author: ktlesr
+    published: '2026-09-06'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: single-run
+  comparator: none
+  runs: 98
+  kind: quality
+  direction: '-'
+  claim: 4.2.1 雖能啟動技能，但 35 個參考檔案中 0 個被讀取，55 次啟動器呼叫全遭拒絕
+  quote: 0 of 35 reference files read
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-05'
+- id: ev-20261105-impeccable-08
+  tool: impeccable
+  tool_version_tested: unknown
+  slot: frontend-design
+  source:
+    type: issue
+    url: https://github.com/pbakaus/impeccable/issues/440
+    author: digitallamb
+    published: '2026-07-28'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Hermes Agent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: Impeccable 尚未支援 Hermes Agent（技能目錄 ~/.hermes/skills/），此為功能需求而非已實作項目
+  quote: Add Hermes agent support
+  reliability: C
+  credibility: 3
+  certainty: very-low
+  expires: '2026-10-26'

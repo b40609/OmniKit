@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "moai-adk",
+ "name": "moai-adk",
+ "url": "https://github.com/modu-ai/moai-adk",
+ "slots": [
+  "dev-workflow"
+ ],
+ "scenarios": [
+  "V1"
+ ],
+ "summary": "moai-adk 是規格驅動的 Claude Code harness，流程為 plan→run→sync，大致對得上 dev-workflow 的 V1 大功能重流程（規格、獨立審查、驗收）。它和現任 BMAD-METHOD 同屬規格驅動，但文件描述多了規格分級（Tier S/M/L）、獨立 plan 審核、以及完成宣告須附實際指令輸出的驗證機制。原生 workflow 只有 plan mode 與 /goal，沒有規格管線與獨立審查，所以只算部分涵蓋。是否真的比 BMAD 少重工，需要實測才能判斷。",
+ "differences": "相較現任 BMAD-METHOD：多了三階段規格流程（plan、run、sync）、分級流程、獨立 plan 審核、完成宣告的證據格式，以及 worktree 隔離。代價是：需要安裝 Go 執行檔並跑 moai init，不是 Claude plugin；Codex 專用部署（--llm gpt）沒有 Claude 專屬功能（子 agent、slash command、AskUserQuestion），跨 harness 時 dev-workflow 的能力會打折。",
+ "claims": [
+  {
+   "claim": "從原始碼建置需要 Go 1.26 以上；一般安裝走官方安裝腳本",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 的 go.mod 的 go 版本、README 的 Install 段落，以及 install.ps1 內容。"
+  },
+  {
+   "claim": "Windows 支援 PowerShell 7.x 以上，不支援 cmd.exe；README 同時建議使用 WSL",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 11 以 PowerShell 7 執行 install.ps1 與 moai init，記錄成功或失敗的輸出；另確認 .github workflows 內是否有 Windows job。"
+  },
+  {
+   "claim": "提供獨立的 plan 審核 agent（plan-auditor），在 plan 之後被呼叫",
+   "kind": "capability",
+   "how_to_verify": "在 template 或 .claude/agents 中找到 plan-auditor 的定義檔，並在一個小型 SPEC 的 plan 階段確認它確實被觸發、產出審核結果。"
+  },
+  {
+   "claim": "完成宣告須附實際執行的指令與輸出，報告採五段式證據格式",
+   "kind": "quality",
+   "how_to_verify": "讀 agent 與 orchestrator 的提示文字；在一個小任務中跑到 sync 階段，檢查報告是否包含指令、輸出與結論。"
+  },
+  {
+   "claim": "不是 Claude plugin 或 marketplace，repo 內沒有 plugin manifest；由 moai init 寫入 ~/.claude、~/.agents、~/.codex",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 根目錄與 template 是否沒有 plugin.json 或 marketplace.json；執行 moai init 後比對 ~/.moai/user-assets.json 與各使用者目錄的檔案。"
+  },
+  {
+   "claim": "--llm gpt 的 Codex-only 部署不提供子 agent、slash command、AskUserQuestion 等 Claude 專屬功能",
+   "kind": "capability",
+   "how_to_verify": "在 moai init --llm gpt 建立的專案中，檢查 .codex/ 與 .agents/skills/ 內容，並在 Codex 中實際跑一次 plan→run→sync，確認哪些步驟無法進行。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-workflow"
+  ],
+  "note": "原生 plan mode 與 /goal 可以做計畫與目標循環，但沒有規格管線、獨立 plan 審核、分級流程與證據格式。"
+ },
+ "cluster": "spec-phase-loop",
+ "recommendation": "deep_eval",
+ "needs_user": "需要維護者決定：V1 的評估是否要求在原生 Windows PowerShell 7 下跑通（README 把 WSL 列為建議），還是接受以 WSL 為前提。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 19392,
+   "cached": 3694,
+   "output": 4786
+  },
+  "readme_sha": "5a5ec0d6c95d",
+  "readme_chars": 61207
+ }
+}

@@ -216,6 +216,10 @@ def install(home_claude, home_codex, skills, mcp, base_url, disable):
             dest = home / "skills" / skill.name
             if dest.exists():
                 dest = home / "skills" / f"{skill.parent.name}-{skill.name}"
+            n = 2
+            while dest.exists():  # 三個以上同名（例如 claude-mem、ECC）
+                dest = home / "skills" / f"{skill.parent.name}-{skill.name}-{n}"
+                n += 1
             shutil.copytree(skill, dest)
     if home_codex is not None:
         (home_codex / "config.toml").write_text(codex_config(base_url, mcp, disable), encoding="utf-8")
@@ -699,6 +703,15 @@ def selftest():
         check("安裝：skill 複製到兩邊、同名的加上層資料夾名稱", (c_home / "skills" / "a" / "SKILL.md").exists()
               and (x_home / "skills" / "b" / "run.py").exists() and (x_home / "config.toml").exists())
         check("Claude 的 MCP 寫成 --mcp-config 檔", json.loads(mcp_file.read_text(encoding="utf-8"))["mcpServers"]["dt"]["args"][-1] == "chrome-devtools-mcp@0.9.0")
+        trio = []
+        for i in range(3):
+            d = tmp / "trio" / f"p{i}" / "skills" / "same"
+            d.mkdir(parents=True)
+            (d / "SKILL.md").write_text(f"---\nname: same\n---\n{i}", encoding="utf-8")
+            trio.append(d)
+        (tmp / "t").mkdir()
+        install(tmp / "t", None, trio, {}, None, [])
+        check("安裝：三個以上同名的 skill 也不會撞名", len(list((tmp / "t" / "skills").iterdir())) == 3)
 
         claude_lines = [
             json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Skill", "input": {"skill": "p:a"}}]}}),

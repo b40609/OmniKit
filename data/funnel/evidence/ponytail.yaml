@@ -1,0 +1,204 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: ponytail
+cards:
+- id: ev-20261105-ponytail-01
+  tool: ponytail
+  tool_version_tested: unknown
+  slot: behavior-rules
+  source:
+    type: issue
+    url: https://github.com/DietrichGebert/ponytail/issues/863
+    author: shivamnarkar47
+    published: '2026-09-13'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: OpenCode 2
+    mode: plugin load
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: elimination
+  direction: '-'
+  claim: ponytail 的 OpenCode 轉接器只實作 V1 外掛 API，在 OpenCode 2（V2）上不會注入規則，也不會註冊 /ponytail 指令。
+  quote: implements only the V1 plugin API
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-12'
+- id: ev-20261105-ponytail-02
+  tool: ponytail
+  tool_version_tested: 4.10.0
+  slot: behavior-rules
+  source:
+    type: issue
+    url: https://github.com/DietrichGebert/ponytail/issues/941
+    author: Arhamurrahemeen
+    published: '2026-09-26'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: OpenCode v2
+    mode: plugin load
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: elimination
+  direction: '-'
+  claim: ponytail 4.10.0 無法在 OpenCode v2 載入，因為套件只附 V1 外掛。
+  quote: cannot be loaded by OpenCode v2
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-25'
+- id: ev-20261105-ponytail-03
+  tool: ponytail
+  tool_version_tested: 4.10.0
+  slot: behavior-rules
+  source:
+    type: issue
+    url: https://github.com/DietrichGebert/ponytail/issues/892
+    author: Ps-06
+    published: '2026-09-19'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: OpenCode 2.0.8
+    os: Linux 7.2.6-1-cachyos (linux x64)
+    mode: plugin load
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: elimination
+  direction: '-'
+  claim: ponytail 4.10.0 在 OpenCode V2 載入失敗，因為它匯出函式，不符合 V2 要求的物件格式。
+  quote: fails to load on OpenCode V2 because it exports a function
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-12-18'
+- id: ev-20261105-ponytail-04
+  tool: ponytail
+  tool_version_tested: unknown
+  slot: behavior-rules
+  source:
+    type: issue
+    url: https://github.com/DietrichGebert/ponytail/issues/1085
+    author: ivan-agosto-parcoapp
+    published: '2026-10-09'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Hermes Agent
+    mode: plugin install
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: elimination
+  direction: '-'
+  claim: 在 Hermes Agent 安裝 ponytail 時，因 plugin.json 的 schema 不被支援而報錯，目前仍未解決。
+  quote: plugin.json declares an unsupported or missing Agent Plugins schema
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-ponytail-05
+  tool: ponytail
+  tool_version_tested: 4.9.0
+  slot: behavior-rules
+  source:
+    type: issue
+    url: https://github.com/DietrichGebert/ponytail/issues/781
+    author: briton2008
+    published: '2026-08-31'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Hermes
+    mode: plugins install --enable
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: elimination
+  direction: '-'
+  claim: ponytail 4.9.0 透過 Hermes 安裝時被掃描器判為 DANGEROUS 而阻擋，儘管其執行期外掛通過 doctor 檢查。
+  quote: is blocked as DANGEROUS, although the Hermes runtime plugin itself passes
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-11-29'
+- id: ev-20261105-ponytail-06
+  tool: ponytail
+  tool_version_tested: unknown
+  slot: behavior-rules
+  source:
+    type: issue
+    url: https://github.com/DietrichGebert/ponytail/issues/1186
+    author: zaphod72
+    published: '2026-10-20'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+    mode: UserPromptSubmit hook, first prompt of session
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: ponytail 的 UserPromptSubmit 掛鉤在每個新 Claude Code 工作階段的第一則提示會被略過，原因是內建外掛先送出事件。
+  quote: its classic.UserPromptSubmit hook was skipped
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-01-18'
+- id: ev-20261105-ponytail-07
+  tool: ponytail
+  tool_version_tested: unknown
+  slot: behavior-rules
+  source:
+    type: issue
+    url: https://github.com/DietrichGebert/ponytail/issues/764
+    author: danielchen3
+    published: '2026-08-27'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Codex
+    mode: ponytail skill enabled
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 在 Codex 啟用 ponytail 技能時，部分提示會被誤判為違反使用政策而回傳錯誤。
+  quote: your prompt was flagged as potentially violating our usage policy
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-11-25'
+- id: ev-20261105-ponytail-08
+  tool: ponytail
+  tool_version_tested: 4.8.3
+  slot: behavior-rules
+  source:
+    type: issue
+    url: https://github.com/DietrichGebert/ponytail/issues/502
+    author: jra2s394
+    published: '2026-07-04'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code
+    mode: SubagentStart hook
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: v4.8.3 的 SubagentStart 掛鉤沒有設定 matcher，會把精簡模式規則注入所有子代理，包括程式碼審查代理。
+  quote: injected into every subagent, including code-review, audit, and security agents
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-10-02'

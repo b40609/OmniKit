@@ -1,0 +1,77 @@
+{
+ "layer": 1,
+ "tool_id": "mattpocock-skills",
+ "name": "mattpocock skills",
+ "url": "https://github.com/mattpocock/skills",
+ "slots": [
+  "review",
+  "memory",
+  "dev-workflow",
+  "frontend-design"
+ ],
+ "scenarios": [
+  "R1",
+  "M1",
+  "V1",
+  "F2"
+ ],
+ "summary": "mattpocock/skills 是一組可組合的 agent skill 集合（第 0 層：星數很高、MIT 授權、有 Claude plugin 與 marketplace 線索）。它跟 review（R1）、memory（M1）、dev-workflow（V1）、frontend-design（F2）幾個 active 槽位有實際對應，且有內建沒有的做法：兩軸交叉審查、對話交接文件、可切換的 UI 變體原型。但第 0 層的資料有幾處跟 README 對不上：skills 數量記 5 而 README 連結了二十多個 SKILL.md、skill_md 記 false、codex_plugin 記 false 但 README 寫有 Codex 安裝指令。這些都要實測才能定論。README 的行銷句子不採信，只用可查證的檔案與指令。建議 deep_eval，但先確認範圍與第 0 層資料。",
+ "differences": "review（R1）：現任是原生審查（Claude 的 /code-review、/security-review，Codex 的 /review），各自只在自己的 agent 內跑。多了：code-review skill 做 Standards 與 Spec 兩軸審查，用平行子 agent 分開審，理論上可以同時裝進兩邊，支援 Claude 改、Codex 審。少了：未確認它對 OmniKeep 的 Python 後端有沒有專門規則。\n\nmemory（M1、M2）：現任是原生記憶，Claude 的 auto memory 與 Codex 的 memories 不互通。多了：handoff skill 把對話壓成交接文件，讓另一個 agent 或新 session 接手。少了：handoff 要手動觸發，不會自動累積記憶；M2（compaction 後仍記得決定）沒有對應的做法，未驗證。\n\ndev-workflow（V1）：現任是 BMAD-METHOD，會接管整個流程。多了：grill-me、to-spec、to-tickets、implement 等小步驟可以單獨用，小改動不必走重流程。少了：大功能的完整閉環（assessment、獨立審查、驗收、closeout）要自己組合，README 的說法待實測。\n\nfrontend-design（F2）：現任是 frontend-design。多了：prototype skill 可以在同一路由切換多個差異大的 UI 變體，幫忙決定呈現方式。少了：不處理 F1 的風格重設計，也不處理 F3 的原版重建；與現任的重疊程度未知，這一點對應較弱。",
+ "claims": [
+  {
+   "claim": "可用 Claude Code plugin 安裝（claude plugin install mattpocock-skills@claude-plugins-official）",
+   "kind": "compat",
+   "how_to_verify": "在乾淨的 Claude Code 環境執行安裝指令，確認 plugin 清單出現 mattpocock-skills 且可呼叫 skill。"
+  },
+  {
+   "claim": "可用 Codex plugin 安裝（codex plugin marketplace add mattpocock/skills）；第 0 層記錄 codex_plugin 為 false，與 README 矛盾",
+   "kind": "compat",
+   "how_to_verify": "在 Codex 執行 marketplace add 與 plugin add，再列出已安裝 plugin；同時確認第 0 層的 codex_plugin 判斷來源。"
+  },
+  {
+   "claim": "repo 內 skill 數量：第 0 層記 5 個，README 連結了二十多個 SKILL.md，需要確認實際數量",
+   "kind": "quality",
+   "how_to_verify": "在 repo 的 skills/ 目錄下計算 SKILL.md 檔案數，對照第 0 層的 skills 與 skill_md 欄位。"
+  },
+  {
+   "claim": "沒有 Windows CI（第 0 層 windows_ci 為 false）",
+   "kind": "compat",
+   "how_to_verify": "檢查 .github/workflows 內有無 windows-latest 之類的 runner 設定。"
+  },
+  {
+   "claim": "提供 handoff skill，能把目前對話壓成交接文件給另一個 agent 接手",
+   "kind": "capability",
+   "how_to_verify": "閱讀 skills/productivity/handoff/SKILL.md，確認輸出格式與觸發方式，再實際拿一個 OmniKeep 的進行中任務在 Codex 接手測試。"
+  },
+  {
+   "claim": "code-review skill 以兩個平行子 agent 分別做 Standards 與 Spec 兩軸審查",
+   "kind": "capability",
+   "how_to_verify": "閱讀 skills/engineering/code-review/SKILL.md，確認子 agent 的分工，再拿一個 OmniKeep 的 diff 跑一次，比對與原生 /code-review 的輸出差異。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-review",
+   "native-memory",
+   "native-workflow"
+  ],
+  "note": "原生審查有 /code-review 與 /review，但沒有 Spec 軸，也不能跨 agent 用；原生記憶兩邊不互通；原生 plan mode 與 /goal 沒有結構化的大功能流程。frontend-design 與 prototype 類做法不在內建清單內。"
+ },
+ "cluster": "composable-skill-pack",
+ "recommendation": "deep_eval",
+ "needs_user": "請確認：(1) 這張卡要評估整個集合，還是只評估 code-review、handoff、prototype 等個別 skill？grill-me 與 to-spec 已有獨立卡片，評估時會重疊。(2) 第 0 層記錄的 skills 數量 5、skill_md false、codex_plugin false 跟 README 對不上，要不要重跑第 0 層再進深入評估？",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 13850,
+   "cached": 3694,
+   "output": 6722
+  },
+  "readme_sha": "345041d56cf1",
+  "readme_chars": 16449
+ }
+}

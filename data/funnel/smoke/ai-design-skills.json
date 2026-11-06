@@ -1,0 +1,35 @@
+{
+ "tool": "ai-design-skills",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "elayadesign/ai-design-skills",
+  "sha": "456d9e0d3e2d84c748bb143c6ca3d90c45e16213"
+ },
+ "executable": [],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99211,
+   "with_bytes": 100527,
+   "delta_bytes": 1316,
+   "delta_tokens_est": 329,
+   "mentions": [
+    "figma-designer",
+    "landing-page-design"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70360,
+   "with_bytes": 71840,
+   "delta_bytes": 1480,
+   "delta_tokens_est": 370,
+   "mentions": [
+    "figma-designer",
+    "landing-page-design"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "2 個 skill"
+ }
+}

@@ -3,6 +3,7 @@ name: SGRX
 slots:
 - product-research
 status: pending
+url: https://github.com/alzenkastrati/sgrx
 sources:
 - RIA:C025
 added: '2026-11-04'

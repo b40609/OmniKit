@@ -3,6 +3,7 @@ name: agent-os
 slots:
 - dev-workflow
 status: pending
+url: https://github.com/buildermethods/agent-os
 sources:
 - RIA:C040
 notes: 規格驅動系列。

@@ -1,0 +1,183 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: openspec
+cards:
+- id: ev-20261105-openspec-01
+  tool: openspec
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/Fission-AI/OpenSpec/issues/783
+    author: shohu
+    published: '2026-03-01'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: capability
+  direction: '-'
+  claim: 產出的 proposal、specs、design、tasks 是依序單向產生，任務階段發現的問題不會回頭修正前面的 artifact，跨 artifact 的範圍矛盾也偵測不到。
+  quote: reverse feedback doesn't happen
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-openspec-02
+  tool: openspec
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/Fission-AI/OpenSpec/issues/725
+    author: alfred-openspec
+    published: '2026-02-18'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: capability
+  direction: '-'
+  claim: 微服務、多 repo 情境下，規格沒有明確歸屬，也缺乏跨 repo 的原生規格管理機制。
+  quote: Where should specs live?
+  reliability: B
+  credibility: 4
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-openspec-03
+  tool: openspec
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/Fission-AI/OpenSpec/issues/752
+    author: askpatrickw
+    published: '2026-02-24'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: capability
+  direction: '-'
+  claim: （報告時）openspec init 與 update 一律把 skills 與 commands 裝進專案目錄，無法選擇全域安裝；該 issue 已關閉，目前行為需另行確認。
+  quote: always install skills and commands into the current project directory
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-05-25'
+- id: ev-20261105-openspec-04
+  tool: openspec
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/Fission-AI/OpenSpec/issues/682
+    author: dragonTalon
+    published: '2026-02-09'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: capability
+  direction: '-'
+  claim: /opsx:archive 歸檔時沒有可擴充的 hook 機制，無法注入專案自訂的後處理邏輯。
+  quote: adding an extensible Hook capability
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-openspec-05
+  tool: openspec
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/Fission-AI/OpenSpec/issues/724
+    author: alfred-openspec
+    published: '2026-02-18'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: capability
+  direction: '-'
+  claim: OpenSpec 以 spec 先行為主，沒有原生支援從既有程式碼反推產生 spec 的流程。
+  quote: There is no native support for generating specs from already-implemented code.
+  reliability: B
+  credibility: 4
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-openspec-06
+  tool: openspec
+  tool_version_tested: 1.3.1
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/Fission-AI/OpenSpec/issues/1076
+    author: aygzs123
+    published: '2026-05-10'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Claude Code 2.1.119
+    os: Windows 11
+    mode: 'profile: custom, delivery: commands'
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: '在 Claude Code 2.1.119（Windows 11）下，delivery: commands 產生的 /opsx:* 指令在 slash 選單中不出現，原因是子目錄 commands 與 commands→skills 合併不相容；該 issue 已關閉。'
+  quote: none of the /opsx:* commands appear in the slash menu
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-08-08'
+- id: ev-20261105-openspec-07
+  tool: openspec
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/Fission-AI/OpenSpec/issues/901
+    author: sh940701
+    published: '2026-04-02'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: 提案階段只靠一句提示要求 AI 檢查 openspec/specs/，AI 常常跳過此步驟；檢查時又會把完整 spec 檔讀入上下文。
+  quote: The AI often skips this step entirely
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-07-01'
+- id: ev-20261105-openspec-08
+  tool: openspec
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/Fission-AI/OpenSpec/issues/2191
+    author: coyang
+    published: '2026-11-02'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: capability
+  direction: '-'
+  claim: 內建工作流程沒有結構化的失效模式分析（DFMEA）支援，無法系統性地分析設計風險、排序優先順序並驗證緩解效果。
+  quote: its built-in workflow does not provide a structured way
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'

@@ -1,0 +1,179 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: claude-mem
+cards:
+- id: ev-20261105-claude-mem-01
+  tool: claude-mem
+  tool_version_tested: unknown
+  slot: memory
+  source:
+    type: issue
+    url: https://github.com/thedotmack/claude-mem/issues/3606
+    author: thedotmack
+    published: '2026-08-16'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 維護者自列的缺陷：批次處理失敗時仍會確認整批，歷史紀錄也沒有上限。
+  quote: never confirm a batch on failure
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2027-02-03'
+- id: ev-20261105-claude-mem-02
+  tool: claude-mem
+  tool_version_tested: unknown
+  slot: memory
+  source:
+    type: issue
+    url: https://github.com/thedotmack/claude-mem/issues/3603
+    author: thedotmack
+    published: '2026-08-16'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 維護者自列的缺陷：判斷 worker 是否存活、port 是否被服務，缺乏單一可信的答案。
+  quote: Is the worker alive?
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2027-02-03'
+- id: ev-20261105-claude-mem-03
+  tool: claude-mem
+  tool_version_tested: unknown
+  slot: memory
+  source:
+    type: issue
+    url: https://github.com/thedotmack/claude-mem/issues/3609
+    author: thedotmack
+    published: '2026-08-16'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 維護者自列的缺陷：SQLite 佇列與會話狀態可能無法正確轉換，schema 變更路徑也缺乏守護。
+  quote: queue/session states that can actually transition
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2027-02-03'
+- id: ev-20261105-claude-mem-04
+  tool: claude-mem
+  tool_version_tested: unknown
+  slot: memory
+  source:
+    type: issue
+    url: https://github.com/thedotmack/claude-mem/issues/3602
+    author: thedotmack
+    published: '2026-08-16'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 維護者自列的缺陷：worker 派生的長駐子程序可能不會隨 worker 結束而結束。
+  quote: The worker daemon spawns long-lived children
+  reliability: B
+  credibility: 2
+  certainty: moderate
+  expires: '2027-02-03'
+- id: ev-20261105-claude-mem-05
+  tool: claude-mem
+  tool_version_tested: 13.24.0
+  slot: memory
+  source:
+    type: issue
+    url: https://github.com/thedotmack/claude-mem/issues/3857
+    author: josephk1688g
+    published: '2026-09-03'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 13.24.0 發行包仍是 13.23.1 的程式，版本不符使 hook 每次事件都殺掉 worker（已關閉）。
+  quote: makes the hook kill the worker on every event
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-12-02'
+- id: ev-20261105-claude-mem-06
+  tool: claude-mem
+  tool_version_tested: 13.24.2–13.24.5
+  slot: memory
+  source:
+    type: issue
+    url: https://github.com/thedotmack/claude-mem/issues/3940
+    author: zzzr1-l
+    published: '2026-09-09'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 'main 分支升版後，內建 worker 仍回報舊版本，每次 hook 都觸發殺 worker 的迴圈，被認為是 #3857 的回歸（已關閉）。'
+  quote: version-mismatch kill loop on every hook
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-12-08'
+- id: ev-20261105-claude-mem-07
+  tool: claude-mem
+  tool_version_tested: 13.24.23
+  slot: memory
+  source:
+    type: issue
+    url: https://github.com/thedotmack/claude-mem/issues/4068
+    author: mashuroff
+    published: '2026-09-12'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 配額守衛在 seven_day 快照過了重置時間後會中止；唯一變通方式是重啟，但重啟會丟失記憶體中的佇列（已關閉）。
+  quote: the only workaround, restart, discards the in-memory queue
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-12-11'
+- id: ev-20261105-claude-mem-08
+  tool: claude-mem
+  tool_version_tested: unknown
+  slot: memory
+  source:
+    type: hn
+    url: https://news.ycombinator.com/item?id=50289137
+    author: saltenas
+    published: '2026-10-29'
+    retrieved: '2026-11-05'
+  independence: unknown
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: elimination
+  direction: '-'
+  claim: 'HN 標題稱安裝 claude-mem 會未經同意上傳近 30 天的提示詞到 cmem.ai（未驗證，來源為引用的 GitHub issue #5176）。'
+  quote: uploads your last 30 days of prompts to cmem.ai
+  reliability: D
+  credibility: 3
+  certainty: low
+  expires: '2027-01-27'

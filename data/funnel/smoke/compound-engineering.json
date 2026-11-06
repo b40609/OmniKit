@@ -1,0 +1,100 @@
+{
+ "tool": "compound-engineering",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "EveryInc/compound-engineering-plugin",
+  "sha": "45522ecfd01c8d19fd1ea16f6a1605135fade8fe"
+ },
+ "executable": [
+  "skill 附可執行檔（.js、.mjs、.py、.sh）"
+ ],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99215,
+   "with_bytes": 114145,
+   "delta_bytes": 14930,
+   "delta_tokens_est": 3734,
+   "mentions": [
+    "agent-only-skill",
+    "ce-babysit-pr",
+    "ce-bakeoff",
+    "ce-brainstorm",
+    "ce-code-review",
+    "ce-commit",
+    "ce-commit-push-pr",
+    "ce-compound",
+    "ce-compound-refresh",
+    "ce-debug",
+    "ce-doc-review",
+    "ce-explain",
+    "ce-handoff",
+    "ce-ideate",
+    "ce-noslop",
+    "ce-optimize",
+    "ce-plan",
+    "ce-pov",
+    "ce-promote",
+    "ce-proof",
+    "ce-prototype",
+    "ce-resolve-pr-feedback",
+    "ce-riffrec-feedback-analysis",
+    "ce-simplify-code",
+    "ce-skill-work",
+    "ce-strategy",
+    "ce-test-browser",
+    "ce-work",
+    "ce-worktree",
+    "claude-only-skill",
+    "custom-skill",
+    "default-skill",
+    "lfg",
+    "skill-one"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70365,
+   "with_bytes": 79004,
+   "delta_bytes": 8639,
+   "delta_tokens_est": 2161,
+   "mentions": [
+    "agent-only-skill",
+    "ce-babysit-pr",
+    "ce-bakeoff",
+    "ce-brainstorm",
+    "ce-code-review",
+    "ce-commit",
+    "ce-commit-push-pr",
+    "ce-compound",
+    "ce-compound-refresh",
+    "ce-debug",
+    "ce-doc-review",
+    "ce-explain",
+    "ce-handoff",
+    "ce-ideate",
+    "ce-noslop",
+    "ce-optimize",
+    "ce-plan",
+    "ce-pov",
+    "ce-promote",
+    "ce-proof",
+    "ce-prototype",
+    "ce-resolve-pr-feedback",
+    "ce-riffrec-feedback-analysis",
+    "ce-simplify-code",
+    "ce-skill-work",
+    "ce-strategy",
+    "ce-test-browser",
+    "ce-work",
+    "ce-worktree",
+    "claude-only-skill",
+    "disabled-skill",
+    "lfg",
+    "skill-one"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "44 個 skill、plugin"
+ }
+}

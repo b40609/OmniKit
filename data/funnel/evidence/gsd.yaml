@@ -1,0 +1,94 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: gsd
+cards:
+- id: ev-20261105-gsd-01
+  tool: gsd
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/open-gsd/gsd-core/issues/5162
+    author: github-actions[bot]
+    published: '2026-10-01'
+    retrieved: '2026-11-05'
+  independence: vendor
+  setup:
+    os: Windows
+    mode: CI conformance shards (20 runs)
+  method: benchmark
+  comparator: baseline
+  runs: 20
+  kind: quality
+  direction: '-'
+  claim: Windows 一致性測試的分片耗時失衡：第 3/3 分片與第 1/3 分片相差 3.5 分鐘，超過 2.0 分鐘門檻。
+  quote: 'gap breach: shard 3/3 vs 1/3 — 3.5 min gap (limit 2.0 min)'
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-gsd-02
+  tool: gsd
+  tool_version_tested: 1.13.0
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/open-gsd/gsd-core/issues/4649
+    author: davesienkowski
+    published: '2026-09-11'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: 專案技能探索會無條件讀取 5 個代理的每一份 SKILL.md，且沒有索引大小上限，這是效能與擴充性的隱憂。
+  quote: reads every SKILL.md unconditionally across 5 agents
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-gsd-03
+  tool: gsd
+  tool_version_tested: unknown
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/open-gsd/gsd-core/issues/1874
+    author: davesienkowski
+    published: '2026-07-02'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: 安裝程式有四條高風險寫入路徑，尚未套用repo 內既有的原子寫入與鎖定機制，寫入安全性有疑慮。
+  quote: The installer has four write paths to high-blast-radius
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-09-30'
+- id: ev-20261105-gsd-04
+  tool: gsd
+  tool_version_tested: next @ bf0547992
+  slot: dev-workflow
+  source:
+    type: issue
+    url: https://github.com/open-gsd/gsd-core/issues/3408
+    author: trek-e
+    published: '2026-08-13'
+    retrieved: '2026-11-05'
+  independence: vendor
+  method: anecdote
+  comparator: none
+  runs: 0
+  kind: quality
+  direction: '-'
+  claim: 狀態轉換程式宣告了逐欄位的保留政策，但實作只涵蓋部分宣告項目（文中提到其中 4 項），STATE.md 寫入可能遺失保留內容。
+  quote: declares a per-field preservation policy
+  reliability: B
+  credibility: 3
+  certainty: low
+  expires: '2026-11-11'

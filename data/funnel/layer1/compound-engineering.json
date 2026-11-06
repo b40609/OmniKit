@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "compound-engineering",
+ "name": "Compound Engineering",
+ "url": "https://github.com/EveryInc/compound-engineering-plugin",
+ "slots": [
+  "dev-workflow"
+ ],
+ "scenarios": [
+  "V1"
+ ],
+ "summary": "Compound Engineering 是以 brainstorm、plan、work、simplify、review、compound 組成的開發流程外掛，對應 dev-workflow 槽位的 V1（小改動走中流程、大功能走重流程）。它的特點是把每次完成的學習寫回 docs/solutions/，供下一輪規劃參考；現任 BMAD-METHOD 在 README 沒有可比對的說明。內建的 plan mode 只涵蓋規劃的一小部分，沒有完整的多階段流程，所以不算已被涵蓋。值得進一步實測，特別是小改動時會不會變重。",
+ "differences": "相較現任 BMAD-METHOD（README 未說明其細節），CE 多了：規劃、實作、審查、知識回寫的固定循環，以及 /lfg 一鍵跑完整管線的自動化選項；少了或未證實的部分：README 沒有說明它是否有 BMAD 那種評估（assessment）、授權與獨立審查的關卡，也沒有說明小改動能否走比較輕的路徑。README 自述約八成工作量放在規劃與審查，對小改動可能偏重，這正是 V1 想解決的「重工」問題，需要實測。相較內建（plan mode、/goal），CE 多出結構化的階段與知識沉澱，但內建的部分功能（plan mode）CE 也會用到。",
+ "claims": [
+  {
+   "claim": "以 Claude Code 外掛形式提供，可用 /plugin marketplace add 加入並安裝 compound-engineering，內含 37 個 skill。",
+   "kind": "capability",
+   "how_to_verify": "在 Claude Code 執行 /plugin marketplace add EveryInc/compound-engineering-plugin 與 /plugin install，安裝後列出 skill 數量並比對 README 的 37 個。"
+  },
+  {
+   "claim": "可透過 codex plugin marketplace add 與 codex plugin add 安裝到 Codex CLI，並提供 Codex app 的安裝方式。",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 上實際執行 codex plugin marketplace add 與 codex plugin add，確認安裝後 $ce-plan 等 skill 可被呼叫。"
+  },
+  {
+   "claim": "專案的 CI 含 Windows 項目（windows_ci 為 true），但 README 本身沒有明寫 Windows 支援。",
+   "kind": "compat",
+   "how_to_verify": "檢查 .github/workflows/ci.yml 是否有 windows runner，並在本機 Windows 安裝後跑一次 /ce-setup 與 /ce-plan 確認沒有路徑或換行問題。"
+  },
+  {
+   "claim": "一般安裝不需要 Bun，Bun 只用於開發與轉換器維護。",
+   "kind": "cost",
+   "how_to_verify": "在沒有 Bun 的環境安裝外掛，確認 skill 能正常載入與執行。"
+  },
+  {
+   "claim": "/ce-compound 會把學習寫入專案內的 docs/solutions/，下一次 /ce-plan 會讀取這些內容作為依據。",
+   "kind": "capability",
+   "how_to_verify": "在測試專案執行一次 /ce-compound，檢查 docs/solutions/ 是否產生檔案，再跑 /ce-plan 看規劃中是否引用該檔。"
+  },
+  {
+   "claim": "/lfg 在有 git remote 時會自動推送、開 PR 並監看 CI，沒有 remote 時停在本地 commit；它不會自動合併。",
+   "kind": "security",
+   "how_to_verify": "在沒有 remote 的測試 repo 執行 /lfg，確認只產生本地 commit；另在有 remote 的沙盒 repo 驗證是否會推送，並確認沒有合併行為。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-workflow"
+  ],
+  "note": "內建只有 plan mode 與 /goal，只涵蓋規劃的一小部分；沒有多階段的 brainstorm 到 compound 循環、獨立審查或知識沉澱，因此只算部分涵蓋。"
+ },
+ "cluster": "plan-review-loop",
+ "recommendation": "deep_eval",
+ "needs_user": "需要維護者決定評估範圍：只測小改動路徑（ce-brainstorm、ce-plan、ce-work），還是也要跑完整的 /lfg 管線；另外 R1（跨模型交叉審）是否要納入，因為 README 沒有證實 ce-code-review 是跨模型審查。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 16543,
+   "cached": 3694,
+   "output": 3741
+  },
+  "readme_sha": "e9bf58531fc2",
+  "readme_chars": 23266
+ }
+}

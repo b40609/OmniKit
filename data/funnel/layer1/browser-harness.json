@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "browser-harness",
+ "name": "Browser Harness",
+ "url": "https://github.com/browser-use/browser-harness",
+ "slots": [
+  "browser"
+ ],
+ "scenarios": [
+  "U1"
+ ],
+ "summary": "Browser Harness 透過 CDP 讓 Claude Code 與 Codex 操作你已登入的 Chrome，屬於 browser 槽位。U1 要求改完前端後開 dev server、檢查畫面與 console 錯誤，這部分內建原生瀏覽器大致做得到，但 console 錯誤沒有明講，Codex 端也只限 localhost。它的獨特價值是「已登入的真實 Chrome」，而 U1 的情境不一定需要登入。現任 Chrome DevTools MCP 已能處理 console 與跨代理，因此目前看不出明顯超出現任的能力，先收著。",
+ "differences": "相較現任 Chrome DevTools MCP：多了直接沿用已登入 Chrome 的狀態、以 CLI 加 skill 提供（不必另架 MCP），以及 agent 可自行補寫缺少的 helper；少了卡片與 README 沒有提到的 console 讀取能力，且沒有 Windows CI。相較內建原生瀏覽器：多了已登入狀態與跨 Codex 的操作方式，少了原生面板的截圖、自動驗證與零設定。效能數據是廠商自測，只用 Codex，且沒有 Claude Code 的結果，不能拿來直接支持換掉現任。",
+ "claims": [
+  {
+   "claim": "透過 CDP 連接使用者已登入的 Chrome；Chrome 144 以上需在 chrome://inspect 勾選遠端除錯",
+   "kind": "capability",
+   "how_to_verify": "閱讀 repo 的 install.md 與 SKILL.md，確認連線方式與 Chrome 版本需求"
+  },
+  {
+   "claim": "以 CLI 加 SKILL.md 提供，Claude Code 與 Codex 都能用，但沒有 Codex plugin",
+   "kind": "compat",
+   "how_to_verify": "確認 repo 內 skills 與 marketplace 檔案；在 Codex 內安裝 skill 後實際執行一次 U1 流程"
+  },
+  {
+   "claim": "支援原生 Windows 環境",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 11 依 install.md 安裝，確認 uv、Python 3.12 與 Chrome 連線都能成功；repo 的 windows_ci 旗標為 false，需實測"
+  },
+  {
+   "claim": "提供 browser-harness-mcp，可作為 MCP server 使用",
+   "kind": "capability",
+   "how_to_verify": "檢查 docs/MCP.md 與 uvx 指令能否啟動 browser-harness-mcp"
+  },
+  {
+   "claim": "能讀取 console 錯誤訊息，供 U1 驗證改動",
+   "kind": "capability",
+   "how_to_verify": "在 dev server 放一個會報錯的頁面，用此工具讀取 console 輸出，比對現任 Chrome DevTools MCP 的結果"
+  },
+  {
+   "claim": "在 BU Bench 的 Codex 測試中，平均分數與現任工具沒有顯著差異，但輸入 token 較少",
+   "kind": "cost",
+   "how_to_verify": "檢查 README 連結的 coding-agent-browser-tools.json；廠商自測、只用 Codex、未重跑，需自行重現才能採信"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-browser"
+  ],
+  "note": "原生瀏覽器可開 dev server、截圖、看 DOM 與點擊，改檔後會自動驗證，但沒有提到 console 錯誤；Codex 內建 browser 只限 localhost；要用登入狀態需改用 Claude in Chrome。"
+ },
+ "cluster": "browser-cdp-skill",
+ "recommendation": "keep_pending",
+ "needs_user": "請維護者確認：卡片註記「用途同 Browser MCP，不列入 U1 比較」，是否仍要排除？若要納入，需先確認 U1 是否真的需要登入狀態，以及 Windows 能否安裝與連線。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 11461,
+   "cached": 3694,
+   "output": 3885
+  },
+  "readme_sha": "69309c3dfeec",
+  "readme_chars": 8848
+ }
+}

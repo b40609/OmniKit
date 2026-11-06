@@ -1,0 +1,866 @@
+{
+ "generated": "2026-11-05",
+ "start": "2026-11-09",
+ "limits": {
+  "weekly_tokens": 20000000,
+  "weekly_blind": 2,
+  "usage": "usage.py 近 30 天"
+ },
+ "weeks": [
+  {
+   "start": "2026-11-09",
+   "tokens": 18000000,
+   "blind": 2,
+   "tests": [
+    {
+     "slot": "behavior-rules",
+     "judge": "objective",
+     "size": "medium",
+     "incumbent": [],
+     "challengers": [
+      "addy-agent-skills",
+      "alirezarezvani-claude-skills"
+     ],
+     "priority": 9.0,
+     "tokens_est": 18000000,
+     "over_cap": false
+    },
+    {
+     "slot": "frontend-design",
+     "judge": "blind",
+     "size": "heavy",
+     "incumbent": [
+      "frontend-design"
+     ],
+     "challengers": [
+      "mattpocock-skills"
+     ],
+     "priority": 3.0,
+     "tokens_est": 46800000,
+     "over_cap": false
+    },
+    {
+     "slot": "frontend-design",
+     "judge": "blind",
+     "size": "heavy",
+     "incumbent": [
+      "frontend-design"
+     ],
+     "challengers": [
+      "ai-design-skills",
+      "impeccable"
+     ],
+     "priority": 3.0,
+     "tokens_est": 70200000,
+     "over_cap": false
+    }
+   ]
+  },
+  {
+   "start": "2026-11-16",
+   "tokens": 18000000,
+   "blind": 0,
+   "tests": [
+    {
+     "slot": "behavior-rules",
+     "judge": "objective",
+     "size": "medium",
+     "incumbent": [],
+     "challengers": [
+      "ecc",
+      "ponytail"
+     ],
+     "priority": 9.0,
+     "tokens_est": 18000000,
+     "over_cap": false
+    }
+   ]
+  },
+  {
+   "start": "2026-11-23",
+   "tokens": 18000000,
+   "blind": 0,
+   "tests": [
+    {
+     "slot": "output-compression",
+     "judge": "objective",
+     "size": "short",
+     "incumbent": [],
+     "challengers": [
+      "rtk"
+     ],
+     "priority": 3.0,
+     "tokens_est": 3000000,
+     "over_cap": false
+    },
+    {
+     "slot": "tool-discovery",
+     "judge": "objective",
+     "size": "short",
+     "incumbent": [],
+     "challengers": [
+      "mcp-registry"
+     ],
+     "priority": 3.0,
+     "tokens_est": 3000000,
+     "over_cap": false
+    },
+    {
+     "slot": "code-understanding",
+     "judge": "objective",
+     "size": "short",
+     "incumbent": [
+      "native-search"
+     ],
+     "challengers": [
+      "graphify"
+     ],
+     "priority": 2.0,
+     "tokens_est": 3000000,
+     "over_cap": false
+    },
+    {
+     "slot": "browser",
+     "judge": "objective",
+     "size": "short",
+     "incumbent": [
+      "chrome-devtools-mcp"
+     ],
+     "challengers": [
+      "agent-browser",
+      "playwright-mcp"
+     ],
+     "priority": 2.0,
+     "tokens_est": 4500000,
+     "over_cap": false
+    },
+    {
+     "slot": "code-understanding",
+     "judge": "objective",
+     "size": "short",
+     "incumbent": [
+      "native-search"
+     ],
+     "challengers": [
+      "claude-lsp",
+      "deepwiki-open"
+     ],
+     "priority": 2.0,
+     "tokens_est": 4500000,
+     "over_cap": false
+    }
+   ]
+  },
+  {
+   "start": "2026-11-30",
+   "tokens": 18000000,
+   "blind": 0,
+   "tests": [
+    {
+     "slot": "data-analysis",
+     "judge": "objective",
+     "size": "medium",
+     "incumbent": [
+      "native-data"
+     ],
+     "challengers": [
+      "jupyter-mcp-server",
+      "marimo-skills"
+     ],
+     "priority": 3.0,
+     "tokens_est": 18000000,
+     "over_cap": false
+    }
+   ]
+  },
+  {
+   "start": "2026-12-07",
+   "tokens": 18000000,
+   "blind": 0,
+   "tests": [
+    {
+     "slot": "data-analysis",
+     "judge": "objective",
+     "size": "medium",
+     "incumbent": [
+      "native-data"
+     ],
+     "challengers": [
+      "motherduck-mcp",
+      "scientific-agent-skills"
+     ],
+     "priority": 3.0,
+     "tokens_est": 18000000,
+     "over_cap": false
+    }
+   ]
+  },
+  {
+   "start": "2026-12-14",
+   "tokens": 12000000,
+   "blind": 0,
+   "tests": [
+    {
+     "slot": "review",
+     "judge": "objective",
+     "size": "medium",
+     "incumbent": [
+      "native-review"
+     ],
+     "challengers": [
+      "codex-security"
+     ],
+     "priority": 2.0,
+     "tokens_est": 12000000,
+     "over_cap": false
+    }
+   ]
+  }
+ ],
+ "unscheduled": [
+  {
+   "slot": "dev-workflow",
+   "judge": "objective",
+   "size": "heavy",
+   "incumbent": [
+    "bmad"
+   ],
+   "challengers": [
+    "compound-engineering"
+   ],
+   "priority": 2.0,
+   "tokens_est": 46800000,
+   "over_cap": true,
+   "reason": "單組就超過每週 token 上限；請決定只跑一個 agent 或減少次數"
+  },
+  {
+   "slot": "dev-workflow",
+   "judge": "objective",
+   "size": "heavy",
+   "incumbent": [
+    "bmad"
+   ],
+   "challengers": [
+    "feature-dev"
+   ],
+   "priority": 2.0,
+   "tokens_est": 46800000,
+   "over_cap": true,
+   "reason": "單組就超過每週 token 上限；請決定只跑一個 agent 或減少次數"
+  },
+  {
+   "slot": "dev-workflow",
+   "judge": "objective",
+   "size": "heavy",
+   "incumbent": [
+    "bmad"
+   ],
+   "challengers": [
+    "jeffallan-claude-skills"
+   ],
+   "priority": 2.0,
+   "tokens_est": 46800000,
+   "over_cap": true,
+   "reason": "單組就超過每週 token 上限；請決定只跑一個 agent 或減少次數"
+  },
+  {
+   "slot": "dev-workflow",
+   "judge": "objective",
+   "size": "heavy",
+   "incumbent": [
+    "bmad"
+   ],
+   "challengers": [
+    "mattpocock-grill-me"
+   ],
+   "priority": 2.0,
+   "tokens_est": 46800000,
+   "over_cap": true,
+   "reason": "單組就超過每週 token 上限；請決定只跑一個 agent 或減少次數"
+  },
+  {
+   "slot": "dev-workflow",
+   "judge": "objective",
+   "size": "heavy",
+   "incumbent": [
+    "bmad"
+   ],
+   "challengers": [
+    "moai-adk"
+   ],
+   "priority": 2.0,
+   "tokens_est": 46800000,
+   "over_cap": true,
+   "reason": "單組就超過每週 token 上限；請決定只跑一個 agent 或減少次數"
+  },
+  {
+   "slot": "dev-workflow",
+   "judge": "objective",
+   "size": "heavy",
+   "incumbent": [
+    "bmad"
+   ],
+   "challengers": [
+    "openspec"
+   ],
+   "priority": 2.0,
+   "tokens_est": 46800000,
+   "over_cap": true,
+   "reason": "單組就超過每週 token 上限；請決定只跑一個 agent 或減少次數"
+  },
+  {
+   "slot": "dev-workflow",
+   "judge": "objective",
+   "size": "heavy",
+   "incumbent": [
+    "bmad"
+   ],
+   "challengers": [
+    "pullboard"
+   ],
+   "priority": 2.0,
+   "tokens_est": 46800000,
+   "over_cap": true,
+   "reason": "單組就超過每週 token 上限；請決定只跑一個 agent 或減少次數"
+  },
+  {
+   "slot": "dev-workflow",
+   "judge": "objective",
+   "size": "heavy",
+   "incumbent": [
+    "bmad"
+   ],
+   "challengers": [
+    "task-master"
+   ],
+   "priority": 2.0,
+   "tokens_est": 46800000,
+   "over_cap": true,
+   "reason": "單組就超過每週 token 上限；請決定只跑一個 agent 或減少次數"
+  },
+  {
+   "slot": "memory",
+   "judge": "objective",
+   "size": "heavy",
+   "incumbent": [
+    "native-memory"
+   ],
+   "challengers": [
+    "ce-handoff"
+   ],
+   "priority": 2.0,
+   "tokens_est": 46800000,
+   "over_cap": true,
+   "reason": "單組就超過每週 token 上限；請決定只跑一個 agent 或減少次數"
+  },
+  {
+   "slot": "memory",
+   "judge": "objective",
+   "size": "heavy",
+   "incumbent": [
+    "native-memory"
+   ],
+   "challengers": [
+    "claude-mem"
+   ],
+   "priority": 2.0,
+   "tokens_est": 46800000,
+   "over_cap": true,
+   "reason": "單組就超過每週 token 上限；請決定只跑一個 agent 或減少次數"
+  },
+  {
+   "slot": "memory",
+   "judge": "objective",
+   "size": "heavy",
+   "incumbent": [
+    "native-memory"
+   ],
+   "challengers": [
+    "planning-with-files"
+   ],
+   "priority": 2.0,
+   "tokens_est": 46800000,
+   "over_cap": true,
+   "reason": "單組就超過每週 token 上限；請決定只跑一個 agent 或減少次數"
+  }
+ ],
+ "candidates": [
+  {
+   "tool": "addy-agent-skills",
+   "slot": "behavior-rules",
+   "priority": 9.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 3,
+    "usage": 3,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：沒有現任",
+    "使用頻率：近 30 天 14 段對話",
+    "也屬於 browser、dev-workflow、review，只排優先序最高的槽位"
+   ]
+  },
+  {
+   "tool": "alirezarezvani-claude-skills",
+   "slot": "behavior-rules",
+   "priority": 9.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 3,
+    "usage": 3,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：沒有現任",
+    "使用頻率：近 30 天 14 段對話",
+    "也屬於 memory、dev-workflow，只排優先序最高的槽位"
+   ]
+  },
+  {
+   "tool": "ecc",
+   "slot": "behavior-rules",
+   "priority": 9.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 3,
+    "usage": 3,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：沒有現任",
+    "使用頻率：近 30 天 14 段對話",
+    "也屬於 memory、dev-workflow，只排優先序最高的槽位"
+   ]
+  },
+  {
+   "tool": "ponytail",
+   "slot": "behavior-rules",
+   "priority": 9.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 3,
+    "usage": 3,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：沒有現任",
+    "使用頻率：近 30 天 14 段對話"
+   ]
+  },
+  {
+   "tool": "ai-design-skills",
+   "slot": "frontend-design",
+   "priority": 3.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 3,
+    "usage": 1,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：schedule.yaml",
+    "使用頻率：近 30 天 0 段對話"
+   ]
+  },
+  {
+   "tool": "impeccable",
+   "slot": "frontend-design",
+   "priority": 3.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 3,
+    "usage": 1,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：schedule.yaml",
+    "使用頻率：近 30 天 0 段對話"
+   ]
+  },
+  {
+   "tool": "jupyter-mcp-server",
+   "slot": "data-analysis",
+   "priority": 3.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 3,
+    "usage": 1,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：schedule.yaml",
+    "使用頻率：近 30 天 0 段對話"
+   ]
+  },
+  {
+   "tool": "marimo-skills",
+   "slot": "data-analysis",
+   "priority": 3.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 3,
+    "usage": 1,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：schedule.yaml",
+    "使用頻率：近 30 天 0 段對話"
+   ]
+  },
+  {
+   "tool": "mattpocock-skills",
+   "slot": "frontend-design",
+   "priority": 3.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 3,
+    "usage": 1,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：schedule.yaml",
+    "使用頻率：近 30 天 0 段對話",
+    "也屬於 review、memory、dev-workflow，只排優先序最高的槽位"
+   ]
+  },
+  {
+   "tool": "mcp-registry",
+   "slot": "tool-discovery",
+   "priority": 3.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 3,
+    "usage": 1,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：沒有現任",
+    "使用頻率：近 30 天 0 段對話"
+   ]
+  },
+  {
+   "tool": "motherduck-mcp",
+   "slot": "data-analysis",
+   "priority": 3.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 3,
+    "usage": 1,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：schedule.yaml",
+    "使用頻率：近 30 天 0 段對話"
+   ]
+  },
+  {
+   "tool": "rtk",
+   "slot": "output-compression",
+   "priority": 3.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 3,
+    "usage": 1,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：沒有現任",
+    "使用頻率：近 30 天 0 段對話"
+   ]
+  },
+  {
+   "tool": "scientific-agent-skills",
+   "slot": "data-analysis",
+   "priority": 3.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 3,
+    "usage": 1,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：schedule.yaml",
+    "使用頻率：近 30 天 0 段對話"
+   ]
+  },
+  {
+   "tool": "agent-browser",
+   "slot": "browser",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 2,
+    "usage": 1,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任在試用",
+    "使用頻率：近 30 天 0 段對話"
+   ]
+  },
+  {
+   "tool": "ce-handoff",
+   "slot": "memory",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 1 段對話"
+   ]
+  },
+  {
+   "tool": "claude-lsp",
+   "slot": "code-understanding",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 6 段對話"
+   ]
+  },
+  {
+   "tool": "claude-mem",
+   "slot": "memory",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 1 段對話"
+   ]
+  },
+  {
+   "tool": "codex-security",
+   "slot": "review",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 1,
+    "evidence": "E1"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 0 段對話"
+   ]
+  },
+  {
+   "tool": "compound-engineering",
+   "slot": "dev-workflow",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 5 段對話"
+   ]
+  },
+  {
+   "tool": "deepwiki-open",
+   "slot": "code-understanding",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 6 段對話"
+   ]
+  },
+  {
+   "tool": "feature-dev",
+   "slot": "dev-workflow",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 5 段對話"
+   ]
+  },
+  {
+   "tool": "graphify",
+   "slot": "code-understanding",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 6 段對話"
+   ]
+  },
+  {
+   "tool": "jeffallan-claude-skills",
+   "slot": "dev-workflow",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 5 段對話"
+   ]
+  },
+  {
+   "tool": "mattpocock-grill-me",
+   "slot": "dev-workflow",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 5 段對話"
+   ]
+  },
+  {
+   "tool": "moai-adk",
+   "slot": "dev-workflow",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 5 段對話"
+   ]
+  },
+  {
+   "tool": "openspec",
+   "slot": "dev-workflow",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 5 段對話"
+   ]
+  },
+  {
+   "tool": "planning-with-files",
+   "slot": "memory",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 1 段對話"
+   ]
+  },
+  {
+   "tool": "playwright-mcp",
+   "slot": "browser",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 2,
+    "usage": 1,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任在試用",
+    "使用頻率：近 30 天 0 段對話"
+   ]
+  },
+  {
+   "tool": "pullboard",
+   "slot": "dev-workflow",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 5 段對話",
+    "也屬於 review，只排優先序最高的槽位"
+   ]
+  },
+  {
+   "tool": "task-master",
+   "slot": "dev-workflow",
+   "priority": 2.0,
+   "factors": {
+    "weight": 1.0,
+    "pain": 1,
+    "usage": 2,
+    "evidence": "E0"
+   },
+   "notes": [
+    "痛點：現任夠用",
+    "使用頻率：近 30 天 5 段對話"
+   ]
+  }
+ ],
+ "excluded": [
+  {
+   "tool": "codegraph",
+   "reason": "同群代表是 graphify"
+  },
+  {
+   "tool": "gsd",
+   "reason": "同群代表是 moai-adk"
+  },
+  {
+   "tool": "karpathy-guidelines",
+   "reason": "第 0 層：停滯"
+  },
+  {
+   "tool": "serena",
+   "reason": "同群代表是 claude-lsp"
+  },
+  {
+   "tool": "superpowers",
+   "reason": "同群代表是 addy-agent-skills、jeffallan-claude-skills"
+  }
+ ]
+}

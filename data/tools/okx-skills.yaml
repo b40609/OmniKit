@@ -3,6 +3,7 @@ name: OKX skills
 kind: collection
 slots: []
 status: pending
+url: https://github.com/okx/onchainos-skills
 sources:
 - 桌機盤點
 notes: CatOS 用的交易所與鏈上工具，共 7 個 skill。

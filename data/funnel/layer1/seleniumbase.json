@@ -1,0 +1,60 @@
+{
+ "layer": 1,
+ "tool_id": "seleniumbase",
+ "name": "SeleniumBase",
+ "url": "https://github.com/seleniumbase/SeleniumBase",
+ "slots": [],
+ "scenarios": [],
+ "summary": "SeleniumBase 是給人寫瀏覽器自動化腳本與測試的 Python 框架，不是讓 agent 自己開 dev server、看畫面與 console 的工具。工具卡本身也註明「不列入 U1 比較」，對不上 browser 槽位的 U1 情境，也沒有其他槽位情境適用，因此不放進任何槽位。",
+ "differences": "相對現任（Chrome DevTools MCP、原生瀏覽器）：多了可寫成 pytest 測試、隱匿（stealth／CDP）模式、可選 Chromium 系瀏覽器、測試報告與儀表板等功能；少了 agent 直接操作瀏覽器的介面、與 Claude Code／Codex 的整合（無 plugin、無 skill），且要先寫腳本才能用。",
+ "claims": [
+  {
+   "claim": "以 pip 安裝的 Python 函式庫，提供 SB、BaseCase、Driver 等入口",
+   "kind": "capability",
+   "how_to_verify": "在乾淨 venv 執行 pip install seleniumbase，再 python -c \"from seleniumbase import SB, BaseCase, Driver\" 確認可匯入。"
+  },
+  {
+   "claim": "repo 內有 mcp_servers/ 目錄，表示有提供 MCP 相關資源",
+   "kind": "capability",
+   "how_to_verify": "檢查 repo 根目錄是否存在 mcp_servers/，並確認其中是否有可執行的 MCP server 進入點。"
+  },
+  {
+   "claim": "沒有 Claude plugin、Claude marketplace、Codex plugin 與 SKILL.md",
+   "kind": "compat",
+   "how_to_verify": "在 repo 搜尋 .claude-plugin、marketplace 設定、.codex-plugin 與 SKILL.md；目前線索皆為 false。"
+  },
+  {
+   "claim": "repo 內有 AGENTS.md，且 CI 有 Windows 執行環境",
+   "kind": "compat",
+   "how_to_verify": "確認根目錄有 AGENTS.md；檢查 .github/workflows 是否有 windows-latest 的 job。"
+  },
+  {
+   "claim": "提供隱匿（stealth）與 CDP 模式，並可用 --uc 等參數切換",
+   "kind": "capability",
+   "how_to_verify": "執行 examples/cdp_mode 下的範例腳本，並檢查 help_docs/uc_mode.md 與 cdp_mode_methods.md 是否描述這些模式。"
+  }
+ ],
+ "native_coverage": {
+  "level": "covered",
+  "by": [
+   "native-browser"
+  ],
+  "note": "U1 的 agent 自驗情境（開 dev server、看畫面與 console、確認改動）已由原生瀏覽器涵蓋；SeleniumBase 的主打（寫腳本、隱匿、測試報告）不在 U1 範圍內。"
+ },
+ "cluster": "python-browser-library",
+ "recommendation": "reject",
+ "needs_user": "工具卡的 browser 槽位與「不列入 U1 比較」的備註不一致。若維護者認為它值得追蹤（例如作為測試自動化的參考），需另開對應情境或槽位；目前沒有適用的情境，因此建議 reject。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 20996,
+   "cached": 3694,
+   "output": 3066
+  },
+  "readme_sha": "72fa83ef08a7",
+  "readme_chars": 82920
+ }
+}

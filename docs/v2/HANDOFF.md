@@ -45,13 +45,13 @@ OmniKit v2 做給同事：裝完 → 可選的環境掃描與專案掃描 → �
    - 這台（維護者）唯讀比對：判斷為維護者版，三個 chrome_devtools 都會直接接手、沒有衝突；下次同步時 `~/.codex/AGENTS.md` 會轉成區塊格式。
 3. ~~**階段 0a**~~：2026-11-05 完成工具與第一輪實跑，自我測試全過（見下方「階段 0a 的成果」）。
    - 同步層之後要補的項目（0a 沒做）：FR-36 的「檢查更新」流程（目前同事要先跑 `install.ps1 -WhatIf` 再跑 `install.ps1`）、受管區塊內容的雜湊（區塊裡的手改還是會被蓋掉）、`AGENTS.override.md` 偵測（FR-32）、Windows CI 跑 `install.ps1 -SelfTest`（FR-34）、架構地圖還沒有 `edition.py`。
-4. **階段 0b（4 到 6 週）**：用漏斗處理 active 槽位與訪談會用到的槽位；找資料分析的候選工具。名冊目前沒有任何資料分析相關的卡片。建議順序：
-   1. 維護者勾選 `data/funnel/candidates.yaml`（44 張，15 張有建議），`batch0.py --apply` 寫回卡片後重跑第 0 層。
-   2. `layer1.py run` 跑非凍結的卡（約 57 張，照試跑每張 1.6 萬 token，合計約 90 萬），再 `layer1.py clusters` 挑代表。
-   3. `evidence.py draft --from-layer1`；E2 與可查證負面證據進維護者週報。
-   4. 使用者登入隔離資料夾（`smoke.py login`）後，對留下的跑 `smoke.py context` 與 `run`；有 hook 或 MCP 的先審程式碼，再用 `sandbox`。
-   5. 資料分析：先用工具發現槽位找候選、建卡，再走同一條漏斗。
-   6. 依 FR-26 的優先序排第 2 層（盲選每週最多 2 次、客觀實測每週 2,000 萬 token）。
+4. **階段 0b（4 到 6 週）**：用漏斗處理 active 槽位與訪談會用到的槽位；找資料分析的候選工具。2026-11-05 跑完第一輪（見下方「階段 0b 第一輪的成果」）：
+   1. ~~勾選 `candidates.yaml` 並寫回卡片、重跑第 0 層~~：完成。
+   2. ~~`layer1.py run` 與 `clusters`~~：完成，69 張（含 0a 試跑的 3 張）。
+   3. ~~`evidence.py draft --from-layer1` 與 `check`~~：完成，169 張證據卡。
+   4. 煙霧測試：`context` 這一輪量了 25 張；jupyter-mcp-server 與 motherduck-mcp 已審程式碼並在沙箱交握。**還沒做**：`smoke.py run`（隔離資料夾要使用者登入）、其他有 MCP、hook 或執行檔的工具的程式碼審查與 `sandbox`。
+   5. ~~資料分析~~：新增槽位與 6 張卡，4 張建議排實測。
+   6. ~~第 2 層排程~~：`schedule.py` 產生提案（`data/funnel/layer2-schedule.json`），週報列得出來；重題槽位要維護者決定（見下方）。
 5. **同時開發** v2.0 其他需求。分組見 PRD §6.1。
 6. **調整 `4a4fc38` 的行為**：另一個 session 已推上「不評估就不裝 omnikit-eval」。PRD 的 FR-37 要求個人週報跟訪談第 5 題脫鉤。
 
@@ -86,6 +86,53 @@ OmniKit v2 做給同事：裝完 → 可選的環境掃描與專案掃描 → �
 - Antigravity 還沒納入煙霧測試（`agy -p` 有非互動模式，可以照 Claude 的做法補）。
 - 第 0 層還沒做：A1 下載數只看 npm 來源、A2 被依賴與 A3 策展沒做；H7 的 skills.sh 稽核與 MCP Registry 沒接（單張卡可以用 `layer0.py --scan`）。
 - 新的自我測試只在 Windows 跑過，Linux（CI）要 push 後才知道。
+
+## 階段 0b 第一輪的成果（2026-11-05）
+
+名冊變動：
+
+- 「規劃與開發流程」槽位解凍，改成 active（PRD §0.1 第 4 題）；spec-kit、pullboard 卡片裡「凍結中」的註記一併改掉。
+- 新增「資料分析」槽位（active，情境 A1 探索分析大檔、A2 改 notebook 後重跑）與 6 張卡：native-data（default，比較基準）、jupyter-mcp-server、anthropic-data、scientific-agent-skills（只取 7 個資料分析 skill）、motherduck-mcp、marimo-skills。
+- 情境 id 一開始用了 D1，跟「文件與簡報」的 D1 撞號，讓 8 張卡的第 1 層判讀混亂；已改成 A1、A2 並重跑。`validate.py` 現在會擋跨槽位重複的情境 id。
+
+漏斗結果（都在 `data/funnel/`）：
+
+| 層 | 結果 |
+|---|---|
+| 第 0 層 | 41 張寫回 url（5 張確認不在 GitHub 填 none；browserbase、mcp-registry 原本就有官網網址，不覆蓋）。122 張：通過 94、只標旗標 10（停滯 8、冷卻期 2）、淘汰 1（open-deep-research 已封存）、未知 5、不適用 12 |
+| 第 1 層 | 69 張（含 0a 試跑的 3 張）：建議排實測 35、先收著 18、建議拒絕 16；7 個相似群組（`clusters.json`）。資料分析 4 張建議排實測（jupyter-mcp-server、motherduck-mcp、scientific-agent-skills、marimo-skills），符合 FR-6 的「至少 2 張」 |
+| 證據卡 | 169 張，其中 40 張建立時就過期（見下方「已知問題」）；只有 codex-security 到 E1，沒有 E2，也沒有可以查證的負面證據 |
+| 煙霧測試 context | 這一輪 25 張量到每回合增加的 context（Claude 基準約 99 KB、Codex 約 70 KB）。最重的是 ECC（935 個 skill，Claude 多約 6,273 token）、alirezarezvani、moai-adk、jeffallan（各約 6,000 token）；最輕的是 ce-handoff（52 token）、graphify（92 token）、karpathy-guidelines（127 token） |
+| 程式碼審查與沙箱 | jupyter-mcp-server 2.2.4：可以在本機加 --reviewed 跑；啟動要加 `--start-new-code-sandbox false`；沙箱交握成功，18 個工具、定義 41,866 bytes。motherduck-mcp 1.1.0：可以在本機加 --reviewed 跑，但 DuckDB 要用 `--init-sql` 鎖住檔案存取與 extension；沙箱交握成功，4 個工具、定義 2,914 bytes。沙箱用固定版本的 uv 0.12.10（核對 SHA256） |
+| 第 2 層排程提案 | 11-09 那週：behavior-rules 客觀題（addy-agent-skills、alirezarezvani）加 frontend-design 兩組盲選；11-16：behavior-rules（ecc、ponytail）；11-23：output-compression、tool-discovery、code-understanding、browser；11-30 與 12-07：data-analysis 兩組；12-14：review。排不進 11 組（dev-workflow 8、memory 3） |
+
+實際 token 用量：
+
+| 項目 | 模型 | 輸入（含快取） | 輸出 |
+|---|---|---|---|
+| 第 1 層第一輪（63 張） | Haiku | 950,280（快取 240,110） | 275,337 |
+| 第 1 層重跑（撞號 8 張與失敗 3 張） | Haiku | 168,037（快取 40,634） | 47,209 |
+| 證據卡第一輪（24 張） | Haiku | 沒記到：程式中途以 exit 3 結束，沒印出合計 | 沒記到 |
+| 證據卡補跑（11 張） | Haiku | 59,334（快取 47,513） | 22,611 |
+| 程式碼審查（2 個 MCP） | 強模型子代理 | 合計 342,790（子代理只回報總數） | 含在左欄 |
+| context 量測與沙箱 | 不呼叫模型 | 0 | 0 |
+
+記到的合計約 186 萬 token。第 1 層原本估 90 萬，實際約 144 萬；第一輪有 3 張結構化輸出重試失敗，那幾次的用量也沒記到。
+
+要維護者決定的：
+
+1. **重題槽位排不進每週上限**：memory 與 dev-workflow 照估算每組約 4,680 萬 token（每次 390 萬 × 3 次 × 2 組 × 2 個 agent），超過每週 2,000 萬。可以：把 M1、V1 縮成中型題（每次約 100 萬，一組約 1,200 萬）、只跑試點同事用的那個 agent、或讓一組跨兩週的額度。
+2. `data/funnel/schedule.yaml` 把資料分析的痛點手動設成 3（新槽位，試點前要有實測過的候選）；不設的話會排到最後。
+3. 第 1 層把 mattpocock-skills 歸到 frontend-design（F2），所以排進了盲選；不合理就從那組拿掉。
+4. 第 1 層有 52 張卡附了要維護者決定的問題（`data/funnel/layer1/<id>.json` 的 `needs_user`），例如集合要整包評還是只評子集、ponytail 與 planning-with-files 的 hook 每回合注入能不能接受。排到該槽位的實測前再處理即可。
+5. 登入兩個隔離設定資料夾（`smoke.py login`），才能跑 `smoke.py run`。
+
+已知問題（之後修）：
+
+- 證據卡的到期日從發佈日算，但收集時看的是「90 天內有更新」，所以舊 issue 一建立就過期（40 張）。
+- `evidence.py draft --from-layer1` 第一輪跑到第 24 張時以 exit 3 結束，沒有任何輸出；補跑同樣的卡沒有再發生，原因不明。合計 token 只在最後才印，中途結束就沒有紀錄。
+- `smoke.py context` 量不到只在 marketplace 定義、沒有 `.claude-plugin/plugin.json` 的 plugin（claude-lsp、feature-dev），也量不到純 CLI 或 MCP 的工具（task-master 0 個 skill）；這些要用 `sandbox` 或手動量。
+- 已修：`smoke.py` 遇到三個以上同名 skill 會出錯（claude-mem、ECC）；`layer1.py run --max 0` 被當成不限張數。
 
 ## 要實測才能確定的
 

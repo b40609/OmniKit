@@ -1,0 +1,164 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: jupyter-mcp-server
+cards:
+- id: ev-20261105-jupyter-mcp-server-01
+  tool: jupyter-mcp-server
+  tool_version_tested: unknown
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/datalayer/jupyter-mcp-server/issues/446
+    author: abbbe
+    published: '2026-09-10'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 作者自述在多代理並行操作時遇到競態條件（race condition）問題，屬個人遭遇。
+  quote: The ones which bite me personally are related to race conditions
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-jupyter-mcp-server-02
+  tool: jupyter-mcp-server
+  tool_version_tested: unknown
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/datalayer/jupyter-mcp-server/issues/326
+    author: matthewfeickert
+    published: '2026-07-28'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: 目前只在 PyPI 發佈，conda-forge 尚無套件，其依賴 code-sandboxes 也還沒上架。
+  quote: It would be excellent if in addition to the PyPI distribution
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-jupyter-mcp-server-03
+  tool: jupyter-mcp-server
+  tool_version_tested: 99080012febf0c0694c29787b6033c49cc06eaaf
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/datalayer/jupyter-mcp-server/issues/398
+    author: ebarkhordar
+    published: '2026-08-24'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    os: python 3.12-slim container
+    mode: JUPYTER_SERVER
+  method: single-run
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: execute_cell 的死核心（dead kernel）重試邏輯不會執行，因為 execute_via_execution_stack 把遺失的核心當成正常回傳值，而非拋出例外。
+  quote: execute_cell's dead-kernel retry never runs
+  reliability: B
+  credibility: 4
+  certainty: moderate
+  expires: '2026-11-22'
+- id: ev-20261105-jupyter-mcp-server-04
+  tool: jupyter-mcp-server
+  tool_version_tested: unknown
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/datalayer/jupyter-mcp-server/issues/21
+    author: emilio-gagliardi
+    published: '2025-06-06'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: KernelClient 依賴啟動時建立的連線，連線容易失效，導致加入程式格後執行失敗的情況常見；NbModelClient 因每次重連則較穩定。
+  quote: it relies on a connection made at startup to persist indefinitely
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2025-09-04'
+- id: ev-20261105-jupyter-mcp-server-05
+  tool: jupyter-mcp-server
+  tool_version_tested: 1.4.5
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/datalayer/jupyter-mcp-server/issues/389
+    author: Lenbok
+    published: '2026-08-20'
+    retrieved: '2026-11-05'
+  independence: independent
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 升級到 1.4.5 後，使用 use_notebook 會回報 sandbox 變體 jupyter 不被支援的錯誤。
+  quote: 'Unknown sandbox variant: jupyter'
+  reliability: C
+  credibility: 3
+  certainty: low
+  expires: '2026-11-18'
+- id: ev-20261105-jupyter-mcp-server-06
+  tool: jupyter-mcp-server
+  tool_version_tested: 2.1.4
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/datalayer/jupyter-mcp-server/issues/425
+    author: EnyMan
+    published: '2026-09-04'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: MCP_SERVER
+  method: single-run
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: MCP_SERVER 模式下，use_notebook 傳入 kernel_id 會先驗證核心存在，之後卻丟棄該 ID，改在新建核心上執行。
+  quote: verifies that the kernel exists and then discards the id
+  reliability: B
+  credibility: 4
+  certainty: moderate
+  expires: '2026-12-03'
+- id: ev-20261105-jupyter-mcp-server-07
+  tool: jupyter-mcp-server
+  tool_version_tested: unknown
+  slot: data-analysis
+  source:
+    type: issue
+    url: https://github.com/datalayer/jupyter-mcp-server/issues/464
+    author: abbbe
+    published: '2026-09-17'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    mode: CLI 預設 --start-new-code-sandbox=True
+  method: single-run
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: use_notebook 不會沿用 JupyterLab 已綁定在該 notebook session 上的核心，而是另開第二個核心。
+  quote: Opening a notebook that JupyterLab already has running yields a second kernel
+  reliability: B
+  credibility: 4
+  certainty: moderate
+  expires: '2026-12-16'

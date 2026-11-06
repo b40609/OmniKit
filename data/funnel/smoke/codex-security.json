@@ -1,0 +1,81 @@
+{
+ "tool": "codex-security",
+ "date": "2026-11-05",
+ "source": {
+  "repo": "openai/codex-security",
+  "sha": "c078ae5c5bbe130c5cfc67390f18f66a5db5fedc"
+ },
+ "executable": [
+  "skill 附可執行檔（.js、.py）"
+ ],
+ "context": {
+  "claude": {
+   "baseline_bytes": 99209,
+   "with_bytes": 104804,
+   "delta_bytes": 5595,
+   "delta_tokens_est": 1399,
+   "mentions": [
+    "assess-patch-risk",
+    "attack-path-analysis",
+    "check-skills",
+    "cloud-findings",
+    "deep-security-scan",
+    "define-security-policy",
+    "editorial-guide",
+    "finding-discovery",
+    "fix-finding",
+    "propose-security-hardening",
+    "publish-findings",
+    "resolve-dependency-alert",
+    "security-diff-scan",
+    "security-scan",
+    "status-summary",
+    "style-guide",
+    "threat-model",
+    "threat-model-visualize",
+    "track-findings",
+    "triage-finding",
+    "validation",
+    "verify-fix",
+    "vulnerability-writeup",
+    "word-list"
+   ]
+  },
+  "codex": {
+   "baseline_bytes": 70359,
+   "with_bytes": 76923,
+   "delta_bytes": 6564,
+   "delta_tokens_est": 1640,
+   "mentions": [
+    "assess-patch-risk",
+    "attack-path-analysis",
+    "check-skills",
+    "cloud-findings",
+    "deep-security-scan",
+    "define-security-policy",
+    "editorial-guide",
+    "finding-discovery",
+    "fix-finding",
+    "propose-security-hardening",
+    "publish-findings",
+    "resolve-dependency-alert",
+    "security-diff-scan",
+    "security-scan",
+    "status-summary",
+    "style-guide",
+    "threat-model",
+    "threat-model-visualize",
+    "track-findings",
+    "triage-finding",
+    "validation",
+    "verify-fix",
+    "vulnerability-writeup",
+    "word-list"
+   ]
+  }
+ },
+ "install": {
+  "ok": true,
+  "detail": "24 個 skill"
+ }
+}

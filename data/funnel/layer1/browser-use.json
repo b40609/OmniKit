@@ -1,0 +1,65 @@
+{
+ "layer": 1,
+ "tool_id": "browser-use",
+ "name": "Browser Use",
+ "url": "https://github.com/browser-use/browser-use",
+ "slots": [],
+ "scenarios": [],
+ "summary": "Browser Use 是用來開發「自己的瀏覽器 agent」的 Python 函式庫，不是給 Claude Code 或 Codex 在改前端時自己開 dev server、看畫面與 console 的工具。工具卡雖登記在 browser 槽位，但沒有任何情境對得上 U1，因此不放進槽位。README 另外提到的 CLI 路徑（讓既有 agent 操作瀏覽器）是另一個東西，不在本卡的評估範圍。",
+ "differences": "相較於 browser 槽位現任（Chrome DevTools MCP、原生瀏覽器）：多了一個 LLM 驅動的 Python agent 框架、雲端瀏覽器與隱身、驗證碼與代理等付費服務。少了的是：沒有 Claude Code 或 Codex 的 plugin 或 marketplace 整合，沒有 SKILL.md，沒有寫明能讀 console 錯誤，而且 Bash 整合在 Windows 上要靠 WSL。對 U1 來說，它的主要用途不符，也沒有比現任更好的驗證能力。",
+ "claims": [
+  {
+   "claim": "核心是 MIT 授權的開源 Python 函式庫，主要用來寫 LLM 驅動的瀏覽器 agent。",
+   "kind": "capability",
+   "how_to_verify": "檢查 repo 根目錄的 LICENSE 與 README 的 Path 3 說明，確認用途是建立自己的 agent，不是給既有 coding agent 用。"
+  },
+  {
+   "claim": "README 另外提供 CLI 路徑，讓既有 coding agent 取得瀏覽器操作能力。",
+   "kind": "capability",
+   "how_to_verify": "依 README Path 2 在沙箱安裝 browser-use CLI，列出指令並確認能否從 Claude Code 或 Codex 呼叫；同時確認此 CLI 是 browser-harness 另一個 repo。"
+  },
+  {
+   "claim": "repo 沒有 Claude plugin、Claude marketplace、Codex plugin 與 SKILL.md；有 AGENTS.md 與 6 個 skills 目錄。",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 目錄樹與 .claude-plugin、.codex-plugin、SKILL.md 是否存在，對照第 0 層 compat 線索。"
+  },
+  {
+   "claim": "Bash 整合需要 Linux 或 macOS 的 /bin/bash，Windows 要用 WSL；repo 雖有 Windows CI，但這不代表該整合原生可用。",
+   "kind": "compat",
+   "how_to_verify": "讀 README「Browser Use toolsets for Claude」段的需求說明，並在原生 Windows 上執行 examples/integrations/toolsets-for-claude 的範例看是否失敗。"
+  },
+  {
+   "claim": "文件沒有寫明可以讀取瀏覽器 console 錯誤；列出的動作以點擊、填表、截圖、DOM 為主。",
+   "kind": "capability",
+   "how_to_verify": "查 docs.browser-use.com 的 31 個瀏覽器動作清單，搜尋 console、log、錯誤相關動作；若沒有，再用一個故意報錯的 dev server 實測。"
+  },
+  {
+   "claim": "本地執行需要 LLM API 金鑰（例如 OPENAI_API_KEY）；雲端瀏覽器與 BU2 模型需要另外付費的 BROWSER_USE_API_KEY。",
+   "kind": "cost",
+   "how_to_verify": "依 README Path 3 步驟 2 與 FAQ 的 Can I use this for free 段落，確認需要哪些金鑰與收費項目。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "native-browser"
+  ],
+  "note": "原生瀏覽器已能開 localhost dev server、截圖、看 DOM、點擊與填表，改完檔案會自動驗證，涵蓋 U1 的主要流程。但 Claude Code 端是桌面版 Browser 面板、Codex 端是 in-app browser，兩邊的 CLI 都沒有寫明能讀 console 錯誤；需要登入的網站要改用 Claude in Chrome。"
+ },
+ "cluster": "python-browser-agent",
+ "recommendation": "reject",
+ "needs_user": "若想評估 README 提到的 CLI 路徑（browser-harness，讓 Claude Code 與 Codex 取得瀏覽器操作能力），請另外建立工具卡，本卡只評估 browser-use 函式庫本身。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-05",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 15792,
+   "cached": 3694,
+   "output": 5137
+  },
+  "readme_sha": "21a31ea5601d",
+  "readme_chars": 19712
+ }
+}

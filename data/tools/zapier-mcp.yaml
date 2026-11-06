@@ -3,6 +3,7 @@ name: Zapier MCP
 kind: service
 slots: []
 status: pending
+url: https://github.com/zapier/zapier-mcp
 sources:
 - 使用者提出
 notes: Zapier 託管的 MCP，把 Zapier 支援的 App 動作接給 agent；不另外收費，但每次成功的工具呼叫扣 2 個 Zapier task，吃 Zapier 方案的額度。兩邊原生已有連接器，還沒有對應的真實情境，先不分配槽位。

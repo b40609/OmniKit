@@ -1,0 +1,203 @@
+# 第 1b 層證據卡（evidence.py 產生或手動加入；格式見 contracts/evidence.schema.json）。引用原文最多 15 個字。
+tool: graphify
+cards:
+- id: ev-20261105-graphify-01
+  tool: graphify
+  tool_version_tested: unknown
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/Graphify-Labs/graphify/issues/4101
+    author: jkemp814
+    published: '2026-10-05'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: graphify extract_corpus_parallel
+    model: gemini-3-flash-preview
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 預設 token_budget=60000 時，文件密集的語料會被打包成單一區塊，Gemini 回傳格式正確但只涵蓋部分檔案，且沒有報錯。
+  quote: silently omits most files in a single oversized chunk
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2027-01-03'
+- id: ev-20261105-graphify-02
+  tool: graphify
+  tool_version_tested: 0.9.6
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/Graphify-Labs/graphify/issues/1667
+    author: krishnateja7
+    published: '2026-07-04'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: graphify update
+  method: single-run
+  comparator: none
+  runs: 2
+  kind: quality
+  direction: '-'
+  claim: 同一份未變動的語料連續執行兩次，社群分配不同（11,819 個節點中有 196 個不同），其餘節點與邊相同。
+  quote: Non-deterministic community assignments across identical-corpus runs
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-graphify-03
+  tool: graphify
+  tool_version_tested: 0.9.90
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/Graphify-Labs/graphify/issues/4494
+    author: twKrash
+    published: '2026-10-16'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: Pi coding agent with nicobailon/pi-subagents
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: Pi 專用技能寫死使用 Claude Code 的 general-purpose 子代理，但 pi-subagents 沒有此代理，作者認為應改用 delegate。
+  quote: hardcodes the Claude Code agent type general-purpose
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-graphify-04
+  tool: graphify
+  tool_version_tested: current release as of 2026-07
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/Graphify-Labs/graphify/issues/1829
+    author: shuff57
+    published: '2026-07-12'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: graphify.extract
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 節點 ID 只取檔名主幹（path.stem），同名的不同檔案（如 layout.py 與 layout.ts）會被合併成同一節點，造成邊錯接到其他檔案的符號。
+  quote: derives every node ID from path.stem
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-graphify-05
+  tool: graphify
+  tool_version_tested: 0.9.46
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/Graphify-Labs/graphify/issues/2843
+    author: atlantisv2
+    published: '2026-08-18'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: graphify skill Part B/C
+    mode: Agent-tool path, no API key
+  method: single-run
+  comparator: baseline
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: Skill Part C 未寫入 _origin，首次 graphify update 會刪除無章節編號文件的語意層；21 份文件中 8 份遺失（133 節點、236 邊）。該問題已關閉，作者未說明修復版本。
+  quote: deletes the entire semantic layer of any document
+  reliability: B
+  credibility: 2
+  certainty: low
+  expires: '2026-11-16'
+- id: ev-20261105-graphify-06
+  tool: graphify
+  tool_version_tested: 0.9.50
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/Graphify-Labs/graphify/issues/3129
+    author: yotamleo
+    published: '2026-08-27'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: graphify install
+    os: Windows
+    mode: uv tool install
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: graphify install 把機器專屬的絕對路徑寫入 repo 追蹤的 .codex/hooks.json，造成其他機器無法使用。
+  quote: writes a machine-absolute binary path into repo-tracked
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-graphify-07
+  tool: graphify
+  tool_version_tested: 0.9.27
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/Graphify-Labs/graphify/issues/2255
+    author: harshslr
+    published: '2026-07-28'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: graphify json_config
+    os: Windows
+    mode: Python 3.12
+  method: single-run
+  comparator: none
+  runs: 1
+  kind: quality
+  direction: '-'
+  claim: 含 $schema 或 $ref 的 JSON Schema 檔會被拆成大量關鍵字節點；單一 160 KB 的契約檔產生 362 個節點。
+  quote: every JSON-Schema file explode into keyword nodes
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
+- id: ev-20261105-graphify-08
+  tool: graphify
+  tool_version_tested: 0.9.32
+  slot: code-understanding
+  source:
+    type: issue
+    url: https://github.com/Graphify-Labs/graphify/issues/2420
+    author: jandudekcz
+    published: '2026-08-03'
+    retrieved: '2026-11-05'
+  independence: independent
+  setup:
+    agent: graphify explain
+    os: Windows 11
+    mode: pip install, Python 3.12.9
+  method: anecdote
+  comparator: none
+  runs: 1
+  kind: capability
+  direction: '-'
+  claim: explain 把連線數硬性截在 20 且沒有參數可以取消，也不會指向完整的受影響節點集合（8,988 節點、21,571 邊的程式碼語料）。
+  quote: explain silently caps connections at 20
+  reliability: C
+  credibility: 2
+  certainty: low
+  expires: '2027-02-03'
