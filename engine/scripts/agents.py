@@ -60,6 +60,7 @@ import codex_hooks  # noqa: E402  讀寫 config.toml 時保留原本的換行
 import edition  # noqa: E402  維護者版或同事版，以及免問核准的個人同意
 import profiles  # noqa: E402
 import validate  # noqa: E402
+from fsretry import flaky, hold, retry  # noqa: E402  防毒短暫鎖住檔案時等一下再試（FR-34）
 
 AGENTS = ("claude-code", "codex", "antigravity")
 SHORT = {"claude-code": "claude", "codex": "codex", "antigravity": "antigravity"}
@@ -246,12 +247,13 @@ def writable(path):
 
 
 def remove_tree(path):
+    """刪資料夾（含唯讀的）；有檔案被防毒短暫鎖住時，等一下從剩下的接著刪。"""
     def force(func, p, _exc):
         writable(p)
         writable(os.path.dirname(p))
         func(p)
 
-    shutil.rmtree(path, onexc=force)
+    retry(shutil.rmtree, path, onexc=force)
 
 
 def remove_owned(entry):
@@ -268,7 +270,8 @@ def source_files(src_dir):
 
 def copy_skill(src_dir, dest, env):
     """原地同步成跟 src_dir 一樣：覆寫變了的、補上缺的、刪掉多的。不先整個刪掉，也不複製資料夾屬性
-    （engine/skills 的資料夾常帶唯讀屬性，複製過去就刪不掉；有程式開著資料夾時也刪不掉）。"""
+    （engine/skills 的資料夾常帶唯讀屬性，複製過去就刪不掉；有程式開著資料夾時也刪不掉）。
+    防毒常在掃描剛複製好的檔案（尤其是 .py）：讀、寫、刪被鎖住時等一下再試（fsretry）。"""
     dest.mkdir(parents=True, exist_ok=True)
     writable(dest)
     wanted = source_files(src_dir)
@@ -276,10 +279,10 @@ def copy_skill(src_dir, dest, env):
         target = dest / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         writable(target.parent)
-        if not target.is_file() or target.read_bytes() != src.read_bytes():
+        if not target.is_file() or retry(target.read_bytes) != src.read_bytes():
             if target.exists():
                 writable(target)
-            shutil.copyfile(src, target)
+            retry(shutil.copyfile, src, target)
     for p in sorted(dest.rglob("*"), key=lambda x: -len(x.parts)):
         rel = p.relative_to(dest)
         if rel == Path(MARKER) or rel in wanted:
@@ -287,12 +290,12 @@ def copy_skill(src_dir, dest, env):
         if p.is_dir() and not is_link(p):
             if not any(p.iterdir()):
                 writable(p)
-                p.rmdir()
+                retry(p.rmdir)
         else:
             writable(p)
-            p.unlink()
+            retry(p.unlink)
     marker = {"source": str(src_dir), "repo": str(env.repo), "hash": tree_hash(src_dir)}
-    (dest / MARKER).write_text(json.dumps(marker, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    retry((dest / MARKER).write_text, json.dumps(marker, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def place_skill(src_dir, dest, mode, env, recorded=()):
@@ -868,7 +871,7 @@ def release_skillshare(env):
                 if not d.get("extras"):
                     d.pop("extras", None)
             if new_doc == expect:
-                config.write_bytes(new.replace("\n", newline).encode("utf-8"))
+                retry(config.write_bytes, new.replace("\n", newline).encode("utf-8"))
                 lines.append("skillshare：設定檔拿掉 OmniKit 的 MCP 來源與 Codex 規則")
             else:
                 lines.append(f"skillshare：{config} 的寫法跟預期不同，沒有改；可以自己拿掉 sources.mcp 與 rules-codex")
@@ -1040,7 +1043,7 @@ def disconnect(env):
     lines += profiles.disconnect_block(env.rules["antigravity"])
     lines += release_skillshare(env)
     if env.record_file.exists():
-        env.record_file.unlink()
+        retry(env.record_file.unlink)
     return lines
 
 
@@ -1133,9 +1136,11 @@ def selftest():
         env = Env(home=home, repo=repo, state=state, skillshare=ss, which=lambda _: None)
         check("偵測到三個 agent", detect(env) == ["claude-code", "codex", "antigravity"])
 
-        # 這一段模擬維護者這台的舊安裝：免問核准照 servers.yaml 寫。同事版在後面另一段
+        # 這一段模擬維護者這台的舊安裝：免問核准照 servers.yaml 寫。同事版在後面另一段。
+        # skillshare 的設定檔改寫時被防毒短暫鎖住一次（FR-34）
         edition.set_edition(state, "maintainer")
-        lines = connect(env)
+        with flaky(Path, "write_bytes", times=1, match=lambda p, *_: p == ss / "config.yaml") as config_lock:
+            lines = connect(env)
         claude_alpha, shared_alpha = home / ".claude" / "skills" / "alpha", home / ".agents" / "skills" / "alpha"
         check("Claude：舊的 skillshare 連結換成直接連到 engine/skills",
               is_link(claude_alpha) and same_path(link_target(claude_alpha), src / "alpha"))
@@ -1176,6 +1181,7 @@ def selftest():
         check("skillshare：設定檔拿掉 MCP 來源與 rules-codex，其他保留",
               "mcp" not in config_doc["sources"] and "skills" in config_doc["sources"]
               and not config_doc.get("extras") and config_doc["mode"] == "merge")
+        check("skillshare：設定檔被防毒短暫鎖住，等一下再試，照樣改好", config_lock.calls == 2)
         manifest = json.loads((home / ".claude" / "skills" / ".skillshare-manifest.json").read_text(encoding="utf-8"))
         check("skillshare：manifest 拿掉 OmniKit 的 skill，其他保留", manifest["managed"] == {"other": "symlink"})
         rec = load_record(env)
@@ -1197,6 +1203,26 @@ def selftest():
         check("來源資料夾是唯讀的：複製品的資料夾不帶唯讀", os.access(shared_alpha / "scripts", os.W_OK)
               and not (getattr(os.stat(shared_alpha / "scripts"), "st_file_attributes", 0) & 1))
 
+        # 防毒掃描剛複製好的檔案（FR-34）：複製品被短暫鎖住時等一下再試，不會失敗
+        run_py = shared_alpha / "scripts" / "run.py"
+        put(src / "alpha" / "scripts" / "run.py", "print('alpha v3')\n")
+        with flaky(shutil, "copyfile", times=2, match=lambda s, d, *a, **k: Path(d) == run_py) as st:
+            sync(env, mcp=False)
+        check("複製品被防毒短暫鎖住（假的鎖檔）：等一下再試，照樣更新",
+              st.calls == 3 and st.waits == [0.25, 0.5] and "v3" in run_py.read_text(encoding="utf-8"))
+        if os.name == "nt":
+            put(src / "alpha" / "scripts" / "run.py", "print('alpha v4')\n")
+            timer = hold(run_py, 0.6)  # 真的用不分享的方式開著 0.6 秒，跟防毒掃描時一樣
+            try:
+                sync(env, mcp=False)
+            finally:
+                timer.join()
+            check("複製品真的被鎖住 0.6 秒（Windows）：等到放開之後照樣更新", "v4" in run_py.read_text(encoding="utf-8"))
+        else:
+            print("略過：不是 Windows，沒有真的鎖住複製品")
+        put(src / "alpha" / "scripts" / "run.py", "print('alpha v2')\n")
+        sync(env, mcp=False)
+
         # 複製品被刪到一半（舊版遇到唯讀資料夾刪不掉）：.omnikit.json 不見了也照記錄認得，原地補齊
         (shared_alpha / MARKER).unlink()
         (shared_alpha / "scripts" / "run.py").unlink()
@@ -1208,9 +1234,11 @@ def selftest():
         check("新增 skill：兩邊都接上", is_link(home / ".claude" / "skills" / "gamma")
               and (home / ".agents" / "skills" / "gamma" / MARKER).exists())
         shutil.rmtree(src / "gamma")
-        sync(env, mcp=False)
-        check("刪掉 skill：兩邊都拿掉", not present(home / ".claude" / "skills" / "gamma")
-              and not present(home / ".agents" / "skills" / "gamma"))
+        shared_gamma = home / ".agents" / "skills" / "gamma"
+        with flaky(shutil, "rmtree", times=1, match=lambda p, *a, **k: Path(p) == shared_gamma) as st:
+            sync(env, mcp=False)
+        check("刪掉 skill：兩邊都拿掉", not present(home / ".claude" / "skills" / "gamma") and not present(shared_gamma))
+        check("刪複製品時被防毒短暫鎖住：等一下再試，照樣刪掉", st.calls == 2)
 
         # 訪談第 5 題答「不要」（answers.json 的 evaluate_tools 是 false）：不裝 omnikit-eval。
         # 訪談產生的 profile 存在 repo 外（state/profiles，FR-38）
@@ -1293,7 +1321,8 @@ def selftest():
         check("帳本的雜湊對不上、但現在的設定剛好就是 servers.yaml 要的：直接接手，不用問",
               all("devtools" in read_servers(env, a) for a in AGENTS) and not plan_mcp(env, AGENTS, load_record(env)).conflicts)
         os.chmod(shared_alpha / "scripts", stat.S_IREAD | stat.S_IEXEC)  # 複製品裡有唯讀資料夾也要刪得掉
-        lines = disconnect(env)
+        with flaky(Path, "unlink", times=1, match=lambda p, *a, **k: p == env.record_file) as record_lock:
+            lines = disconnect(env)
         check("移除：OmniKit 的 skills 都拿掉，engine/skills 與使用者的不動",
               not present(claude_alpha) and not present(shared_alpha) and (src / "alpha" / "SKILL.md").exists()
               and (home / ".agents" / "skills" / "mine").exists() and (home / ".agents" / "skills" / "beta").exists())
@@ -1306,7 +1335,7 @@ def selftest():
         check("移除：Codex 只剩區塊，還原安裝前的備份",
               profiles.text(home / ".codex" / "AGENTS.md") == "# 我的 Codex 規則\n"
               and not (home / ".codex" / "AGENTS.md.pre-omnikit").exists())
-        check("移除：刪掉 agents.json", not env.record_file.exists())
+        check("移除：刪掉 agents.json（被防毒短暫鎖住時等一下再試）", not env.record_file.exists() and record_lock.calls == 2)
 
         # 用 claude 指令寫 MCP（假的 claude：照參數改 ~/.claude.json）
         fake = tmp / "fake_claude.py"

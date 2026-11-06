@@ -21,10 +21,12 @@ import json
 import os
 import re
 import sys
+import tempfile
 import tomllib
 from pathlib import Path
 
 from claude_allow import NUDGE, RECORD, is_nudge, load, nudge_command, save
+from fsretry import flaky, retry  # 防毒短暫鎖住檔案時等一下再試（FR-34）
 
 MARK = "# OmniKit：開新對話提醒（install.ps1 加入、uninstall.ps1 移除）"
 COMMAND_LINE = re.compile(r"^command\s*=.*" + re.escape(NUDGE) + r".*$", re.M)
@@ -125,7 +127,7 @@ def read(path: Path) -> tuple[str, str]:
 
 
 def write(path: Path, text: str, newline: str) -> None:
-    path.write_bytes(text.replace("\n", newline).encode("utf-8"))
+    retry(path.write_bytes, text.replace("\n", newline).encode("utf-8"))
 
 
 def selftest() -> int:
@@ -155,6 +157,12 @@ def selftest() -> int:
         raise AssertionError("inline 寫法應該失敗")
     except tomllib.TOMLDecodeError:
         pass
+    # 防毒短暫鎖住 config.toml（FR-34）：等一下再試，寫進去的內容與換行照原本的
+    with tempfile.TemporaryDirectory() as tmp:
+        config = Path(tmp) / "config.toml"
+        with flaky(Path, "write_bytes", times=2, match=lambda p, *_: p == config) as st:
+            write(config, ours, "\r\n")
+        assert st.calls == 3 and st.waits == [0.25, 0.5] and read(config) == (ours, "\r\n")
     print("codex_hooks selftest OK")
     return 0
 

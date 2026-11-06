@@ -33,6 +33,8 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
+from fsretry import flaky, retry  # 同一個資料夾：防毒短暫鎖住檔案時等一下再試（FR-34）
+
 ROOT = Path(__file__).resolve().parents[2]
 STATE = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "omnikit"
 EDITIONS = ("maintainer", "colleague")
@@ -53,7 +55,7 @@ def read_json(path):
 
 def write_json(path, doc):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes((json.dumps(doc, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
+    retry(path.write_bytes, (json.dumps(doc, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
 
 
 def hooks_path(repo):
@@ -165,6 +167,9 @@ def selftest():
         check("記下同意與不要", decided(state, "chrome_devtools") is True and decided(state, "other") is False)
         record(state, "chrome_devtools", False)
         check("撤回同意", decided(state, "chrome_devtools") is False and decided(state, "other") is False)
+        with flaky(Path, "write_bytes", times=2, match=lambda p, *_: p == state / "consent.json") as st:
+            record(state, "other", True)
+        check("consent.json 被防毒短暫鎖住（FR-34）：等一下再試，照樣記下", st.calls == 3 and decided(state, "other") is True)
         (state / "consent.json").write_text("{壞掉", encoding="utf-8")
         check("consent.json 壞掉：當成都還沒問過", decided(state, "other") is None)
 

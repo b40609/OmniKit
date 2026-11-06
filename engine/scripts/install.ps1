@@ -34,6 +34,8 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
    自動同步。同事版不設 git hook，pull 不會改任何設定；要套用更新就重跑 install.ps1（先用 -WhatIf 預覽）。
 7. 檢查 OmniKit repo 的 git 身分，只有維護者版。
 
+每一步用 uv 跑 Python 腳本時，防毒短暫鎖住 uv 剛建好的暫存執行檔的話，等 3 秒重試一次（engine/scripts/uv-run.ps1，FR-34）。
+
 這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，會記在
 %LOCALAPPDATA%\omnikit\install-record.json；接上了哪些 agent、管了哪些 skills 與 MCP，記在
 %LOCALAPPDATA%\omnikit\agents.json。uninstall.ps1 只移除這些。
@@ -49,7 +51,8 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
                        備份後移除，避免新舊規則同時生效。
   -WhatIf              預覽：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不寫檔）；也會跑安裝前檢查。
   -SkipCheck <名稱>    安裝前檢查要略過的項目（已經自己處理好，例如防毒已請 IT 放行：-SkipCheck antivirus）。
-  -SelfTest            自我測試：在暫存資料夾與暫存 git repo 測版本判斷與 git hook 設定，不動這台的設定。
+  -SelfTest            自我測試：在暫存資料夾與暫存 git repo 測版本判斷、git hook 設定與 profile 的位置，
+                       以及 uv 被防毒鎖住時的重試（用假的鎖檔），不動這台的設定。
 
 用法（Windows PowerShell 5.1 或 PowerShell 7）：
   powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Edition colleague|maintainer] [-Fresh] [-WhatIf]
@@ -101,9 +104,12 @@ $BlockPattern = '(?s)<!-- omnikit:rules:begin -->.*?<!-- omnikit:rules:end -->'
 $OursHeader = '<!-- 由 OmniKit 產生，不要手改：'
 $AgentNames = [ordered]@{ 'claude-code' = 'Claude Code'; 'codex' = 'Codex'; 'antigravity' = 'Antigravity' }
 
-# 優先用 PATH 上的 uv，沒有就用 Install-Uv 裝的那一份
+# Invoke-UvRun：跑 uv，防毒短暫鎖住 uv 的暫存執行檔時等一下重試一次（FR-34）
+. (Join-Path $PSScriptRoot 'uv-run.ps1')
+
+# 優先用 PATH 上的 uv，沒有就用 Install-Uv 裝的那一份。只找執行檔：Invoke-UvRun 直接啟動它，不經過 PowerShell
 function Get-Uv {
-  $onPath = (Get-Command uv -ErrorAction SilentlyContinue).Source
+  $onPath = (Get-Command uv -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
   if ($onPath) { return $onPath }
   return $UvExe
 }
@@ -232,8 +238,8 @@ function Sync-RepoConfig {
   # 看板展示的情境原本是原作者的 profile，fork 之後先用 default 的範本，有自己的 profile 再改
   $text = [regex]::Replace($text, '(?m)^profile: .*$', 'profile: default')
   [IO.File]::WriteAllText($config, $text, (New-Object Text.UTF8Encoding($false)))
-  & (Get-Uv) run --quiet (Join-Path $Repo 'engine\scripts\build.py') --marketplace-only | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "build.py --marketplace-only 失敗（exit $LASTEXITCODE）" }
+  $r = Invoke-UvRun (Get-Uv) @('run', '--quiet', (Join-Path $Repo 'engine\scripts\build.py'), '--marketplace-only') -Capture
+  if ($r.Code -ne 0) { throw "build.py --marketplace-only 失敗（exit $($r.Code)）" }
   Write-Host "已把 data/omnikit.yaml 與 marketplace 清單改成 $owner/$name，記得 commit"
 }
 
@@ -264,10 +270,12 @@ function Install-McpPackages {
 # 這台是同事版還是維護者版（engine/scripts/edition.py）：-Edition 指定的記下來；
 # 沒指定就照記錄或判斷，也記下來，之後重跑結果一樣
 function Resolve-Edition($wanted) {
-  # 整個包在 @() 裡：只有一個元素時 if 會回傳字串，splat 字串會被拆成一個個字元
+  # 整個包在 @() 裡：只有一個元素時 if 會回傳字串，不是陣列
   $editionArgs = @(if ($wanted) { '--set', $wanted } else { '--save' })
-  $value = (& (Get-Uv) run --quiet $EditionPy @editionArgs --show | Out-String).Trim()
-  if ($LASTEXITCODE -ne 0 -or $value -notin $EditionNames.Keys) { throw "edition.py 失敗（exit $LASTEXITCODE）" }
+  # 只接 ASCII 的值（maintainer 或 colleague）
+  $r = Invoke-UvRun (Get-Uv) (@('run', '--quiet', $EditionPy) + $editionArgs + '--show') -Capture
+  $value = $r.Output.Trim()
+  if ($r.Code -ne 0 -or $value -notin $EditionNames.Keys) { throw "edition.py 失敗（exit $($r.Code)）" }
   Write-Host "OmniKit 版本：$($EditionNames[$value])"
   return $value
 }
@@ -276,7 +284,7 @@ function Resolve-Edition($wanted) {
 function Get-EditionPreview($wanted) {
   if ($wanted) { return $wanted }
   if ((Get-Command uv -ErrorAction SilentlyContinue) -or (Test-Path $UvExe)) {
-    $value = (& (Get-Uv) run --quiet $EditionPy --show | Out-String).Trim()
+    $value = (Invoke-UvRun (Get-Uv) @('run', '--quiet', $EditionPy, '--show') -Capture).Output.Trim()
     if ($value -in $EditionNames.Keys) { return $value }
   }
   return 'colleague'
@@ -284,8 +292,8 @@ function Get-EditionPreview($wanted) {
 
 # 同事版：免問核准每個工具先問，本人同意了才寫入（預設否）；不能互動時一個都不寫
 function Request-AutoApprove {
-  & (Get-Uv) run --quiet $AgentsPy approvals --ask
-  if ($LASTEXITCODE -ne 0) { throw "agents.py approvals 失敗（exit $LASTEXITCODE）" }
+  $r = Invoke-UvRun (Get-Uv) @('run', '--quiet', $AgentsPy, 'approvals', '--ask')
+  if ($r.Code -ne 0) { throw "agents.py approvals 失敗（exit $($r.Code)）" }
 }
 
 # profile 的資料夾：跟 profiles.py 的 folder 一樣，先找 repo 外的（訪談產生的），再找 repo 裡的；都沒有回 $null
@@ -322,29 +330,29 @@ function Get-LegacyProfiles {
 # 不能互動時什麼都不改，只列出來。沒有要搬的就不跑
 function Move-LegacyProfiles {
   if (-not @(Get-LegacyProfiles).Count) { return }
-  & (Get-Uv) run --quiet $ProfilesPy --migrate
-  if ($LASTEXITCODE -ne 0) { throw "profiles.py --migrate 失敗（exit $LASTEXITCODE）" }
+  $r = Invoke-UvRun (Get-Uv) @('run', '--quiet', $ProfilesPy, '--migrate')
+  if ($r.Code -ne 0) { throw "profiles.py --migrate 失敗（exit $($r.Code)）" }
 }
 
 # 規則、skills、MCP 都交給 agents.py（維護者版的 git hook 也用它同步）。
 # MCP 被使用者改過、或同名但不是 OmniKit 的，--ask 會逐一問；不能互動時列出來並停下，什麼都不寫
 function Connect-Agents {
-  $profileArgs = if ($ProfileName) { @('--profile', $ProfileName) } else { @() }
-  & (Get-Uv) run --quiet $AgentsPy connect @profileArgs --ask
-  if ($LASTEXITCODE -ne 0) { throw "agents.py connect 失敗（exit $LASTEXITCODE）" }
+  $profileArgs = @(if ($ProfileName) { '--profile', $ProfileName })
+  $r = Invoke-UvRun (Get-Uv) (@('run', '--quiet', $AgentsPy, 'connect') + $profileArgs + '--ask')
+  if ($r.Code -ne 0) { throw "agents.py connect 失敗（exit $($r.Code)）" }
 }
 
 # Claude Code 免問的權限規則；JSON 交給 Python 改，PowerShell 5.1 的 ConvertTo-Json 會改掉原本的格式
 function Grant-ClaudePermissions {
-  & (Get-Uv) run --quiet (Join-Path $Repo 'engine\scripts\claude_allow.py')
-  if ($LASTEXITCODE -ne 0) { throw "claude_allow.py 失敗（exit $LASTEXITCODE）" }
+  $r = Invoke-UvRun (Get-Uv) @('run', '--quiet', (Join-Path $Repo 'engine\scripts\claude_allow.py'))
+  if ($r.Code -ne 0) { throw "claude_allow.py 失敗（exit $($r.Code)）" }
 }
 
 # Codex 的開新對話提醒 hook；TOML 交給 Python 改，寫入前會驗證沒動到其他設定。
 # 只是提醒，失敗時警告就好，不擋後面的步驟
 function Register-CodexHook {
-  & (Get-Uv) run --quiet (Join-Path $Repo 'engine\scripts\codex_hooks.py')
-  if ($LASTEXITCODE -ne 0) { Write-Warning "codex_hooks.py 失敗（exit $LASTEXITCODE），Codex 的開新對話提醒沒有註冊" }
+  $r = Invoke-UvRun (Get-Uv) @('run', '--quiet', (Join-Path $Repo 'engine\scripts\codex_hooks.py'))
+  if ($r.Code -ne 0) { Write-Warning "codex_hooks.py 失敗（exit $($r.Code)），Codex 的開新對話提醒沒有註冊" }
 }
 
 # 只留下 OmniKit 的受管區塊；舊內容先備份
@@ -512,7 +520,8 @@ function Show-InstallPlan {
 function Show-NextSteps($edition) {
   $text = [IO.File]::ReadAllText((Join-Path $Repo 'data\rules\baseline.md'), [Text.Encoding]::UTF8)
   $version = if ($text -match '規則版本：(\S+)') { $Matches[1] } else { 'data/rules/baseline.md 開頭的版本' }
-  $name = & (Get-Uv) run --quiet $ProfilesPy --show
+  # 只接 ASCII 的值：profile 名稱只能用小寫英數與 -
+  $name = (Invoke-UvRun (Get-Uv) @('run', '--quiet', $ProfilesPy, '--show') -Capture).Output.Trim()
   $record = try { [IO.File]::ReadAllText($AgentsFile) | ConvertFrom-Json } catch { $null }
   $connected = @($record.agents | Where-Object { $_ } | ForEach-Object { $AgentNames[$_] })
   $hasEval = @($record.skills.PSObject.Properties.Value | ForEach-Object { $_ }) -contains 'omnikit-eval'
@@ -590,6 +599,55 @@ function Invoke-SelfTest {
     Check 'Test-ProfileName：格式不對（例如誤把 -SelfTest 當成名稱）或找不到，安裝一開始就停' (
       (Test-ProfileName '-SelfTest') -match '小寫英數' -and (Test-ProfileName 'Bad_Name') -match '小寫英數' -and
       (Test-ProfileName 'nope') -match '找不到 profile「nope」')
+
+    # 防毒短暫鎖住 uv 的暫存執行檔（FR-34）：用真的 uv 跑一支假的腳本，照計數檔決定第幾次要印出
+    # uv 被鎖住時的訊息並失敗。這裡在 Stop 模式下跑，stderr 有輸出也不能丟出錯誤
+    $fake = Join-Path $tmp 'fake_lock.py'
+    [IO.File]::WriteAllText($fake, @'
+# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
+"""install.ps1 -SelfTest 用：照計數檔假裝 uv 的暫存執行檔被防毒鎖住，或是別的失敗。stdout 只印 ASCII。"""
+import json
+import sys
+from pathlib import Path
+
+counter, mode = Path(sys.argv[1]), sys.argv[2]
+runs = int(counter.read_text()) + 1 if counter.exists() else 1
+counter.write_text(str(runs))
+if mode == "locked" or (mode == "locked-once" and runs == 1):
+    sys.stderr.buffer.write(rb"error: Failed to update Windows PE resources: C:\Temp\uv-trampoline-selftest.exe" + b"\n")
+    sys.stderr.buffer.write("  Caused by: 系統無法開啟指定的裝置或檔案。 (os error -2147024786)\n".encode())
+    sys.exit(2)
+if mode == "other":
+    sys.stderr.buffer.write("找不到 profile「nope」（自我測試）\n".encode())
+    sys.exit(1)
+print(json.dumps(sys.argv[3:]))
+'@, $utf8)
+    $UvRetrySeconds = 0  # 只在這個函式裡：自我測試不用真的等
+    $runFake = { param($mode, [string[]]$extra = @())
+      $counter = Join-Path $tmp "fake-$mode.txt"
+      $r = Invoke-UvRun (Get-Uv) (@('run', '--quiet', $fake, $counter, $mode) + $extra) -Capture
+      $runs = if (Test-Path -LiteralPath $counter) { [int][IO.File]::ReadAllText($counter) } else { 0 }
+      $r | Add-Member -NotePropertyName Runs -NotePropertyValue $runs -PassThru
+    }
+    $r = & $runFake 'locked-once'
+    Check 'uv 的暫存執行檔被防毒鎖住一次：等一下重試，第二次就成功' ($r.Code -eq 0 -and $r.Retried -and $r.Runs -eq 2)
+    $r = & $runFake 'locked'
+    Check 'uv 一直被鎖住：只重試一次，結束碼照實回傳（呼叫的地方照舊丟出）' ($r.Code -eq 2 -and $r.Retried -and $r.Runs -eq 2)
+    $r = & $runFake 'other'
+    Check '其他失敗不重試；Stop 模式下不丟出，中文的錯誤訊息照原樣（不會變成 cp950 亂碼）' ($r.Code -eq 1 -and -not $r.Retried -and
+      $r.Runs -eq 1 -and $r.Error -eq '找不到 profile「nope」（自我測試）')
+    $weird = @('有 空白', 'say "hi"', 'C:\結尾是反斜線\', '', 'x\"y')
+    $r = & $runFake 'ok' $weird
+    # PowerShell 5.1 的 ConvertFrom-Json 把整個陣列當成一個物件輸出，所以不包 @()，直接 -join
+    Check 'Invoke-UvRun：參數有空白、引號、中文、結尾的反斜線或是空字串，都原樣傳給腳本' ($r.Code -eq 0 -and -not $r.Retried -and
+      (($r.Output | ConvertFrom-Json) -join '|') -eq ($weird -join '|'))
+    $cp950 = [Text.Encoding]::GetEncoding(950)
+    $mixed = $utf8.GetBytes("UTF-8 的中文`r`n") + $cp950.GetBytes("cp950 的中文`n")
+    Check 'stderr 逐行解碼：UTF-8 照用，不是 UTF-8 的才用主控台字碼頁（cp950）' (
+      (ConvertFrom-UvBytes $mixed $cp950) -eq "UTF-8 的中文`ncp950 的中文")
   } finally {
     $env:LOCALAPPDATA, $script:Repo, $env:UV_CACHE_DIR = $realLocal, $realRepo, $realUvCache
     Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue

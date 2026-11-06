@@ -47,6 +47,8 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
+from fsretry import flaky, retry  # 同一個資料夾：防毒短暫鎖住檔案時等一下再試（FR-34）
+
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "data"
 HOME = Path.home()
@@ -75,12 +77,13 @@ def text(path):
 
 
 def write(path, content):
-    """內容沒變就不寫，回傳有沒有改。用 bytes 寫，Windows 上不會把 LF 換成 CRLF。"""
+    """內容沒變就不寫，回傳有沒有改。用 bytes 寫，Windows 上不會把 LF 換成 CRLF。
+    防毒短暫鎖住檔案時等一下再試（fsretry）；這一節的寫入、複製、刪除都一樣。"""
     data = content.encode("utf-8")
-    if path.exists() and path.read_bytes() == data:
+    if path.exists() and retry(path.read_bytes) == data:
         return False
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
+    retry(path.write_bytes, data)
     return True
 
 
@@ -89,14 +92,19 @@ def write_in_place(path, content):
     data = content if isinstance(content, bytes) else content.encode("utf-8")
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
+        retry(path.write_bytes, data)
         return True
-    if path.read_bytes() == data:
+    if retry(path.read_bytes) == data:
         return False
+    retry(overwrite, path, data)
+    return True
+
+
+def overwrite(path, data):
+    """打開原本的檔案改寫（r+b），不建新檔。"""
     with open(path, "r+b") as f:
         f.write(data)
         f.truncate()
-    return True
 
 
 def backup(path):
@@ -104,7 +112,7 @@ def backup(path):
     target = path.with_name(path.name + ".pre-omnikit")
     if target.exists():
         target = path.with_name(f"{path.name}.pre-omnikit-{datetime.now():%Y%m%d%H%M%S}")
-    shutil.copyfile(path, target)
+    retry(shutil.copyfile, path, target)
     return target
 
 
@@ -275,15 +283,15 @@ def disconnect_block(path):
     if not rest.strip():
         if saved.exists():
             write_in_place(path, saved.read_bytes())
-            saved.unlink()
+            retry(saved.unlink)
             return [f"已拿掉 {path} 的 OmniKit 區塊，還原安裝前的內容"]
-        path.unlink()
+        retry(path.unlink)
         return [f"已刪除只剩 OmniKit 區塊的 {path}"]
     write_in_place(path, rest)
     lines = [f"已拿掉 {path} 的 OmniKit 區塊"]
     if saved.exists():
         if saved.read_bytes() == rest.encode("utf-8"):
-            saved.unlink()
+            retry(saved.unlink)
         else:
             lines.append(f"  安裝前的備份還在：{saved}，需要的話自己合併回去")
     return lines
@@ -380,10 +388,18 @@ def remove_tree(path):
     shutil.rmtree(path, **({"onexc": force} if sys.version_info >= (3, 12) else {"onerror": force}))
 
 
+def stage(src, staging):
+    """複製到暫存資料夾，上次中斷留下的先刪掉；被鎖住重試時整個重來。"""
+    if staging.exists():
+        remove_tree(staging)
+    shutil.copytree(src, staging)
+
+
 def migrate(data, state, tracked=None, reapply=None):
     """把舊版存在 repo 裡的 profile 搬到 repo 外（state/profiles/<名稱>），回傳要印的訊息。
     呼叫前要先取得使用者同意：搬完會刪掉 repo 裡的舊檔。
-    - 先複製到暫存資料夾再改名，中途失敗不會留下一半的 profile。
+    - 先複製到暫存資料夾再改名，中途失敗不會留下一半的 profile。防毒掃描剛複製的檔案時，資料夾會暫時改不了名
+      （winerror 5），等一下再試。
     - repo 外已經有同名的：每個檔案都一樣就當作搬過了；不一樣就兩邊都不動（repo 外的優先），請使用者自己決定。
     - 這台選的 profile 搬過去之後，先重新接上規則（reapply），Claude 的 import 改指到 repo 外，才刪舊檔。
     - 刪之前再比對一次，repo 外的每個檔案都跟舊檔一樣才刪。"""
@@ -397,10 +413,8 @@ def migrate(data, state, tracked=None, reapply=None):
                 continue
         else:
             staging = dest.with_name(f".{name}.migrating")
-            if staging.exists():
-                remove_tree(staging)
-            shutil.copytree(src, staging)
-            staging.replace(dest)
+            retry(stage, src, staging)
+            retry(staging.replace, dest)
             lines.append(f"profile {name}：已複製到 {dest}")
         moved.append(name)
     if reapply and chosen(state) in moved:
@@ -408,7 +422,7 @@ def migrate(data, state, tracked=None, reapply=None):
     for name in moved:
         src, dest = data / "profiles" / name, state / "profiles" / name
         if same_files(src, dest):
-            remove_tree(src)
+            retry(remove_tree, src)  # 有檔案被鎖住時，等一下從剩下的接著刪
             lines.append(f"profile {name}：已刪掉 repo 裡的舊檔（{src}）")
         else:
             lines.append(f"profile {name}：複製後的內容跟 repo 裡的不一樣，舊檔沒有刪（{src}）")
@@ -559,6 +573,22 @@ def selftest():
         disconnect_block(fresh)
         check("OmniKit 建的 GEMINI.md：移除時整個刪掉", not fresh.exists())
 
+        # 防毒短暫鎖住檔案（FR-34，假的鎖檔）：寫入、原地改寫、備份都等一下再試；硬連結照樣不斷
+        locked_md = tmp / "lock" / "GEMINI.md"
+        with flaky(Path, "write_bytes", times=2, match=lambda p, *_: p == locked_md) as st:
+            changed = write(locked_md, "# 新的\n")
+        check("write：被鎖住兩次，每次等久一點，之後寫進去", changed and text(locked_md) == "# 新的\n"
+              and st.calls == 3 and st.waits == [0.25, 0.5])
+        linked = tmp / "lock" / "AGENTS.md"
+        os.link(locked_md, linked)
+        with flaky(sys.modules[__name__], "overwrite", times=2) as st:
+            write_in_place(locked_md, "# 原地改寫\n")
+        check("write_in_place：被鎖住時等一下再試，原地改寫，硬連結的其他名字一起更新",
+              st.calls == 3 and text(linked) == "# 原地改寫\n" and os.path.samefile(locked_md, linked))
+        with flaky(shutil, "copyfile", times=1, match=lambda s, *_, **__: Path(s) == locked_md) as st:
+            saved = backup(locked_md)
+        check("backup：被鎖住時等一下再試，備份的內容一樣", st.calls == 2 and text(saved) == "# 原地改寫\n")
+
         calls = []
 
         def fake_run(code):
@@ -656,11 +686,16 @@ def selftest():
               and any(str(bob) in line and str(moved) in line for line in out))
         out = mcli(interactive=True, ask=lambda _: "n")
         check("問了、使用者說不要：什麼都沒改", bob.exists() and not moved.exists() and out[0].startswith("沒有搬"))
-        out = mcli(interactive=True, ask=lambda _: "y")
+        # 搬的時候遇到防毒短暫鎖住（FR-34，假的鎖檔）：剛複製好的資料夾改不了名、repo 裡的舊檔刪不掉
+        with flaky(Path, "replace", times=2, match=lambda p, *_: p.name == ".bob.migrating") as renamed, \
+                flaky(shutil, "rmtree", times=1, match=lambda p, *_, **__: Path(p) == bob) as removed:
+            out = mcli(interactive=True, ask=lambda _: "y")
         check("同意後：整個資料夾（含 .bak）搬到 repo 外，repo 裡的舊檔刪掉",
               not bob.exists() and text(moved / "AGENTS.md.bak") == "# bob 更早的\n"
               and json.loads(text(moved / "answers.json")) == {"name": "bob"}
               and any("已刪掉 repo 裡的舊檔" in line for line in out))
+        check("搬的時候被防毒短暫鎖住（改名、刪舊檔）：等一下再試，照樣搬好",
+              renamed.calls == 3 and removed.calls == 2 and not (mstate / "profiles" / ".bob.migrating").exists())
         check("搬的是這台選的 profile：刪舊檔前先重新接上，Claude import 改指到 repo 外",
               import_line(moved / "AGENTS.md") in text(mpaths["claude-code"]) and chosen(mstate) == "bob")
         check("手寫的與 commit 過的不動", (mdata / "profiles" / "ryan").exists() and (mdata / "profiles" / "keep").exists())
