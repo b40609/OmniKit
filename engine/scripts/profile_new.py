@@ -295,7 +295,8 @@ def run(answers_path, data, state=None, write=False, apply=False, force=False, a
                 print(f"\n----- {name} -----\n{text.rstrip()}")
         skip = {s: why for s, (key, why) in profiles.OPTIONAL_SKILLS.items() if a.get(key) is False}
         if skip:
-            print(f"\n套用時不裝 {'、'.join(skip)}（選了{'、'.join(dict.fromkeys(skip.values()))}）；已經裝了的會拿掉。")
+            print(f"\n套用時不裝 {'、'.join(skip)}（選了{'、'.join(dict.fromkeys(skip.values()))}）；已經裝了的會拿掉。"
+                  "個人週報（omnikit-weekly，說「OmniKit 本週週報」）照樣有。")
         if problem:
             print(f"\n不能寫入：{problem}")
             return 1
@@ -394,7 +395,8 @@ def selftest():
               and "下載、安裝套件可以直接做" in (alice / "AGENTS.md").read_text(encoding="utf-8"))
 
         code, out = quiet(answers_file("bob", evaluate_tools=False, projects=None), data)
-        check("不評估工具：預覽說明不裝 omnikit-eval", code == 0 and "套用時不裝 omnikit-eval" in out)
+        check("不評估工具：預覽說明不裝 omnikit-eval，個人週報照樣有（FR-4、FR-37）",
+              code == 0 and "套用時不裝 omnikit-eval" in out and "個人週報（omnikit-weekly" in out)
         check("要評估工具：預覽不提", "套用時不裝" not in quiet(answers_file("alice"), data)[1])
         code, out = quiet(answers_file("bob", evaluate_tools=False, projects=None), data, write=True)
         errors, roster = validate.check(data, profile="bob", state=state)

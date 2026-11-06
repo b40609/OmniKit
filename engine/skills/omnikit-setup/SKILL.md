@@ -44,7 +44,7 @@ Claude Code 用 AskUserQuestion（一次最多 4 題）；Codex 一次列出編�
 
 | # | 問題 | 答案欄位 |
 |---|---|---|
-| 5 | 要不要用 OmniKit 持續評估新工具？（貼 GitHub 連結，它會拿你的專案情境幫你比較；選「先不要」就不裝評估工具的 skill，也沒有每週彙整，之後重新訪談可以改） | 要 → `evaluate_tools: true`；先不要 → `false` |
+| 5 | 要不要用 OmniKit 持續評估新工具？（貼 GitHub 連結，它會拿你的專案情境幫你比較；選「先不要」就不裝評估工具的 skill，個人週報照樣有，之後重新訪談可以改） | 要 → `evaluate_tools: true`；先不要 → `false` |
 | 6 | 用一句話介紹你的主要工作與技術。第 5 題選「要」的話，再給主要專案名稱；有前端的話，也給前端專案名稱。 | `background`、`projects.main`、`projects.frontend`（自由回答） |
 
 補充：
@@ -81,7 +81,7 @@ uv run scripts/setup.py profile --answers <answers_file>
 
 - 這份會跟安全底線（`data/rules/baseline.md`：刪除、對外發送、付款、push 前先確認，不碰金鑰）一起生效，底線不能放寬。
 - 有 `scenarios.yaml` 的話，評估工具時會用這些情境當考題。
-- 預覽最後有「套用時不裝 omnikit-eval」（第 5 題選了先不要）：照實告訴使用者，評估新工具與每週彙整都不會有。
+- 預覽最後有「套用時不裝 omnikit-eval」（第 5 題選了先不要）：照實告訴使用者，評估新工具不會有；個人週報（`omnikit-weekly`，說「OmniKit 本週週報」）照樣有。
 
 問「照這樣建立嗎？」。要改就回到對應的題目，改完重新預覽。
 
@@ -101,7 +101,7 @@ uv run scripts/setup.py profile --answers <answers_file> --write --apply
 （要覆蓋時再加 `--force`。）輸出出現「已套用 profile：…」就完成。回報：
 
 - 開新的 session 才會生效。確認方式：問「OmniKit 規則版本與 profile 是什麼？」
-- 第 5 題選「先不要」：輸出會有「不裝 omnikit-eval」，評估工具的 skill 已經拿掉；之後想用，重新訪談選「要」就會裝回來。
+- 第 5 題選「先不要」：輸出會有「不裝 omnikit-eval」，評估工具的 skill 已經拿掉；之後想用，重新訪談選「要」就會裝回來。不管選哪個，每週都可以說「OmniKit 本週週報」看個人週報。
 - 依第 2 題給一個試試看的例子，例如選了 `scope-creep`：請它改一個小地方，看它會不會順手改別的。
 - profile 存在這台電腦的 `profiles_dir`（`%LOCALAPPDATA%\omnikit\profiles\<名稱>\`），在 repo 外，不會被 commit 或上傳。之後想手動改，直接改那裡的 `AGENTS.md`，再在 repo 根目錄跑 `uv run engine/scripts/profiles.py` 重新接上（Claude Code 直接讀這份；Codex 與 Antigravity 讀的是接在一起的副本）；想換別的 profile，跑 `uv run engine/scripts/profiles.py --set <名稱>`。
 - 輸出提到某個 agent 的規則「沒有覆蓋」或「沒有加回去」：那是使用者自己改過的檔案，這次沒動；要接上就在 repo 根目錄重跑 `install.ps1`。

@@ -47,6 +47,9 @@ jobs:
       - run: uv run engine/scripts/scan.py --selftest
       - run: uv run engine/scripts/profile_new.py --selftest
       - run: uv run engine/skills/omnikit-setup/scripts/setup.py scan > /dev/null
+      # 個人週報（FR-37）：五個區塊、不連網、第 5 題選不評估也照裝；skill 入口能找到 repo
+      - run: uv run engine/scripts/weekly.py --selftest
+      - run: uv run engine/skills/omnikit-weekly/scripts/report.py --no-save > /dev/null
 
   # FR-34：同事用的是 Windows，上面「名冊」的每一個 uv run 都在 Windows 再跑一次（windows-ci.ps1 從這個檔案讀，
   # 加了新的檢查不用改兩個地方），另外跑 preflight.ps1 與 install.ps1 的 -SelfTest、install.ps1 -WhatIf，

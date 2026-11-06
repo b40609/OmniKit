@@ -120,14 +120,14 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 ## 裝好之後
 
-安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了兩個 skill、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
+安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了三個 skill（訪談選了不評估新工具的是兩個）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
 
 ### 確認接上了
 
 | 檢查 | Claude Code | Codex | Antigravity |
 |---|---|---|---|
 | 規則 | 問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的「規則版本」一樣，profile 是你選的 | 同左 | 同左 |
-| skill | 輸入 `/omnikit`，選單裡會出現 `omnikit-setup` 與 `omnikit-eval`（訪談選了不評估新工具的，只有 `omnikit-setup`） | 輸入 `$omnikit`，或用 `/skills` 列出來 | 問「你可用的 skill 有哪些？」，會列出這兩個 |
+| skill | 輸入 `/omnikit`，選單裡會出現 `omnikit-setup`、`omnikit-weekly` 與 `omnikit-eval`（訪談選了不評估新工具的，沒有 `omnikit-eval`） | 輸入 `$omnikit`，或用 `/skills` 列出來 | 問「你可用的 skill 有哪些？」，會列出這幾個 |
 | MCP | 終端機跑 `claude mcp get chrome_devtools`，狀態是 Connected | 終端機跑 `codex mcp list`，`chrome_devtools` 是 enabled | 終端機跑 `agy mcp list`，`chrome_devtools` 是 enabled |
 
 終端機跑 `uv run engine/scripts/agents.py status`，可以看到這台接上了哪些 agent、OmniKit 管了哪些 skills 與 MCP。
@@ -140,7 +140,8 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 |---|---|---|
 | 規則（`data/rules/baseline.md` + profile 的 `AGENTS.md`） | 安全底線所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問 | Claude Code 直接讀這兩份，改完開新 session 就生效。Codex 與 Antigravity 讀的是兩份接在一起的內容：改了 profile 要跑 `uv run engine/scripts/profiles.py` 重新接上（維護者版改的是 repo 裡的檔案的話，commit 時 git hook 會自動同步） |
 | `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 三邊說「幫我設定 OmniKit」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-setup`，Codex 輸入 `$omnikit-setup` |
-| `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval`，Codex 輸入 `$omnikit-eval`。Codex 與 Antigravity 用的是複製品，skill 改完要 commit 才會更新 |
+| `omnikit-weekly` skill | 說「OmniKit 本週週報」，列出你的個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率；還查不到的標「未知」。不連網，見[個人週報](#個人週報) | 三邊說「OmniKit 本週週報」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-weekly`，Codex 輸入 `$omnikit-weekly`。訪談怎麼答都會裝 |
+| `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡；「每週彙整」是維護者評估工具用的 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval`，Codex 輸入 `$omnikit-eval`。Codex 與 Antigravity 用的是複製品，skill 改完要 commit 才會更新 |
 | `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 已加進免問清單，Codex 設成自動核准，兩邊都不會跳權限確認；Antigravity 照它自己的權限設定 |
 | 開新對話提醒 | 每回合結束時檢查一次：上下文每跨過 100k tokens、或這一回合成功 `git push`，就跳一行提醒你考慮開新對話。只提醒，不會自己換對話 | Claude Code 裝好就生效。Codex 多看一項：對話累計第 1、3、9、27… 次自動壓縮時也提醒（Codex 常在 100k 前就壓縮）；新 hook 要先信任才會跑，CLI 輸入 `/hooks`、桌面版到設定的 Hooks 按信任；OmniKit 搬位置或原本那支 uv 不在了，指令會改，要再信任一次 |
 | git hooks（只有維護者版） | 只作用在 OmniKit repo：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、MCP、權限時自動同步。同事版不設 | 跟 agent 無關 |
@@ -152,10 +153,10 @@ OmniKit 規則版本與 profile 是什麼？
 幫我設定 OmniKit
 幫我評估 https://github.com/<owner>/<repo>
 用瀏覽器打開 http://localhost:3000，看 console 有沒有錯誤
-每週彙整
+OmniKit 本週週報
 ```
 
-評估、改名冊、跟上原作者的更新，見[日常使用](#日常使用)。
+個人週報、評估、改名冊、跟上原作者的更新，見[日常使用](#日常使用)。
 
 ### 建立自己的 profile
 
@@ -171,7 +172,7 @@ OmniKit 規則版本與 profile 是什麼？
 | agent 可以自己做到哪 | 每步先問：改檔案、執行指令前先列計畫等你同意。專案內直接做（建議）：下載安裝、改專案以外的才先問。大多放手：下載安裝也直接做 |
 | 最想改善的習慣 | 例如「常改太多」變成「只改需求相關的地方，其他想改的先列出來問你」 |
 | 要評估新工具 | 情境範本裡的 `<你的專案>` 換成你的專案，評估工具時拿來當考題 |
-| 不評估新工具 | 不裝 `omnikit-eval`（評估工具與每週彙整都在這個 skill 裡）；已經裝了的會拿掉。之後改主意，重新訪談選「要」就會裝回來 |
+| 不評估新工具 | 不裝 `omnikit-eval`（評估工具與維護者的每週彙整都在這個 skill 裡）；已經裝了的會拿掉。個人週報（`omnikit-weekly`）照樣有。之後改主意，重新訪談選「要」就會裝回來 |
 
 規則檔與情境檔都由 `engine/scripts/profile_new.py` 依固定範本產生、驗證，agent 只負責問問題；寫入後可以直接改，改完跑 `uv run engine/scripts/profiles.py` 重新接上。重新訪談時會帶入上次的答案，舊檔先備份成 `.bak`；手寫的 profile 與 repo 裡已經有的名稱不會被覆蓋。安全底線不能從 profile 放寬。
 
@@ -285,9 +286,21 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 找 profile 時先找 repo 外的 `%LOCALAPPDATA%\omnikit\profiles\<名稱>`，再找 repo 裡的 `data/profiles/<名稱>`。換完開新的 session 才生效。skills 也會跟著同步：換到訪談選了不評估新工具的 profile，`omnikit-eval` 會拿掉，換回來再裝上。還沒選過的電腦會一直用 `default`，並在安裝與同步時提醒。想重新訪談、改掉原本的答案，說「幫我設定 OmniKit」就好。
 
+### 個人週報
+
+每週在 Claude Code、Codex 或 Antigravity 裡說一次「OmniKit 本週週報」（`omnikit-weekly`）。不管訪談時有沒有選評估新工具都有，依序列出：
+
+1. **沒在用的工具**：這台 30 天沒用到的 skill 與 plugin，見下方[清掉沒在用的 skill](#清掉沒在用的-skill)。
+2. **上游有新版的工具**：目前標「未知」，要等工具包 lock 與「檢查更新」。
+3. **有更好的選擇**：目前標「未知」，要等工具卡的證據等級。
+4. **設定被手動改過的項目**：規則區塊、skills、MCP、權限與提醒 hook 跟 OmniKit 寫入時不一樣的，跟 `doctor.py` 的寫入檢查一樣。
+5. **主動建議的接受率**：目前標「未知」，主動建議還沒開始記錄。
+
+只讀這台的紀錄與設定，不連網、不上傳；完整內容存在 `%LOCALAPPDATA%\omnikit\weekly\<年>-W<週>.md`，同一週重跑會換成最新的。也可以在 repo 根目錄跑 `uv run engine/scripts/weekly.py`。
+
 ### 評估新工具
 
-在 Claude Code、Codex 或 Antigravity 裡直接說：
+在 Claude Code、Codex 或 Antigravity 裡直接說（訪談選了評估新工具才有；「每週彙整」是維護者看評估額度與評估漏斗用的）：
 
 ```text
 幫我評估 https://github.com/<owner>/<repo>
@@ -303,7 +316,7 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 ### 清掉沒在用的 skill
 
-每週彙整的最後一節，會列出這台電腦 30 天沒用到的 skill 與 plugin，建議移除；名冊上還是預設或試用中的，也會點出來。
+個人週報的第一節（維護者每週彙整的最後一節也有），會列出這台電腦 30 天沒用到的 skill 與 plugin，建議移除；每週彙整另外點出名冊上還是預設或試用中的。
 
 - **怎麼算用到**：讀 Claude Code、Codex、Antigravity 的本機對話紀錄，只算實際讀取或呼叫的。每段對話開頭列出的 skill 清單不算。只輸出名稱、對話數與日期，不輸出對話內容，也不上傳。
 - **Codex 的 plugin**：以最近一次 Codex 對話實際載入的 skill 清單為準，已停用的 plugin 與 skill 不列；讀到 plugin 裡的 SKILL.md，算那個 plugin 用到。
@@ -383,9 +396,10 @@ data/                        資料：fork 後換成你的
   evals/                     實測紀錄
 engine/                      引擎：不用改
   schema/                    名冊與槽位的 JSON Schema
-  scripts/                   安裝、接上三個 agent、掃描、使用統計、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒
+  scripts/                   安裝、接上三個 agent、掃描、使用統計、個人週報、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒
   site/                      看板的樣式與程式，以及匯出的架構地圖（map.html）
   skills/omnikit-setup/      訪談建立個人 profile 的 skill
+  skills/omnikit-weekly/     個人週報的 skill（每個人都有）
   skills/omnikit-eval/       評估新工具的 skill
 .claude-plugin/              Claude Code 的 marketplace（由名冊產生，不要手改）
 .agents/plugins/             Codex 的 marketplace（由名冊產生，不要手改）
