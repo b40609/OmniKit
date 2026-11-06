@@ -97,6 +97,27 @@ PRD 只寫能力，怎麼做寫在這裡。研究依據在 `docs/v2/research.md`
 
 參考：`research/recommend.md` §4.11。
 
+### A.8 成本監測（FR-40 到 FR-44）
+
+實作在 `engine/scripts/cost.py`，個人週報（`engine/scripts/weekly.py`）的第 6 區塊呼叫它。都只讀本機檔案。
+
+- **Claude Code 的開頭成本**：對話紀錄（`~/.claude/projects/<專案>/<session>.jsonl`）在第一個回應之前，會用 attachment 記下這段對話實際給模型的內容：
+  - `skill_listing`：skill 清單，一個 skill 一行；plugin 的 skill 名稱是 `<plugin>:<skill>`。
+  - `hook_additional_context`：SessionStart hook 加進 context 的內容，所有 hook 合併成一筆（`toolUseID` 是 `SessionStart`）。只有一個 hook（`hook_success` 的指令）時歸給它，有好幾個就標成「多個 hook 合併」。`hook_system_message` 是顯示給使用者看的，不進 context，不算。
+  - `mcp_instructions_delta`：MCP 的說明；`deferred_tools_delta`：延後載入的工具名稱（`mcp__<server>__<工具>`，plugin 的是 `mcp__plugin_<plugin>_<server>__…`）。
+  - 字數換成 token 用估計：英數約 4 個字元 1 token，其他字元 1 個算 1 token。
+- **`claude plugin details <id>`**：本機約 1 秒、不花 token，只在 plugin 還沒在任何對話載入過（停用或剛裝）時當估計。它不算 MCP 的工具定義（"tool schemas resolved at runtime; not counted"），也把 hook 標成 "no model context cost"；skill 很多時 Claude Code 會拿掉說明、只列名稱，它也照全文估。所以實際可能更多，也可能更少。
+- **Codex**：最近一次 rollout 開頭的 `<skills_instructions>`（`usage.py` 的 `skills_block`），一個 skill 一行；plugin 的 skill 依路徑歸到 plugin。MCP 的工具定義讀不到，標「未知」。
+- **背景用量**：Claude Code 的 entrypoint，`claude-desktop`、`cli` 是互動，`sdk-` 開頭的（`sdk-ts`、`sdk-cli`、`sdk-py`）算非互動，依 cwd 的前兩層分組。同一個回應會依內容拆成好幾行，每行的 usage 都一樣（實測 22,536 行只有 9,123 個不同的 `message.id`，重複的行 usage 全部相同），要用 `message.id` 去重，逐行加總會多算一倍以上。未快取輸入是 `input_tokens` 加 `cache_creation_input_tokens`。Codex 看 `session_meta.source`，`exec` 算非互動；用量取最後一個 token_count 的 `total_token_usage`。
+- **對話開頭的大小**：Claude Code 是第一個回應的 `input_tokens + cache_creation_input_tokens + cache_read_input_tokens`；Codex 是第一個 token_count 的 `last_token_usage.input_tokens`。兩者都包含使用者的第一則訊息，所以取一週的中位數。
+- **零 token 量差值**：要精確量某個工具多出的請求大小，用 `engine/skills/omnikit-eval/scripts/smoke.py` 的 `context`（API 位址指到本機攔截，不送出）。`-p` 加自訂 base URL 時，MCP 工具不會延後載入，也沒有 SessionStart 的注入，所以只適合量差值、不適合量總量；週報不用它。
+- **2026-11-06 在維護者電腦上的實測**（依據）：
+  - 新對話第一回合：中位數 83,372 tokens（7 天內 50 段，51,306 到 85,935）；Codex 中位數 30,533（13 段）。OmniKit 約 2,000 到 3,000。
+  - claude-mem：`claude plugin details` 估 always-on 約 2,873；照對話紀錄實測（skill 清單加上 hook 加進 context 的內容）約 3,464。hook 加進 context 的內容依對話在 4,000 到 10,000 字之間。開頭顯示的「22,996 tokens to read」是 50 筆全文的成本，不是注入量。
+  - 三個 skill 合集（agent-skills、document-skills、example-skills）`claude plugin details` 估 3,779、1,030、1,223；同一時期的對話裡，Claude Code 只列了名稱（skill 太多時拿掉說明），實測約 244、581、98。停用之後，零 token 攔截量到第一個請求從 188,736 bytes 降到 181,388 bytes。
+  - 背景整理記憶（claude-mem 的 observer，`sdk-ts`）7 天：208 段、209 次呼叫（紀錄裡 412 行，去重後），未快取輸入 3,984,653、快取讀取 17,978、輸出 2,008,714。同期使用者自己的對話：52 段、8,615 次呼叫，未快取輸入 35,452,256、快取讀取 2,503,467,378、輸出 10,949,318。
+  - 這三個 plugin 裝不到 30 天，`usage.py` 原本不判斷，所以 FR-41 要求成本高的不用等 30 天。
+
 ## B. 考慮過但沒有採用的方案
 
 | 方案 | 為什麼不採用 |

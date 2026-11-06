@@ -13,8 +13,12 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 2. fork 出來的 repo：把 data/omnikit.yaml 的 repo、owner、marketplace 改成 origin 指向的
    GitHub repo、profile 改回 default，並重新產生 marketplace 清單，避免跟原作者的 marketplace 撞名。
 3. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本）。
-4. agents.py connect：
-   - 規則 = 安全底線（data/rules/baseline.md）+ profile（data/profiles/<名稱>/AGENTS.md）。
+4. 舊版把訪談產生的 profile 存在 repo 裡（data/profiles/<名稱>，有 answers.json、沒進版本控制）的話，
+   交給 profiles.py --migrate 搬到 repo 外（%LOCALAPPDATA%\omnikit\profiles）；刪掉 repo 裡的舊檔前先問，
+   不能互動時什麼都不改，只列出來（FR-38）。
+   agents.py connect：
+   - 規則 = 安全底線（data/rules/baseline.md）+ profile 的 AGENTS.md。訪談產生的 profile 在
+     %LOCALAPPDATA%\omnikit\profiles\<名稱>（不在 repo 裡），default 與維護者手寫的在 data/profiles/<名稱>；同名時 repo 外的優先。
      Claude 在 ~/.claude/CLAUDE.md 用受管區塊 import；Codex 的 ~/.codex/AGENTS.md 與 Antigravity 的
      ~/.gemini/GEMINI.md 在開頭加受管區塊（原地改寫，硬連結不會斷），原本的規則留在區塊外照常生效，
      也先備份成 .pre-omnikit。沒指定也沒選過 profile 就用 default（下載、安裝前會先問）。
@@ -37,7 +41,8 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 裝好之後，開新 session 說「幫我設定 OmniKit」，omnikit-setup 會用簡短訪談建立自己的 profile。
 
 參數：
-  -ProfileName <名稱>  用 data/profiles/<名稱> 的個人規則，並記下來；之後重跑不用再指定。
+  -ProfileName <名稱>  用這個 profile 的個人規則，並記下來；之後重跑不用再指定。先找 repo 外的
+                       %LOCALAPPDATA%\omnikit\profiles\<名稱>（訪談產生的），再找 data/profiles/<名稱>。
   -Edition <版本>      colleague（同事版）或 maintainer（維護者版），記下來；之後重跑不用再指定。
                        沒指定也沒記過：分版之前就裝過的電腦是維護者版，其他都是同事版。
   -Fresh               這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
@@ -283,6 +288,44 @@ function Request-AutoApprove {
   if ($LASTEXITCODE -ne 0) { throw "agents.py approvals 失敗（exit $LASTEXITCODE）" }
 }
 
+# profile 的資料夾：跟 profiles.py 的 folder 一樣，先找 repo 外的（訪談產生的），再找 repo 裡的；都沒有回 $null
+function Get-ProfileDir($name) {
+  foreach ($dir in @((Join-Path $env:LOCALAPPDATA "omnikit\profiles\$name"), (Join-Path $Repo "data\profiles\$name"))) {
+    if (Test-Path -LiteralPath (Join-Path $dir 'AGENTS.md')) { return $dir }
+  }
+  return $null
+}
+
+# -ProfileName 有問題的原因；沒問題回 $null。安裝一開始就檢查，免得下載、寫入到一半才在接上 agent 時失敗
+function Test-ProfileName($name) {
+  if (-not $name) { return $null }
+  if ($name -cnotmatch '^[a-z0-9]+(-[a-z0-9]+)*$') { return "profile 名稱只能用小寫英數與 -：$name" }
+  if (-not (Get-ProfileDir $name)) {
+    return "找不到 profile「$name」（$(Join-Path $env:LOCALAPPDATA "omnikit\profiles\$name") 或 data/profiles/$name，要有 AGENTS.md）"
+  }
+  return $null
+}
+
+# 舊版存在 repo 裡、由訪談產生的 profile：跟 profiles.py 的 legacy 一樣，有 answers.json、沒進版本控制的才算
+function Get-LegacyProfiles {
+  $root = Join-Path $Repo 'data\profiles'
+  if (-not (Test-Path -LiteralPath $root)) { return @() }
+  # git 印出的是相對於 repo 的路徑；不轉向 stderr（PowerShell 5.1 在 Stop 模式下會當成錯誤丟出）
+  $tracked = @(git -C $Repo ls-files -- data/profiles | ForEach-Object { ($_ -split '/')[2] } | Select-Object -Unique)
+  return @(Get-ChildItem -LiteralPath $root -Directory | Where-Object {
+      $_.Name -cmatch '^[a-z0-9]+(-[a-z0-9]+)*$' -and $_.Name -notin $tracked -and
+      (Test-Path -LiteralPath (Join-Path $_.FullName 'answers.json'))
+    } | ForEach-Object { $_.Name })
+}
+
+# 舊版存在 repo 裡的 profile 搬到 repo 外（FR-38）。能互動時 profiles.py 會先問，刪掉 repo 裡的舊檔前一定要同意；
+# 不能互動時什麼都不改，只列出來。沒有要搬的就不跑
+function Move-LegacyProfiles {
+  if (-not @(Get-LegacyProfiles).Count) { return }
+  & (Get-Uv) run --quiet $ProfilesPy --migrate
+  if ($LASTEXITCODE -ne 0) { throw "profiles.py --migrate 失敗（exit $LASTEXITCODE）" }
+}
+
 # 規則、skills、MCP 都交給 agents.py（維護者版的 git hook 也用它同步）。
 # MCP 被使用者改過、或同名但不是 OmniKit 的，--ask 會逐一問；不能互動時列出來並停下，什麼都不寫
 function Connect-Agents {
@@ -371,13 +414,20 @@ function Show-InstallPlan {
   } else {
     $plan += "接上偵測到的 agent：$(($agents | ForEach-Object { $AgentNames[$_] }) -join '、')"
   }
+  $legacyProfiles = @(Get-LegacyProfiles)
+  if ($legacyProfiles) {
+    $dest = Join-Path $env:LOCALAPPDATA 'omnikit\profiles'
+    $plan += "  舊版存在 repo 裡的 profile（$($legacyProfiles -join '、')）：搬到 $dest（不會被 commit）；刪掉 repo 裡的舊檔前先問你，不能互動時不搬"
+  }
   $stateFile = Join-Path $env:LOCALAPPDATA 'omnikit\profile.json'
-  $chosen = if (Test-Path $stateFile) { try { ([IO.File]::ReadAllText($stateFile) | ConvertFrom-Json).profile } catch { $null } }
+  $chosen = if (Test-Path -LiteralPath $stateFile) { try { ([IO.File]::ReadAllText($stateFile) | ConvertFrom-Json).profile } catch { $null } }
   $name = if ($ProfileName) { $ProfileName } elseif ($chosen) { $chosen } else { 'default' }
   $note = if ($ProfileName -or $chosen) { '' } else { '（還沒選過，用預設：下載、安裝前會先問）' }
-  $plan += "  規則：安全底線 + profile「$name」$note"
-  if (-not (Test-Path (Join-Path $Repo "data\profiles\$name\AGENTS.md"))) {
-    $plan += "  找不到 data/profiles/$name/AGENTS.md，安裝會在這一步失敗"
+  $profileDir = Get-ProfileDir $name
+  $where = if (-not $profileDir) { '' } elseif ($profileDir.StartsWith($Repo)) { "，data/profiles/$name" } else { "，$profileDir" }
+  $plan += "  規則：安全底線 + profile「$name」$note$where"
+  if (-not $profileDir) {
+    $plan += "  找不到 profile「$name」（$(Join-Path $env:LOCALAPPDATA "omnikit\profiles\$name") 或 data/profiles/$name，要有 AGENTS.md），安裝會在這一步失敗"
   }
   if ($agents -contains 'claude-code') {
     $verb = if ((Get-FileText $ClaudeMd) -match $BlockPattern) { '更新' } else { '在開頭加上' }
@@ -409,9 +459,9 @@ function Show-InstallPlan {
   if ($Fresh) { $plan += '  ~/.claude/CLAUDE.md：受管區塊以外的舊規則先備份成 CLAUDE.md.pre-omnikit，再移除' }
 
   # 跟 profiles.py 的 OPTIONAL_SKILLS 一樣：訪談第 5 題答「不要」（evaluate_tools 是 false）就不裝 omnikit-eval
-  $answersFile = Join-Path $Repo "data\profiles\$name\answers.json"
+  $answersFile = if ($profileDir) { Join-Path $profileDir 'answers.json' } else { '' }
   $skip = @()
-  if (Test-Path $answersFile) {
+  if ($answersFile -and (Test-Path -LiteralPath $answersFile)) {
     try { if ((Get-FileText $answersFile | ConvertFrom-Json).evaluate_tools -eq $false) { $skip = @('omnikit-eval') } } catch { }
   }
   $skills = (Get-ChildItem -Directory (Join-Path $Repo 'engine\skills') |
@@ -482,6 +532,7 @@ function Show-NextSteps($edition) {
   if ($hasEval) {
     Write-Host '  - 評估新工具：說「幫我評估」加上 GitHub 連結（Claude Code 也可以輸入 /omnikit-eval，Codex 輸入 $omnikit-eval）'
   }
+  Write-Host '  - 個人週報：每週說一次「OmniKit 本週週報」（Claude Code 也可以輸入 /omnikit-weekly，Codex 輸入 $omnikit-weekly）'
   Write-Host '  - 預設 plugin 不會自動安裝；安裝方式與其他說明見 README 的「裝好之後」'
 }
 
@@ -491,7 +542,8 @@ function Invoke-SelfTest {
   function Check($label, $ok) {
     if ($ok) { Write-Host "通過：$label" } else { Write-Host "失敗：$label"; $script:failures++ }
   }
-  $tmp = Join-Path ([IO.Path]::GetTempPath()) ('omnikit-selftest-' + [guid]::NewGuid().ToString('N'))
+  # 名稱短一點：暫存資料夾本身很深時（CI 故意用長路徑），git 物件的路徑才不會超過 260 字元
+  $tmp = Join-Path ([IO.Path]::GetTempPath()) ('okst-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
   New-Item -ItemType Directory -Path $tmp | Out-Null
   $realLocal, $realRepo, $realUvCache = $env:LOCALAPPDATA, $script:Repo, $env:UV_CACHE_DIR
   # uv 的快取預設在 %LOCALAPPDATA%，換掉之前先指回原本的，免得重新下載
@@ -515,6 +567,29 @@ function Invoke-SelfTest {
     Check 'Set-GitHooks colleague：本來就沒設，不出錯' (-not (git -C $script:Repo config --get core.hooksPath))
     Set-GitHooks 'maintainer'
     Check 'Set-GitHooks maintainer：設成 .githooks' ((git -C $script:Repo config --get core.hooksPath) -eq '.githooks')
+
+    # profile 的位置（FR-38）：訪談產生的在 repo 外，同名時優先；舊版存在 repo 裡、沒進版本控制的要搬
+    $utf8 = New-Object Text.UTF8Encoding($false)
+    $put = { param($path, $text) New-Item -ItemType Directory -Force -Path (Split-Path $path) | Out-Null; [IO.File]::WriteAllText($path, $text, $utf8) }
+    $inRepo = Join-Path $script:Repo 'data\profiles'
+    $local = Join-Path $env:LOCALAPPDATA 'omnikit\profiles'
+    & $put (Join-Path $inRepo 'default\AGENTS.md') "# default`n"
+    & $put (Join-Path $inRepo 'ryan\AGENTS.md') "# 維護者 commit 的`n"
+    & $put (Join-Path $inRepo 'ryan\answers.json') '{}'
+    & $put (Join-Path $inRepo 'alice\AGENTS.md') "# 舊版訪談存在 repo 裡`n"
+    & $put (Join-Path $inRepo 'alice\answers.json') '{"evaluate_tools": false}'
+    & $put (Join-Path $inRepo 'bob\AGENTS.md') "# 手寫的`n"
+    & $put (Join-Path $local 'ryan\AGENTS.md') "# repo 外的同名 profile`n"
+    git -C $script:Repo -c core.autocrlf=false -c core.longpaths=true add data/profiles/default data/profiles/ryan
+    Check 'Get-LegacyProfiles：有 answers.json、沒進版本控制的才算（手寫的與 commit 過的不算）' ((@(Get-LegacyProfiles) -join ',') -eq 'alice')
+    Check 'Get-ProfileDir：同名時 repo 外的優先' ((Get-ProfileDir 'ryan') -eq (Join-Path $local 'ryan'))
+    Check 'Get-ProfileDir：repo 外沒有就用 repo 裡的' ((Get-ProfileDir 'alice') -eq (Join-Path $inRepo 'alice'))
+    Check 'Get-ProfileDir：都沒有回 $null' ($null -eq (Get-ProfileDir 'nope'))
+    Check 'Test-ProfileName：沒指定、repo 外或 repo 裡找得到的都沒問題' ($null -eq (Test-ProfileName '') -and
+      $null -eq (Test-ProfileName 'ryan') -and $null -eq (Test-ProfileName 'alice'))
+    Check 'Test-ProfileName：格式不對（例如誤把 -SelfTest 當成名稱）或找不到，安裝一開始就停' (
+      (Test-ProfileName '-SelfTest') -match '小寫英數' -and (Test-ProfileName 'Bad_Name') -match '小寫英數' -and
+      (Test-ProfileName 'nope') -match '找不到 profile「nope」')
   } finally {
     $env:LOCALAPPDATA, $script:Repo, $env:UV_CACHE_DIR = $realLocal, $realRepo, $realUvCache
     Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
@@ -525,6 +600,13 @@ function Invoke-SelfTest {
 }
 
 if ($SelfTest) { exit (Invoke-SelfTest) }
+
+# -ProfileName 不對就什麼都不做（-WhatIf 照樣列在預覽裡）
+$ProfileProblem = Test-ProfileName $ProfileName
+if ($ProfileProblem -and -not $WhatIf) {
+  Write-Host "$ProfileProblem。什麼都沒有下載或寫入。"
+  exit 1
+}
 
 # 安裝前檢查（FR-35）：任一項不通過就什麼都不下載、不寫入
 & $PreflightPs1 -Skip $SkipCheck
@@ -547,6 +629,7 @@ if ($CurrentEdition -eq 'maintainer') { Install-Gitleaks }
 Sync-RepoConfig
 Install-McpPackages
 if ($CurrentEdition -ne 'maintainer') { Request-AutoApprove }
+Move-LegacyProfiles
 Connect-Agents
 Grant-ClaudePermissions
 Register-CodexHook

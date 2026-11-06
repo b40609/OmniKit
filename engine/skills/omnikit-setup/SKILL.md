@@ -5,12 +5,12 @@ description: 用簡短訪談建立或重新設定使用者自己的 OmniKit prof
 
 # OmniKit 設定訪談
 
-目標：依這台電腦和使用者的需求，產生他自己的 profile（`data/profiles/<名稱>/`），並接上這台接好的 agent（Claude Code、Codex、Antigravity）。下面的指令路徑都相對於這個 skill 的資料夾；`uv` 不在 PATH 時，用 `%LOCALAPPDATA%\Programs\uv\uv.exe`。
+目標：依這台電腦和使用者的需求，產生他自己的 profile，並接上這台接好的 agent（Claude Code、Codex、Antigravity）。profile 存在 repo 外的 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`（掃描結果的 `omnikit.profiles_dir`），不會被 commit 或 push，在 repo 裡跑 `git status` 也看不到。下面的指令路徑都相對於這個 skill 的資料夾；`uv` 不在 PATH 時，用 `%LOCALAPPDATA%\Programs\uv\uv.exe`。
 
 原則：
 
 - 問題最多 6 題，選擇題為主。掃描查得到的不問，只請使用者確認。
-- 你只負責問問題、把答案寫成 JSON；規則檔與情境檔一律由 `setup.py` 產生，不要自己寫或改 `data/profiles/` 裡的檔案。
+- 你只負責問問題、把答案寫成 JSON；規則檔與情境檔一律由 `setup.py` 產生，不要自己寫或改 profile 資料夾裡的檔案，也不要在 repo 的 `data/profiles/` 建檔。
 - 寫入之前一定先給使用者看預覽，取得同意。
 - 不讀、不印金鑰；掃描結果只有名稱與版本。
 
@@ -25,6 +25,7 @@ uv run scripts/setup.py scan
 - 裝了哪些 agent。OmniKit 接的是 Claude Code、Codex 與 Antigravity（`omnikit_supported`）；已經接上的列在 `omnikit.connected_agents`。有裝、但不在 `connected_agents` 裡的，提醒在 repo 根目錄重跑 `install.ps1` 接上；其他 agent 不在支援範圍，這次不處理。
 - 目前的 profile（`omnikit.profile`）；`profile_chosen` 是 false 表示還在用預設的 default（下載、安裝前會先問）。
 - `omnikit.previous_answers` 不是 null：那是上次訪談的答案。下面每一題的預設就照它帶入，使用者只改想改的。
+- `omnikit.legacy_profiles` 不是空的：舊版把這些 profile 存在 repo 裡（`data/profiles/<名稱>/`），`git status` 看得到。開始訪談前先說明新版改存在 `profiles_dir`、不會被 commit，問「要搬過去嗎？搬好、確認內容一樣之後，會刪掉 repo 裡的舊檔」。同意才跑 `uv run scripts/setup.py migrate --yes`，把輸出照實回報；不同意就不搬，舊的照常可以用，但重新訪談時不能沿用同一個名稱。
 
 ## 2. 訪談
 
@@ -43,7 +44,7 @@ Claude Code 用 AskUserQuestion（一次最多 4 題）；Codex 一次列出編�
 
 | # | 問題 | 答案欄位 |
 |---|---|---|
-| 5 | 要不要用 OmniKit 持續評估新工具？（貼 GitHub 連結，它會拿你的專案情境幫你比較；選「先不要」就不裝評估工具的 skill，也沒有每週彙整，之後重新訪談可以改） | 要 → `evaluate_tools: true`；先不要 → `false` |
+| 5 | 要不要用 OmniKit 持續評估新工具？（貼 GitHub 連結，它會拿你的專案情境幫你比較；選「先不要」就不裝評估工具的 skill，個人週報照樣有，之後重新訪談可以改） | 要 → `evaluate_tools: true`；先不要 → `false` |
 | 6 | 用一句話介紹你的主要工作與技術。第 5 題選「要」的話，再給主要專案名稱；有前端的話，也給前端專案名稱。 | `background`、`projects.main`、`projects.frontend`（自由回答） |
 
 補充：
@@ -80,7 +81,7 @@ uv run scripts/setup.py profile --answers <answers_file>
 
 - 這份會跟安全底線（`data/rules/baseline.md`：刪除、對外發送、付款、push 前先確認，不碰金鑰）一起生效，底線不能放寬。
 - 有 `scenarios.yaml` 的話，評估工具時會用這些情境當考題。
-- 預覽最後有「套用時不裝 omnikit-eval」（第 5 題選了先不要）：照實告訴使用者，評估新工具與每週彙整都不會有。
+- 預覽最後有「套用時不裝 omnikit-eval」（第 5 題選了先不要）：照實告訴使用者，評估新工具不會有；個人週報（`omnikit-weekly`，說「OmniKit 本週週報」）照樣有。
 
 問「照這樣建立嗎？」。要改就回到對應的題目，改完重新預覽。
 
@@ -88,7 +89,8 @@ uv run scripts/setup.py profile --answers <answers_file>
 
 - 「答案有問題」：照訊息修正 JSON 再預覽，不要自己改規則檔。
 - 「已經存在」：是使用者上次訪談建立的（`previous_answers.name` 相同），問要不要覆蓋，同意才加 `--force`，舊檔會備份成 `.bak`。
-- 「手寫的 profile」：不能覆蓋，請使用者換一個名稱。
+- 「手寫的 profile」或「repo 裡已經有 profile」：不能覆蓋，請使用者換一個名稱。
+- 「repo 裡有舊版存的同名 profile」：回到第 1 步，問使用者要不要搬到 repo 外。
 
 ## 4. 建立並套用
 
@@ -99,7 +101,7 @@ uv run scripts/setup.py profile --answers <answers_file> --write --apply
 （要覆蓋時再加 `--force`。）輸出出現「已套用 profile：…」就完成。回報：
 
 - 開新的 session 才會生效。確認方式：問「OmniKit 規則版本與 profile 是什麼？」
-- 第 5 題選「先不要」：輸出會有「不裝 omnikit-eval」，評估工具的 skill 已經拿掉；之後想用，重新訪談選「要」就會裝回來。
+- 第 5 題選「先不要」：輸出會有「不裝 omnikit-eval」，評估工具的 skill 已經拿掉；之後想用，重新訪談選「要」就會裝回來。不管選哪個，每週都可以說「OmniKit 本週週報」看個人週報。
 - 依第 2 題給一個試試看的例子，例如選了 `scope-creep`：請它改一個小地方，看它會不會順手改別的。
-- profile 存在這台電腦的 OmniKit repo（`data/profiles/<名稱>/`），不會上傳。之後想手動改，直接改那裡的 `AGENTS.md`；想換別的 profile，在 repo 根目錄跑 `uv run engine/scripts/profiles.py --set <名稱>`。
+- profile 存在這台電腦的 `profiles_dir`（`%LOCALAPPDATA%\omnikit\profiles\<名稱>\`），在 repo 外，不會被 commit 或上傳。之後想手動改，直接改那裡的 `AGENTS.md`，再在 repo 根目錄跑 `uv run engine/scripts/profiles.py` 重新接上（Claude Code 直接讀這份；Codex 與 Antigravity 讀的是接在一起的副本）；想換別的 profile，跑 `uv run engine/scripts/profiles.py --set <名稱>`。
 - 輸出提到某個 agent 的規則「沒有覆蓋」或「沒有加回去」：那是使用者自己改過的檔案，這次沒動；要接上就在 repo 根目錄重跑 `install.ps1`。

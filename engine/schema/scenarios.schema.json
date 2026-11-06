@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniKit 個人情境",
-  "description": "data/profiles/<名稱>/scenarios.yaml：評估工具時用的真實情境。列出的槽位整組取代 data/slots.yaml 的範本情境。",
+  "description": "profile 資料夾的 scenarios.yaml（data/profiles/<名稱>/，或訪談產生的 %LOCALAPPDATA%\\omnikit\\profiles\\<名稱>\\）：評估工具時用的真實情境。列出的槽位整組取代 data/slots.yaml 的範本情境。",
   "type": "object",
   "required": ["scenarios"],
   "additionalProperties": false,

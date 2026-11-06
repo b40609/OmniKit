@@ -6,8 +6,14 @@
 
 agent 讀到的規則是兩層接在一起：
 - data/rules/baseline.md：安全底線，所有人都套用
-- data/profiles/<名稱>/AGENTS.md：個人規則（語言、語氣、授權程度）
+- profile 的 AGENTS.md：個人規則（語言、語氣、授權程度）
 同一個 profile 資料夾裡的 scenarios.yaml 是評估工具用的真實情境，由 validate.py 讀。
+
+profile 放在兩個地方，同名時 repo 外的優先：
+- %LOCALAPPDATA%\\omnikit\\profiles\\<名稱>\\：訪談（omnikit-setup）產生的。個人資料不放進 repo，
+  不會被 commit 或 push，git status 也看不到（FR-38）。
+- data/profiles/<名稱>/：跟著 repo 的，default 與維護者手寫的。
+舊版把訪談產生的 profile 寫在 data/profiles/ 裡；--migrate 把它們搬到 repo 外，刪掉 repo 裡的舊檔前先問。
 
 選了哪個 profile 記在 %LOCALAPPDATA%\\omnikit\\profile.json。沒選過就用 default（授權偏保守），
 而且每次都會提醒，直到用 --set 選定。
@@ -25,6 +31,8 @@ Codex 與 Antigravity 的檔案常跟其他工具共用（硬連結），所以�
   uv run engine/scripts/profiles.py                 用目前的 profile 重新接上
   uv run engine/scripts/profiles.py --set <名稱>    換 profile 並接上（skills 也跟著同步）
   uv run engine/scripts/profiles.py --show          只印出目前的 profile 名稱
+  uv run engine/scripts/profiles.py --migrate       把舊版存在 repo 裡的 profile 搬到 repo 外（能互動時先問）
+  uv run engine/scripts/profiles.py --migrate --yes 使用者已經同意：直接搬，確認內容一樣後刪掉 repo 裡的舊檔
   uv run engine/scripts/profiles.py --selftest
 """
 import argparse
@@ -32,6 +40,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -99,11 +108,33 @@ def backup(path):
     return target
 
 
-def available(data):
-    root = data / "profiles"
-    if not root.is_dir():
-        return []
-    return sorted(p.name for p in root.iterdir() if (p / "AGENTS.md").is_file())
+def roots(data, state=None):
+    """找 profile 的地方，依優先順序：repo 外（訪談產生的）、repo 裡（default 與維護者手寫的）。"""
+    return ([state / "profiles"] if state is not None else []) + [data / "profiles"]
+
+
+def folder(data, state, name):
+    """profile 的資料夾（有 AGENTS.md 的才算）；repo 外的優先，都沒有回 None。"""
+    for root in roots(data, state):
+        if (root / name / "AGENTS.md").is_file():
+            return root / name
+    return None
+
+
+def available(data, state=None):
+    names = set()
+    for root in roots(data, state):
+        if root.is_dir():
+            names.update(p.name for p in root.iterdir() if NAME.match(p.name) and (p / "AGENTS.md").is_file())
+    return sorted(names)
+
+
+def label(data, state, name):
+    """給人看的 profile 位置：repo 裡的寫 data/profiles/<名稱>，repo 外的寫完整路徑。"""
+    found = folder(data, state, name)
+    if found is None or found.parent == data / "profiles":
+        return f"data/profiles/{name}"
+    return found.as_posix()
 
 
 def chosen(state):
@@ -122,33 +153,41 @@ def resolve(data, state, wanted=None):
     name = wanted or chosen(state)
     fallback = name is None
     name = name or DEFAULT
-    if name not in available(data):
+    if folder(data, state, name) is None:
         raise SystemExit(
-            f"找不到 profile「{name}」（data/profiles/{name}/AGENTS.md），可選：{'、'.join(available(data)) or '無'}"
+            f"找不到 profile「{name}」（{state / 'profiles' / name} 或 data/profiles/{name}，要有 AGENTS.md），"
+            f"可選：{'、'.join(available(data, state)) or '無'}"
         )
     return name, fallback
 
 
-def rules_files(data, name):
-    return data / "rules" / "baseline.md", data / "profiles" / name / "AGENTS.md"
+def rules_files(data, state, name):
+    return data / "rules" / "baseline.md", (folder(data, state, name) or data / "profiles" / name) / "AGENTS.md"
 
 
-def skipped_skills(data, name):
+def answers(data, state, name):
+    """訪談產生的 profile 留下的答案（answers.json）；手寫的 profile 沒有，讀不懂也回 None。"""
+    found = folder(data, state, name)
+    try:
+        doc = json.loads(text(found / "answers.json")) if found else None
+    except (OSError, ValueError):
+        return None
+    return doc if isinstance(doc, dict) else None
+
+
+def skipped_skills(data, state, name):
     """這個 profile 不裝的 OmniKit skill：{skill: 說明}。只看訪談產生的 answers.json；
     手寫的 profile（沒有 answers.json）或檔案讀不懂時全部都裝，跟以前一樣。"""
-    try:
-        answers = json.loads(text(data / "profiles" / name / "answers.json"))
-    except (OSError, ValueError):
+    doc = answers(data, state, name)
+    if doc is None:
         return {}
-    if not isinstance(answers, dict):
-        return {}
-    return {skill: why for skill, (key, why) in OPTIONAL_SKILLS.items() if answers.get(key) is False}
+    return {skill: why for skill, (key, why) in OPTIONAL_SKILLS.items() if doc.get(key) is False}
 
 
-def compose(data, name):
+def compose(data, state, name):
     """給 Codex 與 Antigravity 的規則：底線在前，profile 在後；第一行是產生標記。"""
-    parts = [text(p).replace("\r\n", "\n").strip() for p in rules_files(data, name)]
-    header = f"{HEADER}data/rules/baseline.md + data/profiles/{name}/AGENTS.md -->"
+    parts = [text(p).replace("\r\n", "\n").strip() for p in rules_files(data, state, name)]
+    header = f"{HEADER}data/rules/baseline.md + {label(data, state, name)}/AGENTS.md -->"
     return "\n\n".join([header, *parts]) + "\n"
 
 
@@ -174,9 +213,15 @@ def connected(state, paths=None, skillshare_config=SKILLSHARE_CONFIG):
     return agents
 
 
-def claude_block(data, name):
+def import_line(path):
+    """Claude Code 的 @import：路徑用正斜線；空白前面要加反斜線，不然路徑在第一個空白就斷掉，
+    整份規則不會載入（https://code.claude.com/docs/en/memory）。使用者名稱有空白時，repo 或 profile 的路徑就有空白。"""
+    return "@" + path.resolve().as_posix().replace(" ", "\\ ")
+
+
+def claude_block(data, state, name):
     """skillshare 0.28.2 的 import 模式在 Windows 寫出反斜線路徑，Claude Code 不會載入；所以自己維護，路徑用正斜線。"""
-    imports = "\n".join("@" + p.resolve().as_posix() for p in rules_files(data, name))
+    imports = "\n".join(import_line(p) for p in rules_files(data, state, name))
     return f"{BEGIN}\n{imports}\n{END}"
 
 
@@ -251,12 +296,12 @@ def apply(data, state, paths=None, wanted=None, agents=None, take_over=False, sk
     if wanted:
         write(state / "profile.json", json.dumps({"profile": name}, ensure_ascii=False) + "\n")
     agents = agents if agents is not None else connected(state, paths, skillshare_config)
-    content = compose(data, name)
+    content = compose(data, state, name)
     # 給 uninstall.ps1 比對 ~/.codex/AGENTS.md 是不是 OmniKit 的副本
     write(state / "rules" / "AGENTS.md", content)
     done, notes = [], []
     if "claude-code" in agents:
-        connect_claude(paths["claude-code"], claude_block(data, name))
+        connect_claude(paths["claude-code"], claude_block(data, state, name))
         done.append(NAMES["claude-code"])
     if "codex" in agents:
         legacy = skillshare_config.exists() and CODEX_EXTRA.search(text(skillshare_config)) is not None
@@ -273,7 +318,7 @@ def apply(data, state, paths=None, wanted=None, agents=None, take_over=False, sk
             notes.append(f"已備份原本的 Antigravity 規則：{saved}")
     lines = [f"已套用 profile：{name}（{'、'.join(done) or '沒有 agent'}，開新的 session 才生效）", *notes]
     if fallback:
-        lines.append(fallback_notice(data))
+        lines.append(fallback_notice(data, state))
     return lines
 
 
@@ -289,10 +334,90 @@ def sync_skills(run=subprocess.run):
     return [] if code == 0 else ["skills 沒有跟著 profile 同步，請在 repo 根目錄跑：uv run engine/scripts/agents.py sync --skills"]
 
 
-def fallback_notice(data):
+def fallback_notice(data, state=None):
     return (f"這台還沒選 profile，先用 {DEFAULT}（下載、安裝前會先問）。要建立自己的：開新 session 說"
             f"「幫我設定 OmniKit」；用現有的：uv run engine/scripts/profiles.py --set <名稱>，"
-            f"可選：{'、'.join(available(data))}")
+            f"可選：{'、'.join(available(data, state))}")
+
+
+# ---- 舊版存在 repo 裡的 profile：搬到 repo 外（FR-38） ----
+
+def tracked_profiles(repo):
+    """repo 裡有進版本控制的 profile 名稱（維護者 commit 的）。不是 git repo 或沒有 git：回空集合。"""
+    try:
+        r = subprocess.run(["git", "-C", str(repo), "ls-files", "-z", "--", "data/profiles"],
+                           capture_output=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        return set()
+    if r.returncode != 0:
+        return set()
+    parts = (item.split("/") for item in r.stdout.decode("utf-8", "replace").split("\0"))
+    return {p[2] for p in parts if len(p) >= 4 and p[:2] == ["data", "profiles"]}
+
+
+def legacy(data, tracked=None):
+    """舊版存在 repo 裡、由訪談產生的 profile：有 answers.json、沒進版本控制。這些是同事的個人資料，
+    git status 看得到，要搬到 repo 外。手寫的（沒有 answers.json）與維護者 commit 的都不算。"""
+    root = data / "profiles"
+    if not root.is_dir():
+        return []
+    tracked = tracked_profiles(data.parent) if tracked is None else tracked
+    return sorted(p.name for p in root.iterdir()
+                  if NAME.match(p.name) and p.name not in tracked and (p / "answers.json").is_file())
+
+
+def same_files(src, dest):
+    """dest 有 src 的每一個檔案，內容也一樣（dest 多出來的不管）。"""
+    files = [p.relative_to(src) for p in src.rglob("*") if p.is_file()]
+    return all((dest / rel).is_file() and (dest / rel).read_bytes() == (src / rel).read_bytes() for rel in files)
+
+
+def remove_tree(path):
+    """刪資料夾；Windows 的唯讀屬性會讓刪除失敗，先清掉再刪。"""
+    def force(func, p, _exc):
+        os.chmod(p, stat.S_IWRITE)
+        func(p)
+    shutil.rmtree(path, **({"onexc": force} if sys.version_info >= (3, 12) else {"onerror": force}))
+
+
+def migrate(data, state, tracked=None, reapply=None):
+    """把舊版存在 repo 裡的 profile 搬到 repo 外（state/profiles/<名稱>），回傳要印的訊息。
+    呼叫前要先取得使用者同意：搬完會刪掉 repo 裡的舊檔。
+    - 先複製到暫存資料夾再改名，中途失敗不會留下一半的 profile。
+    - repo 外已經有同名的：每個檔案都一樣就當作搬過了；不一樣就兩邊都不動（repo 外的優先），請使用者自己決定。
+    - 這台選的 profile 搬過去之後，先重新接上規則（reapply），Claude 的 import 改指到 repo 外，才刪舊檔。
+    - 刪之前再比對一次，repo 外的每個檔案都跟舊檔一樣才刪。"""
+    lines, moved = [], []
+    for name in legacy(data, tracked):
+        src, dest = data / "profiles" / name, state / "profiles" / name
+        if dest.exists():
+            if not same_files(src, dest):
+                lines.append(f"profile {name}：{dest} 已經有同名、內容不同的 profile，以它為準；"
+                             f"repo 裡的 {src} 沒有動，不需要的話自己刪掉")
+                continue
+        else:
+            staging = dest.with_name(f".{name}.migrating")
+            if staging.exists():
+                remove_tree(staging)
+            shutil.copytree(src, staging)
+            staging.replace(dest)
+            lines.append(f"profile {name}：已複製到 {dest}")
+        moved.append(name)
+    if reapply and chosen(state) in moved:
+        lines += reapply()
+    for name in moved:
+        src, dest = data / "profiles" / name, state / "profiles" / name
+        if same_files(src, dest):
+            remove_tree(src)
+            lines.append(f"profile {name}：已刪掉 repo 裡的舊檔（{src}）")
+        else:
+            lines.append(f"profile {name}：複製後的內容跟 repo 裡的不一樣，舊檔沒有刪（{src}）")
+    return lines
+
+
+def migrate_plan(data, state, tracked=None):
+    """還沒同意時給使用者看的：要搬哪些、搬到哪裡。"""
+    return [f"profile {name}：{data / 'profiles' / name} → {state / 'profiles' / name}" for name in legacy(data, tracked)]
 
 
 def selftest():
@@ -309,6 +434,13 @@ def selftest():
         except SystemExit:
             return True
         return False
+
+    def fails_with(fn):
+        try:
+            fn()
+        except SystemExit as e:
+            return e.code
+        return None
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
@@ -345,7 +477,7 @@ def selftest():
         check("沒選過：不記錄選擇", not (state / "profile.json").exists())
         check("Claude：舊的單一 import 換成底線與 profile 兩份",
               "@C:/old" not in md and md.count(BEGIN) == 1
-              and (data / "profiles" / "default" / "AGENTS.md").resolve().as_posix() in md)
+              and import_line(data / "profiles" / "default" / "AGENTS.md") in md)
         check("Claude：區塊以外的內容與 CRLF 不動", md.endswith("\r\n# 我自己的規則\r\nkeep\r\n"))
         codex = text(paths["codex"])
         check("Codex：受管區塊加在開頭，放底線加 profile；原本的規則留在區塊外照常生效",
@@ -394,13 +526,13 @@ def selftest():
         check("舊版 skillshare 安裝：推斷 Codex 有接上", connected(state, paths, legacy_config) == ["claude-code", "codex"])
         lines = run(agents=["codex"])
         check("舊版 skillshare 管的 Codex 規則：直接接手換成只有區塊，不另外備份",
-              text(paths["codex"]) == content_block(compose(data, "x")) + "\n"
+              text(paths["codex"]) == content_block(compose(data, state, "x")) + "\n"
               and not list(paths["codex"].parent.glob("AGENTS.md.pre-omnikit-*")))
         legacy_config.unlink()
-        write(paths["codex"], compose(data, "x"))  # 舊版整份換掉的格式：開頭是產生標記
+        write(paths["codex"], compose(data, state, "x"))  # 舊版整份換掉的格式：開頭是產生標記
         run(agents=["codex"])
         check("舊版整份換掉的 Codex 規則：換成只有區塊，內容一樣，安裝前的備份不動",
-              text(paths["codex"]) == content_block(compose(data, "x")) + "\n"
+              text(paths["codex"]) == content_block(compose(data, state, "x")) + "\n"
               and text(paths["codex"].with_name("AGENTS.md.pre-omnikit")) == "# 我原本的 Codex 規則\n")
         lines = disconnect_block(paths["codex"])
         check("移除 Codex 區塊：只剩區塊時還原安裝前的備份，備份收掉",
@@ -417,13 +549,13 @@ def selftest():
         write(gem, "# 原本\n")
         link = tmp / "g" / "AGENTS.md"
         os.link(gem, link)
-        connect_block(gem, compose(data, "default"), take_over=True)
+        connect_block(gem, compose(data, state, "default"), take_over=True)
         lines = disconnect_block(gem)
         check("移除 Antigravity 區塊：還原成原本的內容，硬連結還在",
               text(gem) == "# 原本\n" and os.path.samefile(gem, link) and any("已拿掉" in line for line in lines))
         check("移除後跟備份一樣：多餘的備份刪掉", not gem.with_name("GEMINI.md.pre-omnikit").exists())
         fresh = tmp / "f" / "GEMINI.md"
-        connect_block(fresh, compose(data, "default"), take_over=True)
+        connect_block(fresh, compose(data, state, "default"), take_over=True)
         disconnect_block(fresh)
         check("OmniKit 建的 GEMINI.md：移除時整個刪掉", not fresh.exists())
 
@@ -442,24 +574,150 @@ def selftest():
         check("skills 同步失敗：印出手動指令", "agents.py sync --skills" in sync_skills(fake_run(1))[0])
         check("找不到 uv：印出手動指令，不中斷", "agents.py sync --skills" in sync_skills(fake_run(None))[0])
 
+        write(data / "profiles" / "x" / "AGENTS.md", "# x\n放手\n")
         write(data / "profiles" / "x" / "answers.json", json.dumps({"evaluate_tools": False}))
+        write(data / "profiles" / "y" / "AGENTS.md", "# y\n")
         write(data / "profiles" / "y" / "answers.json", "﻿" + json.dumps({"evaluate_tools": True}))
         check("訪談答不評估工具：不裝 omnikit-eval；答要或手寫的 profile：全部都裝",
-              set(skipped_skills(data, "x")) == {"omnikit-eval"} and skipped_skills(data, "y") == {}
-              and skipped_skills(data, "default") == {})
+              set(skipped_skills(data, state, "x")) == {"omnikit-eval"} and skipped_skills(data, state, "y") == {}
+              and skipped_skills(data, state, "default") == {})
+
+        # ---- repo 外的 profile（FR-38）：訪談產生的存在 state/profiles，同名時優先 ----
+        local = state / "profiles"
+        write(local / "alice" / "AGENTS.md", "# alice\n存在 repo 外\n")
+        write(local / "x" / "AGENTS.md", "# x（repo 外）\n本機的優先\n")
+        write(local / "x" / "answers.json", json.dumps({"evaluate_tools": True}))
+        write(local / "Bad_Name" / "AGENTS.md", "# 名稱不合格式的不算\n")
+        check("可選的 profile：repo 外的也算，同名只列一次，名稱不合格式的不算",
+              available(data, state) == ["alice", "default", "x", "y"] and available(data) == ["default", "x", "y"])
+        check("同名時 repo 外的優先；沒給 state 就只看 repo 裡的",
+              folder(data, state, "x") == local / "x" and folder(data, None, "x") == data / "profiles" / "x")
+        check("答案也照優先順序讀：repo 外的 x 要評估，所以全部都裝", skipped_skills(data, state, "x") == {})
+        lines = run(agents=["claude-code"], wanted="alice")
+        md = text(paths["claude-code"])
+        check("repo 外的 profile：Claude import 指到 repo 外，接好的規則也是它",
+              import_line(local / "alice" / "AGENTS.md") in md and "存在 repo 外" in text(state / "rules" / "AGENTS.md")
+              and chosen(state) == "alice" and lines[0].startswith("已套用 profile：alice"))
+        check("產生標記寫出 repo 外的位置", compose(data, state, "alice").splitlines()[0]
+              == f"{HEADER}data/rules/baseline.md + {(local / 'alice').as_posix()}/AGENTS.md -->")
+        check("repo 裡的 profile：產生標記照舊", compose(data, state, "default").splitlines()[0]
+              == f"{HEADER}data/rules/baseline.md + data/profiles/default/AGENTS.md -->")
+        check("找不到時說兩個位置", "data/profiles/nope" in str(fails_with(lambda: resolve(data, state, "nope"))))
+
+        # Claude Code 的 import 遇到空白就斷掉：使用者名稱有空白時，repo 與 profile 的路徑都有空白
+        sdata, sstate = tmp / "王 小明 的 資料夾" / "data", tmp / "王 小明 的 資料夾" / "state"
+        write(sdata / "rules" / "baseline.md", "# 底線\n")
+        write(sstate / "profiles" / "amy" / "AGENTS.md", "# amy\n")
+        imports = [line for line in claude_block(sdata, sstate, "amy").splitlines() if line.startswith("@")]
+        check("Claude import：路徑的空白都用反斜線跳脫，還原後就是原本的路徑",
+              len(imports) == 2 and not any(re.search(r"(?<!\\) ", line) for line in imports)
+              and [line[1:].replace("\\ ", " ") for line in imports]
+              == [p.resolve().as_posix() for p in rules_files(sdata, sstate, "amy")])
+
+        # ---- 舊版存在 repo 裡的 profile：搬到 repo 外 ----
+        mdata, mstate = tmp / "m" / "data", tmp / "m" / "state"
+        mpaths = {k: tmp / "m" / "home" / p.relative_to(tmp / "home") for k, p in paths.items()}
+        write(mdata / "rules" / "baseline.md", "# 底線\n")
+        write(mdata / "profiles" / "default" / "AGENTS.md", "# default\n")
+        write(mdata / "profiles" / "ryan" / "AGENTS.md", "# 維護者手寫的\n")
+        write(mdata / "profiles" / "keep" / "AGENTS.md", "# 維護者 commit 的訪談 profile\n")
+        write(mdata / "profiles" / "keep" / "answers.json", "{}")
+        bob, moved = mdata / "profiles" / "bob", mstate / "profiles" / "bob"
+        write(bob / "AGENTS.md", "# bob\n舊版存在 repo 裡\n")
+        write(bob / "answers.json", json.dumps({"name": "bob"}))
+        write(bob / "AGENTS.md.bak", "# bob 更早的\n")
+        check("舊版 profile：有 answers.json、沒進版本控制的才算；手寫的與 commit 過的不算",
+              legacy(mdata, tracked={"default", "ryan", "keep"}) == ["bob"])
+        if shutil.which("git"):
+            subprocess.run(["git", "init", "-q", str(mdata.parent)], check=True, capture_output=True)
+            subprocess.run(["git", "-C", str(mdata.parent), "-c", "core.autocrlf=false", "-c", "core.longpaths=true", "add",
+                            "data/profiles/default", "data/profiles/ryan", "data/profiles/keep"], check=True, capture_output=True)
+            check("用 git 判斷有沒有進版本控制", tracked_profiles(mdata.parent) == {"default", "ryan", "keep"}
+                  and legacy(mdata) == ["bob"])
+        else:
+            print("略過：找不到 git，沒有測 tracked_profiles")
+        tracked = {"default", "ryan", "keep"}
+
+        def mapply():
+            return apply(mdata, mstate, mpaths, agents=["claude-code"], skillshare_config=legacy_config)
+
+        def mcli(**kw):
+            kw.setdefault("reapply", mapply)
+            kw.setdefault("tracked", tracked)
+            return migrate_cli(mdata, mstate, **kw)
+
+        write(mstate / "profile.json", json.dumps({"profile": "bob"}))
+        mapply()
+        check("搬之前：舊版的 profile 照常可以用（Claude import 指到 repo 裡）",
+              import_line(bob / "AGENTS.md") in text(mpaths["claude-code"]))
+        out = mcli(interactive=False)
+        check("不能互動又沒加 --yes：列出要搬的，什麼都沒改",
+              bob.exists() and not moved.exists() and any("--migrate --yes" in line for line in out)
+              and any(str(bob) in line and str(moved) in line for line in out))
+        out = mcli(interactive=True, ask=lambda _: "n")
+        check("問了、使用者說不要：什麼都沒改", bob.exists() and not moved.exists() and out[0].startswith("沒有搬"))
+        out = mcli(interactive=True, ask=lambda _: "y")
+        check("同意後：整個資料夾（含 .bak）搬到 repo 外，repo 裡的舊檔刪掉",
+              not bob.exists() and text(moved / "AGENTS.md.bak") == "# bob 更早的\n"
+              and json.loads(text(moved / "answers.json")) == {"name": "bob"}
+              and any("已刪掉 repo 裡的舊檔" in line for line in out))
+        check("搬的是這台選的 profile：刪舊檔前先重新接上，Claude import 改指到 repo 外",
+              import_line(moved / "AGENTS.md") in text(mpaths["claude-code"]) and chosen(mstate) == "bob")
+        check("手寫的與 commit 過的不動", (mdata / "profiles" / "ryan").exists() and (mdata / "profiles" / "keep").exists())
+        check("再跑一次：沒有要搬的", mcli(yes=True)[0].startswith("沒有要搬的"))
+        write(bob / "AGENTS.md", "# bob\n另一份\n")
+        write(bob / "answers.json", "{}")
+        out = migrate(mdata, mstate, tracked=tracked, reapply=mapply)
+        check("repo 外已經有內容不同的同名 profile：兩邊都不動", bob.exists() and "另一份" not in text(moved / "AGENTS.md")
+              and any("內容不同" in line for line in out))
+        remove_tree(bob)
+        shutil.copytree(moved, bob)
+        out = migrate(mdata, mstate, tracked=tracked, reapply=mapply)
+        check("上次複製完還沒刪（中斷過）：repo 外的一模一樣，直接刪 repo 裡的舊檔",
+              not bob.exists() and moved.exists() and any("已刪掉" in line for line in out))
 
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0
 
 
-def main():
+def migrate_cli(data, state, yes=False, interactive=None, ask=input, reapply=None, tracked=None):
+    """--migrate：列出要搬的；使用者同意（--yes，或能互動時回答 y）才搬。"""
+    plan = migrate_plan(data, state, tracked)
+    if not plan:
+        return ["沒有要搬的 profile：repo 裡沒有舊版訪談產生、也沒進版本控制的 profile"]
+    lines = [f"舊版把訪談產生的 profile 存在 repo 裡；新版改存在 repo 外（{state / 'profiles'}），不會被 commit：",
+             *(f"  {line}" for line in plan)]
+    if not yes:
+        interactive = sys.stdin.isatty() if interactive is None else interactive
+        if not interactive:
+            return lines + ["沒辦法詢問（不能互動），什麼都沒改。使用者同意後執行：uv run engine/scripts/profiles.py --migrate --yes"]
+        try:
+            answer = ask("\n".join(lines) + "\n要搬過去嗎？複製好、確認內容一樣之後，會刪掉 repo 裡的舊檔（y/N）：")
+        except EOFError:
+            answer = ""
+        lines = []
+        answer = answer.strip().lower()
+        if answer not in ("y", "yes"):
+            return ["沒有搬：repo 裡的 profile 照常可以用；之後要搬就重跑 uv run engine/scripts/profiles.py --migrate"]
+    return lines + migrate(data, state, tracked, reapply or (lambda: apply(data, state)))
+
+
+def main(argv=None):
     parser = argparse.ArgumentParser(description="選擇並接上 OmniKit profile")
     parser.add_argument("--set", dest="wanted", metavar="名稱", help="換成這個 profile 並記下來")
     parser.add_argument("--show", action="store_true", help="只印出目前的 profile 名稱，不改任何東西")
+    parser.add_argument("--migrate", action="store_true", help="把舊版存在 repo 裡的 profile 搬到 repo 外（能互動時先問）")
+    parser.add_argument("--yes", action="store_true", help="搭配 --migrate：使用者已經同意，直接搬並刪掉 repo 裡的舊檔")
     parser.add_argument("--selftest", action="store_true")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.selftest:
         return selftest()
+    if args.yes and not args.migrate:
+        parser.error("--yes 要搭配 --migrate")
+    if args.migrate:
+        for line in migrate_cli(DATA, STATE, yes=args.yes):
+            print(line)
+        return 0
     if args.show:
         # 只印名稱：install.ps1 會接住 stdout；PowerShell 5.1 轉向 stderr 會出錯，所以不印提醒
         print(resolve(DATA, STATE)[0])

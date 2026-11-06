@@ -127,15 +127,10 @@ def rules_info(path):
     }
 
 
-def omnikit_state(data, state):
-    available = profiles.available(data)
+def omnikit_state(data, state, tracked=None):
+    available = profiles.available(data, state)
     chosen = profiles.chosen(state)
     current = chosen if chosen in available else profiles.DEFAULT
-    answers_path = data / "profiles" / current / "answers.json"
-    try:
-        previous = json.loads(answers_path.read_text(encoding="utf-8")) if answers_path.exists() else None
-    except (OSError, ValueError):
-        previous = None
     try:
         connected = json.loads((state / "agents.json").read_text(encoding="utf-8")).get("agents", [])
     except (OSError, ValueError, AttributeError):
@@ -145,13 +140,17 @@ def omnikit_state(data, state):
         "profile": current,
         "profile_chosen": chosen is not None,
         "profiles": available,
+        # 訪談產生的 profile 存在這裡（repo 外，FR-38）
+        "profiles_dir": str(state / "profiles"),
+        # 舊版存在 repo 裡的 profile：訪談前先問使用者要不要搬到 repo 外（profiles.py --migrate）
+        "legacy_profiles": profiles.legacy(data, tracked),
         "connected_agents": connected,
         "answers_file": str(state / "setup-answers.json"),
-        "previous_answers": previous,
+        "previous_answers": profiles.answers(data, state, current),
     }
 
 
-def scan(home, data, state, which=shutil.which, run=run_version, login=None, git_name=None):
+def scan(home, data, state, which=shutil.which, run=run_version, login=None, git_name=None, tracked=None):
     agents = []
     for agent_id, name, folders, commands in AGENTS:
         evidence = [f"~/{f}" for f in folders if (home / f).is_dir()]
@@ -174,7 +173,7 @@ def scan(home, data, state, which=shutil.which, run=run_version, login=None, git
         version, error = run(path) if path else (None, None)
         tools[tool] = {"found": bool(path), "version": version, **({"error": error} if error else {})}
 
-    omnikit = omnikit_state(data, state)
+    omnikit = omnikit_state(data, state, tracked)
     return {
         "os": {"system": platform.system(), "release": platform.release(), "version": platform.version()},
         "suggested_profile": suggest_name(git_name, login or getpass.getuser(), set(omnikit["profiles"])),
@@ -255,6 +254,21 @@ def selftest():
         check("選過 profile：帶出上次的訪談答案", again["omnikit"]["profile"] == "ryan"
               and again["omnikit"]["previous_answers"] == {"name": "ryan"})
         check("列出已經接上的 agent", again["omnikit"]["connected_agents"] == ["claude-code", "antigravity"])
+        check("舊版存在 repo 裡的訪談 profile（有 answers.json、沒進版本控制）：列出來，訪談前問要不要搬",
+              again["omnikit"]["legacy_profiles"] == ["ryan"]
+              and scan(home, data, state, which=paths.get, run=fake_run, login="user",
+                       tracked={"default", "ryan"})["omnikit"]["legacy_profiles"] == [])
+
+        # 訪談產生的 profile 存在 repo 外（FR-38）
+        write(state / "profiles" / "alice" / "AGENTS.md", "# alice\n")
+        write(state / "profiles" / "alice" / "answers.json", '{"name": "alice", "evaluate_tools": false}')
+        write(state / "profile.json", '{"profile": "alice"}')
+        local = scan(home, data, state, which=paths.get, run=fake_run, login="alice", git_name=None, tracked=set())
+        check("repo 外的 profile：列在可選的裡，選了它就帶出它的答案",
+              local["omnikit"]["profiles"] == ["alice", "default", "ryan"] and local["omnikit"]["profile"] == "alice"
+              and local["omnikit"]["previous_answers"] == {"name": "alice", "evaluate_tools": False}
+              and local["omnikit"]["profiles_dir"] == str(state / "profiles"))
+        check("建議的名稱不撞 repo 外已經有的", local["suggested_profile"] is None)
 
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0

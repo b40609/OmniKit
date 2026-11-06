@@ -19,6 +19,8 @@ OmniKit 移除：把 install.ps1 對這台電腦做的改動還原，可以重�
 
 只動安裝紀錄（%LOCALAPPDATA%\omnikit\install-record.json）與 agents.json 裡記下的東西；
 安裝前就有的工具、套件與權限規則都保留。repo 資料夾本身不刪。
+訪談產生的 profile（%LOCALAPPDATA%\omnikit\profiles）是你的個人資料，也不刪：重新安裝就能接著用，
+不需要的話自己刪掉。
 
 參數：
   -Yes        不詢問，直接移除
@@ -48,6 +50,8 @@ $ProfileFile = Join-Path $env:LOCALAPPDATA 'omnikit\profile.json'
 # edition.py 記的：這台是哪一版，以及免問核准的同意
 $EditionFile = Join-Path $env:LOCALAPPDATA 'omnikit\edition.json'
 $ConsentFile = Join-Path $env:LOCALAPPDATA 'omnikit\consent.json'
+# 訪談產生的 profile：個人資料，不刪（FR-38）
+$LocalProfiles = Join-Path $env:LOCALAPPDATA 'omnikit\profiles'
 $BlockPattern = '(?s)<!-- omnikit:rules:begin -->.*?<!-- omnikit:rules:end -->\r?\n?'
 $OursHeader = '<!-- 由 OmniKit 產生，不要手改：'
 $Utf8 = New-Object Text.UTF8Encoding($false)
@@ -123,6 +127,7 @@ if (-not $plan) {
 
 Write-Host '將會：'
 $plan | ForEach-Object { Write-Host "  - $_" }
+if (Test-Path -LiteralPath $LocalProfiles) { Write-Host "  （你的 profile 不會刪：$LocalProfiles）" }
 if (-not $hasRecord) {
   Write-Warning '找不到安裝紀錄：工具、npm 套件與權限規則無法確定是不是 OmniKit 裝的，全部保留。'
 }
@@ -299,3 +304,4 @@ if (-not $KeepTools) {
 Write-Host ''
 Write-Host 'OmniKit 已從這台電腦移除。重新開啟 Claude Code、Codex 與 Antigravity 讓設定生效。'
 Write-Host "repo 資料夾沒有刪：$Repo"
+if (Test-Path -LiteralPath $LocalProfiles) { Write-Host "你的 profile 沒有刪：$LocalProfiles（重新安裝就能接著用，不需要的話自己刪掉）" }

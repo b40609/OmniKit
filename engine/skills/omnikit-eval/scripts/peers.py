@@ -32,6 +32,8 @@ def main():
         "omnikit_root": str(_omnikit.ROOT),
         # slot 的情境已經套上這個 profile；None 表示用的是 slots.yaml 的範本
         "profile": roster["profile"],
+        # 這個 profile 的資料夾：訪談產生的在 repo 外（%LOCALAPPDATA%\omnikit\profiles），情境要補就寫進這裡的 scenarios.yaml
+        "profile_dir": roster["profile_dir"],
         "slot": slot,
         "incumbents": pick("default", "trial"),
         "rejected": pick("rejected"),

@@ -9,6 +9,7 @@
 
 用法（路徑相對於這個 skill 的資料夾）：
   uv run scripts/setup.py scan
+  uv run scripts/setup.py migrate [--yes]     舊版存在 repo 裡的 profile 搬到 repo 外（--yes：使用者已經同意）
   uv run scripts/setup.py profile --answers <答案.json> [--write] [--apply] [--force]
 """
 import json
@@ -16,7 +17,8 @@ import os
 import sys
 from pathlib import Path
 
-USAGE = "用法：uv run scripts/setup.py scan | profile --answers <答案.json> [--write] [--apply] [--force]"
+USAGE = ("用法：uv run scripts/setup.py scan | migrate [--yes] | "
+         "profile --answers <答案.json> [--write] [--apply] [--force]")
 
 
 def repo_root():
@@ -49,6 +51,9 @@ def main():
     if command == "profile":
         import profile_new
         return profile_new.main(rest)
+    if command == "migrate":
+        import profiles
+        return profiles.main(["--migrate", *rest])
     sys.exit(USAGE)
 
 

@@ -5,11 +5,15 @@
 # [tool.uv]
 # exclude-newer = "2026-11-01T00:00:00Z"
 # ///
-"""依 omnikit-setup 的訪談答案產生個人 profile：data/profiles/<名稱>/ 的 AGENTS.md、scenarios.yaml
-與 answers.json（留著給下次重新訪談時預填）。
+"""依 omnikit-setup 的訪談答案產生個人 profile：AGENTS.md、scenarios.yaml 與 answers.json
+（留著給下次重新訪談時預填）。
+
+寫在 repo 外的 %LOCALAPPDATA%\\omnikit\\profiles\\<名稱>\\（FR-38）：個人資料不會被 commit 或 push，
+在 repo 裡跑 git status 也看不到。repo 裡的 data/profiles/ 只放 default 與維護者手寫的，不寫進去。
 
 agent 只負責問問題、把答案寫成 JSON（格式見 engine/schema/answers.schema.json）；檔案由這支腳本
-依固定範本產生並驗證，模型比較弱也不會把設定寫壞。手寫的 profile（沒有 answers.json）不會被覆蓋。
+依固定範本產生並驗證，模型比較弱也不會把設定寫壞。手寫的 profile（沒有 answers.json）不會被覆蓋，
+repo 裡已經有的名稱也不能用。
 
 用法：
   uv run engine/scripts/profile_new.py --answers <答案.json>                   預覽，不寫檔
@@ -36,6 +40,7 @@ import profiles  # noqa: E402
 import validate  # noqa: E402
 
 DATA = profiles.DATA
+STATE = profiles.STATE
 PLACEHOLDERS = (("<你的前端專案>", "frontend"), ("<你的專案>", "main"))
 WORK_ORDER = ("coding", "data", "docs", "research")
 
@@ -224,15 +229,21 @@ def render_files(a, slots, today):
     return files
 
 
-def blocked(folder, force):
-    """不能寫的原因；可以寫就回傳 None。"""
+def blocked(data, state, name, force, tracked=None):
+    """不能寫的原因；可以寫就回傳 None。寫的位置是 repo 外的 state/profiles/<名稱>。"""
+    in_repo, folder = data / "profiles" / name, state / "profiles" / name
+    if in_repo.exists():
+        if name in profiles.legacy(data, tracked) and not folder.exists():
+            return (f"repo 裡有舊版存的同名 profile（{in_repo}）：先搬到 repo 外再重新訪談，"
+                    f"uv run engine/scripts/profiles.py --migrate（刪掉 repo 裡的舊檔前會先問）")
+        if not folder.exists():
+            return f"repo 裡已經有 profile「{name}」（data/profiles/{name}，default 或維護者手寫的），不會覆蓋；請換一個名稱。"
     if not folder.exists():
         return None
-    name = folder.name
     if not (folder / "answers.json").exists():
-        return f"data/profiles/{name} 是手寫的 profile（沒有 answers.json），不會覆蓋；請換一個名稱。"
+        return f"{folder} 是手寫的 profile（沒有 answers.json），不會覆蓋；請換一個名稱。"
     if not force:
-        return f"data/profiles/{name} 已經存在；要用新答案覆蓋就加 --force，舊檔會先備份成 .bak。"
+        return f"{folder} 已經存在；要用新答案覆蓋就加 --force，舊檔會先備份成 .bak。"
     return None
 
 
@@ -258,7 +269,9 @@ def apply_real(name):
     return profiles.apply(profiles.DATA, profiles.STATE, wanted=name) + profiles.sync_skills()
 
 
-def run(answers_path, data, write=False, apply=False, force=False, apply_fn=apply_real, today=None):
+def run(answers_path, data, state=None, write=False, apply=False, force=False, apply_fn=apply_real, today=None,
+        tracked=None):
+    state = STATE if state is None else state
     try:
         answers = json.loads(Path(answers_path).read_text(encoding="utf-8-sig"))
     except (OSError, ValueError) as e:
@@ -272,17 +285,18 @@ def run(answers_path, data, write=False, apply=False, force=False, apply_fn=appl
     a = normalize(answers)
     slots = validate.load_yaml(data / "slots.yaml")["slots"]
     files = render_files(a, slots, today or date.today().isoformat())
-    folder = data / "profiles" / a["name"]
-    problem = blocked(folder, force)
+    folder = state / "profiles" / a["name"]
+    problem = blocked(data, state, a["name"], force, tracked)
 
     if not write:
-        print(f"預覽：會在 data/profiles/{a['name']}/ 寫入 {'、'.join(files)}")
+        print(f"預覽：會在 {folder}（repo 外，不會被 commit）寫入 {'、'.join(files)}")
         for name, text in files.items():
             if name != "answers.json":
                 print(f"\n----- {name} -----\n{text.rstrip()}")
         skip = {s: why for s, (key, why) in profiles.OPTIONAL_SKILLS.items() if a.get(key) is False}
         if skip:
-            print(f"\n套用時不裝 {'、'.join(skip)}（選了{'、'.join(dict.fromkeys(skip.values()))}）；已經裝了的會拿掉。")
+            print(f"\n套用時不裝 {'、'.join(skip)}（選了{'、'.join(dict.fromkeys(skip.values()))}）；已經裝了的會拿掉。"
+                  "個人週報（omnikit-weekly，說「OmniKit 本週週報」）照樣有。")
         if problem:
             print(f"\n不能寫入：{problem}")
             return 1
@@ -293,10 +307,10 @@ def run(answers_path, data, write=False, apply=False, force=False, apply_fn=appl
         print(f"不能寫入：{problem}")
         return 1
     backups = write_profile(folder, files)
-    print(f"已寫入 data/profiles/{a['name']}/：{'、'.join(files)}")
+    print(f"已寫入 {folder}：{'、'.join(files)}")
     if backups:
         print(f"舊檔備份成：{'、'.join(b.name for b in backups)}")
-    errors, _ = validate.check(data, profile=a["name"])
+    errors, _ = validate.check(data, profile=a["name"], state=state)
     if errors:
         print("名冊驗證失敗：")
         print("\n".join(f"- {e}" for e in errors))
@@ -319,12 +333,17 @@ def selftest():
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
-        data = tmp / "data"
+        data, state = tmp / "data", tmp / "state"
         for rel in ("slots.yaml", "omnikit.yaml", "rules/baseline.md", "profiles/default/AGENTS.md",
                     "profiles/ryan/AGENTS.md"):
             (data / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(DATA / rel, data / rel)
         (data / "tools").mkdir()
+
+        def repo_files():
+            return sorted(p for p in (data / "profiles").rglob("*"))
+
+        before = repo_files()
 
         def answers_file(name, **changes):
             a = {"name": name, "language": "zh-TW", "verbosity": "concise", "autonomy": "balanced",
@@ -338,18 +357,23 @@ def selftest():
             return path
 
         def quiet(*args, **kwargs):
+            kwargs.setdefault("state", state)
+            kwargs.setdefault("tracked", {"default", "ryan"})
             buf = io.StringIO()
             with contextlib.redirect_stdout(buf):
                 code = run(*args, today="2026-11-04", **kwargs)
             return code, buf.getvalue()
 
-        alice = data / "profiles" / "alice"
+        alice = state / "profiles" / "alice"
         code, out = quiet(answers_file("alice"), data)
-        check("預覽：不寫檔", code == 0 and not alice.exists() and "這是預覽" in out)
+        check("預覽：不寫檔，說明寫在 repo 外", code == 0 and not alice.exists() and "這是預覽" in out
+              and f"會在 {alice}（repo 外" in out)
 
         code, out = quiet(answers_file("alice"), data, write=True)
         rules = (alice / "AGENTS.md").read_text(encoding="utf-8")
         check("寫入：規則有名稱與 profile 行", code == 0 and rules.startswith("# 個人規則：alice") and "profile：alice" in rules)
+        check("寫入：存在 repo 外，repo 的 data/profiles 沒有多出任何檔案（FR-38）",
+              (alice / "answers.json").exists() and repo_files() == before)
         check("寫入：授權程度照答案（balanced）",
               "目前專案裡的修改可以直接做" in rules and "下載、安裝套件可以直接做" not in rules)
         check("寫入：最想改善的事變成工作習慣", "只改需求相關的地方" in rules and "實際執行驗證" in rules)
@@ -357,9 +381,10 @@ def selftest():
         scenarios = (alice / "scenarios.yaml").read_text(encoding="utf-8")
         check("情境：佔位都換成真實專案", "<你的" not in scenarios and "改「監控儀表板」的畫面" in scenarios
               and "在「產線監控系統」找某個函式" in scenarios)
-        errors, roster = validate.check(data, profile="alice")
+        errors, roster = validate.check(data, profile="alice", state=state)
         f1 = next(s for s in roster["slots"] if s["id"] == "frontend-design")["scenarios"][0]["text"]
-        check("名冊驗證通過，評估時用的是這份情境", not errors and "監控儀表板" in f1)
+        check("名冊驗證通過，評估時用的是 repo 外這份情境", not errors and "監控儀表板" in f1
+              and roster["profile_dir"] == str(alice))
         saved = json.loads((alice / "answers.json").read_text(encoding="utf-8"))
         check("留下答案給下次預填", saved["background"] == "產線監控 與 PLC 資料分析")
 
@@ -370,16 +395,32 @@ def selftest():
               and "下載、安裝套件可以直接做" in (alice / "AGENTS.md").read_text(encoding="utf-8"))
 
         code, out = quiet(answers_file("bob", evaluate_tools=False, projects=None), data)
-        check("不評估工具：預覽說明不裝 omnikit-eval", code == 0 and "套用時不裝 omnikit-eval" in out)
+        check("不評估工具：預覽說明不裝 omnikit-eval，個人週報照樣有（FR-4、FR-37）",
+              code == 0 and "套用時不裝 omnikit-eval" in out and "個人週報（omnikit-weekly" in out)
         check("要評估工具：預覽不提", "套用時不裝" not in quiet(answers_file("alice"), data)[1])
         code, out = quiet(answers_file("bob", evaluate_tools=False, projects=None), data, write=True)
-        errors, roster = validate.check(data, profile="bob")
+        errors, roster = validate.check(data, profile="bob", state=state)
         f1 = next(s for s in roster["slots"] if s["id"] == "frontend-design")["scenarios"][0]["text"]
-        check("不評估工具：不產生情境，沿用範本", code == 0 and not (data / "profiles" / "bob" / "scenarios.yaml").exists()
+        check("不評估工具：不產生情境，沿用範本", code == 0 and not (state / "profiles" / "bob" / "scenarios.yaml").exists()
               and "<你的前端專案>" in f1 and not errors)
 
         code, out = quiet(answers_file("ryan"), data, write=True, force=True)
-        check("手寫的 profile 不覆蓋，加 --force 也一樣", code == 1 and "手寫" in out)
+        check("repo 裡已經有的 profile（維護者手寫的）不覆蓋，加 --force 也一樣",
+              code == 1 and "repo 裡已經有" in out and not (state / "profiles" / "ryan").exists())
+        frank = data / "profiles" / "frank"
+        frank.mkdir()
+        (frank / "AGENTS.md").write_text("# frank\n", encoding="utf-8")
+        (frank / "answers.json").write_text("{}", encoding="utf-8")
+        code, out = quiet(answers_file("frank"), data, write=True, force=True)
+        check("repo 裡有舊版存的同名 profile：先搬到 repo 外（--migrate），不寫", code == 1 and "--migrate" in out
+              and not (state / "profiles" / "frank").exists())
+        shutil.rmtree(frank)
+        gina = state / "profiles" / "gina"
+        gina.mkdir(parents=True)
+        (gina / "AGENTS.md").write_text("# 自己手寫的\n", encoding="utf-8")
+        code, out = quiet(answers_file("gina"), data, write=True, force=True)
+        check("repo 外手寫的 profile（沒有 answers.json）不覆蓋", code == 1 and "手寫" in out
+              and (gina / "AGENTS.md").read_text(encoding="utf-8") == "# 自己手寫的\n")
         bad = {
             "名稱不能是 default": dict(name="default"),
             "授權程度不在選項裡": dict(autonomy="yolo"),
@@ -391,14 +432,14 @@ def selftest():
         for label, changes in bad.items():
             name = changes.pop("name", "carol")
             code, out = quiet(answers_file(name, **changes), data, write=True)
-            check(f"答案有問題：{label}", code == 1 and "答案有問題" in out and not (data / "profiles" / "carol").exists())
+            check(f"答案有問題：{label}", code == 1 and "答案有問題" in out and not (state / "profiles" / "carol").exists())
 
         code, out = quiet(answers_file("dave", language="en", pains=["guesses"]), data, write=True)
-        rules = (data / "profiles" / "dave" / "AGENTS.md").read_text(encoding="utf-8")
+        rules = (state / "profiles" / "dave" / "AGENTS.md").read_text(encoding="utf-8")
         check("英文：規則用英文寫", rules.startswith("# Personal rules: dave") and "Reply in English" in rules
               and "When unsure, check first" in rules)
 
-        state, claude_md = tmp / "state", tmp / "claude" / "CLAUDE.md"
+        claude_md = tmp / "claude" / "CLAUDE.md"
         rule_paths = {"claude-code": claude_md, "codex": tmp / "codex" / "AGENTS.md",
                       "antigravity": tmp / "gemini" / "GEMINI.md"}
 
@@ -407,8 +448,9 @@ def selftest():
                                   skillshare_config=tmp / "none.yaml")
 
         code, out = quiet(answers_file("erin"), data, write=True, apply=True, apply_fn=apply_fn)
-        check("--apply：寫完直接套用", code == 0 and profiles.chosen(state) == "erin"
-              and "/profiles/erin/AGENTS.md" in claude_md.read_text(encoding="utf-8"))
+        check("--apply：寫完直接套用，Claude import 指到 repo 外", code == 0 and profiles.chosen(state) == "erin"
+              and profiles.import_line(state / "profiles" / "erin" / "AGENTS.md") in claude_md.read_text(encoding="utf-8"))
+        check("整個訪談跑完：repo 的 data/profiles 跟一開始一樣（git status 看不到個人檔案）", repo_files() == before)
 
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0

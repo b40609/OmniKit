@@ -14,6 +14,9 @@
 讀出的名冊裡，槽位情境是套上 profile 之後的：這台用 profiles.py 選過的 profile 優先，
 沒有就用 data/omnikit.yaml 的 profile；那個 profile 沒寫的槽位沿用 slots.yaml 的範本。
 
+repo 外的 profile（%LOCALAPPDATA%\\omnikit\\profiles，訪談產生的）只檢查這台在用的那一個：其他的跟名冊無關，
+pre-commit 與 CI 也不該因為這台的個人檔案失敗。看板用的 profile（omnikit.yaml）一定要在 repo 裡。
+
 用法：uv run engine/scripts/validate.py [--data <資料目錄>]
 """
 import argparse
@@ -79,8 +82,29 @@ def schema_errors(check, doc, path):
     ]
 
 
-def check_profiles(data, slot_ids):
-    """回傳（問題清單, {profile 名稱: {槽位: 情境}}）。"""
+def check_profile(d, slot_ids, check_scenarios):
+    """一個 profile 資料夾：回傳（問題清單, {槽位: 情境}）；沒有 AGENTS.md 就不是 profile，情境是 None。"""
+    if not (d / "AGENTS.md").is_file():
+        return [f"{show(d)}: 少了 AGENTS.md（個人規則）"], None
+    path = d / "scenarios.yaml"
+    if not path.exists():
+        return [], {}
+    doc = load_yaml(path)
+    errors = schema_errors(check_scenarios, doc, path)
+    if errors:
+        return errors, {}
+    for slot, items in doc["scenarios"].items():
+        if slot not in slot_ids:
+            errors.append(f"{show(path)}: 找不到槽位「{slot}」")
+        ids = [s["id"] for s in items]
+        for dup in sorted({i for i in ids if ids.count(i) > 1}):
+            errors.append(f"{show(path)}: 槽位「{slot}」的情境 id 重複：{dup}")
+    return errors, doc["scenarios"]
+
+
+def check_profiles(data, slot_ids, state=None, wanted=None):
+    """回傳（問題清單, {profile 名稱: {槽位: 情境}}, repo 裡的 profile 名稱）。
+    repo 裡的全部檢查；repo 外的只檢查這台在用的（wanted，沒給就是選過的），同名時它優先。"""
     errors, found = [], {}
     baseline = data / "rules" / "baseline.md"
     if not baseline.is_file():
@@ -94,30 +118,24 @@ def check_profiles(data, slot_ids):
         if not profiles.NAME.match(d.name):
             errors.append(f"{show(d)}: profile 名稱只能用小寫英數與 -")
             continue
-        if not (d / "AGENTS.md").is_file():
-            errors.append(f"{show(d)}: 少了 AGENTS.md（個人規則）")
-            continue
-        found[d.name] = {}
-        path = d / "scenarios.yaml"
-        if not path.exists():
-            continue
-        doc = load_yaml(path)
-        bad = schema_errors(check_scenarios, doc, path)
+        bad, scenarios = check_profile(d, slot_ids, check_scenarios)
         errors += bad
-        if bad:
-            continue
-        for slot, items in doc["scenarios"].items():
-            if slot not in slot_ids:
-                errors.append(f"{show(path)}: 找不到槽位「{slot}」")
-            ids = [s["id"] for s in items]
-            for dup in sorted({i for i in ids if ids.count(i) > 1}):
-                errors.append(f"{show(path)}: 槽位「{slot}」的情境 id 重複：{dup}")
-        found[d.name] = doc["scenarios"]
-    return errors, found
+        if scenarios is not None:
+            found[d.name] = scenarios
+    in_repo = set(found)
+    name = wanted or (profiles.chosen(state) if state is not None else None)
+    local = state / "profiles" / name if state is not None and name and profiles.NAME.match(name) else None
+    if local and (local / "AGENTS.md").is_file():
+        bad, scenarios = check_profile(local, slot_ids, check_scenarios)
+        errors += bad
+        found[name] = scenarios
+    return errors, found, in_repo
 
 
-def check(data, profile=None):
-    """回傳（問題清單, 名冊）；名冊含 config、套上 profile 情境的 slots、依 id 排序的 tools 與 profile 名稱。"""
+def check(data, profile=None, state=None):
+    """回傳（問題清單, 名冊）；名冊含 config、套上 profile 情境的 slots、依 id 排序的 tools、profile 名稱
+    與它的資料夾（profile_dir）。state 是 %LOCALAPPDATA%\\omnikit（自我測試換成暫存資料夾）。"""
+    state = profiles.STATE if state is None else state
     errors = []
 
     config_path = data / "omnikit.yaml"
@@ -173,7 +191,7 @@ def check(data, profile=None):
         if len(ids) > 1:
             errors.append(f"槽位「{slot}」有 {len(ids)} 個預設：{'、'.join(ids)}；一個槽位只能留一個")
 
-    found_errors, found = check_profiles(data, slot_ids)
+    found_errors, found, in_repo = check_profiles(data, slot_ids, state, profile)
     errors += found_errors
     for pname, scen in found.items():
         for slot, items in scen.items():
@@ -182,14 +200,16 @@ def check(data, profile=None):
                 if owner.get(sid) not in (None, slot):
                     errors.append(f"data/profiles/{pname}/scenarios.yaml: 槽位「{slot}」的情境 id「{sid}」已經是槽位「{owner[sid]}」的")
     board = (config or {}).get("profile") if isinstance(config, dict) else None
-    if board and board not in found:
+    if board and board not in in_repo:
         errors.append(f"{show(config_path)}: 找不到 profile「{board}」（data/profiles/{board}/AGENTS.md）")
-    chosen = profiles.chosen(profiles.STATE)
+    chosen = profiles.chosen(state)
     name = profile or (chosen if chosen in found else None) or board
-    overlay = found.get(name, {})
+    overlay = found.get(name) or {}
     slots = [{**s, "scenarios": overlay.get(s.get("id"), s.get("scenarios"))} for s in slots]
+    where = profiles.folder(data, state, name) if name else None
 
-    return errors, {"config": config, "slots": slots, "tools": tools, "profile": name}
+    return errors, {"config": config, "slots": slots, "tools": tools, "profile": name,
+                    "profile_dir": str(where) if where else None}
 
 
 def main():
