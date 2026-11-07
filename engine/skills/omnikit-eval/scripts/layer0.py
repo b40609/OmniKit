@@ -9,6 +9,7 @@
 
 用法：uv run scripts/layer0.py <GitHub 網址或 owner/repo> [--scan]
   --scan  淺層下載 repo，用 cisco-ai-defense/skill-scanner 的靜態模式掃描每個 skill（不上傳、不需帳號）
+自我測試：uv run engine/skills/omnikit-eval/scripts/layer0.py --selftest
 """
 import argparse
 import hashlib
@@ -40,10 +41,9 @@ def parse_repo(text):
         m = re.match(r"^(?:https?://)?(?:www\.)?github\.com/([^/\s]+)/([^/\s#?]+)", text, re.I)
         if not m:
             return None
-        name = m.group(2)[:-4] if m.group(2).endswith(".git") else m.group(2)
-        return f"{m.group(1)}/{name}"
-    m = (re.match(r"^git@github\.com:([^/\s]+)/([^/\s]+)$", text, re.I)
-         or re.match(r"^([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)$", text))
+    else:
+        m = (re.match(r"^git@github\.com:([^/\s]+)/([^/\s]+)$", text, re.I)
+             or re.match(r"^([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)$", text))
     if not m:
         return None
     name = m.group(2)[:-4] if m.group(2).endswith(".git") else m.group(2)
@@ -348,11 +348,10 @@ def selftest():
     assert len(roster_matches("nomatch/nomatch", mock_roster)) == 0
 
     # similar_rejected: 一個命中、一個不命中
-    # mine words from: "test/repo prompt evaluation assistant"
-    # rejected tool words: "other_tool", "other", "tool", "similar", "prompt", "evaluation"
-    # overlap: "prompt", "evaluation" (2)
-    # total words: mine: test, repo, prompt, evaluation, assistant (5); theirs: other_tool, other, tool, similar, prompt, evaluation (6)
-    # union = 9. 2 / 9 = 0.222 (落在 0.15 到 0.9 之間)
+    # mine: "test/repo prompt evaluation assistant" -> test, repo, prompt, evaluation, assistant (5 個)
+    # theirs: "other_tool", "Other Tool", "similar tool for prompt evaluation" -> other, tool, similar, for, prompt, evaluation (6 個)
+    # overlap: "prompt", "evaluation" (2 個)
+    # union: 9 個。2 / 9 = 0.222 (落在 0.15 到 0.9 之間)
     rej_hit = similar_rejected("test/repo", "prompt evaluation assistant", mock_roster)
     assert len(rej_hit) == 1
     rej_miss = similar_rejected("unrelated/repo", "completely different keywords here", mock_roster)
