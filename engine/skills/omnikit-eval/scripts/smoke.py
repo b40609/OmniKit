@@ -498,7 +498,8 @@ def sandbox_script(installs, mcp, need_node):
         "  $start = Get-Date",
         "  & cmd.exe /d /c $command *> $log",
         "  $code = $LASTEXITCODE",
-        "  $tail = (Get-Content $log -Raw -ErrorAction SilentlyContinue)",
+        # 不用 Get-Content：PS 5.1 讀回的字串帶 PSDrive、PSProvider，ConvertTo-Json 會整串展開成約 47 MB
+        "  $tail = if (Test-Path $log) { [System.IO.File]::ReadAllText($log) } else { $null }",
         "  if ($tail -and $tail.Length -gt 600) { $tail = $tail.Substring($tail.Length - 600) }",
         "  $script:steps += [ordered]@{ name = $name; ok = ($code -eq 0); code = $code; seconds = [int]((Get-Date) - $start).TotalSeconds; tail = $tail }",
         "}",
@@ -749,6 +750,8 @@ def selftest():
         script = sandbox_script(["npm i -g agent-browser@0.41.2"], mcp, True)
         check("沙箱腳本：Node 固定版本並核對 SHA256、跑安裝與 MCP 交握", NODE["sha256"] in script and "Get-FileHash" in script
               and "npm i -g agent-browser@0.41.2" in script and "mcp handshake" in script and "result.json" in script)
+        check("沙箱腳本：步驟紀錄讀成純字串（Get-Content 讀回的帶 PS 屬性，會被 ConvertTo-Json 展開）",
+              "ReadAllText($log)" in script and "Get-Content $log" not in script)
         check("沙箱腳本：沒有 MCP 也沒有 npm 時不下載 Node", "nodejs.org" not in sandbox_script(["pip install x==1.0"], {}, False))
         check("MCP 交握腳本：initialize 後送 tools/list", '"tools/list"' in HANDSHAKE.replace("'", '"') and "notifications/initialized" in HANDSHAKE)
         os.environ["CLAUDE_CODE_SELFTEST_FLAG"] = "1"
@@ -770,6 +773,8 @@ def selftest():
             check("結果符合 contracts/smoke.schema.json", True)
         except jsonschema.ValidationError as e:
             check(f"結果符合 contracts/smoke.schema.json（{e.message[:80]}）", False)
+        bad = {**doc, "sandbox": {"steps": [{"name": "install: x", "ok": True, "code": 0, "tail": {"value": "ok", "PSDrive": {}}}]}}
+        check("契約擋下被展開成物件的步驟輸出", not jsonschema.validators.validator_for(schema)(schema).is_valid(bad))
         text = "\n".join(summarize(doc))
         check("摘要列出四件事", "裝得起來：是" in text and "約 250 token" in text and "非互動：是；被叫用：是" in text and "26 個工具" in text)
     finally:

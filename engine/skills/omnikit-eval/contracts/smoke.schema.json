@@ -57,7 +57,20 @@
       "description": "Windows Sandbox 裡的安裝步驟與 MCP 交握",
       "type": "object",
       "properties": {
-        "steps": { "type": ["array", "null"] },
+        "steps": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "required": ["name", "ok"],
+            "properties": {
+              "name": { "type": "string" },
+              "ok": { "type": "boolean" },
+              "code": { "type": "integer" },
+              "seconds": { "type": "integer" },
+              "tail": { "description": "步驟輸出的最後 600 字", "type": ["string", "null"], "maxLength": 4000 }
+            }
+          }
+        },
         "mcp": { "type": ["object", "null"] },
         "seconds": { "type": "integer" },
         "exit_code": { "type": ["integer", "null"] },
