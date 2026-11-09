@@ -34,7 +34,7 @@ CODEX_MARKS = ('"task_started"', '"token_count"', '"compacted"', '"UserMessage"'
 
 
 def long_context(tokens: int, agent: str) -> str:
-    return f"上下文約 {tokens // 1000}k tokens。下一件事若跟目前任務無關，建議開新對話；要接著做就請 {agent} 交接。"
+    return f"上下文約 {tokens // 1000}k tokens。下一件事若跟目前任務無關，建議開新對話；目前的任務要接著做，跟 {agent} 說「交接」就好。"
 
 
 def is_prompt(e: dict) -> bool:
@@ -117,7 +117,7 @@ def codex_nudge(entries: list[dict], turn_id: str | None = None) -> list[str]:
         prev = next((w for i, w in reversed(windows) if i < start), during[0] - 1)
         if compaction_level(during[-1]) > compaction_level(prev):
             msgs.append(f"這段對話已自動壓縮 {during[-1]} 次，早先的細節可能已經遺失。"
-                        "下一件事若跟目前任務無關，建議開新對話；要接著做就請 Codex 交接。")
+                        "下一件事若跟目前任務無關，建議開新對話；目前的任務要接著做，跟 Codex 說「交接」就好。")
     elif after:
         prev = next((t for i, t in reversed(sized) if i < start), 0)
         if after[-1] // STEP > prev // STEP:

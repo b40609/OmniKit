@@ -24,3 +24,13 @@ profile：ryan
 - commit message 與 PR 內文沿用該 repo 的既有慣例；該 repo 已是中文就用繁體中文。
 - commit 之後直接 push，merge 也直接做，不用先問；`git push -f` 屬於安全底線的刪除類，仍要先確認。
 - commit 前確認 git 身分：全域身分是公司信箱的電腦，個人專案要在 repo 內另設身分。
+
+## 工作階段
+- 對話結構：一個專案一條主線對話；驗收、切片、側邊研究開子對話，做完就收尾。
+- 狀態標籤：每次收尾的第一句用【等你決定】、【完成待收尾】、【進行中】、【卡住】其中一個開頭（Claude 桌面版的 wrap_up recap 第一句會顯示在側邊欄；其他介面寫在最後一則回覆的第一句）。
+- 狀態 repo：私人 repo `b40609/omnikit-status`，本機在 `%LOCALAPPDATA%\omnikit\status`；不存在就先 `gh repo clone b40609/omnikit-status "$env:LOCALAPPDATA\omnikit\status"`。交接檔放 `<GitHub repo 名稱>\handoffs\<YYYY-MM-DD-HHmm>-<主題>.md`，格式照 `_template\HANDOFF.md`；不寫金鑰。
+- 我說「交接」時（或 OmniKit 提醒該開新對話、而工作還沒做完時，先問我要不要交接）：
+  1. 工作的修改先 commit 並 push 到工作分支（未完成用 `wip:` 前綴）；不能 push 的，在交接檔寫明「只在這台」。
+  2. 先 `git pull` 狀態 repo，照範本寫交接檔，commit 並 push。
+  3. Claude 桌面版：直接開新對話接手，簡報裡寫交接檔路徑；其他介面：給我一句可以貼進新對話的起始 prompt：「讀 <交接檔路徑> 接著做」。
+- 接手時：先 `git pull` 狀態 repo 與專案 repo，讀交接檔，確認分支與「下三步」，回報看到的狀態再開工。
