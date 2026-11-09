@@ -1,0 +1,18 @@
+id: t3-code
+name: T3 Code
+kind: app
+slots:
+- session-management
+status: trial
+url: https://github.com/pingdotgg/t3code
+works_with:
+- claude
+- codex
+decided_at: '2026-11-09'
+reason: 唯一能在同一個介面跑 Claude、Codex、Antigravity 的 GUI，S1 已實測通過；試用兩週看 S2 到 S5 能不能追上桌面版，追上就改當主力。
+trial_until: '2026-11-23'
+sources:
+- 使用者提出
+- 查證
+notes: 'MIT。README 自稱「very very early」，預期有 bug。這台裝的是 0.1.7（Beta），2026-11-08 裝上；支援 Codex、Claude Code、Cursor、Grok Build、OpenCode、Antigravity、fx。Claude 走 Agent SDK，PR #1334（2026-03-23 合併）讓每個 session 帶 settingSources user、project、local。S1 實測（2026-11-09，紀錄見 data/evals/2026-11-09-session-management-s1.md）：T3 開的 Claude thread（entrypoint t3-code，Claude Code 2.1.319）載入全域 CLAUDE.md、baseline 2026-11-04-3、ryan 的 AGENTS.md、skills（omnikit-eval、caveman、claude-mem、graphify）與 claude-mem 的 SessionStart hook；OmniKit 的 Stop 提醒只在跨過 100k tokens 或 git push 時才觸發，這次沒觸發，所以還沒驗證；hook 訊息會不會顯示在 T3 介面也還沒確認。本機資料庫（~/.t3/userdata/statev2.sqlite）的 thread 有 settled、snoozed、pinned、forkedFrom、linkedPullRequest 等欄位，對應 S2 的收件匣與 PR 連結；另有換供應商時的 context handoff（PR #1911：壓縮、開新 session、把交接摘要帶進下一輪）。這個資料庫也存登入憑證（auth_pairing_links、auth_sessions），OmniKit 不要直接讀它。注意：選「No project」開的 thread 會跑在 ~/.t3/scratch/<名稱>，claude-mem 每次都當成新專案，記憶不會累積；做正事要先選專案。'
+added: '2026-11-09'

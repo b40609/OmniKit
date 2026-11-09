@@ -1,0 +1,14 @@
+id: orca
+name: Orca（Stably AI）
+kind: app
+slots:
+- session-management
+status: pending
+url: https://github.com/stablyai/orca
+works_with:
+- claude
+- codex
+sources:
+- 使用者提出
+notes: Agent Development Environment，MIT。桌面版有 macOS、Windows、Linux，另有 iOS、Android 輔助 app（agent 要你輸入時推播，可在手機回覆）。每個 agent 一個 worktree，支援 Claude Code、Codex、Cursor、GitHub Copilot、OpenCode、Amp、Devin 與任何 CLI agent；對話可以在 chat 與終端兩種檢視之間移動，不丟上下文。README（2026-11-09 查）沒寫 worktree 怎麼清理，也沒寫能不能匯入既有的 Claude Code session。網路上的比較文章提到 Design Mode（點網頁元件丟給 agent）與批次 diff 審查，README 沒寫，未查證。跑的是終端裡的 CLI，所以理論上會載入 OmniKit 的規則與 hooks，未實測。
+added: '2026-11-09'

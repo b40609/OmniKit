@@ -1,0 +1,13 @@
+id: csesh
+name: csesh
+kind: cli
+slots:
+- session-management
+status: pending
+url: https://github.com/ArthurPcd/csesh
+works_with:
+- claude
+sources:
+- 查證
+notes: 整理 Claude Code session 的 CLI：分析、cleanup --dry-run 預演，再 cleanup，之後補標籤與標題。對上 S3 的批次收尾；桌面版目前只能一個一個封存。風險：它清的是 ~/.claude/projects 的對話紀錄，桌面版與 T3 開的 Claude 對話也寫在那裡，會不會影響桌面版的 session 清單與還原，要先在副本上試。
+added: '2026-11-09'

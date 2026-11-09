@@ -127,3 +127,18 @@ slots:
         text: 讀 <你的資料>（CSV 或 Parquet，數十萬列以上），做探索分析與異常偵測，產出圖表與可以重跑的 notebook。
       - id: A2
         text: 改既有 .ipynb 的分析步驟，重跑全部 cell，確認數值與圖表沒有壞掉。
+
+  - id: session-management
+    name: 工作階段管理
+    focus: active
+    scenarios:
+      - id: S1
+        text: 在 <你用的介面>（桌面版或 ADE）開 Claude、Codex 的對話時，OmniKit 的規則、skills、hooks 照常載入；換介面不用重設。
+      - id: S2
+        text: 同時跑 5 個以上任務，不用逐一問，就看得出哪個在等你決定、哪個做完待收尾、哪個卡住。
+      - id: S3
+        text: 任務做完收尾時，先確認 worktree 乾淨、分支已合併、沒有子對話還在跑，才封存；不會誤刪未 commit 的修改。
+      - id: S4
+        text: 上下文快滿或換任務時，一步完成交接並開新對話接著做，不是只跳一句提示；交接內容的品質由記憶與交接槽位評。
+      - id: S5
+        text: 離開座位時，在手機上看進度、回覆問題、核准權限提示。

@@ -1,0 +1,14 @@
+id: claude-handoff
+name: claude-handoff（392fyc）
+kind: plugin
+slots:
+- session-management
+- memory
+status: pending
+url: https://github.com/392fyc/claude-handoff
+works_with:
+- claude
+sources:
+- 查證
+notes: /handoff 把目前對話濃縮成一段可以獨立使用的起始 prompt，存進 auto memory 並印在對話裡，可選擇直接開一個新終端分頁跑 Claude；新 session 開始時由 SessionStart hook 讀 ~/.claude/projects/<編碼後的 cwd>/memory/session-handoff.md，注入第一輪。對上 S4 的「一步完成交接」，跟 OmniKit 的 session_nudge（只提醒）互補。開新終端分頁那段在 Windows 與桌面版、T3 裡能不能用，未查證。
+added: '2026-11-09'

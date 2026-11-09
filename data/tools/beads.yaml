@@ -1,0 +1,15 @@
+id: beads
+name: Beads（bd）
+kind: cli
+slots:
+- session-management
+- memory
+status: pending
+url: https://github.com/steveyegge/beads
+works_with:
+- claude
+- codex
+sources:
+- 查證
+notes: 給 coding agent 用的 issue tracker，資料跟著 git 走，記錄任務之間的相依關係；bd ready 只列出可以開工的任務。新版改用 Dolt 當儲存層，有人批評這是多數團隊沒聽過的相依套件。設定方式是 bd init，再在 AGENTS.md 加一行叫 agent 用 bd 記任務。一份第三方清單寫約 2 萬星，另有文章說它啟發了 Claude Code 的 Tasks（未查證）。對上 S2 的「哪個做完、哪個在等」與每個任務的結束條件，不是介面，是對話外面的任務帳本。repo 可能已移到 gastownhall/beads，第 0 層時要確認。
+added: '2026-11-09'
