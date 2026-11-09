@@ -76,15 +76,18 @@ TEXT = {
             "cautious": [
                 "動手改檔案或執行會改變狀態的指令之前，先列出要做什麼，等我同意。",
                 "下載、安裝套件之前，先說要裝什麼、從哪裡來，等我同意。",
+                "push 和 merge：只在我明確指示時才做。",
             ],
             "balanced": [
                 "目前專案裡的修改可以直接做，做完回報改了哪些地方。",
                 "下載、安裝套件，或要改到目前專案以外的檔案與設定之前，先問我。",
+                "push 和 merge：只在我明確指示時才做。",
             ],
             "hands-off": [
                 "能自動完成的步驟就自己做，做完回報；真的需要我決定或操作的才找我，而且一次講清楚。",
                 "下載、安裝套件可以直接做，完成後回報來源與結果。",
                 "安全底線列出的項目之外，其他步驟都不用先問。",
+                "commit 之後直接 push，merge 也直接做；`git push -f` 仍要先確認。",
             ],
         },
         "git_h": "## git",
@@ -125,17 +128,20 @@ TEXT = {
             "cautious": [
                 "Before editing files or running commands that change state, list what you will do and wait for my approval.",
                 "Before downloading or installing packages, tell me what and from where, and wait for my approval.",
+                "Push and merge only when I explicitly ask.",
             ],
             "balanced": [
                 "Changes inside the current project can go ahead; report what you changed afterwards.",
                 "Ask me before downloading or installing packages, or before changing files and settings outside "
                 "the current project.",
+                "Push and merge only when I explicitly ask.",
             ],
             "hands-off": [
                 "Do whatever can be done automatically and report afterwards; only come to me for decisions or actions "
                 "only I can take, and ask everything at once.",
                 "Downloading and installing packages is fine; report the source and result afterwards.",
                 "Apart from the items in the safety baseline, no other step needs my approval first.",
+                "Push and merge right after committing; `git push -f` still needs my approval.",
             ],
         },
         "git_h": "## git",

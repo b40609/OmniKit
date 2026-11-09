@@ -77,7 +77,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
    ```
 
 3. **認識 profile。** agent 讀到的規則分兩層：
-   - `data/rules/baseline.md` 是安全底線，所有人都套用：刪除、對外發送、付款、push 前先確認，不碰金鑰。
+   - `data/rules/baseline.md` 是安全底線，所有人都套用：刪除、對外發送、付款前先確認，不碰金鑰。
    - profile 是個人層：`AGENTS.md` 寫語言、語氣、哪些事可以直接做；`scenarios.yaml` 寫評估工具用的真實情境，沒寫的槽位用 `data/slots.yaml` 的範本。訪談產生的 profile 存在 repo 外的 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`；repo 裡的 `data/profiles/<名稱>/` 放 `default` 與維護者手寫、要跟著 repo 的 profile。兩邊同名時，repo 外的優先。
 
    不用先改檔案：先用 `default` 安裝（繁體中文、下載安裝前先問），裝好之後用[訪談](#建立自己的-profile)產生你自己的 profile。想手寫也行：複製 `data/profiles/default` 成 `data/profiles/<你的名字>` 再改，會跟著你的 fork commit；`data/profiles/ryan` 是原作者的，可以參考。

@@ -22,4 +22,5 @@ profile：ryan
 
 ## git
 - commit message 與 PR 內文沿用該 repo 的既有慣例；該 repo 已是中文就用繁體中文。
+- commit 之後直接 push，merge 也直接做，不用先問；`git push -f` 屬於安全底線的刪除類，仍要先確認。
 - commit 前確認 git 身分：全域身分是公司信箱的電腦，個人專案要在 repo 內另設身分。

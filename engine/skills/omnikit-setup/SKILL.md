@@ -79,7 +79,7 @@ uv run scripts/setup.py profile --answers <answers_file>
 
 把預覽裡的 `AGENTS.md` 原樣給使用者看，並說明：
 
-- 這份會跟安全底線（`data/rules/baseline.md`：刪除、對外發送、付款、push 前先確認，不碰金鑰）一起生效，底線不能放寬。
+- 這份會跟安全底線（`data/rules/baseline.md`：刪除、對外發送、付款前先確認，不碰金鑰；push 要不要先問，依授權程度寫在 profile）一起生效，底線不能放寬。
 - 有 `scenarios.yaml` 的話，評估工具時會用這些情境當考題。
 - 預覽最後有「套用時不裝 omnikit-eval」（第 5 題選了先不要）：照實告訴使用者，評估新工具不會有；個人週報（`omnikit-weekly`，說「OmniKit 本週週報」）照樣有。
 

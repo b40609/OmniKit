@@ -16,4 +16,5 @@ profile：default
 
 ## git
 - commit message 與 PR 內文沿用該 repo 的既有慣例。
+- push 和 merge：只在我明確指示時才做。
 - commit 前確認 git 身分，個人專案與公司專案不要混用。
