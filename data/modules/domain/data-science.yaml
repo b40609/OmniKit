@@ -1,0 +1,44 @@
+# 領域層：使用者自己選。量測與實驗數據的分析、建模與出圖。
+id: data-science
+kind: domain
+name: 科研與工程數據分析
+summary: 量測與實驗數據的探索分析、訊號處理、模型訓練，以及報告用的圖表。
+requires: [office-docs]
+signals:
+  files: ["*.ipynb", "*.parquet", "*.csv", "*.mat", "*.h5"]
+  keywords: [資料分析, 量測, 訊號, 模型訓練, 曲線擬合, 統計, notebook]
+maps_to: [data, bio-research, math, Data & Analytics, Scientific Research]
+slots:
+  - id: data-analysis
+    name: 探索分析與 notebook
+    focus: active
+    scenarios:
+      - id: A1
+        text: 讀 <你的資料>（CSV 或 Parquet，數十萬列以上），做探索分析與異常偵測，產出圖表與可以重跑的 notebook。
+      - id: A2
+        text: 改既有 .ipynb 的分析步驟，重跑全部 cell，確認數值與圖表沒有壞掉。
+    search: [jupyter mcp, data analysis skill, duckdb mcp, notebook agent]
+
+  - id: signal-processing
+    name: 訊號與量測數據
+    focus: active
+    scenarios:
+      - id: DS1
+        text: 讀一批量測資料（例如振動或頻率響應），做濾波、頻譜與參數估計或曲線擬合；每個物理量都標單位，同一份資料重跑結果一樣。
+    search: [signal processing python, scipy agent skill, curve fitting, modal analysis]
+
+  - id: model-training
+    name: 模型訓練與實驗紀錄
+    focus: active
+    scenarios:
+      - id: DS2
+        text: 用本機的顯示卡訓練一個模型，記下資料版本、參數與指標；換一組參數重跑之後，兩次的結果能並排比較。
+    search: [experiment tracking, ml training agent, mlflow mcp]
+
+  - id: figures-reports
+    name: 圖表與技術報告
+    focus: active
+    scenarios:
+      - id: DS3
+        text: 把分析結果做成報告等級的圖表，軸、單位、圖例齊全，圖上的數值對得上原始資料。
+    search: [scientific plotting skill, matplotlib figures, publication figures]

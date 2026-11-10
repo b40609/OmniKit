@@ -1,0 +1,13 @@
+# 能力層：由領域帶入。沒有 API 的桌面軟體，agent 用看畫面、動滑鼠鍵盤的方式操作。
+id: desktop-apps
+kind: capability
+name: 桌面程式
+summary: 沒有 API 的桌面軟體（CAD、剪輯軟體），agent 用看畫面、動滑鼠鍵盤的方式操作。
+slots:
+  - id: desktop-control
+    name: 操控桌面程式
+    focus: active
+    scenarios:
+      - id: DA1
+        text: 操作一個沒有 API 的桌面軟體完成指定步驟，每一步截圖確認；預設在不搶實體滑鼠鍵盤的環境執行，要動到實體桌面時先說明範圍並取得同意。
+    search: [computer use, desktop automation, gui automation mcp]

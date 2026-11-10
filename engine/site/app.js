@@ -32,7 +32,8 @@
         : focuses.size === groups.focus.length;
       const slotHit = term !== "" && slot.dataset.search.includes(term);
       let any = false;
-      for (const card of slot.querySelectorAll(".card")) {
+      const cards = slot.querySelectorAll(".card");
+      for (const card of cards) {
         const ok = focusOk && statuses.has(card.dataset.status) &&
           (term === "" || slotHit || card.dataset.search.includes(term));
         card.hidden = !ok;
@@ -41,10 +42,15 @@
           shown.add(card.dataset.id);
         }
       }
-      slot.hidden = !any;
+      // 還沒有工具卡的槽位：重點有選，而且沒在搜尋或搜尋到槽位本身，就顯示
+      slot.hidden = cards.length ? !any : !(focusOk && (term === "" || slotHit));
+    }
+    for (const module of document.querySelectorAll(".module")) {
+      module.hidden = !module.querySelector(".slot:not([hidden])");
     }
     count.textContent = `顯示 ${shown.size} / ${total} 個工具`;
-    empty.hidden = shown.size > 0;
+    // 搜尋到的是還沒有工具卡的槽位時，畫面上有東西，不算「沒有符合的」
+    empty.hidden = shown.size > 0 || document.querySelector(".slot:not([hidden])") !== null;
   }
 
   search.addEventListener("input", apply);

@@ -41,6 +41,8 @@ MARKETPLACES = {
 
 STATUS = {"default": "預設", "trial": "試用", "pending": "待評估", "rejected": "拒絕", "retired": "退役"}
 FOCUS = {"active": "主動找", "watch": "有新工具才看", "frozen": "凍結"}
+# 模組的三層：領域是要交付的成果，能力是 agent 碰得到什麼，基礎是 agent 自己怎麼運作
+LAYER = {"domain": "領域", "capability": "能力", "foundation": "基礎"}
 KIND = {
     "skill": "skill", "plugin": "plugin", "mcp": "MCP", "cli": "CLI", "app": "獨立程式",
     "service": "線上服務", "library": "程式庫", "native": "原生功能", "collection": "skill 合集", "rules": "規則包",
@@ -164,12 +166,36 @@ def slot_section(slot, tools, roster):
     search = " ".join([slot["id"], slot["name"], *(s["text"] for s in slot["scenarios"])]).lower()
     scenarios = "".join(f'<li><b>{esc(s["id"])}</b><span>{esc(s["text"])}</span></li>' for s in slot["scenarios"])
     cards = "".join(card(t, roster) for t in ordered(tools))
+    if not cards:
+        cards = '<p class="slot-note">還沒有工具卡。</p>'
     return (
         f'<section class="slot" id="slot-{slot["id"]}" data-focus="{slot["focus"]}" data-search="{esc(search)}">'
-        f'<header class="slot-head"><h2>{esc(slot["name"])}</h2>'
+        f'<header class="slot-head"><h3>{esc(slot["name"])}</h3>'
         f'<span class="focus f-{slot["focus"]}">{FOCUS[slot["focus"]]}</span>'
         f'<code class="slot-id">{slot["id"]}</code></header>'
         f'<ul class="scenarios">{scenarios}</ul><div class="cards">{cards}</div></section>'
+    )
+
+
+def module_section(module, roster):
+    """一個模組一區：層、名稱、一句說明，底下是它的槽位。"""
+    tools = roster["tools"].values()
+    slots = "".join(
+        slot_section(slot, [t for t in tools if slot["id"] in t["slots"]], roster)
+        for slot in roster["slots"] if slot["module"] == module["id"]
+    )
+    names = {m["id"]: m["name"] for m in roster["modules"]}
+    notes = []
+    if module.get("maintainer_only"):
+        notes.append("維護名冊的人才啟用")
+    if module.get("requires"):
+        notes.append("會帶入：" + "、".join(names[r] for r in module["requires"]))
+    note = f'<p class="module-note">{esc("；".join(notes))}</p>' if notes else ""
+    return (
+        f'<section class="module" id="module-{module["id"]}" data-kind="{module["kind"]}">'
+        f'<header class="module-head"><span class="layer">{LAYER[module["kind"]]}</span>'
+        f'<h2>{esc(module["name"])}</h2><code class="slot-id">{module["id"]}</code>'
+        f'<p class="module-summary">{esc(module["summary"])}</p>{note}</header>{slots}</section>'
     )
 
 
@@ -287,9 +313,7 @@ def page(roster):
     stats = "".join(
         f'<li class="st-{k}"><b>{counts.get(k, 0)}</b>{v}</li>' for k, v in STATUS.items()
     )
-    sections = "".join(
-        slot_section(slot, [t for t in tools if slot["id"] in t["slots"]], roster) for slot in roster["slots"]
-    )
+    sections = "".join(module_section(module, roster) for module in roster["modules"])
     sections += unassigned_section([t for t in tools if not t["slots"]], roster)
     sha, built = build_info()
     repo_url = f"https://github.com/{cfg['repo']}"
@@ -310,7 +334,7 @@ def page(roster):
 <header class="masthead"><div class="wrap">
 <h1>{esc(cfg["title"])}</h1>
 <p class="tagline">{esc(cfg["tagline"])}</p>
-<ul class="stats"><li><b>{len(roster["slots"])}</b>個槽位</li><li><b>{len(tools)}</b>張工具卡</li>{stats}</ul>
+<ul class="stats"><li><b>{len(roster["modules"])}</b>個模組</li><li><b>{len(roster["slots"])}</b>個槽位</li><li><b>{len(tools)}</b>張工具卡</li>{stats}</ul>
 <p class="meta">由 <a href="{repo_url}">{esc(cfg["repo"])}</a> 的名冊自動產生 · 更新於 {built}{f"（{sha}）" if sha else ""}</p>
 </div></header>
 <main>

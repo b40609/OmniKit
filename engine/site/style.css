@@ -128,10 +128,19 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 34px); line-height: 1.25; font-weigh
 }
 .empty-state { margin: 40px 0; padding: 28px; border: 1px dashed var(--line-strong); border-radius: var(--radius); text-align: center; color: var(--muted); }
 
+/* 模組：一層一個標籤，底下是槽位 */
+.module { margin: 48px 0 0; padding-top: 22px; border-top: 1px solid var(--line-strong); scroll-margin-top: 140px; }
+.module-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.module-head h2 { margin: 0; font-size: 24px; line-height: 1.3; }
+.layer { padding: 2px 9px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.module-summary, .module-note { flex-basis: 100%; margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.module-note { font-size: 13px; }
+
 /* 槽位 */
 .slot { margin: 32px 0; scroll-margin-top: 140px; }
 .slot-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 6px; }
-.slot-head h2 { margin: 0; font-size: 20px; line-height: 1.35; }
+.slot-head h2, .slot-head h3 { margin: 0; font-size: 20px; line-height: 1.35; }
+.module .slot-head h3 { font-size: 18px; }
 .focus { padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--c); background: var(--cbg); }
 .slot-id { font-size: 12px; color: var(--muted); }
 .slot-note { margin: 0 0 12px; color: var(--muted); font-size: 13.5px; }

@@ -1,0 +1,13 @@
+# 能力層：用到才帶入，也只有這個模組需要問電腦規格（顯示卡、記憶體）。
+id: local-models
+kind: capability
+name: 本機模型
+summary: 資料不能外送或要離線時，在自己的電腦上跑模型。只有用到這個模組才需要問電腦規格。
+slots:
+  - id: local-inference
+    name: 在本機跑模型
+    focus: watch
+    scenarios:
+      - id: LM1
+        text: 資料不能外送時，在本機跑模型完成一件摘要或分類的工作；先確認這台的顯示卡與記憶體夠不夠，不夠就說明差多少。
+    search: [local llm, ollama, on-device inference]

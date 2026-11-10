@@ -1,0 +1,48 @@
+# 領域層：使用者自己選。寫程式、改程式、看懂別人的程式。
+id: software-dev
+kind: domain
+name: 軟體開發
+summary: 寫程式、改程式、看懂別人的程式，從規劃到前端畫面。
+requires: [browser]
+signals:
+  files: ["package.json", "pyproject.toml", "requirements.txt", "*.csproj", "go.mod", "Cargo.toml"]
+  keywords: [寫程式, 前端, 後端, 重構, debug, API]
+maps_to: [development, testing, deployment, Developer Tools, engineering]
+slots:
+  - id: frontend-design
+    name: 前端設計
+    focus: active
+    scenarios:
+      - id: F1
+        text: 改 <你的前端專案> 的畫面；給一張喜歡的風格參考，要依專案需求重新設計，不能照抄。
+      - id: F2
+        text: <你的專案> 的後端功能已經完成，決定前端怎麼呈現，讓人看了想用。
+      - id: F3
+        text: 偶爾需要照原版重建一個現成的網站或畫面，版面、樣式與行為要盡量接近原版。
+    search: [frontend design skill, ui design agent, design system]
+
+  - id: code-understanding
+    name: 程式碼理解與搜尋
+    focus: active
+    scenarios:
+      - id: C1
+        text: 在 <你的專案> 找某個函式的所有呼叫者，以及改動的影響範圍。
+      - id: C2
+        text: 深讀第三方 repo，寫附行號的研究筆記。
+    search: [code search mcp, lsp plugin, code graph, codebase index]
+
+  - id: dev-workflow
+    name: 規劃與開發流程
+    focus: active
+    scenarios:
+      - id: V1
+        text: 小改動走輕流程（討論計畫、實作、審查），大功能走重流程（規格、獨立審查、實作、驗收）；常跑偏、重工。
+    search: [spec driven development, agent workflow, planning skill]
+
+  - id: reverse-engineering
+    name: 逆向工程
+    focus: watch
+    scenarios:
+      - id: X1
+        text: 逆向 APK、.NET、Electron 等目標。
+    search: [reverse engineering mcp, decompiler, binary analysis]

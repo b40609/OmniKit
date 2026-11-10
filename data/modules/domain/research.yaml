@@ -1,0 +1,19 @@
+# 領域層：使用者自己選。動手做之前，先弄清楚別人怎麼做。
+id: research
+kind: domain
+name: 研究與產品方向
+summary: 動手做之前，先比對業界與開源的做法，找出已經有的專案，再決定方向。
+requires: [web-research]
+signals:
+  keywords: [競品, 研究, 調查, 產品方向, 開源比較]
+maps_to: [learning, Education & Research, product-management]
+slots:
+  - id: product-research
+    name: 產品研究與方向
+    focus: frozen
+    scenarios:
+      - id: P1
+        text: 在 <你的專案> 提優化需求時，先比對業界與開源做法，再提方案。
+      - id: P2
+        text: 有產品想法時，先找出符合的現有專案，避免重造輪子。
+    search: [product research skill, competitive analysis agent, open source discovery]

@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "properties": {
     "slot": { "type": "string" },
-    "scenarios": { "description": "data/slots.yaml 裡的情境 id，例如 F1", "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "scenarios": { "description": "data/modules/ 模組檔裡的情境 id，例如 F1", "type": "array", "minItems": 1, "items": { "type": "string" } },
     "candidates": {
       "description": "最多 3 個：現任加上挑戰者",
       "type": "array",

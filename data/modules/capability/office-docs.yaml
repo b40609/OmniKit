@@ -1,0 +1,29 @@
+# 能力層：由領域帶入。Word、簡報、試算表這三種檔案，agent 要做得出來、也改得動。
+id: office-docs
+kind: capability
+name: 文件與簡報檔
+summary: Word、簡報、試算表這三種檔案，agent 要做得出來，也要改得動既有的檔。
+slots:
+  - id: docs-output
+    name: Word 文件與報告
+    focus: watch
+    scenarios:
+      - id: D1
+        text: 照既有的範本產出一份工作報告或正式文件，樣式、目錄、頁碼照範本；修改別人的文件時留追蹤修訂。
+    search: [docx skill, word document generation, report writing]
+
+  - id: slides-output
+    name: 簡報
+    focus: watch
+    scenarios:
+      - id: D2
+        text: 把一份報告做成簡報，一頁一個重點，圖表可以再編輯，版面照既有的簡報範本。
+    search: [pptx skill, slide deck generation, presentation]
+
+  - id: sheets-output
+    name: 試算表
+    focus: watch
+    scenarios:
+      - id: D3
+        text: 做一份有公式的試算表（例如預算或量測彙整），小計與總計用公式、不寫死，改一個輸入其他格子跟著變。
+    search: [xlsx skill, spreadsheet formulas, excel automation]

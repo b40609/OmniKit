@@ -1,0 +1,13 @@
+# 能力層：由領域帶入。agent 自己開瀏覽器看畫面、點擊、填表。
+id: browser
+kind: capability
+name: 瀏覽器
+summary: agent 自己開瀏覽器看畫面、點擊、填表，並確認結果。
+slots:
+  - id: browser
+    name: 瀏覽器操作與驗證
+    focus: active
+    scenarios:
+      - id: U1
+        text: 改完 <你的專案> 的前端後，agent 自己開 dev server，在瀏覽器看畫面與 console 錯誤，確認改動真的生效才回報；你用的每個 agent 都要能用。
+    search: [browser automation, playwright mcp, chrome devtools mcp]

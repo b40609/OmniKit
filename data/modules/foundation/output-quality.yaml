@@ -1,0 +1,37 @@
+# 基礎層：每個人都有。agent 回覆得好不好讀、會不會多做，以及做完有沒有人把關。
+id: output-quality
+kind: foundation
+name: 輸出與品質
+summary: agent 回覆得好不好讀、會不會多做，以及做完有沒有人把關。
+slots:
+  - id: concise-output
+    name: 輸出精簡
+    focus: watch
+    scenarios:
+      - id: O1
+        text: 日常對話先講結果、少廢話，但保留證據（file:line、測試輸出），並維持你習慣的語言。
+    search: [concise output style, terse agent replies]
+
+  - id: output-compression
+    name: 指令輸出壓縮
+    focus: active
+    scenarios:
+      - id: T1
+        text: 在 <你的專案> 跑測試或 build，輸出很長，把 context 塞滿。
+    search: [command output compression, token saving cli, context reduction]
+
+  - id: behavior-rules
+    name: 行為準則包
+    focus: active
+    scenarios:
+      - id: B1
+        text: 改功能時只寫需要的程式碼、不擴大範圍，但驗證、錯誤處理與安全照做。
+    search: [agent guidelines, coding agent rules, behavior rules]
+
+  - id: review
+    name: 審查與驗收
+    focus: active
+    scenarios:
+      - id: R1
+        text: 一個 agent 改完 <你的專案> 的修正，交給另一個 agent 審 diff；重要的才交叉審，小改動自己審。
+    search: [code review agent, cross-agent review, verification]

@@ -1,5 +1,5 @@
 # ryan 的真實情境：評估工具時拿來當考題。
-# 列出的槽位整組取代 data/slots.yaml 的範本情境；沒列的槽位沿用範本。
+# 列出的槽位整組取代模組檔（data/modules/）的範本情境；沒列的槽位沿用範本。
 # id 跟範本一致，data/evals 的實測紀錄才對得上。
 scenarios:
   frontend-design:

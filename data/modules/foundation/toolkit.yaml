@@ -1,0 +1,30 @@
+# 基礎層，但只有維護名冊的人才啟用：找新工具、做 skill、設計對照實驗。
+id: toolkit
+kind: foundation
+name: 工具維護
+summary: 找新工具、做自己的 skill，以及用對照實驗證明一個工具有沒有用。
+maintainer_only: true
+slots:
+  - id: tool-discovery
+    name: 工具發現
+    focus: active
+    scenarios:
+      - id: N1
+        text: 掌握新的 agent 工具從哪裡出現，送進 OmniKit 的收件匣。
+    search: [skill directory, plugin marketplace, mcp registry]
+
+  - id: skill-authoring
+    name: skill 製作與評估
+    focus: watch
+    scenarios:
+      - id: K1
+        text: 寫一個自己用的 skill，並證明它比沒裝的時候好。
+    search: [skill creator, plugin eval, skill authoring]
+
+  - id: agent-eval
+    name: 評測與實驗
+    focus: watch
+    scenarios:
+      - id: EV1
+        text: 設計並執行 agent 工具的對照實驗（有裝與沒裝、盲評），每次的輸入、輸出與評分都留下來，別人照紀錄能重跑。
+    search: [agent benchmark, llm eval harness, blind evaluation]

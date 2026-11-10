@@ -1,0 +1,43 @@
+# 領域層：使用者自己選。補助案與合作案的文件工作。
+# 補助單位的範本、單位內的規定屬於個人或單位資料，放在 repo 外的私有模組或自己的情境檔，不寫在這裡。
+id: proposals
+kind: domain
+name: 計畫書與專案管理
+summary: 補助案與合作案的計畫書、經費表、進度與結案報告，以及審查意見的回覆。
+requires: [office-docs, web-research]
+signals:
+  files: ["*計畫書*", "*經費*", "*結案*", "*提案*"]
+  keywords: [計畫書, 提案, 經費, 結案報告, 審查意見, 專案管理]
+maps_to: [productivity, product-management, operations, Productivity, Business & Operations]
+slots:
+  - id: proposal-draft
+    name: 撰寫計畫書
+    focus: active
+    scenarios:
+      - id: PR1
+        text: 依徵求公告與前期成果寫一份計畫書初稿，章節、字數、表格照補助單位的範本，引用的數據都附出處。
+    search: [grant proposal writing, proposal template docx, technical writing skill]
+
+  - id: proposal-budget
+    name: 編預算與經費表
+    focus: active
+    scenarios:
+      - id: PR2
+        text: 依人力、設備、材料的估算填經費表，小計與總計對得上，科目符合補助單位的編列規定。
+    search: [budget spreadsheet, financial model xlsx, cost estimation]
+
+  - id: progress-report
+    name: 進度與結案報告
+    focus: active
+    scenarios:
+      - id: PR3
+        text: 把這一期的工作紀錄、量測結果與會議結論整理成進度報告或結案報告，查核點逐項對照、不漏項。
+    search: [status report generation, project report skill, milestone tracking]
+
+  - id: review-response
+    name: 回覆審查意見
+    focus: active
+    scenarios:
+      - id: PR4
+        text: 逐條回覆審查意見，標出計畫書對應修改的位置，修改處留追蹤修訂。
+    search: [reviewer response letter, tracked changes docx, document revision]

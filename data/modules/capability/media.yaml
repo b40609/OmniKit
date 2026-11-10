@@ -1,0 +1,21 @@
+# 能力層：由領域帶入。影音檔的轉檔、抽幀與語音轉文字。
+id: media
+kind: capability
+name: 影音處理
+summary: 影音檔的轉檔、抽幀，以及把錄音或影片轉成文字。
+slots:
+  - id: media-transcribe
+    name: 語音轉文字
+    focus: watch
+    scenarios:
+      - id: MD1
+        text: 把一段會議錄音或影片轉成繁體中文逐字稿，附時間戳，專有名詞照你給的詞彙表。
+    search: [speech to text, whisper transcription, meeting transcript]
+
+  - id: media-convert
+    name: 轉檔與抽幀
+    focus: watch
+    scenarios:
+      - id: MD2
+        text: 批次把一批影片轉成指定的格式與解析度，並抽出指定時間點的畫面存成圖檔。
+    search: [ffmpeg mcp, video transcoding, frame extraction]

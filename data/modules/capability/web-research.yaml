@@ -1,0 +1,13 @@
+# 能力層：由領域帶入。上網找一手來源，結論附得出出處。
+id: web-research
+kind: capability
+name: 網路研究
+summary: 上網找一手來源、讀完再下結論，每個結論都附得出出處。
+slots:
+  - id: web-sources
+    name: 找來源並附出處
+    focus: active
+    scenarios:
+      - id: WR1
+        text: 針對一個問題找一手來源（官方文件、法規、論文），結論附連結與原文位置；查不到的標「待驗證」，不寫成事實。
+    search: [deep research, web search mcp, citation]

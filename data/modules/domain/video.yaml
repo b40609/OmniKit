@@ -1,0 +1,34 @@
+# 領域層：使用者自己選。把原始素材剪成可以交付的影片。
+id: video
+kind: domain
+name: 影片剪輯與處理
+summary: 把原始素材剪成可以交付的影片：粗剪、字幕、照平台規格輸出。
+requires: [media, desktop-apps]
+signals:
+  files: ["*.mp4", "*.mov", "*.srt", "*.prproj", "*.drp"]
+  keywords: [剪片, 剪輯, 字幕, 轉檔, 影片]
+maps_to: [Creativity, design]
+slots:
+  - id: video-rough-cut
+    name: 粗剪
+    focus: active
+    scenarios:
+      - id: VD1
+        text: 給一段原始素材與重點說明，剪出粗剪版，去掉停頓與重複、保留指定的片段，輸出剪輯軟體開得起來的時間軸或專案檔。
+    search: [video editing agent, ai rough cut, timeline automation]
+
+  - id: video-subtitles
+    name: 字幕與逐字稿
+    focus: active
+    scenarios:
+      - id: VD2
+        text: 替一支影片產生繁體中文字幕檔，時間軸對得上畫面，專有名詞照你給的詞彙表。
+    search: [subtitle generation, srt whisper, caption alignment]
+
+  - id: video-export
+    name: 轉檔與輸出
+    focus: active
+    scenarios:
+      - id: VD3
+        text: 照發布平台的規格（解析度、位元率、長寬比）批次輸出，輸出後檢查音畫同步與檔案能不能播。
+    search: [ffmpeg batch export, video encoding presets, render automation]

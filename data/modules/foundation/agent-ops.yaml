@@ -1,0 +1,39 @@
+# 基礎層：每個人都有。agent 怎麼記住脈絡、同時顧多個對話，以及什麼時候要停下來問你。
+id: agent-ops
+kind: foundation
+name: 對話與記憶
+summary: agent 怎麼記住脈絡、同時顧多個對話，以及什麼時候要停下來問你。
+slots:
+  - id: memory
+    name: 記憶與交接
+    focus: active
+    scenarios:
+      - id: M1
+        text: 做到一半的 <你的專案> 任務，換到另一個 agent 或新 session 接手，不用重講脈絡。
+      - id: M2
+        text: 長 session 經過 compaction 之後，agent 仍然記得做到哪裡、做過哪些決定。
+    search: [agent memory, session handoff, context persistence]
+
+  - id: session-management
+    name: 工作階段管理
+    focus: active
+    scenarios:
+      - id: S1
+        text: 在 <你用的介面>（桌面版或 ADE）開 Claude、Codex 的對話時，OmniKit 的規則、skills、hooks 照常載入；換介面不用重設。
+      - id: S2
+        text: 同時跑 5 個以上任務，不用逐一問，就看得出哪個在等你決定、哪個做完待收尾、哪個卡住。
+      - id: S3
+        text: 任務做完收尾時，先確認 worktree 乾淨、分支已合併、沒有子對話還在跑，才封存；不會誤刪未 commit 的修改。
+      - id: S4
+        text: 上下文快滿或換任務時，一步完成交接並開新對話接著做，不是只跳一句提示；交接內容的品質由記憶與交接槽位評。
+      - id: S5
+        text: 離開座位時，在手機上看進度、回覆問題、核准權限提示。
+    search: [agent session manager, multi-agent desktop, agent orchestration ui]
+
+  - id: permissions
+    name: 權限與通知
+    focus: watch
+    scenarios:
+      - id: W1
+        text: 跑長任務或測試時不用一直盯；權限提示少，做完會通知。
+    search: [agent permissions, agent notifications]

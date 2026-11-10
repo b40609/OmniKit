@@ -22,6 +22,8 @@ Claude Code、Codex 與 Antigravity 的 plugin、skill、MCP 每週都有新的�
 
 OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是一個**槽位**，配上幾個真實的工作情境；每個工具一張**卡片**，記下狀態、日期與理由。新工具進來時，拿槽位的情境跟現任比，比贏了才換，換的理由也會留下來。
 
+槽位照**模組**分成三層：基礎（agent 自己怎麼運作，例如記憶、權限）、能力（agent 碰得到什麼，例如瀏覽器、Office 檔、桌面程式）、領域（一種業務要交付的成果，例如軟體開發、數據分析、計畫書、CAD、影片、金融工程）。要加一種新的業務，新增一個模組檔就好，見[新增一種業務](#新增一種業務)。
+
 ## 特色
 
 - **每個決定都有理由**：卡片記下狀態（預設、試用、待評估、拒絕、退役）、決定日期與理由，過了半年還查得到當初為什麼選它。
@@ -78,7 +80,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 3. **認識 profile。** agent 讀到的規則分兩層：
    - `data/rules/baseline.md` 是安全底線，所有人都套用：刪除、對外發送、付款前先確認，不碰金鑰。
-   - profile 是個人層：`AGENTS.md` 寫語言、語氣、哪些事可以直接做；`scenarios.yaml` 寫評估工具用的真實情境，沒寫的槽位用 `data/slots.yaml` 的範本。訪談產生的 profile 存在 repo 外的 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`；repo 裡的 `data/profiles/<名稱>/` 放 `default` 與維護者手寫、要跟著 repo 的 profile。兩邊同名時，repo 外的優先。
+   - profile 是個人層：`AGENTS.md` 寫語言、語氣、哪些事可以直接做；`scenarios.yaml` 寫評估工具用的真實情境，沒寫的槽位用模組檔（`data/modules/`）的範本。訪談產生的 profile 存在 repo 外的 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`；repo 裡的 `data/profiles/<名稱>/` 放 `default` 與維護者手寫、要跟著 repo 的 profile。兩邊同名時，repo 外的優先。
 
    不用先改檔案：先用 `default` 安裝（繁體中文、下載安裝前先問），裝好之後用[訪談](#建立自己的-profile)產生你自己的 profile。想手寫也行：複製 `data/profiles/default` 成 `data/profiles/<你的名字>` 再改，會跟著你的 fork commit；`data/profiles/ryan` 是原作者的，可以參考。
 
@@ -193,7 +195,7 @@ profile 存在 repo 外的 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`（`AGENTS
 flowchart LR
   E["omnikit-eval<br/>評估新工具"] -->|寫卡片| D
   subgraph D["data/ 名冊"]
-    S["slots.yaml<br/>槽位與情境範本"]
+    S["modules/<br/>模組、槽位與情境範本"]
     T["tools/*.yaml<br/>工具卡"]
     R["rules/baseline.md<br/>安全底線"]
     F["profiles/*/<br/>default 與維護者的 profile"]
@@ -356,6 +358,26 @@ uv run engine/scripts/agents.py resolve <名稱> --keep-mine     # 保留你的�
 
 選了 `--keep-mine` 之後想改回由 OmniKit 管，再執行一次 `--use-omnikit` 就好。
 
+### 新增一種業務
+
+槽位寫在模組檔裡，一個模組一個檔：`data/modules/<層>/<id>.yaml`。
+
+| 層 | 放什麼 | 例子 |
+|---|---|---|
+| `foundation` 基礎 | agent 自己怎麼運作，做什麼工作都會遇到 | 對話與記憶、輸出與品質 |
+| `capability` 能力 | agent 要碰得到某種東西才做得了事；不只一個領域會用到才獨立出來 | 瀏覽器、文件與簡報檔、桌面程式 |
+| `domain` 領域 | 一種業務要交付的成果 | 軟體開發、計畫書與專案管理、CAD 與機構設計 |
+
+要加一種新的業務：
+
+1. 複製一個現成的領域模組（例如 `data/modules/domain/video.yaml`）成新檔，檔名就是模組的 `id`。
+2. 改名稱與一句說明，再列出槽位。一個槽位是一件要交付的工作，用動作加成果命名（「撰寫計畫書」「粗剪」），不是工具的類別；一個模組 3 到 6 個槽位。
+3. 每個槽位至少寫一個情境，寫成可以實測的任務；`search` 填找工具用的關鍵字。
+4. 需要瀏覽器、Office 檔這類能力，在 `requires` 列出能力模組的 `id`。
+5. 跑 `uv run engine/scripts/validate.py` 檢查，再 commit。
+
+規則：模組、槽位、情境的 `id` 在整份名冊裡都不能重複；情境 `id` 是 1 到 3 個大寫字母加數字（`PR1`、`CD4`）。任職單位或個人專屬的內容（補助單位的範本、公司內的規定）不要寫進模組檔，寫在自己 profile 的 `scenarios.yaml`。
+
 ### 改名冊
 
 改完 `data/` 直接 commit：維護者版的 pre-commit hook 會驗證名冊，並重新產生 marketplace 清單一起放進 commit。要手動檢查：
@@ -395,7 +417,8 @@ git pull upstream main
 ```text
 data/                        資料：fork 後換成你的
   omnikit.yaml               看板與 marketplace 的公開設定
-  slots.yaml                 槽位與情境範本
+  modules/<層>/<id>.yaml     模組：一個檔裡有幾個槽位與情境範本。層有三種：
+                             foundation（基礎）、capability（能力）、domain（領域）
   tools/<id>.yaml            名冊，一個工具一張卡
   rules/baseline.md          安全底線，所有人都套用
   profiles/<名稱>/           跟著 repo 的 profile：個人規則（AGENTS.md）與真實情境（scenarios.yaml）；

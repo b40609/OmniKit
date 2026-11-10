@@ -1,0 +1,42 @@
+# 領域層：使用者自己選。交易策略的研究、回測與受控執行。
+id: quant-finance
+kind: domain
+name: 金融工程
+summary: 交易策略的研究與回測、行情資料的整理，以及碰到下單時的安全把關。
+requires: [office-docs, web-research]
+signals:
+  files: ["*backtest*", "*strategy*", "*ohlcv*", "*kline*"]
+  keywords: [回測, 策略, 行情, K 線, 量化, 下單, 風控]
+maps_to: [finance, Finance]
+slots:
+  - id: quant-backtest
+    name: 策略研究與回測
+    focus: active
+    scenarios:
+      - id: QF1
+        text: 用已經收盤的 K 線回測一個策略，不能用到未來的資料，報告寫明手續費與滑價的假設。
+    search: [backtesting framework, quant research agent, trading strategy backtest]
+
+  - id: quant-data
+    name: 行情與資料管線
+    focus: active
+    scenarios:
+      - id: QF2
+        text: 接上一個行情來源，補缺漏、對齊時間，並留下一份可以重跑的資料品質檢查。
+    search: [market data mcp, ohlcv pipeline, financial data api]
+
+  - id: quant-order-safety
+    name: 下單安全
+    focus: active
+    scenarios:
+      - id: QF3
+        text: 會碰到下單的改動，只在模擬環境或授權的測試帳戶驗證；沒有明確授權，不送出真實的下單請求。
+    search: [paper trading, order simulation, trading sandbox]
+
+  - id: quant-report
+    name: 績效與風險報告
+    focus: active
+    scenarios:
+      - id: QF4
+        text: 產生一份績效、回撤與曝險的報告，報告上的數字對得上交易紀錄。
+    search: [portfolio analytics, performance report quant, risk metrics]

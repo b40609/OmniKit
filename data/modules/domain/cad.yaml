@@ -1,0 +1,42 @@
+# 領域層：使用者自己選。用文字或草圖驅動 CAD 軟體做機構設計。
+id: cad
+kind: domain
+name: CAD 與機構設計
+summary: 用文字或草圖驅動 CAD 軟體：產生 3D 模型、修改既有模型、出工程圖，以及結構的初步驗算。
+requires: [desktop-apps]
+signals:
+  files: ["*.step", "*.stp", "*.sldprt", "*.sldasm", "*.dwg", "*.f3d", "*.FCStd", "*.stl"]
+  keywords: [CAD, 3D 模型, 工程圖, 機構設計, 結構, 承重]
+maps_to: [design, Creativity]
+slots:
+  - id: cad-text-to-model
+    name: 文字轉 3D 模型
+    focus: active
+    scenarios:
+      - id: CD1
+        text: 用文字或手繪草圖上的尺寸描述，產生一個可以再編輯的參數化 3D 模型並輸出 STEP 檔，每個尺寸逐項核對。
+    search: [text to cad, cadquery agent, freecad mcp, openscad llm]
+
+  - id: cad-modify
+    name: 修改既有模型
+    focus: active
+    scenarios:
+      - id: CD2
+        text: 開啟一個既有的 STEP 或原生檔，改指定的尺寸或加一道補強，不破壞其他特徵，並列出修改前後的差異。
+    search: [parametric cad editing, step file editing, cad mcp]
+
+  - id: cad-drawing
+    name: 工程圖與材料表
+    focus: active
+    scenarios:
+      - id: CD3
+        text: 由 3D 模型出工程圖（視圖、尺寸、公差）與材料表，圖面符合你給的圖框與標註習慣。
+    search: [technical drawing automation, bom generation cad, drawing export]
+
+  - id: cad-check
+    name: 結構初步驗算
+    focus: active
+    scenarios:
+      - id: CD4
+        text: 對指定的載重做受力與變形的初步估算，寫明假設、材料性質與安全係數，並標明這是初估、不取代正式的分析。
+    search: [fea automation, structural calculation python, beam deflection]
