@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OmniKit profile 啟用的領域",
+  "description": "profile 資料夾裡的 domains.yaml：這個人做哪幾種業務。給建議時只看基礎模組、這裡列的模組，以及領域帶入的能力模組。沒有這個檔就是全部模組都看。",
+  "type": "object",
+  "required": ["domains"],
+  "additionalProperties": false,
+  "properties": {
+    "domains": {
+      "description": "領域模組的 id（data/modules/domain/）；也可以直接列能力模組的 id（例如只想多看本機模型）",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" }
+    }
+  }
+}

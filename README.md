@@ -165,13 +165,14 @@ OmniKit 本週週報
 
 在新的 session 說「幫我設定 OmniKit」。`omnikit-setup` 會：
 
-1. **掃描**：列出這台裝了哪些 agent、目前的規則、skills 與 MCP（只看名稱與版本，不讀金鑰）。
-2. **訪談**：最多 6 題，大多是選擇題：主要用途、最想改善的習慣、回覆的語言與詳略、agent 可以自己做到哪、要不要評估新工具、主要專案。
+1. **掃描**：列出這台裝了哪些 agent、目前的規則、skills 與 MCP（只看名稱與版本，不讀金鑰）；另外依你現在的專案資料夾裡的檔名（只看檔名），預選第 1 題的領域。
+2. **訪談**：最多 6 題，大多是選擇題：做哪幾種工作（領域，可複選）、最想改善的習慣、回覆的語言與詳略、agent 可以自己做到哪、要不要評估新工具、主要專案。
 3. **預覽**：先給你看產生的規則，同意才寫入。
 4. **建立並套用**：寫進 repo 外的 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`，接上這台接好的 agent，開新 session 生效。
 
 | 你選的 | 規則裡寫成 |
 |---|---|
+| 做哪幾種工作（領域） | 不寫進規則，存成 `domains.yaml`。[建議](#建議裝拿掉用內建的就好)只看你選的領域、它們帶入的能力（例如軟體開發會帶入瀏覽器），以及每個人都有的基礎模組。之後想改，重新訪談或直接改這個檔；刪掉這個檔就是全部都看 |
 | agent 可以自己做到哪 | 每步先問：改檔案、執行指令前先列計畫等你同意。專案內直接做（建議）：下載安裝、改專案以外的才先問。大多放手：下載安裝也直接做 |
 | 最想改善的習慣 | 例如「常改太多」變成「只改需求相關的地方，其他想改的先列出來問你」 |
 | 要評估新工具 | 情境範本裡的 `<你的專案>` 換成你的專案，評估工具時拿來當考題 |
@@ -179,7 +180,7 @@ OmniKit 本週週報
 
 規則檔與情境檔都由 `engine/scripts/profile_new.py` 依固定範本產生、驗證，agent 只負責問問題；寫入後可以直接改，改完跑 `uv run engine/scripts/profiles.py` 重新接上。重新訪談時會帶入上次的答案，舊檔先備份成 `.bak`；手寫的 profile 與 repo 裡已經有的名稱不會被覆蓋。安全底線不能從 profile 放寬。
 
-profile 存在 repo 外的 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`（`AGENTS.md`、`scenarios.yaml`，以及下次訪談預填用的 `answers.json`），不會被 commit、push 或上傳，在 repo 裡跑 `git status` 也看不到。舊版存在 repo 裡（`data/profiles/<名稱>/`）的，重跑 `install.ps1` 或說「幫我設定 OmniKit」時會問你要不要搬過去；搬好、確認內容一樣才刪 repo 裡的舊檔，不同意就不動。
+profile 存在 repo 外的 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`（`AGENTS.md`、`scenarios.yaml`、`domains.yaml`，以及下次訪談預填用的 `answers.json`），不會被 commit、push 或上傳，在 repo 裡跑 `git status` 也看不到。舊版存在 repo 裡（`data/profiles/<名稱>/`）的，重跑 `install.ps1` 或說「幫我設定 OmniKit」時會問你要不要搬過去；搬好、確認內容一樣才刪 repo 裡的舊檔，不同意就不動。
 
 ### 預設 plugin 要另外裝
 
@@ -325,7 +326,7 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 安裝、停用、移除都等你同意才做，而且用各 agent 自己的指令（`claude plugin install`、`codex plugin add` 等）。拿掉是刪除，一項一項問。
 
-這台沒裝、或 30 天內沒有對話紀錄的 agent 不出建議；Antigravity 目前不出建議。設計與業界做法的比較見 [docs/proposals/2026-11-11-diagnose-advice.md](docs/proposals/2026-11-11-diagnose-advice.md)。
+profile 選了領域的話，只對那些領域的槽位出建議；沒選過就對照全部模組。這台沒裝、或 30 天內沒有對話紀錄的 agent 不出建議；Antigravity 目前不出建議。設計與業界做法的比較見 [docs/proposals/2026-11-11-diagnose-advice.md](docs/proposals/2026-11-11-diagnose-advice.md)。
 
 ### 評估新工具
 

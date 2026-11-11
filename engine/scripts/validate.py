@@ -136,15 +136,43 @@ def template_slots(data):
     return flatten(load_modules(data)[1])
 
 
-def check_profile(d, slot_ids, check_scenarios):
+def profile_domains(folder, modules=None):
+    """profile 啟用的領域（domains.yaml）：回傳（問題清單, 模組 id 清單）；沒有這個檔回 None，表示全部模組都看。
+    給了 modules 就一併檢查 id 存在，而且是領域或能力模組。"""
+    path = folder / "domains.yaml" if folder else None
+    if path is None or not path.exists():
+        return [], None
+    doc = load_yaml(path)
+    errors = schema_errors(validator("domains.schema.json"), doc, path)
+    if errors:
+        return errors, None
+    kinds = {m["id"]: m["kind"] for m in modules} if modules is not None else None
+    for mid in doc["domains"] if kinds is not None else []:
+        if mid not in kinds:
+            errors.append(f"{show(path)}: 找不到模組「{mid}」")
+        elif kinds[mid] == "foundation":
+            errors.append(f"{show(path)}: 「{mid}」是基礎模組，每個人都有，不用列")
+    return errors, doc["domains"]
+
+
+def enabled_modules(modules, selected):
+    """這個 profile 看哪些模組：基礎模組、選的領域與能力、領域帶入的能力。selected 是 None 就是全部。"""
+    if selected is None:
+        return [m["id"] for m in modules]
+    pulled = {need for m in modules if m["id"] in selected for need in m.get("requires", [])}
+    return [m["id"] for m in modules if m["kind"] == "foundation" or m["id"] in selected or m["id"] in pulled]
+
+
+def check_profile(d, slot_ids, check_scenarios, modules=None):
     """一個 profile 資料夾：回傳（問題清單, {槽位: 情境}）；沒有 AGENTS.md 就不是 profile，情境是 None。"""
     if not (d / "AGENTS.md").is_file():
         return [f"{show(d)}: 少了 AGENTS.md（個人規則）"], None
+    domain_errors, _ = profile_domains(d, modules)
     path = d / "scenarios.yaml"
     if not path.exists():
-        return [], {}
+        return domain_errors, {}
     doc = load_yaml(path)
-    errors = schema_errors(check_scenarios, doc, path)
+    errors = domain_errors + schema_errors(check_scenarios, doc, path)
     if errors:
         return errors, {}
     for slot, items in doc["scenarios"].items():
@@ -156,7 +184,7 @@ def check_profile(d, slot_ids, check_scenarios):
     return errors, doc["scenarios"]
 
 
-def check_profiles(data, slot_ids, state=None, wanted=None):
+def check_profiles(data, slot_ids, state=None, wanted=None, modules=None):
     """回傳（問題清單, {profile 名稱: {槽位: 情境}}, repo 裡的 profile 名稱）。
     repo 裡的全部檢查；repo 外的只檢查這台在用的（wanted，沒給就是選過的），同名時它優先。"""
     errors, found = [], {}
@@ -172,7 +200,7 @@ def check_profiles(data, slot_ids, state=None, wanted=None):
         if not profiles.NAME.match(d.name):
             errors.append(f"{show(d)}: profile 名稱只能用小寫英數與 -")
             continue
-        bad, scenarios = check_profile(d, slot_ids, check_scenarios)
+        bad, scenarios = check_profile(d, slot_ids, check_scenarios, modules)
         errors += bad
         if scenarios is not None:
             found[d.name] = scenarios
@@ -180,7 +208,7 @@ def check_profiles(data, slot_ids, state=None, wanted=None):
     name = wanted or (profiles.chosen(state) if state is not None else None)
     local = state / "profiles" / name if state is not None and name and profiles.NAME.match(name) else None
     if local and (local / "AGENTS.md").is_file():
-        bad, scenarios = check_profile(local, slot_ids, check_scenarios)
+        bad, scenarios = check_profile(local, slot_ids, check_scenarios, modules)
         errors += bad
         found[name] = scenarios
     return errors, found, in_repo
@@ -260,7 +288,7 @@ def check(data, profile=None, state=None):
             elif card.get("works_with") and agent not in card["works_with"]:
                 errors.append(f"{where}: 工具「{answer['tool']}」的卡片沒有寫支援 {agent}")
 
-    found_errors, found, in_repo = check_profiles(data, slot_ids, state, profile)
+    found_errors, found, in_repo = check_profiles(data, slot_ids, state, profile, modules)
     errors += found_errors
     for pname, scen in found.items():
         for slot, items in scen.items():
@@ -279,8 +307,11 @@ def check(data, profile=None, state=None):
 
     summary = [{**{k: v for k, v in m.items() if k not in ("slots", "path")},
                 "slots": [s["id"] for s in m["slots"] if isinstance(s, dict)]} for m in modules]
+    # 這個 profile 啟用的領域（問題已經在 check_profiles 報過）：domains 是 None 表示沒選過，全部模組都看
+    _, selected = profile_domains(where, modules)
     return errors, {"config": config, "modules": summary, "slots": slots, "tools": tools, "profile": name,
-                    "profile_dir": str(where) if where else None}
+                    "profile_dir": str(where) if where else None,
+                    "domains": selected, "enabled": enabled_modules(modules, selected)}
 
 
 def main():

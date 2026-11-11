@@ -112,12 +112,19 @@ def diagnose(roster, used, costs, found, edition="colleague", added=None, today=
     cfg, tools, added = roster.get("config") or {}, roster["tools"], added or {}
     third = {k: v for k, v in tools.items() if v.get("kind") != "native"}
     hidden = sorted(m["id"] for m in roster["modules"] if m.get("maintainer_only") and edition != "maintainer")
-    slots = [s for s in roster["slots"] if s["module"] not in hidden]
+    # profile 選了領域的話，只看基礎模組、選的領域與它們帶入的能力；沒選過就全部都看
+    enabled = roster.get("enabled")
+    slots = [s for s in roster["slots"] if s["module"] not in hidden and (enabled is None or s["module"] in enabled)]
+    names = {m["id"]: m.get("name", m["id"]) for m in roster["modules"]}
+    if roster.get("domains"):
+        notes = [*notes, f"只看這個 profile 選的領域：{'、'.join(names.get(d, d) for d in roster['domains'])}"]
+    else:
+        notes = [*notes, "這個 profile 還沒選領域，所以對照名冊全部的模組；說「幫我設定 OmniKit」可以選"]
     rows = {(r["agent"], r["tool"]): r for r in (costs or {}).get("rows", [])}
     out = {"generated": (today or date.today()).isoformat(), "days": used["days"], "profile": roster.get("profile"),
            "edition": edition,
-           "roster": {"modules": len(roster["modules"]) - len(hidden), "slots": len(slots), "tools": len(tools),
-                      "hidden_modules": hidden},
+           "roster": {"modules": len({s["module"] for s in slots}), "slots": len(slots), "tools": len(tools),
+                      "hidden_modules": hidden, "domains": roster.get("domains")},
            "notes": list(notes), "agents": {}}
 
     for agent, uid in AGENTS.items():
@@ -236,7 +243,7 @@ def collect(home, data, state, days=30, now=None, plugin_details=cost.details):
         raise SystemExit("名冊驗證沒過，先修好再給建議：\n" + "\n".join(f"- {e}" for e in errors))
     now = now or time.time()
     used = usage.collect(home, days=days, now=now)
-    notes = ["profile 還不能選領域：先對照名冊全部的模組"]
+    notes = []
     try:
         costs = cost.measure(home, state, now=now, plugin_details=plugin_details)
     except Exception as e:  # 成本量不到，不影響其他依據
@@ -527,6 +534,12 @@ def selftest():
           not only["agents"]["codex"]["active"] and "沒有對話紀錄" in only["agents"]["codex"]["skip"]
           and not none["agents"]["codex"]["active"] and "沒有裝" in none["agents"]["codex"]["skip"]
           and all(not none["agents"]["codex"]["candidates"][k] for k in KINDS) and only["agents"]["claude"]["active"])
+    picked = diagnose({**roster, "domains": ["dev"], "enabled": ["dev", "toolkit"]}, used, costs, both, edition="maintainer")
+    check("profile 選了領域：只看啟用的模組，沒選的領域不出候選；沒選過就全部都看並提醒可以選",
+          ids(picked["agents"]["claude"], "native") == ["native:browser", "native:review"]
+          and "remove:skill:mem2@~/.claude/skills" not in ids(picked["agents"]["claude"], "remove")
+          and "install:maker" in ids(picked["agents"]["claude"], "install") and picked["roster"]["slots"] == 4
+          and "只看這個 profile 選的領域：dev" in picked["notes"] and any("還沒選領域" in n for n in facts["notes"]))
     check("成本量不到（None）：其他依據照常", ids(diagnose(roster, used, None, both)["agents"]["claude"], "remove")
           == ["remove:skill:old@~/.claude/skills", "remove:skill:bad@~/.claude/skills", "remove:skill:mem2@~/.claude/skills"])
 
@@ -547,7 +560,7 @@ def selftest():
           in "\n".join(render(facts, agent, chosen)))
     check("建議：沒挑的候選只列數量；剛裝的與沒有使用紀錄的也交代",
           "候選裡沒有挑的：裝 1 個、拿掉 3 個、用內建的就好 3 個" in text and "先不判斷：4 個" in text
-          and "沒有使用紀錄可以判斷（例如 MCP）：2 個" in text and "- 備註" in text)
+          and "沒有使用紀錄可以判斷（例如 MCP）：2 個" in text and "- 備註" in text and "- 這個 profile 還沒選領域" in text)
     bad = {"agent": "claude", "picks": [{"id": "install:not-listed", "reason": "自己想到的工具"},
                                         {"id": "install:fe", "reason": ""}, {"id": "native:browser", "reason": "內建就夠用了"},
                                         {"id": "native:browser", "reason": "內建就夠用了"}]}

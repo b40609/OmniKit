@@ -1,17 +1,24 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = []
+# dependencies = ["pyyaml", "jsonschema"]
+#
+# [tool.uv]
+# exclude-newer = "2026-11-01T00:00:00Z"
 # ///
 """OmniKit 掃描：列出這台電腦的 agent 環境，給 omnikit-setup 訪談用。輸出 JSON。
 
 只看存在與否、名稱與版本：不輸出金鑰、token、環境變數的值，規則檔只算行數、不輸出內容，
 MCP 只列名稱。版本號是執行各工具的 --version 拿到的；agent 本身不執行，只看設定目錄與 PATH。
 
+另外列出名冊的領域（訪談第 1 題的選項），並依線索預選：專案資料夾裡的檔名（只看檔名，不讀內容）、
+上次訪談寫的背景、上次選過的領域。預選只是建議，使用者可以改。
+
 用法：
-  uv run engine/scripts/scan.py
+  uv run engine/scripts/scan.py [--project <專案資料夾>]
   uv run engine/scripts/scan.py --selftest
 """
 import argparse
+import fnmatch
 import getpass
 import json
 import os
@@ -26,6 +33,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import profiles  # noqa: E402  這台選的 profile
+import validate  # noqa: E402  讀模組檔
 
 # OmniKit 接得上的 agent（agents.py 會設定的）；其他的只回報有沒有裝
 SUPPORTED = {"claude-code", "codex", "antigravity"}
@@ -127,6 +135,46 @@ def rules_info(path):
     }
 
 
+SKIP_DIRS = {"node_modules", "__pycache__", "venv", "dist", "build", "target"}
+MAX_NAMES = 5000  # 專案很大時只看前面這麼多個檔名
+
+
+def project_names(project):
+    """專案資料夾裡的檔名：最上層與往下兩層，略過 . 開頭與套件資料夾。只回檔名，不讀內容。"""
+    names = []
+    if not project or not Path(project).is_dir():
+        return names
+    root = Path(project)
+    for folder, dirs, files in os.walk(root):
+        depth = len(Path(folder).relative_to(root).parts)
+        dirs[:] = [] if depth >= 2 else [d for d in dirs if not d.startswith(".") and d not in SKIP_DIRS]
+        names += files
+        if len(names) >= MAX_NAMES:
+            break
+    return names[:MAX_NAMES]
+
+
+def domain_options(data, project=None, previous=None):
+    """訪談第 1 題的選項：名冊的每個領域，加上預選的依據。上次選過的照舊；沒選過才看專案的檔名與背景的關鍵字。"""
+    previous = previous or {}
+    before = previous.get("domains") or []
+    names = [n.lower() for n in project_names(project)]
+    text = str(previous.get("background") or "").lower()
+    out = []
+    for m in validate.load_modules(data)[1]:
+        if m["kind"] != "domain":
+            continue
+        signals = m.get("signals") or {}
+        why = ["上次選過"] if m["id"] in before else []
+        if not before:
+            hits = [p for p in signals.get("files", []) if any(fnmatch.fnmatch(n, p.lower()) for n in names)]
+            words = [k for k in signals.get("keywords", []) if k.lower() in text]
+            why += [f"專案裡有 {'、'.join(hits[:3])}"] if hits else []
+            why += [f"上次寫的背景提到「{'、'.join(words[:3])}」"] if words else []
+        out.append({"id": m["id"], "name": m["name"], "summary": m["summary"], "suggested": bool(why), "why": why})
+    return out
+
+
 def omnikit_state(data, state, tracked=None):
     available = profiles.available(data, state)
     chosen = profiles.chosen(state)
@@ -150,7 +198,7 @@ def omnikit_state(data, state, tracked=None):
     }
 
 
-def scan(home, data, state, which=shutil.which, run=run_version, login=None, git_name=None, tracked=None):
+def scan(home, data, state, which=shutil.which, run=run_version, login=None, git_name=None, tracked=None, project=None):
     agents = []
     for agent_id, name, folders, commands in AGENTS:
         evidence = [f"~/{f}" for f in folders if (home / f).is_dir()]
@@ -174,6 +222,8 @@ def scan(home, data, state, which=shutil.which, run=run_version, login=None, git
         tools[tool] = {"found": bool(path), "version": version, **({"error": error} if error else {})}
 
     omnikit = omnikit_state(data, state, tracked)
+    # 訪談第 1 題的選項與預選；project 是使用者現在的專案資料夾（沒給就只看上次的答案）
+    omnikit["domains"] = domain_options(data, project, omnikit["previous_answers"])
     return {
         "os": {"system": platform.system(), "release": platform.release(), "version": platform.version()},
         "suggested_profile": suggest_name(git_name, login or getpass.getuser(), set(omnikit["profiles"])),
@@ -270,17 +320,42 @@ def selftest():
               and local["omnikit"]["profiles_dir"] == str(state / "profiles"))
         check("建議的名稱不撞 repo 外已經有的", local["suggested_profile"] is None)
 
+        # 訪談第 1 題：領域的選項與預選
+        write(data / "modules" / "domain" / "dev.yaml", "id: dev\nkind: domain\nname: 軟體開發\nsummary: 寫程式\n"
+              "signals:\n  files: ['package.json', '*.csproj']\n  keywords: [前端, API]\n"
+              "slots:\n  - id: s1\n    name: 槽位\n    focus: watch\n    scenarios:\n      - {id: A1, text: 情境}\n")
+        write(data / "modules" / "domain" / "data.yaml", "id: data\nkind: domain\nname: 數據分析\nsummary: 分析資料\n"
+              "signals:\n  files: ['*.ipynb']\n  keywords: [量測]\n"
+              "slots:\n  - id: s2\n    name: 槽位\n    focus: watch\n    scenarios:\n      - {id: B1, text: 情境}\n")
+        write(data / "modules" / "foundation" / "ops.yaml", "id: ops\nkind: foundation\nname: 基礎\nsummary: 每個人都有\n"
+              "slots:\n  - id: s3\n    name: 槽位\n    focus: watch\n    scenarios:\n      - {id: C1, text: 情境}\n")
+        project = tmp / "proj"
+        write(project / "web" / "package.json", "{}")
+        write(project / "node_modules" / "x" / "notes.ipynb", "秘密內容")
+        write(project / "a" / "b" / "c" / "deep.ipynb", "{}")
+        options = {d["id"]: d for d in domain_options(data, project)}
+        check("領域選項：只列領域模組，附名稱與一句說明", list(options) == ["data", "dev"] and options["dev"]["name"] == "軟體開發")
+        check("預選：專案裡有對得上的檔名就預選並寫出依據；套件資料夾與太深的不看",
+              options["dev"]["suggested"] and options["dev"]["why"] == ["專案裡有 package.json"] and not options["data"]["suggested"])
+        check("預選：上次寫的背景有關鍵字也算", domain_options(data, None, {"background": "量測資料處理"})[0]["why"] == ["上次寫的背景提到「量測」"])
+        again = {d["id"]: d for d in domain_options(data, project, {"domains": ["data"], "background": "前端"})}
+        check("預選：上次選過領域就照上次的，不再用檔名或背景猜", again["data"]["why"] == ["上次選過"] and not again["dev"]["suggested"])
+        check("沒給專案資料夾、也沒有上次的答案：照樣列出，都不預選", not any(d["suggested"] for d in domain_options(data)))
+        check("掃描結果帶領域選項，而且不讀檔案內容", [d["id"] for d in scan(home, data, state, which=paths.get, run=fake_run, login="u",
+              project=project)["omnikit"]["domains"]] == ["data", "dev"] and "秘密內容" not in json.dumps(options, ensure_ascii=False))
+
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="列出這台電腦的 agent 環境（JSON）")
+    parser.add_argument("--project", type=Path, help="使用者現在的專案資料夾：依裡面的檔名預選領域（只看檔名）")
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args(argv)
     if args.selftest:
         return selftest()
-    result = scan(Path.home(), profiles.DATA, profiles.STATE, git_name=git_user_name())
+    result = scan(Path.home(), profiles.DATA, profiles.STATE, git_name=git_user_name(), project=args.project)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

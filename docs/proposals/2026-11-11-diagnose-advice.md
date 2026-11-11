@@ -121,9 +121,33 @@
 
 - 即時上網找名冊以外的候選：排在候選池之後。
 - 自動安裝或自動移除：一律等使用者同意。
-- 依領域只看啟用的模組：要等 profile 能選領域，現在看全部模組。
+- ~~依領域只看啟用的模組~~：已做，見下面「選領域」一節。
 - 重複安裝的偵測：`usage.py` 的摘要已經有，還沒接進候選。
 - Antigravity：只接規則，不出建議。
+
+## 選領域（2026-11-11 加上）
+
+訪談第 1 題從「主要用 agent 做什麼」改成選領域，選的結果存在 profile 的 `domains.yaml`。建議只看基礎模組、選的領域，以及領域帶入的能力模組。
+
+查到的做法分兩條路，沒有一家用「先問角色再鎖住推薦」當唯一入口：
+
+| 做法 | 例子 | 怎麼選 | 事後怎麼改 |
+|---|---|---|---|
+| 只偵測、不問 | Anthropic 官方的 claude-code-setup、JetBrains 的 plugin 推薦、skillkit | 讀專案的設定檔或開啟的檔案類型，給建議 | 「不要再建議」，或手動重查 |
+| 讓使用者明確選 | VS Code 的 Profiles 範本、everything-claude-code 的 `--profile`、BMAD 的安裝精靈 | 單選範本或指定模組 | 重跑同一個指令 |
+| 依職能分 plugin，自己挑 | Anthropic 的 knowledge-work-plugins（11 個職能） | 沒有題目，照名稱裝 | 停用或移除 |
+
+來源：<https://raw.githubusercontent.com/anthropics/claude-plugins-official/main/plugins/claude-code-setup/skills/claude-automation-recommender/SKILL.md>、<https://plugins.jetbrains.com/docs/marketplace/intellij-plugin-recommendations.html>、<https://code.visualstudio.com/docs/configure/profiles>、<https://raw.githubusercontent.com/anthropics/knowledge-work-plugins/main/README.md>、<https://www.nngroup.com/articles/the-power-of-defaults/>。以上是背景調查讀官方文件的結果，我沒有逐項實測。
+
+採用的設計是兩條路並用：
+
+- 掃描先偵測，把對得上的領域預先勾起來，並寫出依據（例如「專案裡有 package.json」）。只看檔名，不讀內容。
+- 使用者複選確認，可以改。選超過 3 個時提醒建議會變多。
+- 上次選過的照上次的，不再用檔名猜。
+- 事後重新訪談，或直接改 `domains.yaml`；刪掉這個檔就是全部模組都看。
+- 手寫的 profile 沒有這個檔，行為跟以前一樣。
+
+連帶的改變：新版訪談不再問「主要用 agent 做什麼」，所以新產生的規則少了那一題對應的通用工作習慣（例如「改程式前先讀相關的程式碼」）。舊的答案檔照樣讀得懂。
 
 ## 已知限制
 

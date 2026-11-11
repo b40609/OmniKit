@@ -17,8 +17,10 @@ description: 用簡短訪談建立或重新設定使用者自己的 OmniKit prof
 ## 1. 掃描
 
 ```
-uv run scripts/setup.py scan
+uv run scripts/setup.py scan --project <使用者現在的專案資料夾>
 ```
+
+`--project` 只用來預選第 1 題的領域：只看資料夾裡的檔名，不讀內容。使用者沒有開專案就不加。
 
 用 3 到 5 行告訴使用者看到什麼：
 
@@ -35,7 +37,7 @@ Claude Code 用 AskUserQuestion（一次最多 4 題）；Codex 一次列出編�
 
 | # | 問題 | 選項 → 答案欄位 |
 |---|---|---|
-| 1 | 你主要用 agent 做什麼？（可複選） | 寫程式 `coding`、資料分析 `data`、文件與簡報 `docs`、研究調查 `research` → `work` |
+| 1 | 你用 agent 做哪幾種工作？（可複選） | 掃描結果 `omnikit.domains` 的每個領域，講 `name` 與 `summary` → `domains`（填領域的 `id`） |
 | 2 | 最想改善哪件事？（最多 2 項） | 回覆太長 `too-long`、常改太多超出要求 `scope-creep`、改完沒驗證就說好了 `no-verification`、不確定時亂猜 `guesses` → `pains`；選「其他」說都還好就是 `[]` |
 | 3 | 回覆的語言與詳略？ | 繁中精簡、繁中詳細、English concise、English detailed → `language`（`zh-TW`／`en`）與 `verbosity`（`concise`／`detailed`） |
 | 4 | agent 可以自己做到哪？ | 每步先問 `cautious`：改檔案、執行指令前先列計畫等你同意；專案內直接做 `balanced`（建議）：下載安裝、改專案以外的才先問；大多放手 `hands-off`：下載安裝也直接做，只有安全底線列的才問 → `autonomy` |
@@ -49,6 +51,11 @@ Claude Code 用 AskUserQuestion（一次最多 4 題）；Codex 一次列出編�
 
 補充：
 
+- 第 1 題決定之後給建議時看哪些槽位：只看選的領域、它們帶入的能力（瀏覽器、Office 檔等），以及每個人都有的基礎模組。
+  - `suggested` 是 true 的領域先幫使用者勾起來，並把 `why` 講出來（例如「專案裡有 package.json」）。預選只是建議，使用者可以改。
+  - 領域超過 4 個，Claude Code 的 AskUserQuestion 放不下：這一題改成列出編號清單，請使用者回編號，或說「照建議」。
+  - 選超過 3 個時提醒一句：選越多，建議會越多。
+  - 都不符合：先選最接近的一個，並把實際的工作寫進第 6 題的 `background`。
 - 第 2 題選了「回覆太長」、第 3 題又選「詳細」：兩者矛盾，請使用者擇一。
 - profile 名稱用掃描的 `suggested_profile`（重新設定時用上次的名稱），在預覽時請使用者確認；沒有建議就問。名稱只能用小寫英數與 `-`，不能叫 `default`。
 - 專案名稱不能有 `<`、`>`。
@@ -63,7 +70,7 @@ Claude Code 用 AskUserQuestion（一次最多 4 題）；Codex 一次列出編�
   "language": "zh-TW",
   "verbosity": "concise",
   "autonomy": "balanced",
-  "work": ["coding", "data"],
+  "domains": ["software-dev", "data-science"],
   "pains": ["scope-creep"],
   "background": "產線設備資料蒐集與分析，Python 與 PLC",
   "projects": {"main": "產線監控系統", "frontend": "監控儀表板"},
@@ -81,6 +88,7 @@ uv run scripts/setup.py profile --answers <answers_file>
 
 - 這份會跟安全底線（`data/rules/baseline.md`：刪除、對外發送、付款前先確認，不碰金鑰；push 要不要先問，依授權程度寫在 profile）一起生效，底線不能放寬。
 - 有 `scenarios.yaml` 的話，評估工具時會用這些情境當考題。
+- `domains.yaml` 是第 1 題選的領域；之後想改，重新訪談，或直接改這個檔。
 - 預覽最後有「套用時不裝 omnikit-eval」（第 5 題選了先不要）：照實告訴使用者，評估新工具不會有；個人週報（`omnikit-weekly`，說「OmniKit 本週週報」）照樣有。
 
 問「照這樣建立嗎？」。要改就回到對應的題目，改完重新預覽。

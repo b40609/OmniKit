@@ -3,7 +3,8 @@
   "title": "OmniKit 訪談答案",
   "description": "omnikit-setup 訪談的答案；engine/scripts/profile_new.py 依這份產生 repo 外的 %LOCALAPPDATA%\\omnikit\\profiles\\<name>\\。",
   "type": "object",
-  "required": ["name", "language", "verbosity", "autonomy", "work", "pains", "evaluate_tools"],
+  "required": ["name", "language", "verbosity", "autonomy", "pains", "evaluate_tools"],
+  "anyOf": [{ "required": ["domains"] }, { "required": ["work"] }],
   "additionalProperties": false,
   "properties": {
     "name": {
@@ -19,8 +20,15 @@
       "description": "cautious：改檔案前先問；balanced：專案內直接做，下載安裝與專案外先問；hands-off：大多直接做",
       "enum": ["cautious", "balanced", "hands-off"]
     },
+    "domains": {
+      "description": "做哪幾種業務：領域模組的 id（data/modules/domain/）。給建議時只看這些領域、它們帶入的能力，以及基礎模組",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" }
+    },
     "work": {
-      "description": "主要用 agent 做什麼",
+      "description": "舊版訪談第 1 題（主要用 agent 做什麼），新版改問 domains；舊的答案檔還讀得懂，有填就照樣寫進工作習慣",
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
