@@ -7,8 +7,11 @@
 只讀本機的紀錄，不上傳；只輸出名稱、對話數與日期，不輸出對話內容。
 
 算「用到」的，都是實際讀取或呼叫，不是每段對話開頭列出來的 skill 清單：
-- Claude Code：~/.claude/projects 對話紀錄裡的 Skill 工具呼叫與 slash 指令；~/.claude.json 的 skillUsage
-  （最後使用時間）。plugin 另外看 pluginUsage 的累計使用次數：用過一次就不算「沒用到」
+- Claude Code：~/.claude/projects 對話紀錄裡，assistant 的 Skill 工具呼叫，與使用者下的 slash 指令（使用者訊息
+  一開頭就是指令標記）。agent 讀到的檔案內容、指令輸出、子 agent 與背景對話的任務說明、API 請求的副本裡出現
+  同樣的字樣，不算。另外看 ~/.claude.json 的 skillUsage（最後使用時間）；plugin 再看 pluginUsage 的累計使用
+  次數：用過一次就不算「沒用到」
+- 時間：Claude Code 與 Codex 的紀錄都是 UTC；沒寫時區的也當 UTC，不當本地時間
 - Codex：~/.codex/sessions 的 rollout 裡，執行指令讀了 skills/<名稱>/SKILL.md；路徑在
   ~/.codex/plugins/cache/<marketplace>/<plugin>/ 底下的，算那個 plugin 用到
 - Antigravity：~/.gemini/antigravity*/conversations/*.db 裡 view_file 讀 SKILL.md、IsSkill 是 true 的步驟；
@@ -51,9 +54,9 @@ SKILL_DIRS = [
 ]
 ANTIGRAVITY_HOMES = ("antigravity", "antigravity-cli", "antigravity-ide")
 
-TOOL = re.compile(rb'"name":"Skill","input":\{"skill":"([^"]+)"')
-SLASH = re.compile(rb"<command-name>/?([A-Za-z0-9_.:-]+)</command-name>")
-STAMP = re.compile(rb'"timestamp":"([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+)Z?"')
+# 使用者下的 slash 指令：訊息一開頭就是指令標記（前面可以有 <command-message>）
+COMMAND = re.compile(r"\s*(?:<command-message>[^<]*</command-message>\s*)?<command-name>/?([A-Za-z0-9_.:-]+)</command-name>")
+STAMP = re.compile(rb'"timestamp":"([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+(?:Z|[+-][0-9]{2}:?[0-9]{2})?)"')
 SKILL_PATH = re.compile(r"skills[\\/]+([A-Za-z0-9_.:-]+)[\\/]+SKILL\.md")
 AG_READ = re.compile(rb'"AbsolutePath":"((?:[^"\\]|\\.)*?)SKILL\.md","IsSkill":true')
 CODEX_CALLS = {"function_call", "custom_tool_call", "local_shell_call"}
@@ -67,10 +70,12 @@ FRONT_NAME = re.compile(r"(?m)^name:\s*['\"]?([^'\"\r\n]+?)['\"]?\s*$")
 
 
 def parse_time(text):
+    """ISO 時間換成 epoch 秒。沒寫時區的當 UTC（agent 的紀錄都是 UTC），不當本地時間。"""
     try:
-        return datetime.fromisoformat(str(text).replace("Z", "+00:00")).timestamp()
+        when = datetime.fromisoformat(str(text).replace("Z", "+00:00"))
     except ValueError:
         return None
+    return (when if when.tzinfo else when.replace(tzinfo=timezone.utc)).timestamp()
 
 
 def created(path):
@@ -91,9 +96,43 @@ def recent(paths, since):
 
 
 def note(events, agent, name, session, when):
+    """記一次用到。session 是 None：只知道最後使用時間（Claude Code 的 skillUsage），算用到，但不算一段對話。"""
     use = events.setdefault(agent, {}).setdefault(name, {"sessions": set(), "last": 0.0})
-    use["sessions"].add(session)
+    if session is not None:
+        use["sessions"].add(session)
     use["last"] = max(use["last"], when)
+
+
+def claude_calls(raw):
+    """Claude Code 對話紀錄的一行 → (實際呼叫的 skill 與 slash 指令名稱, 這一行的紀錄)。cost.py 也用。
+
+    只算兩種：assistant 訊息裡的 Skill 工具呼叫；使用者訊息一開頭就是 slash 指令的標記（使用者下的指令）。
+    同樣的字樣出現在工具輸出、訊息中間、子 agent 的任務說明（isSidechain，主 agent 寫的）、skill 載入後補的
+    說明（isMeta）或 API 請求的副本（type 不是 user、assistant）裡，都是讀到的文字，不算。
+    """
+    if b'"Skill"' not in raw and b"<command-name>" not in raw:
+        return [], None
+    try:
+        d = json.loads(raw)
+    except ValueError:
+        return [], None
+    if not isinstance(d, dict):
+        return [], None
+    message = d.get("message") if isinstance(d.get("message"), dict) else {}
+    content = message.get("content")
+    blocks = [b for b in content if isinstance(b, dict)] if isinstance(content, list) else []
+    names = []
+    if d.get("type") == "assistant":
+        for b in blocks:
+            if b.get("type") == "tool_use" and b.get("name") == "Skill" and isinstance(b.get("input"), dict):
+                names.append(b["input"].get("skill"))
+    elif d.get("type") == "user" and not d.get("isSidechain") and not d.get("isMeta"):
+        texts = [content] if isinstance(content, str) else [b.get("text") for b in blocks if b.get("type") == "text"]
+        for text in texts:
+            m = COMMAND.match(text) if isinstance(text, str) else None
+            if m:
+                names.append(m.group(1))
+    return [n.lstrip("/") for n in names if isinstance(n, str) and n.strip("/")], d
 
 
 def claude_events(home, since, events):
@@ -106,17 +145,14 @@ def claude_events(home, since, events):
             continue
         with f:
             for line in f:
-                if b'"Skill"' not in line and b"command-name" not in line:
-                    continue
-                names = [m.group(1) for m in TOOL.finditer(line)] + [m.group(1) for m in SLASH.finditer(line)]
+                names, record = claude_calls(line)
                 if not names:
                     continue
-                m = STAMP.search(line)
-                when = (parse_time(m.group(1).decode()) if m else None) or p.stat().st_mtime
+                when = parse_time(record.get("timestamp")) or p.stat().st_mtime
                 if when < since:
                     continue
                 for name in names:
-                    note(events, "claude-code", name.decode("utf-8", "replace"), str(p), when)
+                    note(events, "claude-code", name, str(p), when)
     try:
         doc = json.loads((home / ".claude.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -124,7 +160,7 @@ def claude_events(home, since, events):
     for name, v in (doc.get("skillUsage") or {}).items():
         when = (v.get("lastUsedAt") or 0) / 1000 if isinstance(v, dict) else 0
         if when >= since:
-            note(events, "claude-code", name, "skillUsage", when)
+            note(events, "claude-code", name, None, when)
     return len(files), {k: (v.get("usageCount") or 0) for k, v in (doc.get("pluginUsage") or {}).items()
                         if isinstance(v, dict)}
 
@@ -275,14 +311,15 @@ def inventory(home, ours, created_at):
 
 
 def judge(item, events, plugin_counts, now, days):
-    sessions, last = set(), 0.0
+    sessions, last, seen = set(), 0.0, False
     for agent in item["agents"]:
         for name, use in (events.get(agent) or {}).items():
             if name in item["match"] or (item.get("prefix") and name.startswith(item["prefix"])):
+                seen = True
                 sessions |= use["sessions"]
                 last = max(last, use["last"])
     age = int((now - item["installed"]) / DAY) if item.get("installed") else None
-    if sessions:
+    if seen:
         status = "used"
     elif item["kind"] == "plugin" and "claude-code" in item["agents"] and plugin_counts.get(item["name"], 0) > 0:
         status = "used"  # Claude Code 記的累計次數：用過就不建議移除（Codex 的同名 plugin 不適用）
@@ -393,16 +430,42 @@ def selftest():
         for name in ("search-first", "lean-build", "agent-reach", "itri-work-agent"):
             skill(".gemini/config/skills", name)
 
+        for name in ("read-only", "edge-one"):
+            skill(".claude/skills", name)
+
+        def line(record):
+            return json.dumps(record, ensure_ascii=False, separators=(",", ":"))
+
+        def skill_call(name, days_ago, kind="assistant"):
+            return line({"type": kind, "timestamp": iso(days_ago), "message": {"content": [
+                {"type": "tool_use", "name": "Skill", "input": {"skill": name}}]}})
+
+        marker = "<command-name>/read-only</command-name>"
         put(".claude/projects/p/a.jsonl", "\n".join([
-            json.dumps({"timestamp": iso(2), "message": {"content": [
-                {"type": "tool_use", "name": "Skill", "input": {"skill": "caveman"}}]}}, separators=(",", ":")),
-            json.dumps({"timestamp": iso(3), "message": {"content": "<command-name>/ponytail:ponytail</command-name> 秘密內容"}}),
-            json.dumps({"timestamp": iso(1), "message": {"content": "<command-name>/real-name</command-name>"}}),
-            json.dumps({"timestamp": iso(40), "message": {"content": [
-                {"type": "tool_use", "name": "Skill", "input": {"skill": "oldie"}}]}}, separators=(",", ":")),
+            skill_call("caveman", 2),
+            line({"type": "user", "timestamp": iso(3), "message": {"content": "<command-message>ponytail:ponytail</command-message>\n"
+                  "<command-name>/ponytail:ponytail</command-name>\n<command-args>秘密內容</command-args>"}}),
+            line({"type": "user", "timestamp": iso(1), "message": {"content": [
+                {"type": "text", "text": "<command-name>/real-name</command-name>"}]}}),
+            skill_call("oldie", 40),
+            skill_call("edge-one", 29.9),  # 離 30 天的邊界 2.4 小時：UTC 被當成本地時間的話，在 UTC+8 會掉到範圍外
+            # 以下都是 agent 讀到的文字，不是使用者下的指令，也不是 Skill 工具呼叫
+            line({"type": "user", "timestamp": iso(1), "message": {"content": [
+                {"type": "tool_result", "tool_use_id": "t1", "content": f"讀到的檔案內容 {marker}"}]},
+                "toolUseResult": {"file": {"content": marker}}}),
+            line({"type": "user", "timestamp": iso(1), "message": {"content": [
+                {"type": "text", "text": f"Condense the tool payload below. {marker}"}]}}),
+            line({"type": "user", "timestamp": iso(1), "isSidechain": True, "message": {"content": marker}}),
+            line({"type": "user", "timestamp": iso(1), "isMeta": True, "message": {"content": marker}}),
+            line({"type": "assistant", "timestamp": iso(1), "message": {"content": [{"type": "text", "text": f"說明用法：{marker}"}]}}),
+            line({"type": "api-request-blob", "message": {"content": [{"type": "text", "text": marker}]}}),
+            line({"type": "user", "timestamp": iso(1), "message": {"content": [{"type": "tool_result", "tool_use_id": "t2", "content": "x"}]},
+                  "toolUseResult": {"name": "Skill", "input": {"skill": "read-only"}}}),
+            skill_call("read-only", 1, kind="api-request-blob"),
         ]) + "\n")
         put(".claude.json", json.dumps({
-            "skillUsage": {"graphify": {"usageCount": 2, "lastUsedAt": (now - DAY) * 1000}},
+            "skillUsage": {"graphify": {"usageCount": 2, "lastUsedAt": (now - DAY) * 1000},
+                           "caveman": {"usageCount": 3, "lastUsedAt": (now - DAY) * 1000}},
             "pluginUsage": {"ponytail@ponytail": {"usageCount": 0}, "floorplan@floorplan": {"usageCount": 0},
                             "claude-mem@thedotmack": {"usageCount": 4845}, "shared@x": {"usageCount": 5}}}))
         put(".claude/plugins/installed_plugins.json", json.dumps({"version": 2, "plugins": {
@@ -474,6 +537,13 @@ def selftest():
         check("Claude：skillUsage 的最後使用時間算用到", status("graphify", "~/.claude/skills") == "used")
         check("Claude：用 SKILL.md 裡的 name 叫出來也算", status("renamed", "~/.claude/skills") == "used")
         check("Claude：超過天數的呼叫不算", status("oldie", "~/.claude/skills") == "unused")
+        check("Claude：讀到的文字不算用到（工具輸出、任務說明、回答、API 請求副本裡的 slash 指令標記與 Skill 字樣）",
+              status("read-only", "~/.claude/skills") == "unused")
+        check("時間：紀錄的 UTC 照 UTC 算，沒寫時區的也當 UTC，不當本地時間",
+              STAMP.search(b'{"timestamp":"2026-11-04T12:00:00.000Z"}').group(1) == b"2026-11-04T12:00:00.000Z"
+              and parse_time("2026-11-04T12:00:00.000Z") == now and parse_time("2026-11-04T12:00:00") == now
+              and parse_time("2026-11-04T20:00:00+08:00") == now)
+        check("時間：離 30 天邊界幾小時內的呼叫照樣算", status("edge-one", "~/.claude/skills") == "used")
         check("沒用到的 skill", status("unused-one", "~/.claude/skills") == "unused")
         check("裝不到 30 天：先不判斷", status("new-one", "~/.claude/skills") == "new")
         check("OmniKit 自己的 skill 不列", ("omnikit-eval", "~/.claude/skills") not in by)
@@ -489,6 +559,10 @@ def selftest():
         check("plugin：剛裝的先不判斷", status("fresh@x", "~/.claude/plugins") == "new")
         check("記錄對話數與最後使用日期", by[("caveman", "~/.claude/skills")]["conversations"] == 1
               and by[("caveman", "~/.claude/skills")]["last_used"] is not None)
+        check("對話數只算對話紀錄裡的呼叫：skillUsage 只有最後使用時間，算用到、更新日期，不多算一段對話",
+              by[("graphify", "~/.claude/skills")]["conversations"] == 0 and by[("graphify", "~/.claude/skills")]["last_used"] is not None
+              and by[("caveman", "~/.claude/skills")]["last_used"] == by[("graphify", "~/.claude/skills")]["last_used"]
+              and by[("ponytail@ponytail", "~/.claude/plugins")]["conversations"] == 1)
         cx = "~/.codex/plugins"
         check("Codex plugin：讀了 plugin 裡的 SKILL.md 算那個 plugin 用到",
               status("claude-mem@claude-mem-local", cx) == "used" and by[("claude-mem@claude-mem-local", cx)]["skills"] == 2)

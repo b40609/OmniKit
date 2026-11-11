@@ -211,9 +211,8 @@ def read_claude(path, plugins, since, top=True):
                         s.output += int(u.get("output_tokens") or 0)
                 for m in MCP_CALL.finditer(raw):
                     s.used.add(mcp_tool(m.group(1).decode("utf-8", "replace")))
-            if b'"Skill"' in raw or b"command-name" in raw:
-                for m in [*usage.TOOL.finditer(raw), *usage.SLASH.finditer(raw)]:
-                    s.used.add(skill_tool(m.group(1).decode("utf-8", "replace")))
+            for name in usage.claude_calls(raw)[0]:  # 只算 Skill 工具呼叫與使用者下的 slash 指令，讀到的文字不算
+                s.used.add(skill_tool(name))
     s.parts = first_turn_parts(attachments, plugins)
     return s
 
@@ -715,7 +714,13 @@ def selftest():
                 content = [{"type": "tool_use", "name": "Skill", "input": {"skill": "claude-mem:mem-search"}}]
             if i == 5:
                 content = [{"type": "tool_use", "name": "Skill", "input": {"skill": "caveman"}}]
-            jsonl(projects / f"s{i:02d}.jsonl", [start(days), assistant(f"a{i}", days, fresh=10, made=70000 + i, out=10, content=content)])
+            extra = []
+            if i == 2:  # agent 讀到的文字裡有 slash 指令的標記與 Skill 字樣：不是使用者下的指令，不算用到
+                extra = [{"type": "user", "timestamp": iso(days), "message": {"role": "user", "content": [
+                    {"type": "tool_result", "tool_use_id": "t1", "content": f"<command-name>/{heavy}</command-name>"}]},
+                    "toolUseResult": {"name": "Skill", "input": {"skill": heavy}}}]
+            jsonl(projects / f"s{i:02d}.jsonl", [start(days), assistant(f"a{i}", days, fresh=10, made=70000 + i, out=10, content=content),
+                                                 *extra])
         # 子 agent 的紀錄：用到的工具算進主對話
         jsonl(projects / "s01" / "subagents" / "agent-x.jsonl", [start(1), assistant("sub1", 1, made=10, content=[
             {"type": "tool_use", "name": "Skill", "input": {"skill": "caveman"}}])])
@@ -811,6 +816,8 @@ def selftest():
         r = rows[("claude-code", f"skill:{heavy}")]
         check("B：成本高、14 天內與最近 10 段對話都沒用到：列為成本高又沒在用（不用等 30 天）",
               r["idle"] and r["used_14d"] == 0 and r["used_last10"] == 0 and r["week"] == r["tokens"] * r["convs_week"])
+        check("B：讀到的文字不算用到（工具輸出裡的 slash 指令標記與 Skill 字樣）", r["used_14d"] == 0 and r["used_last10"] == 0)
+        check("對話的開始時間照 UTC 算，不當本地時間", read_claude(projects / "s00.jsonl", set(), 0).start == now - 0.5 * DAY)
         check("B：這 7 天的對話數只算互動的", rows[("claude-code", "skill:caveman")]["convs_week"] == 7)
         mem = rows[("claude-code", "plugin:claude-mem")]
         check("B：裝好之後還不到 10 段對話：先不判斷", not mem["judged"] and not mem["idle"])
