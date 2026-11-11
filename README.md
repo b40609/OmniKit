@@ -314,7 +314,7 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 在 Claude Code 或 Codex 裡說「OmniKit 給我建議」（跟個人週報同一個 `omnikit-weekly`）。agent 只看自己那一邊，分三類回報：
 
-- **裝**：名冊建議、這台還沒裝的。
+- **裝**：名冊建議、這台還沒裝的。名冊還沒有答案的槽位，另外列名冊外的候選（見下面「名冊外的候選」）。
 - **拿掉**：30 天沒用到的；開頭成本高又沒在用的；名冊上是拒絕或退役的；同一件事名冊記了內建功能、而這份裝了一週以上從沒用到的。
 - **用內建的就好**：名冊記了有內建功能的槽位。還沒實測的會註明。
 
@@ -325,9 +325,17 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 - 拿掉規則沒有逐條實測過，建議裡會寫明：拿掉之後用幾天，少了什麼再加回來。
 - Claude Code 內建的 `/doctor` 也會檢查規則檔；這一節補的是成本、Codex 那一邊，以及 OmniKit 管的來源檔要去哪裡改。
 
+**名冊外的候選**：名冊還沒有答案、也沒有可以裝的卡的槽位，`engine/scripts/pool.py` 會去三個地方找：
+
+- Anthropic 的官方 plugin 目錄（只給 Claude Code）、OpenAI 的官方 plugin 目錄（只給 Codex；這台有 Codex 就讀它自己同步下來的那份）。
+- 官方 MCP Registry：用槽位的關鍵字查，只留有 GitHub repo 的。
+- agent 自己上網找到的：交給腳本檢查過才會變成候選。
+
+每一筆都查 GitHub 現況：封存的、名冊記了「別裝」的不列；沒有授權、一年沒更新、建立不到 14 天、星數不到 50 會標出來。這些候選**沒有實測過，也沒有做安全掃描**，建議裡會寫明「名冊外」。找的時候會連網，送出去的只有槽位的關鍵字；結果存在 `%LOCALAPPDATA%\omnikit\pool\`，7 天內不重抓。
+
 做法分三步：
 
-1. 腳本算出事實與候選：`uv run engine/scripts/advise.py`，輸出 JSON。只讀這台，不連網、不寫檔。
+1. 腳本算出事實與候選：`uv run engine/scripts/advise.py`，輸出 JSON。只讀這台，不連網、不寫檔（名冊外的候選是 `pool.py find` 事先找好的）。
 2. agent 只能在候選裡挑，每一項寫理由。
 3. 腳本驗證挑選，寫出建議，存在 `%LOCALAPPDATA%\omnikit\advice\<日期>-<agent>.md`。候選以外的、沒寫理由的會被擋下來。
 

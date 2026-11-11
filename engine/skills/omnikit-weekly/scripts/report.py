@@ -12,6 +12,8 @@
   uv run scripts/report.py [--days 30] [--no-save]                      個人週報
   uv run scripts/report.py advise [--agent claude|codex]                建議的事實與候選（JSON）
   uv run scripts/report.py advise --picks <檔> [--no-save]              驗證挑選，寫出建議
+  uv run scripts/report.py pool find                                    名冊沒有答案的槽位，找名冊外的候選（會連網）
+  uv run scripts/report.py pool add --slot <id> --file <檔>             記下 agent 上網找到的候選
 """
 import json
 import os
@@ -45,6 +47,9 @@ def main():
     if sys.argv[1:2] == ["advise"]:
         import advise
         return advise.main(sys.argv[2:])
+    if sys.argv[1:2] == ["pool"]:
+        import pool
+        return pool.main(sys.argv[2:])
     import weekly
     return weekly.main(sys.argv[1:])
 

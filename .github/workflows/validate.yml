@@ -59,6 +59,7 @@ jobs:
       # 才寫得出建議；不連網、不寫檔。skill 入口跟個人週報共用，能找到 repo
       # 規則檔瘦身：照對話紀錄實際載入的規則檔算大小，拆成一條一條，安全底線不會變成候選
       - run: uv run engine/scripts/rules.py --selftest
+      - run: uv run engine/scripts/pool.py --selftest
       - run: uv run engine/scripts/advise.py --selftest
       - run: uv run engine/skills/omnikit-weekly/scripts/report.py advise > /dev/null
 

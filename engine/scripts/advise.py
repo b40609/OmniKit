@@ -22,6 +22,8 @@
   沒有使用紀錄可以判斷的（例如 MCP），不會只因為「沒看到用」就列進來。
 - 用內建的就好（native）：槽位的答案是「內建就夠」；還沒實測的，名冊記了內建功能也列（註明還沒實測）。
   同一個槽位這台裝了第三方工具的，一併列出來給 agent 判斷。
+  槽位還沒有答案、名冊也沒有可以裝的卡時，列候選池找到的名冊外候選（pool.py find 事先找好存在本機的；
+  這支腳本只讀那個檔）。每一筆都註明名冊外、沒有實測過，依據只有外部訊號。
 OmniKit 自己的 skill 與 MCP、只有維護者才啟用的模組（同事版）不列。只輸出名稱、次數與日期，不輸出對話內容。
 
 另外一節是規則檔瘦身（rules，見 rules.py）：每段對話實際載入的規則檔有多大、佔對話開頭多少，以及裡面的每一條規則。
@@ -45,6 +47,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cost  # noqa: E402
 import edition as editions  # noqa: E402
+import pool  # noqa: E402
 import profiles  # noqa: E402
 import rules  # noqa: E402
 import scan  # noqa: E402
@@ -97,6 +100,54 @@ def how_install(card, agent, cfg, added):
     return {"commands": [], "note": "名冊沒有這張卡的 plugin 來源，照官方說明安裝" + (f"：{card['url']}" if card.get("url") else "")}
 
 
+def signal_text(e):
+    """名冊外候選的外部訊號：哪個來源、GitHub 現況、要注意的旗標。"""
+    how = {"web": "（剛查到）", "registry": " 登記（不審核）"}.get(e["source"], "收錄")
+    parts = [pool.SOURCES[e["source"]] + how]
+    hub = e.get("github")
+    if hub:
+        parts.append(f"GitHub {hub.get('stars')} 星、最近更新 {hub.get('pushed') or '不明'}、授權 {hub.get('license') or '沒有標'}")
+    elif not e.get("repo"):
+        parts.append("沒有自己的 GitHub repo 可以查現況")
+    if e.get("flags"):
+        parts.append("注意：" + "、".join(pool.FLAGS[f] for f in e["flags"]))
+    return "；".join(parts)
+
+
+def how_pool(e, agent, markets):
+    """名冊外候選怎麼裝：目錄登記了這個 agent 的安裝方式才給指令，而且寫明沒有實際執行過。"""
+    how = (e.get("install") or {}).get(agent)
+    if not how:
+        return {"commands": [], "note": (e.get("install_note") or "照來源的說明安裝") + f"：{e['url']}"}
+    commands = [how["add"]] if how.get("add") and how.get("marketplace") not in (markets or set()) else []
+    return {"commands": commands + [how["command"]],
+            "note": "指令是照目錄登記的資料組出來的，OmniKit 沒有實際執行過；裝好之後開新的對話才會載入。"}
+
+
+def pool_candidates(roster, edition, agent, pooled, taken, markets, today):
+    """槽位還沒有答案、名冊也沒有可以裝的卡：列候選池裡支援這個 agent、這台還沒裝的。回傳（候選, 這些槽位的概況）。"""
+    saved = (pooled or {}).get("slots") or {}
+    cands, overview = [], []
+    for s in pool.open_slots(roster, edition):
+        if agent not in s["agents"]:
+            continue
+        got = saved.get(s["slot"]) or {}
+        mine = [e for e in got.get("candidates") or [] if agent in e["agents"]
+                and not {pool.norm(e["name"]), pool.norm(e["id"].split(":", 1)[-1].split("/")[-1])} & taken]
+        searched = got.get("searched")
+        overview.append({"slot": s["slot"], "slot_name": s["slot_name"], "module": s["module"], "keywords": s["keywords"],
+                         "searched": searched, "stale": bool(searched) and not pool.fresh(searched, today, pool.FRESH_DAYS * 2),
+                         "candidates": len(mine)})
+        for e in mine:
+            cands.append({
+                "id": f"pool:{s['slot']}:{e['id']}", "tool": None, "name": e["name"], "kind": e["kind"], "status": "outside",
+                "slot": s["slot"], "slot_name": s["slot_name"], "module": s["module"], "outside": True,
+                "description": e.get("description"),
+                "basis": {"code": "pool", "text": signal_text(e), "caveat": pool.CAVEAT}, "url": e["url"],
+                "detectable": e["kind"] in DETECTABLE, "how": how_pool(e, agent, markets)})
+    return cands, overview
+
+
 def how_remove(item, agent):
     """同意後怎麼拿掉：plugin 與 MCP 用原生指令；單一 skill 兩邊都沒有原生指令，只能刪資料夾。"""
     kind, name = item["kind"], item["name"]
@@ -133,7 +184,8 @@ def rule_candidates(loaded, startup):
     return summary, out
 
 
-def diagnose(roster, used, costs, found, edition="colleague", added=None, today=None, notes=(), loaded_rules=None):
+def diagnose(roster, used, costs, found, edition="colleague", added=None, today=None, notes=(), loaded_rules=None,
+             pooled=None, markets=None):
     """純計算：名冊、使用統計（usage.collect 的結果，可以多帶 MCP）、成本（cost.measure 的結果或 None）→ 事實與候選。"""
     cfg, tools, added = roster.get("config") or {}, roster["tools"], added or {}
     third = {k: v for k, v in tools.items() if v.get("kind") != "native"}
@@ -203,6 +255,12 @@ def diagnose(roster, used, costs, found, edition="colleague", added=None, today=
                                            "decided_at": card.get("decided_at"), "trial_until": card.get("trial_until"),
                                            "caveat": f"名冊的{STATUS[card['status']]}，還沒有分 agent 的實測"})
 
+        # 名冊外的候選（候選池）
+        taken = {pool.norm(i["name"].split("@")[0]) for i, _ in pairs}
+        outside, entry["open_slots"] = pool_candidates(roster, edition, agent, pooled, taken, (markets or {}).get(agent),
+                                                       today or date.today())
+        entry["candidates"]["install"] += outside
+
         # 用內建的就好（先算：拿掉的其中一個依據是「跟內建功能重疊又沒用到」）
         for s in slots:
             a = answers[s["id"]]
@@ -247,6 +305,12 @@ def diagnose(roster, used, costs, found, edition="colleague", added=None, today=
         if (loaded_rules or {}).get(agent):
             entry["rules"], entry["candidates"]["rules"] = rule_candidates(
                 loaded_rules[agent], ((costs or {}).get("startup") or {}).get(uid))
+    waiting = {o["slot"]: o for e in out["agents"].values() for o in e.get("open_slots", [])}
+    never, old = sum(not o["searched"] for o in waiting.values()), sum(o["stale"] for o in waiting.values())
+    if never or old:
+        out["notes"].append(f"{len(waiting)} 個槽位名冊還沒有答案也沒有可以裝的卡，其中 {never} 個還沒找過名冊外的候選"
+                            + (f"、{old} 個上次找已經超過 {pool.FRESH_DAYS * 2} 天" if old else "")
+                            + "：先跑 pool.py find（會連網，只送槽位的關鍵字）")
     return out
 
 
@@ -257,6 +321,15 @@ def our_mcp(data):
         return set((validate.load_yaml(path) or {}).get("servers") or {}) if path.exists() else set()
     except Exception:  # 這份壞了由 validate 報，不擋建議
         return set()
+
+
+def markets_added(home):
+    """各 agent 已經加過的 marketplace 名稱。Codex 的官方目錄是內建的，不用另外加。"""
+    try:
+        doc = json.loads((home / ".claude" / "plugins" / "known_marketplaces.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        doc = {}
+    return {"claude": set(doc) if isinstance(doc, dict) else set()}
 
 
 def marketplace_added(home, name):
@@ -294,7 +367,8 @@ def collect(home, data, state, days=30, now=None, plugin_details=cost.details):
         loaded = None
         notes.append(f"規則檔讀不到（{e}）：這次沒有規則檔瘦身")
     return diagnose(roster, used, costs, found, edition=editions.resolve(state, data.parent)[0], added=added,
-                    today=date.fromtimestamp(now), notes=notes, loaded_rules=loaded)
+                    today=date.fromtimestamp(now), notes=notes, loaded_rules=loaded,
+                    pooled=pool.load(state / "pool" / "slots.json", None), markets=markets_added(home))
 
 
 # ---------- 驗證挑選、寫出建議 ----------
@@ -340,6 +414,8 @@ def basis_text(basis):
     if code == "answer-unknown":
         # 給 agent 的 JSON 帶比較長的說明；給使用者看的建議只留開頭
         return f"{basis['caveat']}。名冊記的內建功能：{text if len(text) <= BRIEF else text[:BRIEF] + '…'}"
+    if code == "pool":
+        return f"{basis['caveat']}。{text}"
     return text
 
 
@@ -352,7 +428,10 @@ def usage_text(item):
 
 def install_lines(cand, reason):
     how = cand["how"]
-    lines = [f"- **{cand['name']}**（{cand['slot_name']}）", f"  - 理由：{reason}", f"  - 依據：{basis_text(cand['basis'])}"]
+    lines = [f"- **{cand['name']}**（{cand['slot_name']}{'；名冊外，沒有實測過' if cand.get('outside') else ''}）",
+             f"  - 理由：{reason}", f"  - 依據：{basis_text(cand['basis'])}"]
+    if cand.get("outside"):
+        lines.append(f"  - 來源：{cand['url']}")
     if how["commands"]:
         lines.append("  - 同意後執行：" + "，再 ".join(f"`{c}`" for c in how["commands"]) + f"。{how['note']}")
     else:
@@ -431,6 +510,8 @@ def render(facts, agent, chosen):
             lines.append("- 這一類這次沒有建議：" + (f"有 {count} 個候選，都沒有挑" if count else "沒有候選"))
         for cand, reason in chosen[kind]:
             lines += SECTION[kind](cand, reason)
+        if kind == "install" and any(c.get("outside") for c, _ in chosen[kind]):
+            lines.append("- 名冊外的候選沒有實測過，也沒有做安全掃描：裝之前先看一眼來源；用過之後覺得好，再評估要不要收進名冊。")
         if kind == "rules" and chosen[kind]:
             lines.append("- 拿掉規則沒有逐條實測過：拿掉之後用幾天，覺得少了什麼再加回來。")
     lines += ["", "## 沒有列進建議的", ""]
@@ -440,7 +521,7 @@ def render(facts, agent, chosen):
     lines.append(f"- 裝不到 {facts['days']} 天，先不判斷：{len(entry['not_judged']['new'])} 個")
     lines.append(f"- 沒有使用紀錄可以判斷（例如 MCP）：{len(entry['not_judged']['no_usage_data'])} 個")
     lines += [f"- {note}" for note in facts["notes"]]
-    lines += ["", "安裝、停用、移除都等你同意才做；拿掉是刪除，一項一項問。只讀這台的紀錄與設定，不連網、不含對話內容。"]
+    lines += ["", "安裝、停用、移除都等你同意才做；拿掉是刪除，一項一項問。這份建議只讀這台的紀錄與設定，不含對話內容；名冊外的候選是 pool.py 事先上網找好、存在這台的。"]
     return lines
 
 
@@ -641,6 +722,71 @@ def selftest():
     check("成本量不到（None）：其他依據照常", ids(diagnose(roster, used, None, both)["agents"]["claude"], "remove")
           == ["remove:skill:old@~/.claude/skills", "remove:skill:bad@~/.claude/skills", "remove:skill:mem2@~/.claude/skills"])
 
+    # 名冊外的候選（候選池）
+    def found_entry(eid, agents, **extra):
+        return {"id": eid, "source": eid.split(":")[0], "name": eid.split(":")[1].split("/")[-1], "description": "說明", "kind": "plugin",
+                "url": f"https://example.com/{eid.split(':')[1]}", "repo": None, "agents": agents, "install": {}, "flags": [], **extra}
+
+    wide = {**roster, "slots": roster["slots"] + [
+        {**slot("video", "dev"), "search": ["video editing"]}, {**slot("subs", "dev"), "search": ["subtitle"]},
+        {**slot("frontend2", "dev"), "search": ["frontend"]}, {**slot("authoring2", "toolkit"), "search": ["skill"]},
+        {**slot("review2", "dev", {"claude": {"verdict": "unknown", "reason": "內建有 /review"}, "codex": {"verdict": "unknown"}}),
+         "search": ["code review"]}]}
+    wide["tools"] = {**roster["tools"], "fe2": card("fe2", "skill", "default", ["frontend2"])}
+    official = {"marketplace": "claude-plugins-official", "add": "claude plugin marketplace add anthropics/claude-plugins-official",
+                "command": "claude plugin install cutter@claude-plugins-official"}
+    pooled = {"generated": "2026-11-10", "slots": {
+        "video": {"searched": "2026-11-10", "candidates": [
+            found_entry("anthropic:cutter", ["claude"], github={"stars": 900, "pushed": "2026-10-01", "license": "MIT"}, repo="a/cutter",
+                        install={"claude": official}),
+            found_entry("openai:clip", ["codex"], github=None,
+                        install={"codex": {"marketplace": "openai-curated", "command": "codex plugin add clip@openai-curated"}}),
+            found_entry("registry:io.x/oldie", ["claude", "codex"], kind="mcp", repo="x/old", flags=["stale", "few-stars"],
+                        github={"stars": 3, "pushed": "2024-01-01", "license": None}, install_note="要先設定金鑰"),
+            found_entry("web:w/mem-tool", ["claude"], repo="w/mem-tool", github={"stars": 70, "pushed": "2026-11-01", "license": "MIT"})]},
+        "frontend2": {"searched": "2026-11-10", "candidates": [found_entry("anthropic:nope", ["claude"])]},
+        "review2": {"searched": "2026-11-10", "candidates": [found_entry("anthropic:rev", ["claude", "codex"])]},
+        "authoring2": {"searched": "2026-11-10", "candidates": [found_entry("anthropic:hid", ["claude"])]},
+        "browser": {"searched": "2026-11-10", "candidates": [found_entry("web:w/b", ["claude"])]}}}
+    out = diagnose(wide, used, costs, both, today=today, pooled=pooled, markets={"claude": {"other"}})
+    oc, ox = out["agents"]["claude"], out["agents"]["codex"]
+    check("名冊外的候選：只給還沒有答案、名冊也沒有可以裝的卡的槽位；分 agent；這台已經裝的不列；同事版不看維護者的模組",
+          [i for i in ids(oc, "install") if i.startswith("pool:")] == ["pool:video:anthropic:cutter", "pool:video:registry:io.x/oldie"]
+          and [i for i in ids(ox, "install") if i.startswith("pool:")]
+          == ["pool:video:openai:clip", "pool:video:registry:io.x/oldie", "pool:review2:anthropic:rev"])
+    c1, c2, c3 = cand(oc, "pool:video:anthropic:cutter"), cand(oc, "pool:video:registry:io.x/oldie"), cand(ox, "pool:video:openai:clip")
+    check("名冊外的候選：依據寫明名冊外、沒有實測，附來源、GitHub 現況與要注意的旗標",
+          c1["basis"]["caveat"] == pool.CAVEAT
+          and c1["basis"]["text"] == "Anthropic 官方 plugin 目錄收錄；GitHub 900 星、最近更新 2026-10-01、授權 MIT"
+          and c2["basis"]["text"] == "官方 MCP Registry 登記（不審核）；GitHub 3 星、最近更新 2024-01-01、授權 沒有標；注意：超過一年沒更新、星數不到 50"
+          and c3["basis"]["text"] == "OpenAI 官方 plugin 目錄收錄；沒有自己的 GitHub repo 可以查現況" and c1["outside"] and c1["tool"] is None)
+    added_already = diagnose(wide, used, costs, both, today=today, pooled=pooled, markets={"claude": {"claude-plugins-official"}})
+    check("名冊外的候選：目錄登記了安裝方式才給指令，marketplace 沒加過先加；沒登記的給來源",
+          c1["how"]["commands"] == [official["add"], official["command"]]
+          and "沒有實際執行過" in c1["how"]["note"] and c3["how"]["commands"] == ["codex plugin add clip@openai-curated"]
+          and c2["how"] == {"commands": [], "note": "要先設定金鑰：https://example.com/io.x/oldie"}
+          and cand(added_already["agents"]["claude"], "pool:video:anthropic:cutter")["how"]["commands"] == [official["command"]])
+    check("還沒有答案的槽位都列出來：找過沒有、有幾個候選、關鍵字（給 agent 上網找用）",
+          [(o["slot"], o["searched"], o["candidates"]) for o in oc["open_slots"]] == [("video", "2026-11-10", 2), ("subs", None, 0)]
+          and oc["open_slots"][1]["keywords"] == ["subtitle"] and any("其中 1 個還沒找過名冊外的候選" in n for n in out["notes"]))
+    late = diagnose(wide, used, costs, both, today=date(2026, 11, 24), pooled=pooled)
+    searched_all = {"slots": {**pooled["slots"], "subs": {"searched": "2026-11-10", "candidates": []}}}
+    check("候選池的結果太舊、或從來沒找過：提醒先跑 pool.py find；都找過而且夠新就不提醒",
+          any("2 個上次找已經超過 14 天" in n for n in late["notes"])
+          and not any("pool.py find" in n for n in diagnose(wide, used, costs, both, today=today, pooled=searched_all)["notes"])
+          and not any("pool.py find" in n for n in facts["notes"]) and claude["open_slots"] == [])
+    errors, agent, chosen = check_picks(out, {"agent": "claude", "picks": [
+        {"id": "pool:video:anthropic:cutter", "reason": "常剪影片，名冊這一格還沒有答案"},
+        {"id": "pool:video:web:w/nope", "reason": "自己找到的另一個"}]})
+    check("名冊外的候選：沒有交給腳本檢查過的不能挑", len(errors) == 1 and "不在候選裡" in errors[0])
+    errors, agent, chosen = check_picks(out, {"agent": "claude", "picks": [
+        {"id": "pool:video:anthropic:cutter", "reason": "常剪影片，名冊這一格還沒有答案"}]})
+    text = "\n".join(render(out, agent, chosen))
+    check("建議：名冊外的候選標明沒有實測過，附來源與提醒",
+          not errors and "- **cutter**（video 槽位；名冊外，沒有實測過）" in text and "  - 來源：https://example.com/cutter" in text
+          and "依據：名冊外，沒有實測過；依據只有外部訊號。Anthropic 官方 plugin 目錄收錄" in text
+          and "名冊外的候選沒有實測過，也沒有做安全掃描" in text and "OmniKit 沒有實際執行過" in text)
+
     good = {"agent": "claude", "picks": [
         {"id": "install:fe", "reason": "常做前端，名冊的預設還沒裝"},
         {"id": "remove:skill:old@~/.claude/skills", "reason": "三個月沒用到，留著只佔清單"},
@@ -652,7 +798,7 @@ def selftest():
           all(h in text for h in ("## 裝（1 項）", "## 拿掉（1 項）", "## 用內建的就好（1 項）"))
           and "理由：常做前端，名冊的預設還沒裝" in text and "`claude plugin install fe-plugin@mk`" in text
           and "刪掉資料夾 `~/.claude/skills/old`（skill 沒有原生的移除指令）" in text and "（紀錄：data/evals/b.md）" in text
-          and "會先問你" in text)
+          and "會先問你" in text and "名冊外的候選沒有實測過" not in text)
     errors, agent, chosen = check_picks(facts, {"agent": "claude", "picks": [{"id": "native:memory", "reason": "記憶用內建的就夠了"}]})
     check("建議：同一件事另外裝的工具，寫出有沒有在用", "這台同一件事還裝了：mem-tool@m（plugin，4 段對話用到）、mem2（skill，裝了 10 天沒用到）"
           in "\n".join(render(facts, agent, chosen)))
