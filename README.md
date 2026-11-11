@@ -396,6 +396,33 @@ uv run engine/scripts/agents.py resolve <名稱> --keep-mine     # 保留你的�
 
 規則：模組、槽位、情境的 `id` 在整份名冊裡都不能重複；情境 `id` 是 1 到 3 個大寫字母加數字（`PR1`、`CD4`）。任職單位或個人專屬的內容（補助單位的範本、公司內的規定）不要寫進模組檔，寫在自己 profile 的 `scenarios.yaml`。
 
+### 槽位的答案
+
+同一件工作在不同 agent 上的答案可以不一樣，寫在槽位的 `answers`，Claude Code 與 Codex 分開：
+
+```yaml
+answers:
+  claude:
+    verdict: native        # 內建的就夠
+    reason: 實測的結論，一句話
+    evidence: data/evals/<實測紀錄>.md
+    decided_at: '2026-11-11'
+  codex:
+    verdict: tool          # 建議裝 tool 指的那張卡
+    tool: chrome-devtools-mcp
+    reason: 為什麼內建的不夠
+    decided_at: '2026-11-11'
+```
+
+| `verdict` | 意思 | 要填什麼 |
+|---|---|---|
+| `native` | 內建的就夠 | `reason`、`decided_at` |
+| `tool` | 建議裝某張卡 | `tool`、`reason`、`decided_at`；那張卡要放在這個槽位，而且支援這個 agent |
+| `none` | 找過了，沒有好選擇 | `reason`、`decided_at` |
+| `unknown` | 還沒實測 | 可以先在 `reason` 寫這個 agent 內建的功能是什麼 |
+
+沒列的 agent 就是還不知道。[建議](#建議裝拿掉用內建的就好)照這些答案出：`native` 是「用內建的就好」，`tool` 是「裝」；`unknown` 只寫了內建功能的，也會列進「用內建的就好」，但註明還沒實測。目前有實測的只有瀏覽器。
+
 ### 改名冊
 
 改完 `data/` 直接 commit：維護者版的 pre-commit hook 會驗證名冊，並重新產生 marketplace 清單一起放進 commit。要手動檢查：

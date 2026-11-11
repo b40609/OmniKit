@@ -13,6 +13,13 @@ slots:
       - id: M2
         text: 長 session 經過 compaction 之後，agent 仍然記得做到哪裡、做過哪些決定。
     search: [agent memory, session handoff, context persistence]
+    answers:
+      claude:
+        verdict: unknown
+        reason: 'auto memory，預設開；跟 Codex 不互通。'
+      codex:
+        verdict: unknown
+        reason: 'memories，預設關；跟 Claude 不互通。'
 
   - id: session-management
     name: 工作階段管理
@@ -29,6 +36,11 @@ slots:
       - id: S5
         text: 離開座位時，在手機上看進度、回覆問題、核准權限提示。
     search: [agent session manager, multi-agent desktop, agent orchestration ui]
+    # Codex 這邊的內建功能還沒盤點，先不填
+    answers:
+      claude:
+        verdict: unknown
+        reason: '桌面版的側邊欄群組、封存、完成時的通知、Remote Control（手機看與回覆），也能開子對話並交接；封存時 worktree 裡沒 commit 的修改可能遺失。'
 
   - id: permissions
     name: 權限與通知
@@ -37,3 +49,10 @@ slots:
       - id: W1
         text: 跑長任務或測試時不用一直盯；權限提示少，做完會通知。
     search: [agent permissions, agent notifications]
+    answers:
+      claude:
+        verdict: unknown
+        reason: '權限 allowlist、auto mode 與通知。'
+      codex:
+        verdict: unknown
+        reason: 'sandbox、核准政策與 notify。'

@@ -347,6 +347,11 @@ def selftest():
             (data / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(DATA / rel, data / rel)
         (data / "tools").mkdir()
+        # 槽位的答案會指到工具卡（例如瀏覽器在 Codex 建議裝的那張）：一起複製，不然名冊驗證不會過
+        for slot in validate.template_slots(DATA):
+            for answer in (slot.get("answers") or {}).values():
+                if answer.get("tool"):
+                    shutil.copy(DATA / "tools" / f"{answer['tool']}.yaml", data / "tools")
 
         def repo_files():
             return sorted(p for p in (data / "profiles").rglob("*"))

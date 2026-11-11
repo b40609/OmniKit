@@ -11,3 +11,15 @@ slots:
       - id: U1
         text: 改完 <你的專案> 的前端後，agent 自己開 dev server，在瀏覽器看畫面與 console 錯誤，確認改動真的生效才回報；你用的每個 agent 都要能用。
     search: [browser automation, playwright mcp, chrome devtools mcp]
+    answers:
+      claude:
+        verdict: native
+        reason: 'U1 實測（2026-11-04）：桌面版內建的 Browser 面板拿滿分，互動使用不需要第三方。非互動模式還沒測。'
+        evidence: data/evals/2026-11-04-browser-u1.md
+        decided_at: '2026-11-11'
+      codex:
+        verdict: tool
+        tool: chrome-devtools-mcp
+        reason: 'U1 實測（2026-11-04）：內建瀏覽器在非互動模式不能用，app 裡的互動模式沒測；Chrome DevTools MCP 拿 4 分，試用到 2026-11-18。'
+        evidence: data/evals/2026-11-04-browser-u1.md
+        decided_at: '2026-11-11'

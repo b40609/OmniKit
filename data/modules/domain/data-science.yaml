@@ -18,6 +18,13 @@ slots:
       - id: A2
         text: 改既有 .ipynb 的分析步驟，重跑全部 cell，確認數值與圖表沒有壞掉。
     search: [jupyter mcp, data analysis skill, duckdb mcp, notebook agent]
+    answers:
+      claude:
+        verdict: unknown
+        reason: 'NotebookEdit 可以逐個 cell 改 .ipynb，再用 shell 重跑；看不到正在跑的 kernel 狀態。'
+      codex:
+        verdict: unknown
+        reason: '沒有 notebook 專用的工具，靠 shell 跑 python 與改檔；看不到正在跑的 kernel 狀態。'
 
   - id: signal-processing
     name: 訊號與量測數據

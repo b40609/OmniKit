@@ -11,6 +11,13 @@ slots:
       - id: O1
         text: 日常對話先講結果、少廢話，但保留證據（file:line、測試輸出），並維持你習慣的語言。
     search: [concise output style, terse agent replies]
+    answers:
+      claude:
+        verdict: unknown
+        reason: 'Concise 輸出風格。'
+      codex:
+        verdict: unknown
+        reason: 'model_verbosity 設定。'
 
   - id: output-compression
     name: 指令輸出壓縮
@@ -35,3 +42,10 @@ slots:
       - id: R1
         text: 一個 agent 改完 <你的專案> 的修正，交給另一個 agent 審 diff；重要的才交叉審，小改動自己審。
     search: [code review agent, cross-agent review, verification]
+    answers:
+      claude:
+        verdict: unknown
+        reason: '/code-review 與 /security-review。'
+      codex:
+        verdict: unknown
+        reason: '/review。'

@@ -30,6 +30,13 @@ slots:
       - id: C2
         text: 深讀第三方 repo，寫附行號的研究筆記。
     search: [code search mcp, lsp plugin, code graph, codebase index]
+    answers:
+      claude:
+        verdict: unknown
+        reason: '內建的 grep、glob 搜尋。'
+      codex:
+        verdict: unknown
+        reason: '內建的 grep、glob 搜尋。'
 
   - id: dev-workflow
     name: 規劃與開發流程
@@ -38,6 +45,13 @@ slots:
       - id: V1
         text: 小改動走輕流程（討論計畫、實作、審查），大功能走重流程（規格、獨立審查、實作、驗收）；常跑偏、重工。
     search: [spec driven development, agent workflow, planning skill]
+    answers:
+      claude:
+        verdict: unknown
+        reason: 'plan mode、/goal 等，不另外裝方法論。'
+      codex:
+        verdict: unknown
+        reason: 'plan mode、/goal 等，不另外裝方法論。'
 
   - id: reverse-engineering
     name: 逆向工程

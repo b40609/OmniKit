@@ -98,7 +98,11 @@
           "enum": ["native", "tool", "none", "unknown"]
         },
         "tool": { "$ref": "#/$defs/id" },
-        "reason": { "type": "string", "minLength": 1 },
+        "reason": {
+          "description": "native、tool、none 寫為什麼這樣決定。unknown 可以先寫這個 agent 內建的功能是什麼（還沒實測夠不夠）：給建議時會拿它當「用內建的就好」的候選，並註明還沒實測",
+          "type": "string",
+          "minLength": 1
+        },
         "evidence": { "description": "實測紀錄或來源的路徑、網址", "type": "string", "minLength": 1 },
         "decided_at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
       },

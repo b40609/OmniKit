@@ -11,6 +11,13 @@ slots:
       - id: D1
         text: 照既有的範本產出一份工作報告或正式文件，樣式、目錄、頁碼照範本；修改別人的文件時留追蹤修訂。
     search: [docx skill, word document generation, report writing]
+    answers:
+      claude:
+        verdict: unknown
+        reason: 'docx 與 pdf 這兩個 skill。'
+      codex:
+        verdict: unknown
+        reason: 'documents 與 pdf 這兩個 plugin。'
 
   - id: slides-output
     name: 簡報
@@ -19,6 +26,13 @@ slots:
       - id: D2
         text: 把一份報告做成簡報，一頁一個重點，圖表可以再編輯，版面照既有的簡報範本。
     search: [pptx skill, slide deck generation, presentation]
+    answers:
+      claude:
+        verdict: unknown
+        reason: 'pptx 這個 skill。'
+      codex:
+        verdict: unknown
+        reason: 'presentations 這個 plugin。'
 
   - id: sheets-output
     name: 試算表
@@ -27,3 +41,10 @@ slots:
       - id: D3
         text: 做一份有公式的試算表（例如預算或量測彙整），小計與總計用公式、不寫死，改一個輸入其他格子跟著變。
     search: [xlsx skill, spreadsheet formulas, excel automation]
+    answers:
+      claude:
+        verdict: unknown
+        reason: 'xlsx 這個 skill。'
+      codex:
+        verdict: unknown
+        reason: 'spreadsheets 這個 plugin。'
