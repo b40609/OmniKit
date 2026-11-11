@@ -24,6 +24,10 @@
   同一個槽位這台裝了第三方工具的，一併列出來給 agent 判斷。
 OmniKit 自己的 skill 與 MCP、只有維護者才啟用的模組（同事版）不列。只輸出名稱、次數與日期，不輸出對話內容。
 
+另外一節是規則檔瘦身（rules，見 rules.py）：每段對話實際載入的規則檔有多大、佔對話開頭多少，以及裡面的每一條規則。
+安全底線受保護；其他每一條都是候選，腳本只附上標得出來的訊號，該不該拿掉由 agent 判斷並寫理由。
+規則的文字是使用者自己寫的設定，會原樣放進輸出。
+
 用法：
   uv run engine/scripts/advise.py [--agent claude|codex] [--days 30]    印出事實與候選（JSON）
   uv run engine/scripts/advise.py --picks <檔> [--no-save]              驗證挑選，印出並存下建議
@@ -42,14 +46,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cost  # noqa: E402
 import edition as editions  # noqa: E402
 import profiles  # noqa: E402
+import rules  # noqa: E402
 import scan  # noqa: E402
 import usage  # noqa: E402
 import validate  # noqa: E402
 
 AGENTS = {"claude": "claude-code", "codex": "codex"}  # 名冊與答案用的名稱 → 使用統計用的名稱
 LABELS = {"claude": "Claude Code", "codex": "Codex"}
-KINDS = ("install", "remove", "native")
-TITLES = {"install": "裝", "remove": "拿掉", "native": "用內建的就好"}
+KINDS = ("install", "remove", "native", "rules")
+TITLES = {"install": "裝", "remove": "拿掉", "native": "用內建的就好", "rules": "規則檔瘦身"}
 STATUS = {"default": "預設", "trial": "試用", "pending": "待評估", "rejected": "拒絕", "retired": "退役"}
 # 掃得到有沒有裝的種類；獨立程式、線上服務、命令列工具、程式庫、裝在專案裡的集合與規則包掃不到
 DETECTABLE = {"skill", "plugin", "mcp"}
@@ -107,7 +112,28 @@ def how_remove(item, agent):
     return {"remove_path": f"{item['where']}/{name}"}
 
 
-def diagnose(roster, used, costs, found, edition="colleague", added=None, today=None, notes=()):
+def rule_candidates(loaded, startup):
+    """規則檔的事實與候選。loaded 是 rules.inspect 的結果；startup 是這個 agent 這 7 天對話開頭的大小（可以是 None）。
+    安全底線已經在 rules.py 排除；剩下的每一條都是候選，腳本只附上標得出來的訊號，是不是該拿掉由 agent 判斷。"""
+    summary = {k: loaded[k] for k in ("source", "when", "files", "warnings", "tokens", "memory_tokens", "protected")}
+    if startup and startup.get("median"):
+        summary["share"] = round(loaded["tokens"] / startup["median"], 4)
+        summary["conversations_week"] = startup["n"]
+        summary["week"] = loaded["tokens"] * startup["n"]
+    out = []
+    for u in loaded["units"]:
+        how = {"file": u["file"]}
+        if loaded.get("profile_file") and u["file"] == loaded["profile_file"]:
+            how["note"] = ("這是 OmniKit 的 profile，接上的 agent 共用同一份：拿掉會一起影響其他 agent；"
+                           "改完跑 `uv run engine/scripts/profiles.py`，Codex 與 Antigravity 讀的副本才會跟著變")
+            if loaded.get("profile_generated") and any(s["code"] == "generated" for s in u["signals"]):
+                how["note"] += "；也可以重新訪談（說「幫我設定 OmniKit」），不選這一項"
+        out.append({"id": u["id"], "text": u["text"], "file": u["file"], "section": u["section"], "line": u["line"],
+                    "tokens": u["tokens"], "signals": u["signals"], "how": how})
+    return summary, out
+
+
+def diagnose(roster, used, costs, found, edition="colleague", added=None, today=None, notes=(), loaded_rules=None):
     """純計算：名冊、使用統計（usage.collect 的結果，可以多帶 MCP）、成本（cost.measure 的結果或 None）→ 事實與候選。"""
     cfg, tools, added = roster.get("config") or {}, roster["tools"], added or {}
     third = {k: v for k, v in tools.items() if v.get("kind") != "native"}
@@ -216,6 +242,11 @@ def diagnose(roster, used, costs, found, edition="colleague", added=None, today=
                 entry["candidates"]["remove"].append({
                     "id": f"remove:{i['kind']}:{i['name']}@{i['where']}", **brief(i, c), "basis": basis,
                     "shared_with": shared, "how": how_remove(i, agent)})
+
+        # 規則檔瘦身
+        if (loaded_rules or {}).get(agent):
+            entry["rules"], entry["candidates"]["rules"] = rule_candidates(
+                loaded_rules[agent], ((costs or {}).get("startup") or {}).get(uid))
     return out
 
 
@@ -257,8 +288,13 @@ def collect(home, data, state, days=30, now=None, plugin_details=cost.details):
                                   "conversations": 0, "installed_days": None, "last_used": None, "ours": name in ours})
     found = {"claude": (home / ".claude").is_dir(), "codex": (home / ".codex").is_dir()}
     added = {"claude": marketplace_added(home, (roster.get("config") or {}).get("marketplace"))}
+    try:
+        loaded = rules.collect(home, data, state, roster.get("profile_dir"))
+    except Exception as e:  # 規則檔讀不到，不影響其他三類
+        loaded = None
+        notes.append(f"規則檔讀不到（{e}）：這次沒有規則檔瘦身")
     return diagnose(roster, used, costs, found, edition=editions.resolve(state, data.parent)[0], added=added,
-                    today=date.fromtimestamp(now), notes=notes)
+                    today=date.fromtimestamp(now), notes=notes, loaded_rules=loaded)
 
 
 # ---------- 驗證挑選、寫出建議 ----------
@@ -351,11 +387,34 @@ def native_lines(cand, reason):
     return lines
 
 
-SECTION = {"install": install_lines, "remove": remove_lines, "native": native_lines}
+def rules_lines(cand, reason):
+    text = cand["text"] if len(cand["text"]) <= BRIEF else cand["text"][:BRIEF] + "…"
+    where = f"`{cand['file']}` 的「{cand['section']}」" if cand["section"] else f"`{cand['file']}`"
+    signals = "；".join(s["text"] for s in cand["signals"]) or "腳本沒有標出訊號，是 agent 的判斷"
+    lines = [f"- **「{text}」**", f"  - 理由：{reason}", f"  - 依據：約 {cand['tokens']} tokens；{signals}",
+             f"  - 同意後：從 {where}拿掉這一條（第 {cand['line']} 行），先留一份備份"]
+    if cand["how"].get("note"):
+        lines.append(f"  - 注意：{cand['how']['note']}")
+    return lines
+
+
+def rules_summary(summary):
+    """規則檔的大小：每段對話載入多少、佔對話開頭多少、一週合計。"""
+    files = [f for f in summary["files"] if f["type"] != "memory"]
+    text = f"每段對話載入 {len(files)} 個規則檔，約 {summary['tokens']:,} tokens"
+    if summary.get("share") is not None:
+        text += (f"，佔對話開頭的 {summary['share']:.1%}；這 7 天 {summary['conversations_week']} 段對話"
+                 f"共約 {summary['week']:,} tokens")
+    source = f"照 {summary['when']} 那段對話實際載入的量" if summary["source"] == "session" else "照磁碟上的檔案估（還沒有對話紀錄）"
+    return [f"{text}（{source}；token 是用字數換算的估計）。安全底線的 {summary['protected']} 條受保護，不會列進來。",
+            *(f"注意：{w}。" for w in summary.get("warnings", [])), ""]
+
+
+SECTION = {"install": install_lines, "remove": remove_lines, "native": native_lines, "rules": rules_lines}
 
 
 def render(facts, agent, chosen):
-    """建議（Markdown 的每一行）：三類各一節，每一項有理由、依據與同意後要做的事。"""
+    """建議（Markdown 的每一行）：裝、拿掉、用內建的就好、規則檔瘦身各一節，每一項有理由、依據與同意後要做的事。"""
     entry = facts["agents"][agent]
     total = sum(len(entry["candidates"][k]) for k in KINDS)
     picked = sum(len(v) for v in chosen.values())
@@ -365,11 +424,15 @@ def render(facts, agent, chosen):
              f"下面是挑出來的 {picked} 個；理由是 agent 寫的，依據是腳本給的事實。"]
     for kind in KINDS:
         lines += ["", f"## {TITLES[kind]}（{len(chosen[kind])} 項）", ""]
+        if kind == "rules" and entry.get("rules"):
+            lines += rules_summary(entry["rules"])
         if not chosen[kind]:
             count = len(entry["candidates"][kind])
             lines.append("- 這一類這次沒有建議：" + (f"有 {count} 個候選，都沒有挑" if count else "沒有候選"))
         for cand, reason in chosen[kind]:
             lines += SECTION[kind](cand, reason)
+        if kind == "rules" and chosen[kind]:
+            lines.append("- 拿掉規則沒有逐條實測過：拿掉之後用幾天，覺得少了什麼再加回來。")
     lines += ["", "## 沒有列進建議的", ""]
     left = [f"{TITLES[k]} {len(entry['candidates'][k]) - len(chosen[k])} 個" for k in KINDS
             if len(entry["candidates"][k]) > len(chosen[k])]
@@ -540,6 +603,41 @@ def selftest():
           and "remove:skill:mem2@~/.claude/skills" not in ids(picked["agents"]["claude"], "remove")
           and "install:maker" in ids(picked["agents"]["claude"], "install") and picked["roster"]["slots"] == 4
           and "只看這個 profile 選的領域：dev" in picked["notes"] and any("還沒選領域" in n for n in facts["notes"]))
+    # 規則檔瘦身
+    base = "# 底線\n- 刪除前先確認。\n"
+    habit = rules.profile_new.TEXT["zh-TW"]["pains"]["scope-creep"]
+    mine = f"# 個人規則\n\n## 語言\n- 用繁體中文回覆。\n\n## 習慣\n- {habit}\n- 刪除前先確認。\n"
+    kit = Path("/h/kit")
+    loaded = rules.inspect({"source": "session", "when": "2026-11-10", "files": [
+        {"path": str(kit / "baseline.md"), "type": "User", "content": base},
+        {"path": str(kit / "me" / "AGENTS.md"), "type": "User", "content": mine},
+        {"path": str(kit / "MEMORY.md"), "type": "AutoMem", "content": "- 記憶 " * 50}]}, Path("/h"), base, kit / "me" / "AGENTS.md")
+    loaded["profile_generated"] = True
+    ruled = diagnose(roster, used, {**costs, "startup": {"claude-code": {"median": 20000, "n": 5}}}, both, today=today,
+                     loaded_rules={"claude": loaded, "codex": None})
+    rc, summary = ruled["agents"]["claude"]["candidates"]["rules"], ruled["agents"]["claude"]["rules"]
+    check("規則檔：安全底線受保護，其他每一條都是候選，附腳本標得出的訊號",
+          [c["text"] for c in rc] == ["用繁體中文回覆。", habit] and summary["protected"] == 2
+          and [s["code"] for s in rc[1]["signals"]] == ["generated"] and rc[0]["signals"] == [] and rc[0]["id"].startswith("rule:"))
+    check("規則檔：大小照實際載入的量，算出佔對話開頭多少與一週合計；自動記憶另外算",
+          summary["tokens"] == sum(f["tokens"] for f in summary["files"] if f["type"] != "memory") and summary["memory_tokens"] > 0
+          and summary["share"] == round(summary["tokens"] / 20000, 4) and summary["week"] == summary["tokens"] * 5)
+    check("規則檔：OmniKit 的 profile 要提醒重新接上；訪談產生的通用規則另外提醒可以重新訪談",
+          "profiles.py" in rc[0]["how"]["note"] and "重新訪談" not in rc[0]["how"]["note"] and "重新訪談" in rc[1]["how"]["note"])
+    check("規則檔：那個 agent 讀不到規則檔就沒有候選", ruled["agents"]["codex"]["candidates"]["rules"] == []
+          and "rules" not in ruled["agents"]["codex"] and claude["candidates"]["rules"] == [])
+    errors, agent, chosen = check_picks(ruled, {"agent": "claude", "picks": [
+        {"id": rc[1]["id"], "reason": "現在預設就只改需求相關的地方，這條是訪談帶進來的通用規則"}]})
+    text = "\n".join(render(ruled, agent, chosen))
+    check("規則檔：建議寫出成本、要拿掉的那一條、在哪個檔，以及沒有逐條實測",
+          not errors and "## 規則檔瘦身（1 項）" in text and "每段對話載入 2 個規則檔" in text and "佔對話開頭的" in text
+          and f"**「{habit}」**" in text and "從 `~/kit/me/AGENTS.md` 的「習慣」拿掉這一條（第 7 行），先留一份備份" in text
+          and "訪談產生的通用規則" in text and "沒有逐條實測過" in text and "規則檔瘦身 1 個" in text)
+    errors, _, _ = check_picks(ruled, {"agent": "claude", "picks": [{"id": "rule:0000000000", "reason": "自己想到的一條規則"}]})
+    check("規則檔：候選以外的規則（包括安全底線）挑不進來", len(errors) == 1 and "不在候選裡" in errors[0])
+    text = "\n".join(render(ruled, "claude", {k: [] for k in KINDS}))
+    check("規則檔：沒挑也照樣報成本", "## 規則檔瘦身（0 項）\n\n每段對話載入 2 個規則檔" in text and "有 2 個候選，都沒有挑" in text)
+
     check("成本量不到（None）：其他依據照常", ids(diagnose(roster, used, None, both)["agents"]["claude"], "remove")
           == ["remove:skill:old@~/.claude/skills", "remove:skill:bad@~/.claude/skills", "remove:skill:mem2@~/.claude/skills"])
 

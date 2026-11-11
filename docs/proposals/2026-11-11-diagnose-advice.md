@@ -149,6 +149,57 @@
 
 連帶的改變：新版訪談不再問「主要用 agent 做什麼」，所以新產生的規則少了那一題對應的通用工作習慣（例如「改程式前先讀相關的程式碼」）。舊的答案檔照樣讀得懂。
 
+## 規則檔瘦身（2026-11-11 加上）
+
+建議多一節：每段對話實際載入的規則檔有多大，以及哪些規則可以拿掉。
+
+### 依據與它的限制
+
+| 來源 | 測了什麼 | 結論 | 限制 |
+|---|---|---|---|
+| arXiv:2602.11988（ETH Zurich 等） | Claude Code、Codex、Qwen Code；SWE-bench Lite 300 題加自建 138 題 | LLM 生成的規則檔不提升成功率，成本多約 20%；開發者手寫的成功率 +2.4%（不顯著），成本最多 +19%。repo 總覽沒有幫助 | 只測 Python、只量解題率 |
+| arXiv:2607.27250 | Claude Code、Codex；3 個 repo、288 次執行 | 有沒有規則檔，正確率沒有差異 | 作者自己說檢定力不足 |
+| arXiv:2601.20404 | Codex；10 個 repo、124 個 PR | 有 AGENTS.md 時執行時間中位數少 28.64% | 沒有完整量正確性，只是相關 |
+| Anthropic 與 OpenAI 的提示詞指南 | 不是實驗 | 全大寫的強調、「be thorough」這類口號、為舊模型寫的修正，在新模型上會過度套用 | 是指引，不是量測 |
+
+來源：<https://arxiv.org/abs/2602.11988>、<https://arxiv.org/abs/2607.27250>、<https://arxiv.org/abs/2601.20404>、<https://code.claude.com/docs/en/best-practices>、<https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices>、<https://developers.openai.com/api/docs/guides/prompt-guidance?model=gpt-5.5>。以上是背景調查讀摘要與官方文件的結果，我沒有逐篇讀全文。
+
+最重要的限制：這些研究測的都是 repo 裡的規則檔對解題率的影響，**沒有一篇直接測「刪掉使用者自己寫的行為規則」**。所以每一條都只能當候選，要使用者同意，而且建議裡寫明沒有逐條實測。
+
+### 現成的工具
+
+| 工具 | 檢查什麼 | 誰判斷 | 會不會自己改 |
+|---|---|---|---|
+| Claude Code `/doctor` | 本地檔與已 commit 檔重複、codebase 推得出的內容、可以搬到 skill 的常駐內容；`prompt-audit` 另外抓為舊模型寫的指令、不存在的檔案、互相矛盾 | LLM | 先報告，確認後才改 |
+| Claude Code 啟動時與 `/context` | 單檔過長的警告、已載入的規則檔與用量 | 規則 | 不改 |
+| 官方 plugin claude-md-management | 用 100 分量表評 CLAUDE.md，偏向補內容 | LLM | 核准後才改 |
+| agnix | 超過 200 行、強調語過多、跟 README 重複、目錄樹、import 失效、籠統的通用指令 | 規則 | 有自動修，分安全與不安全 |
+| AgentLint、ctxlint | 強調詞密度、長度、失效的路徑、token 成本、跨檔重複 | 規則為主 | 只修路徑 |
+| Codex | 官方文件沒有記載檢查或瘦身的功能（待驗證，沒有查原始碼） | | |
+
+來源：<https://code.claude.com/docs/en/memory>、<https://code.claude.com/docs/en/commands>、<https://github.com/anthropics/claude-plugins-official/tree/main/plugins/claude-md-management>、<https://agent-sh.github.io/agnix/docs/rules>、<https://github.com/0xmariowu/AgentLint>、<https://github.com/YawLabs/ctxlint>、<https://learn.chatgpt.com/docs/agent-configuration/agents-md>。`/doctor prompt-audit` 是背景調查讀官方文件的結果；這台只用 `claude doctor --help` 確認「完整的檢查在對話裡跑 `/doctor`」，沒有實跑。
+
+### OmniKit 做的與不做的
+
+Claude Code 那一邊的內容判斷官方已經有，不重做。OmniKit 補四件事：
+
+1. **成本照實際載入的量**：Claude Code 的對話紀錄會記下每段對話載入的每個規則檔與內容，Codex 的紀錄開頭有整段 AGENTS.md。算出每段對話多少 token、佔對話開頭多少、一週合計。
+2. **Codex 那一邊**：官方沒有對應的檢查。
+3. **安全底線受保護**：底線的每一條都不會變成候選，使用者在自己的檔裡重寫同一句也一樣。
+4. **知道來源檔在哪**：Codex 讀的是 OmniKit 接好的副本，要回 profile 的來源檔改，改完重新接上。
+
+分類照調查的結論修正過，不是「事實留、修正刪」兩分：
+
+| 這一條是什麼 | 怎麼處理 |
+|---|---|
+| 使用者的偏好、紅線、專案裡讀不到的事實、被糾正過才加的規則 | 留著，不挑 |
+| 通用的口號、agent 現在預設就會做的行為修正、重複的、訪談帶進來的通用規則、專案裡讀得到的內容 | 候選拿掉 |
+| 不能有例外的規則 | 不拿掉；口頭建議改用 hook 或權限規則 |
+
+腳本只標得出來的訊號：訪談範本產生的、重複、通用的口號、語氣很重、一條很長，以及整個檔超過 200 行或 Codex 的 32 KiB。一條規則是不是「現在預設就會做」，腳本判斷不了，由 agent 挑選並寫理由，腳本驗證後才寫進建議。
+
+這一版不做：自動改檔、把規則搬到 hook、檢查失效的路徑與目錄樹（agnix 與 ctxlint 已經有）、專案層的規則檔逐一掃描（只看對話實際載入的那幾個）。
+
 ## 已知限制
 
 - 「30 天內有沒有對話紀錄」算的是紀錄檔，背景工具用同一個 agent 跑的對話也算在內。

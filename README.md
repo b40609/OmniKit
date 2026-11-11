@@ -318,6 +318,13 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 - **拿掉**：30 天沒用到的；開頭成本高又沒在用的；名冊上是拒絕或退役的；同一件事名冊記了內建功能、而這份裝了一週以上從沒用到的。
 - **用內建的就好**：名冊記了有內建功能的槽位。還沒實測的會註明。
 
+另外有一節**規則檔瘦身**：每段對話實際載入了哪些規則檔（`CLAUDE.md`、`AGENTS.md` 與它們帶進來的檔）、約多少 token、佔對話開頭多少，以及哪些規則可以拿掉。
+
+- 成本照對話紀錄裡實際載入的內容量，不是照磁碟上的檔案猜。
+- 安全底線受保護，不會列進候選。其他每一條由 agent 判斷，只挑通用的口號、它現在預設就會做的行為修正、重複的、訪談帶進來的通用規則；你的偏好、紅線、專案裡讀不到的事實不挑。
+- 拿掉規則沒有逐條實測過，建議裡會寫明：拿掉之後用幾天，少了什麼再加回來。
+- Claude Code 內建的 `/doctor` 也會檢查規則檔；這一節補的是成本、Codex 那一邊，以及 OmniKit 管的來源檔要去哪裡改。
+
 做法分三步：
 
 1. 腳本算出事實與候選：`uv run engine/scripts/advise.py`，輸出 JSON。只讀這台，不連網、不寫檔。
@@ -474,7 +481,7 @@ data/                        資料：fork 後換成你的
   evals/                     實測紀錄
 engine/                      引擎：不用改
   schema/                    名冊與槽位的 JSON Schema
-  scripts/                   安裝、接上三個 agent、掃描、使用統計、個人週報、建議、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒
+  scripts/                   安裝、接上三個 agent、掃描、使用統計、個人週報、建議、規則檔的大小與內容、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒
   site/                      看板的樣式與程式，以及匯出的架構地圖（map.html）
   skills/omnikit-setup/      訪談建立個人 profile 的 skill
   skills/omnikit-weekly/     個人週報與建議的 skill（每個人都有）

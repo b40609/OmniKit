@@ -57,6 +57,8 @@ jobs:
       - run: uv run engine/skills/omnikit-weekly/scripts/report.py --no-save > /dev/null
       # 診斷後給建議：腳本算出事實與三類候選（裝、拿掉、用內建的就好，分 agent），挑選要在候選裡而且有理由
       # 才寫得出建議；不連網、不寫檔。skill 入口跟個人週報共用，能找到 repo
+      # 規則檔瘦身：照對話紀錄實際載入的規則檔算大小，拆成一條一條，安全底線不會變成候選
+      - run: uv run engine/scripts/rules.py --selftest
       - run: uv run engine/scripts/advise.py --selftest
       - run: uv run engine/skills/omnikit-weekly/scripts/report.py advise > /dev/null
 
