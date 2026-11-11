@@ -162,8 +162,32 @@ def ordered(tools):
     return sorted(tools, key=lambda t: (ORDER[t["status"]], t["name"].lower()))
 
 
+VERDICT = {"native": "內建的就夠", "tool": "建議裝", "none": "沒有好選擇", "unknown": "還沒實測"}
+
+
+def answers_block(slot, roster):
+    """這件工作在每個 agent 上的答案：內建的就夠、建議裝哪張卡、沒有好選擇，或還沒實測（先記內建功能是什麼）。"""
+    rows = []
+    for agent, a in (slot.get("answers") or {}).items():
+        label = VERDICT[a["verdict"]]
+        if a["verdict"] == "tool":
+            label += f" {(roster['tools'].get(a['tool']) or {}).get('name', a['tool'])}"
+        text = a.get("reason", "")
+        if a["verdict"] == "unknown" and text:
+            text = f"內建功能：{text}"
+        proof = ""
+        if a.get("evidence"):
+            url = a["evidence"] if a["evidence"].startswith("https://") else f"https://github.com/{roster['config']['repo']}/blob/HEAD/{a['evidence']}"
+            proof = f' <a href="{esc(url)}">紀錄</a>'
+        rows.append(f'<li><b>{esc(AGENT.get(agent, agent))}</b><span class="verdict v-{a["verdict"]}">{esc(label)}</span>'
+                    f'<span>{esc(text)}{proof}</span></li>')
+    return f'<ul class="answers" aria-label="各 agent 的答案">{"".join(rows)}</ul>' if rows else ""
+
+
 def slot_section(slot, tools, roster):
-    search = " ".join([slot["id"], slot["name"], *(s["text"] for s in slot["scenarios"])]).lower()
+    answers = slot.get("answers") or {}
+    search = " ".join([slot["id"], slot["name"], *(s["text"] for s in slot["scenarios"]),
+                       *(a.get("reason", "") for a in answers.values())]).lower()
     scenarios = "".join(f'<li><b>{esc(s["id"])}</b><span>{esc(s["text"])}</span></li>' for s in slot["scenarios"])
     cards = "".join(card(t, roster) for t in ordered(tools))
     if not cards:
@@ -173,7 +197,7 @@ def slot_section(slot, tools, roster):
         f'<header class="slot-head"><h3>{esc(slot["name"])}</h3>'
         f'<span class="focus f-{slot["focus"]}">{FOCUS[slot["focus"]]}</span>'
         f'<code class="slot-id">{slot["id"]}</code></header>'
-        f'<ul class="scenarios">{scenarios}</ul><div class="cards">{cards}</div></section>'
+        f'<ul class="scenarios">{scenarios}</ul>{answers_block(slot, roster)}<div class="cards">{cards}</div></section>'
     )
 
 
@@ -225,7 +249,7 @@ def highlights(roster):
     else:
         trial_html = '<p class="empty">目前沒有試用中的工具。</p>'
 
-    # 原生功能當基準的預設不算真正的決定，不放進時間線
+    # 內建功能的卡（例如官方的評測指令）不是在第三方工具之間做的決定，不放進時間線
     decided = sorted(
         (t for t in tools if t.get("decided_at") and t.get("kind") != "native"),
         key=lambda t: (t["decided_at"], t["name"].lower()),

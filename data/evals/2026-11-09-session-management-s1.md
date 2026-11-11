@@ -39,4 +39,4 @@ T3 Code 開的 Claude 對話，會不會跟桌面版一樣載入 OmniKit 的規�
 
 ## 下一步
 
-試用到 2026-11-23，期間用真實工作觀察 S2 到 S5，到期時跟原生工作階段管理（`native-sessions`）比，再決定 T3 要不要接下 Claude 的工作。
+試用到 2026-11-23，期間用真實工作觀察 S2 到 S5，到期時跟內建的工作階段管理比（槽位 `session-management` 的答案；細節在 [2026-11-11-builtin-features.md](2026-11-11-builtin-features.md)），再決定 T3 要不要接下 Claude 的工作。

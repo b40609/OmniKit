@@ -55,7 +55,7 @@ STATUS = {"default": "預設", "trial": "試用", "pending": "待評估", "rejec
 DETECTABLE = {"skill", "plugin", "mcp"}
 OVERLAP_DAYS = 7  # 跟內建功能重疊、裝了這麼多天都沒用到，才列進拿掉（不用等 30 天）
 MCP_WHERE = {"claude": "~/.claude.json", "codex": "~/.codex/config.toml"}
-CLIP = 400   # 內建卡的說明最多帶幾個字（給 agent 的 JSON）
+CLIP = 400   # 內建功能的說明最多帶幾個字（給 agent 的 JSON）
 BRIEF = 120  # 寫進建議時再縮短成幾個字（給使用者看）
 REASON = 6   # 理由至少幾個字
 
@@ -182,14 +182,7 @@ def diagnose(roster, used, costs, found, edition="colleague", added=None, today=
                 entry["candidates"]["native"].append({**base, "tested": True, "basis": {k: v for k, v in basis.items() if v}})
             elif verdict == "unknown" and a.get("reason"):
                 entry["candidates"]["native"].append({**base, "tested": False, "basis": {
-                    "code": "answer-unknown", "text": a["reason"], "caveat": "還沒實測內建的夠不夠"}})
-            elif not verdict:
-                card = next((c for c in tools.values() if c.get("kind") == "native" and c["status"] == "default"
-                             and s["id"] in c["slots"] and supports(c, agent)), None)
-                if card:
-                    entry["candidates"]["native"].append({**base, "tested": False, "builtin": card["name"], "url": card.get("url"), "basis": {
-                        "code": "roster-native", "text": clip(card.get("notes") or card.get("reason")),
-                        "caveat": "名冊目前拿內建功能當比較基準，還沒有實測證明夠用"}})
+                    "code": "answer-unknown", "text": clip(a["reason"]), "caveat": "還沒實測內建的夠不夠"}})
 
         # 拿掉
         builtin = {c["slot"]: c for c in entry["candidates"]["native"]}
@@ -301,7 +294,7 @@ def basis_text(basis):
     if code.startswith("roster-") and code[7:] in ("default", "trial"):
         until = f"，試用到 {basis['trial_until']}" if basis.get("trial_until") else ""
         return f"{basis['caveat']}{until}。名冊記的理由：{text}"
-    if code in ("answer-unknown", "roster-native"):
+    if code == "answer-unknown":
         # 給 agent 的 JSON 帶比較長的說明；給使用者看的建議只留開頭
         return f"{basis['caveat']}。名冊記的內建功能：{text if len(text) <= BRIEF else text[:BRIEF] + '…'}"
     return text
@@ -344,8 +337,7 @@ def remove_lines(cand, reason):
 
 
 def native_lines(cand, reason):
-    name = f"{cand['slot_name']}：{cand['builtin']}" if cand.get("builtin") else cand["slot_name"]
-    lines = [f"- **{name}**", f"  - 理由：{reason}", f"  - 依據：{basis_text(cand['basis'])}"]
+    lines = [f"- **{cand['slot_name']}**", f"  - 理由：{reason}", f"  - 依據：{basis_text(cand['basis'])}"]
     if cand["installed_here"]:
         lines.append("  - 這台同一件事還裝了：" + "、".join(
             f"{i['name']}（{i['kind']}，{usage_text(i)}）" for i in cand["installed_here"]))
@@ -422,7 +414,9 @@ def selftest():
                                               "decided_at": "2026-11-04"}}),
             slot("frontend", "dev"),
             slot("review", "dev", {"claude": {"verdict": "unknown", "reason": "內建有 /review"}, "codex": {"verdict": "unknown"}}),
-            slot("memory", "ops"), slot("concise", "ops"), slot("authoring", "toolkit")],
+            slot("memory", "ops", {a: {"verdict": "unknown", "reason": "內建的記憶功能 " + "很長的說明" * 100} for a in AGENTS}),
+            slot("concise", "ops", {"claude": {"verdict": "unknown", "reason": "精簡的輸出風格"}}),
+            slot("authoring", "toolkit")],
         "tools": {c["id"]: c for c in [
             card("devtools", "mcp", "trial", ["browser"], trial_until="2026-11-18"),
             card("fe", "skill", "default", ["frontend"], plugin={"name": "fe-plugin", "claude": source, "codex": source}),
@@ -432,9 +426,7 @@ def selftest():
             card("mem2", "skill", "pending", ["memory"]),
             card("terse", "skill", "pending", ["concise"]),
             card("bad", "skill", "rejected", ["review"]),
-            card("native-browser", "native", "default", ["browser"]),  # 槽位已經有答案：以答案為準，不看這張卡
-            card("native-memory", "native", "default", ["memory"], notes="內建的記憶功能 " + "很長的說明" * 100),
-            card("native-concise", "native", "default", ["concise"], works=("claude",))]},
+            card("official-eval", "native", "pending", ["authoring"])]},  # 內建種類的卡不當成第三方工具推薦
     }
     used = {"days": 30, "sources": {"claude-code": 12, "codex": 5, "antigravity": 3}, "items": [
         item("skill", "old", "~/.claude/skills", ["claude-code"], "unused", days=90),
@@ -516,17 +508,18 @@ def selftest():
           == {"disable": "claude plugin disable p@m", "remove": "claude plugin uninstall p@m"}
           and how_remove({"kind": "mcp", "name": "s", "where": "~/.claude.json"}, "claude") == {"remove": "claude mcp remove s"})
 
-    check("用內建的就好：答案是內建就夠（有實測）、還沒實測但記了內建功能、名冊的內建卡，三種依據分開標",
+    check("用內建的就好：答案是內建就夠（有實測）、還沒實測但記了內建功能，兩種依據分開標",
           ids(claude, "native") == ["native:browser", "native:review", "native:memory", "native:concise"]
           and cand(claude, "native:browser")["tested"] and cand(claude, "native:browser")["basis"]["evidence"] == "data/evals/b.md"
           and cand(claude, "native:review")["basis"]["code"] == "answer-unknown" and not cand(claude, "native:review")["tested"]
-          and cand(claude, "native:memory")["basis"]["code"] == "roster-native" and cand(claude, "native:memory")["builtin"] == "native-memory")
+          and cand(claude, "native:memory")["basis"] == {"code": "answer-unknown", "text": clip("內建的記憶功能 " + "很長的說明" * 100),
+                                                         "caveat": "還沒實測內建的夠不夠"})
     check("用內建的就好：同一個槽位這台裝的第三方工具一併列出",
           [i["name"] for i in cand(claude, "native:memory")["installed_here"]] == ["mem-tool@m", "mem2"]
           and [i["name"] for i in cand(claude, "native:review")["installed_here"]] == ["bad"])
-    check("用內建的就好：分 agent，答案是裝工具的、沒寫內建功能的、內建卡不支援的都不列",
+    check("用內建的就好：分 agent，答案是裝工具的、沒寫內建功能的、沒列這個 agent 的都不列",
           ids(codex, "native") == ["native:memory"])
-    check("內建卡的說明太長會截短", len(cand(claude, "native:memory")["basis"]["text"]) <= CLIP + 1)
+    check("內建功能的說明太長會截短", len(cand(claude, "native:memory")["basis"]["text"]) <= CLIP + 1)
 
     only = diagnose(roster, {**used, "sources": {"claude-code": 12, "codex": 0}}, costs, {"claude": True, "codex": True})
     none = diagnose(roster, used, costs, {"claude": True, "codex": False})
@@ -569,7 +562,7 @@ def selftest():
     text = "\n".join(render(facts, agent, chosen))
     check("某一類沒有建議：照實寫是沒有候選還是沒有挑；Codex 的建議不混進 Claude 的",
           "## 裝（0 項）\n\n- 這一類這次沒有建議：有 2 個候選，都沒有挑" in text and "# OmniKit 建議：Codex" in text
-          and "claude plugin" not in text and "還沒有實測證明夠用" in text)
+          and "claude plugin" not in text and "還沒實測內建的夠不夠" in text)
     check("建議裡內建功能的說明只留開頭，不整段貼上", "很長的說明" * 30 not in text and "很長的說明" * 10 in text
           and "很長的說明" * 60 in cand(codex, "native:memory")["basis"]["text"])
 

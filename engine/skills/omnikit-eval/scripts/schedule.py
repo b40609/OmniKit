@@ -56,14 +56,21 @@ def incumbents(slot_id, tools):
     return trial or default
 
 
-def pain(slot_id, tools, cfg):
+def builtin_slots(roster):
+    """名冊記了內建功能的槽位：有任何一個 agent 的答案是內建就夠，或先寫了內建功能是什麼。"""
+    return {s["id"] for s in roster["slots"] for a in (s.get("answers") or {}).values()
+            if a.get("verdict") == "native" or (a.get("verdict") == "unknown" and a.get("reason"))}
+
+
+def pain(slot_id, tools, cfg, builtin=()):
     fixed = (cfg["slots"].get(slot_id) or {}).get("pain")
     if fixed:
         return int(fixed), "schedule.yaml"
     if any(slot_id in t["slots"] and t["status"] == "trial" for t in tools):
         return 2, "現任在試用"
     if not incumbents(slot_id, tools):
-        return 3, "沒有現任"
+        # 沒有第三方現任，但名冊記了內建功能：現任就是內建的，不算沒有現任
+        return (1, "現任是內建功能") if slot_id in builtin else (3, "沒有現任")
     return 1, "現任夠用"
 
 
@@ -138,7 +145,7 @@ def candidates(roster, layer0, layer1, clusters, evidence, cfg, usage):
         ev = evidence.get(tid) or {"level": "E0", "effect": "none"}
         best = None
         for slot in slots:
-            p, why_p = pain(slot, tools, cfg)
+            p, why_p = pain(slot, tools, cfg, builtin_slots(roster))
             u, why_u = usage_score(slot, usage, cfg)
             e = EVIDENCE_SCORE[ev["level"]]
             score = WEIGHT[focus[slot]] * p * u * e * (0.5 if ev["effect"] == "exclude_or_deprioritize" else 1)
@@ -289,9 +296,10 @@ def selftest():
     today = date(2026, 11, 5)
     slots = [{"id": "browser", "name": "B", "focus": "active"}, {"id": "frontend", "name": "F", "focus": "active"},
              {"id": "rules", "name": "R", "focus": "active"}, {"id": "docs", "name": "D", "focus": "watch"},
-             {"id": "research", "name": "P", "focus": "frozen"}, {"id": "memory", "name": "M", "focus": "active"}]
+             {"id": "research", "name": "P", "focus": "frozen"},
+             {"id": "memory", "name": "M", "focus": "active", "answers": {"claude": {"verdict": "unknown", "reason": "內建的記憶"}}}]
     tools = {t["id"]: {"name": t["id"], "slots": [], "status": "pending", **t} for t in [
-        {"id": "native-browser", "slots": ["browser"], "status": "default"},
+        {"id": "browser-default", "slots": ["browser"], "status": "default"},
         {"id": "devtools", "slots": ["browser"], "status": "trial"},
         {"id": "fd", "slots": ["frontend"], "status": "default"},
         {"id": "b1", "slots": ["browser"]}, {"id": "b2", "slots": ["browser"]}, {"id": "b3", "slots": ["browser"]},
@@ -324,6 +332,8 @@ def selftest():
     check("不是 pending 的不排", "done" not in by and "rejected" in why.get("done", ""))
     check("痛點：現任在試用 2、沒有現任 3、手動 3", by["b3"]["factors"]["pain"] == 2 and by["r1"]["factors"]["pain"] == 3
           and by["f1"]["factors"]["pain"] == 3)
+    check("痛點：沒有第三方現任、但名冊記了內建功能，現任就是內建的，算 1", by["m1"]["factors"]["pain"] == 1
+          and pain("memory", list(tools.values()), cfg) == (3, "沒有現任"))
     check("使用頻率：12 段算 3、3 段算 2、0 段算 1", by["b3"]["factors"]["usage"] == 3 and by["f1"]["factors"]["usage"] == 2
           and by["r1"]["factors"]["usage"] == 1)
     check("證據 E2 乘 3", by["b1"]["priority"] == 1 * 2 * 3 * 3)

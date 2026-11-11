@@ -41,6 +41,7 @@ slots:
       claude:
         verdict: unknown
         reason: '桌面版的側邊欄群組、封存、完成時的通知、Remote Control（手機看與回覆），也能開子對話並交接；封存時 worktree 裡沒 commit 的修改可能遺失。'
+        evidence: data/evals/2026-11-11-builtin-features.md
 
   - id: permissions
     name: 權限與通知
