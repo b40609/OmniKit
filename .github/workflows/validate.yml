@@ -55,6 +55,10 @@ jobs:
       - run: uv run engine/scripts/cost.py --selftest
       - run: uv run engine/scripts/weekly.py --selftest
       - run: uv run engine/skills/omnikit-weekly/scripts/report.py --no-save > /dev/null
+      # 診斷後給建議：腳本算出事實與三類候選（裝、拿掉、用內建的就好，分 agent），挑選要在候選裡而且有理由
+      # 才寫得出建議；不連網、不寫檔。skill 入口跟個人週報共用，能找到 repo
+      - run: uv run engine/scripts/advise.py --selftest
+      - run: uv run engine/skills/omnikit-weekly/scripts/report.py advise > /dev/null
 
   # FR-34：同事用的是 Windows，上面「名冊」的每一個 uv run 都在 Windows 再跑一次（windows-ci.ps1 從這個檔案讀，
   # 加了新的檢查不用改兩個地方），另外跑 preflight.ps1 與 install.ps1 的 -SelfTest、install.ps1 -WhatIf，

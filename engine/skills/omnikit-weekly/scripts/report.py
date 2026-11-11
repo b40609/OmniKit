@@ -5,10 +5,13 @@
 # [tool.uv]
 # exclude-newer = "2026-11-01T00:00:00Z"
 # ///
-"""omnikit-weekly 的入口：找到 OmniKit repo，再交給 engine/scripts/weekly.py 產生個人週報。
+"""omnikit-weekly 的入口：找到 OmniKit repo，再交給 engine/scripts/weekly.py 產生個人週報，
+或交給 engine/scripts/advise.py 給建議（裝、拿掉、用內建的就好）。兩者讀的是同一份本機紀錄。
 
 用法（路徑相對於這個 skill 的資料夾）：
-  uv run scripts/report.py [--days 30] [--no-save]
+  uv run scripts/report.py [--days 30] [--no-save]                      個人週報
+  uv run scripts/report.py advise [--agent claude|codex]                建議的事實與候選（JSON）
+  uv run scripts/report.py advise --picks <檔> [--no-save]              驗證挑選，寫出建議
 """
 import json
 import os
@@ -39,6 +42,9 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
     sys.path.insert(0, str(repo_root() / "engine" / "scripts"))
+    if sys.argv[1:2] == ["advise"]:
+        import advise
+        return advise.main(sys.argv[2:])
     import weekly
     return weekly.main(sys.argv[1:])
 

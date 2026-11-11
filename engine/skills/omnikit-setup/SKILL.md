@@ -103,5 +103,6 @@ uv run scripts/setup.py profile --answers <answers_file> --write --apply
 - 開新的 session 才會生效。確認方式：問「OmniKit 規則版本與 profile 是什麼？」
 - 第 5 題選「先不要」：輸出會有「不裝 omnikit-eval」，評估工具的 skill 已經拿掉；之後想用，重新訪談選「要」就會裝回來。不管選哪個，每週都可以說「OmniKit 本週週報」看個人週報。
 - 依第 2 題給一個試試看的例子，例如選了 `scope-creep`：請它改一個小地方，看它會不會順手改別的。
+- 想知道這台該裝什麼、拿掉什麼、哪些用內建的就好：說「OmniKit 給我建議」（`omnikit-weekly`）。
 - profile 存在這台電腦的 `profiles_dir`（`%LOCALAPPDATA%\omnikit\profiles\<名稱>\`），在 repo 外，不會被 commit 或上傳。之後想手動改，直接改那裡的 `AGENTS.md`，再在 repo 根目錄跑 `uv run engine/scripts/profiles.py` 重新接上（Claude Code 直接讀這份；Codex 與 Antigravity 讀的是接在一起的副本）；想換別的 profile，跑 `uv run engine/scripts/profiles.py --set <名稱>`。
 - 輸出提到某個 agent 的規則「沒有覆蓋」或「沒有加回去」：那是使用者自己改過的檔案，這次沒動；要接上就在 repo 根目錄重跑 `install.ps1`。

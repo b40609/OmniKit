@@ -142,7 +142,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 |---|---|---|
 | 規則（`data/rules/baseline.md` + profile 的 `AGENTS.md`） | 安全底線所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問 | Claude Code 直接讀這兩份，改完開新 session 就生效。Codex 與 Antigravity 讀的是兩份接在一起的內容：改了 profile 要跑 `uv run engine/scripts/profiles.py` 重新接上（維護者版改的是 repo 裡的檔案的話，commit 時 git hook 會自動同步） |
 | `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 三邊說「幫我設定 OmniKit」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-setup`，Codex 輸入 `$omnikit-setup` |
-| `omnikit-weekly` skill | 說「OmniKit 本週週報」，列出你的個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率；還查不到的標「未知」。不連網，見[個人週報](#個人週報) | 三邊說「OmniKit 本週週報」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-weekly`，Codex 輸入 `$omnikit-weekly`。訪談怎麼答都會裝 |
+| `omnikit-weekly` skill | 說「OmniKit 本週週報」，列出你的個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率；還查不到的標「未知」。不連網，見[個人週報](#個人週報)。說「OmniKit 給我建議」，依這台裝了什麼、用了什麼，分成裝、拿掉、用內建的就好三類，見[建議](#建議裝拿掉用內建的就好) | 三邊說「OmniKit 本週週報」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-weekly`，Codex 輸入 `$omnikit-weekly`。訪談怎麼答都會裝。建議只有 Claude Code 與 Codex 有 |
 | `omnikit-handoff` skill | 說「交接」，agent 把做到一半的工作 commit、push，寫一份交接檔到你的狀態 repo，再開新對話接著做；新對話說「讀 <交接檔路徑> 接著做」就照交接檔接手。狀態 repo 的位置寫在你的 profile，沒寫 agent 會先問 | 三邊說「交接」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-handoff`，Codex 輸入 `$omnikit-handoff` |
 | `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡；「每週彙整」是維護者評估工具用的 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval`，Codex 輸入 `$omnikit-eval`。Codex 與 Antigravity 用的是複製品，skill 改完要 commit 才會更新 |
 | `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 已加進免問清單，Codex 設成自動核准，兩邊都不會跳權限確認；Antigravity 照它自己的權限設定 |
@@ -309,6 +309,24 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 只讀這台的紀錄與設定，不連網、不上傳；完整內容存在 `%LOCALAPPDATA%\omnikit\weekly\<年>-W<週>.md`，同一週重跑會換成最新的。也可以在 repo 根目錄跑 `uv run engine/scripts/weekly.py`。
 
+### 建議：裝、拿掉、用內建的就好
+
+在 Claude Code 或 Codex 裡說「OmniKit 給我建議」（跟個人週報同一個 `omnikit-weekly`）。agent 只看自己那一邊，分三類回報：
+
+- **裝**：名冊建議、這台還沒裝的。
+- **拿掉**：30 天沒用到的；開頭成本高又沒在用的；名冊上是拒絕或退役的；同一件事名冊記了內建功能、而這份裝了一週以上從沒用到的。
+- **用內建的就好**：名冊記了有內建功能的槽位。還沒實測的會註明。
+
+做法分三步：
+
+1. 腳本算出事實與候選：`uv run engine/scripts/advise.py`，輸出 JSON。只讀這台，不連網、不寫檔。
+2. agent 只能在候選裡挑，每一項寫理由。
+3. 腳本驗證挑選，寫出建議，存在 `%LOCALAPPDATA%\omnikit\advice\<日期>-<agent>.md`。候選以外的、沒寫理由的會被擋下來。
+
+安裝、停用、移除都等你同意才做，而且用各 agent 自己的指令（`claude plugin install`、`codex plugin add` 等）。拿掉是刪除，一項一項問。
+
+這台沒裝、或 30 天內沒有對話紀錄的 agent 不出建議；Antigravity 目前不出建議。設計與業界做法的比較見 [docs/proposals/2026-11-11-diagnose-advice.md](docs/proposals/2026-11-11-diagnose-advice.md)。
+
 ### 評估新工具
 
 在 Claude Code、Codex 或 Antigravity 裡直接說（訪談選了評估新工具才有；「每週彙整」是維護者看評估額度與評估漏斗用的）：
@@ -329,7 +347,7 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 個人週報的第一節（維護者每週彙整的最後一節也有），會列出這台電腦 30 天沒用到的 skill 與 plugin，建議移除；每週彙整另外點出名冊上還是預設或試用中的。
 
-- **怎麼算用到**：讀 Claude Code、Codex、Antigravity 的本機對話紀錄，只算實際讀取或呼叫的。每段對話開頭列出的 skill 清單不算。只輸出名稱、對話數與日期，不輸出對話內容，也不上傳。
+- **怎麼算用到**：讀 Claude Code、Codex、Antigravity 的本機對話紀錄，只算實際讀取或呼叫的。每段對話開頭列出的 skill 清單不算；agent 讀到的檔案內容或指令輸出裡剛好出現 slash 指令的字樣，也不算。Claude Code 只算 Skill 工具呼叫與你自己下的 slash 指令。只輸出名稱、對話數與日期，不輸出對話內容，也不上傳。
 - **Codex 的 plugin**：以最近一次 Codex 對話實際載入的 skill 清單為準，已停用的 plugin 與 skill 不列；讀到 plugin 裡的 SKILL.md，算那個 plugin 用到。
 - **不會誤判剛裝的**：裝不到 30 天的先不判斷。Claude Code 的 plugin 只要累計用過就不列。
 - **重複安裝**：同一個 agent 讀得到兩份同名 skill、只有一份有在用時，會標成「可能是重複的」。
@@ -428,10 +446,10 @@ data/                        資料：fork 後換成你的
   evals/                     實測紀錄
 engine/                      引擎：不用改
   schema/                    名冊與槽位的 JSON Schema
-  scripts/                   安裝、接上三個 agent、掃描、使用統計、個人週報、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒
+  scripts/                   安裝、接上三個 agent、掃描、使用統計、個人週報、建議、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒
   site/                      看板的樣式與程式，以及匯出的架構地圖（map.html）
   skills/omnikit-setup/      訪談建立個人 profile 的 skill
-  skills/omnikit-weekly/     個人週報的 skill（每個人都有）
+  skills/omnikit-weekly/     個人週報與建議的 skill（每個人都有）
   skills/omnikit-eval/       評估新工具的 skill
 .claude-plugin/              Claude Code 的 marketplace（由名冊產生，不要手改）
 .agents/plugins/             Codex 的 marketplace（由名冊產生，不要手改）
