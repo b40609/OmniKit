@@ -20,6 +20,10 @@ capability 是 agent 碰得到什麼，domain 是一種業務要交付的成果�
 repo 外的 profile（%LOCALAPPDATA%\\omnikit\\profiles，訪談產生的）只檢查這台在用的那一個：其他的跟名冊無關，
 pre-commit 與 CI 也不該因為這台的個人檔案失敗。看板用的 profile（omnikit.yaml）一定要在 repo 裡。
 
+私有模組放在 repo 外的 %LOCALAPPDATA%\\omnikit\\modules\\<層>\\<id>.yaml，格式跟公開的模組檔一樣，只在這台生效，
+不會被 commit。只有給這台看的腳本（建議、找候選）才讀它（check 的 private=True）；看板與評估紀錄會寫進 repo，
+所以預設不讀。有問題的私有模組不載入、列出原因，不算名冊的錯。
+
 用法：uv run engine/scripts/validate.py [--data <資料目錄>]
 """
 import argparse
@@ -125,9 +129,97 @@ def load_modules(data):
     return errors, modules
 
 
+# 私有模組只能是領域或能力；基礎模組是每個人都有的，只放在公開名冊
+PRIVATE_KINDS = ("capability", "domain")
+
+
+def module_problems(doc, known_modules, known_slots, known_scenarios, kind=None, stem=None):
+    """一個私有模組檔的問題（空的就是可以載入）。known_* 是已經在名冊裡的：{模組 id: 層}、槽位 id、{情境 id: 槽位}。
+    kind 與 stem 是它所在的資料夾與檔名，草稿還沒有檔案時不給。"""
+    found = [f"{'/'.join(map(str, e.absolute_path)) or '(整份)'}: {e.message}"
+             for error in validator("module.schema.json").iter_errors(doc) for e in explain(error)]
+    if found:
+        return found
+    out = []
+    if stem is not None and doc["id"] != stem:
+        out.append(f"id「{doc['id']}」跟檔名不同")
+    if doc["kind"] not in PRIVATE_KINDS:
+        out.append(f"私有模組只能是 {'、'.join(PRIVATE_KINDS)}，不能是 {doc['kind']}")
+    elif kind is not None and doc["kind"] != kind:
+        out.append(f"kind 是「{doc['kind']}」，卻放在 {kind} 資料夾")
+    if doc["kind"] != "domain" and ("requires" in doc or "signals" in doc):
+        out.append("requires 與 signals 只有領域模組（domain）能用")
+    if "maintainer_only" in doc:
+        out.append("maintainer_only 只有公開名冊的基礎模組能用")
+    if doc["id"] in known_modules:
+        out.append(f"模組 id「{doc['id']}」名冊裡已經有了，換一個 id")
+    for need in doc.get("requires", []):
+        if known_modules.get(need) != "capability":
+            out.append(f"requires 的「{need}」不是能力模組（capability）")
+    slot_ids = [s["id"] for s in doc["slots"]]
+    for sid in sorted(set(slot_ids)):
+        if slot_ids.count(sid) > 1:
+            out.append(f"槽位 id 重複：{sid}")
+        if sid in known_slots:
+            out.append(f"槽位 id「{sid}」名冊裡已經有了，換一個 id")
+    owner = {}
+    for s in doc["slots"]:
+        for sc in s["scenarios"]:
+            if sc["id"] in known_scenarios:
+                out.append(f"情境 id「{sc['id']}」已經是槽位「{known_scenarios[sc['id']]}」的")
+            elif owner.get(sc["id"], s["id"]) != s["id"]:
+                out.append(f"情境 id「{sc['id']}」同時用在槽位「{owner[sc['id']]}」與「{s['id']}」")
+            owner.setdefault(sc["id"], s["id"])
+        for agent, answer in (s.get("answers") or {}).items():
+            if answer["verdict"] == "tool":
+                out.append(f"槽位「{s['id']}」（{agent}）: 私有模組的答案不能指向工具卡（卡片在公開名冊裡，不會列私有的槽位）；"
+                           f"先寫 unknown 或 native")
+    return out
+
+
+def load_private(state, modules, slots, scenarios):
+    """讀 state/modules/<層>/<id>.yaml，回傳（載入的模組, 沒載入的 [{file, problems}]）。
+    一個一個檢查：有問題的不載入，其他的照常；跟公開名冊撞 id 的一律是私有的讓。先讀能力、再讀領域，領域才 requires 得到私有的能力。"""
+    root = state / "modules"
+    if not root.is_dir():
+        return [], []
+    known_modules = {m["id"]: m["kind"] for m in modules}
+    known_slots = {s["id"] for s in slots}
+    known_scenarios = dict(scenarios)
+    loaded, skipped = [], []
+    for extra in sorted(p for p in root.iterdir() if p.name not in PRIVATE_KINDS):
+        skipped.append({"file": str(extra), "problems": [f"私有模組只能放在 {'、'.join(PRIVATE_KINDS)} 這兩個資料夾裡"]})
+    for kind in PRIVATE_KINDS:
+        for path in sorted((root / kind).glob("*.yaml")):
+            try:
+                doc = load_yaml(path)
+                problems = module_problems(doc, known_modules, known_slots, known_scenarios, kind, path.stem)
+            except (OSError, UnicodeError, yaml.YAMLError) as e:
+                problems = [f"讀不懂這個檔：{str(e).splitlines()[0]}"]
+            if problems:
+                skipped.append({"file": str(path), "problems": problems})
+                continue
+            known_modules[doc["id"]] = doc["kind"]
+            for s in doc["slots"]:
+                known_slots.add(s["id"])
+                known_scenarios.update({sc["id"]: s["id"] for sc in s["scenarios"]})
+            loaded.append({**doc, "path": path, "private": True})
+    # 跟公開的一樣照 KINDS 的順序排：領域在前
+    loaded.sort(key=lambda m: (KINDS.index(m["kind"]), m["id"]))
+    return loaded, skipped
+
+
+def private_modules(data, state):
+    """只要知道這台有哪些私有模組時用（掃描）：對照公開的模組檔，不看工具卡與 profile。回傳同 load_private。"""
+    modules = load_modules(data)[1]
+    slots = flatten(modules)
+    scenarios = {sc["id"]: s["id"] for s in slots for sc in s.get("scenarios") or [] if isinstance(sc, dict) and "id" in sc}
+    return load_private(state, modules, slots, scenarios)
+
+
 def flatten(modules):
     """把模組攤平成槽位清單；每個槽位記下它屬於哪個模組、哪一層。"""
-    return [{**s, "module": m["id"], "kind": m["kind"]}
+    return [{**s, "module": m["id"], "kind": m["kind"], **({"private": True} if m.get("private") else {})}
             for m in modules for s in m["slots"] if isinstance(s, dict)]
 
 
@@ -214,9 +306,12 @@ def check_profiles(data, slot_ids, state=None, wanted=None, modules=None):
     return errors, found, in_repo
 
 
-def check(data, profile=None, state=None):
+def check(data, profile=None, state=None, private=False):
     """回傳（問題清單, 名冊）；名冊含 config、套上 profile 情境的 slots、依 id 排序的 tools、profile 名稱
-    與它的資料夾（profile_dir）。state 是 %LOCALAPPDATA%\\omnikit（自我測試換成暫存資料夾）。"""
+    與它的資料夾（profile_dir）。state 是 %LOCALAPPDATA%\\omnikit（自我測試換成暫存資料夾）。
+    private=True 才把這台的私有模組（state/modules）接在公開名冊後面，名冊多一個 private：{dir, loaded, skipped}。
+    私有模組一律啟用（放進去就是要用，刪掉檔案就停用）；它的問題不算名冊的錯，只列在 skipped。
+    會把結果寫進 repo 或公開看板的腳本不要開 private。"""
     state = profiles.STATE if state is None else state
     errors = []
 
@@ -305,28 +400,48 @@ def check(data, profile=None, state=None):
     slots = [{**s, "scenarios": overlay.get(s.get("id"), s.get("scenarios"))} for s in slots]
     where = profiles.folder(data, state, name) if name else None
 
-    summary = [{**{k: v for k, v in m.items() if k not in ("slots", "path")},
-                "slots": [s["id"] for s in m["slots"] if isinstance(s, dict)]} for m in modules]
     # 這個 profile 啟用的領域（問題已經在 check_profiles 報過）：domains 是 None 表示沒選過，全部模組都看
     _, selected = profile_domains(where, modules)
+    enabled = enabled_modules(modules, selected)
+    extra = {}
+    if private:
+        # 情境 id 也不能撞到這個 profile 自己寫的情境
+        taken = {**owner, **{sc["id"]: slot for slot, items in overlay.items() for sc in items or [] if isinstance(sc, dict)}}
+        loaded, skipped = load_private(state, modules, slots, taken)
+        slots = slots + flatten(loaded)
+        # 私有模組一律啟用，連同它 requires 的能力模組
+        enabled = list(dict.fromkeys(enabled + [i for m in loaded for i in (m["id"], *m.get("requires", []))]))
+        modules = modules + loaded
+        extra = {"private": {"dir": str(state / "modules"), "loaded": [m["id"] for m in loaded], "skipped": skipped}}
+    summary = [{**{k: v for k, v in m.items() if k not in ("slots", "path")},
+                "slots": [s["id"] for s in m["slots"] if isinstance(s, dict)]} for m in modules]
     return errors, {"config": config, "modules": summary, "slots": slots, "tools": tools, "profile": name,
                     "profile_dir": str(where) if where else None,
-                    "domains": selected, "enabled": enabled_modules(modules, selected)}
+                    "domains": selected, "enabled": enabled, **extra}
 
 
 def main():
     parser = argparse.ArgumentParser(description="驗證 OmniKit 名冊")
     parser.add_argument("--data", type=Path, default=ROOT / "data", help="資料目錄，預設是 repo 的 data/")
     data = parser.parse_args().data.resolve()
-    errors, roster = check(data)
+    errors, roster = check(data, private=True)
     if errors:
         print(f"名冊驗證失敗，共 {len(errors)} 個問題：")
         for e in errors:
             print(f"- {e}")
         return 1
     tool_count = len(list((data / "tools").glob("*.yaml")))
-    print(f"名冊驗證通過：{len(roster['modules'])} 個模組、{len(roster['slots'])} 個槽位、{tool_count} 張工具卡，"
-          f"情境用 profile：{roster['profile'] or '（範本）'}。")
+    mine = roster["private"]
+    public = [m for m in roster["modules"] if not m.get("private")]
+    print(f"名冊驗證通過：{len(public)} 個模組、{len([s for s in roster['slots'] if not s.get('private')])} 個槽位、"
+          f"{tool_count} 張工具卡，情境用 profile：{roster['profile'] or '（範本）'}。")
+    # 私有模組只在這台生效：有問題只提醒，不算驗證失敗（pre-commit 不該因為個人檔案擋下來）
+    if mine["loaded"]:
+        print(f"這台另外有 {len(mine['loaded'])} 個私有模組：{'、'.join(mine['loaded'])}（{mine['dir']}）。")
+    for item in mine["skipped"]:
+        print(f"私有模組沒載入：{item['file']}")
+        for p in item["problems"]:
+            print(f"- {p}")
     return 0
 
 

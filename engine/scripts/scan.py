@@ -224,6 +224,11 @@ def scan(home, data, state, which=shutil.which, run=run_version, login=None, git
     omnikit = omnikit_state(data, state, tracked)
     # 訪談第 1 題的選項與預選；project 是使用者現在的專案資料夾（沒給就只看上次的答案）
     omnikit["domains"] = domain_options(data, project, omnikit["previous_answers"])
+    # 這台的私有模組（repo 外）：一律啟用，不在第 1 題的選項裡
+    loaded, skipped = validate.private_modules(data, state)
+    omnikit["modules_dir"] = str(state / "modules")
+    omnikit["private_modules"] = [{"id": m["id"], "kind": m["kind"], "name": m["name"], "summary": m["summary"]} for m in loaded]
+    omnikit["private_skipped"] = skipped
     return {
         "os": {"system": platform.system(), "release": platform.release(), "version": platform.version()},
         "suggested_profile": suggest_name(git_name, login or getpass.getuser(), set(omnikit["profiles"])),
@@ -343,6 +348,16 @@ def selftest():
         check("沒給專案資料夾、也沒有上次的答案：照樣列出，都不預選", not any(d["suggested"] for d in domain_options(data)))
         check("掃描結果帶領域選項，而且不讀檔案內容", [d["id"] for d in scan(home, data, state, which=paths.get, run=fake_run, login="u",
               project=project)["omnikit"]["domains"]] == ["data", "dev"] and "秘密內容" not in json.dumps(options, ensure_ascii=False))
+
+        # 這台的私有模組：列出來給訪談用，不放進第 1 題的選項
+        write(state / "modules" / "domain" / "mine.yaml", "id: mine\nkind: domain\nname: 我的領域\nsummary: 只有我在做\n"
+              "slots:\n  - id: mine-one\n    name: 槽位\n    focus: active\n    scenarios:\n      - {id: M1, text: 情境}\n")
+        write(state / "modules" / "domain" / "bad.yaml", "id: bad\n")
+        seen = scan(home, data, state, which=paths.get, run=fake_run, login="u")["omnikit"]
+        check("掃描結果帶這台的私有模組與沒載入的，第 1 題的選項不變",
+              seen["private_modules"] == [{"id": "mine", "kind": "domain", "name": "我的領域", "summary": "只有我在做"}]
+              and [Path(i["file"]).name for i in seen["private_skipped"]] == ["bad.yaml"]
+              and seen["modules_dir"] == str(state / "modules") and [d["id"] for d in seen["domains"]] == ["data", "dev"])
 
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0

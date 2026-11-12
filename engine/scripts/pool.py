@@ -553,9 +553,15 @@ def find(roster, catalog, state, client, fetch=http, today=None, only=None, regi
         result[slot["slot"]] = {**{k: slot[k] for k in ("slot_name", "module", "keywords", "agents")},
                                 "searched": today.isoformat(), "registry": registry,
                                 "candidates": picked + web, "excluded": excluded}
-    for slot_id, old in saved.items():  # 這次沒找的槽位：留著之前上網找到的
+    for slot_id, old in saved.items():
+        if slot_id in result:
+            continue
+        if only:  # 只找指定的槽位：其他槽位上次的結果原樣留著
+            result[slot_id] = old
+            continue
+        # 全部重找之後不在清單裡的槽位（已經有答案了）：只留之前上網找到的
         web = [e for e in old.get("candidates") or [] if e.get("source") == "web" and fresh(e.get("found"), today, KEEP_WEB_DAYS)]
-        if slot_id not in result and web:
+        if web:
             result[slot_id] = {**old, "candidates": web}
     notes = [f"官方 MCP Registry 連不上，這 {len(unreachable)} 個槽位這次沒有那邊的候選：{'、'.join(unreachable)}"] if unreachable else []
     doc = {"generated": today.isoformat(), "sources": catalog.get("sources") or {}, "github": getattr(client, "mode", None),
@@ -841,6 +847,9 @@ def selftest():
               "連不上" in down["notes"][0] and len(down["notes"]) == 1 and [e["id"] for e in down["slots"]["open"]["candidates"]] == cands["open"][:2])
         forced = find(roster, cat, tmp / "state5", client, web, today, only=["native", "nope"])
         check("--slot：指定的槽位不管有沒有答案都找", sorted(forced["slots"]) == ["native"] and forced["slots"]["native"]["candidates"])
+        before = find(roster, cat, tmp / "state6", client, web, today)["slots"]["open"]
+        one = find(roster, cat, tmp / "state6", client, web, today + timedelta(days=1), only=["native"])["slots"]
+        check("--slot：其他槽位上次的結果原樣留著", one["open"] == before and one["native"]["searched"] == (today + timedelta(days=1)).isoformat())
 
         # agent 上網找到的
         ok, no = add_found(roster, state, client, "open", [
@@ -890,7 +899,8 @@ def main(argv=None):
         return selftest()
     if not args.command:
         parser.error("要給 find 或 add")
-    errors, roster = validate.check(profiles.DATA, state=profiles.STATE)
+    # 這台的私有模組也找：它的槽位一開始都沒有答案，關鍵字是唯一的線索
+    errors, roster = validate.check(profiles.DATA, state=profiles.STATE, private=True)
     if errors:
         print("名冊驗證沒過，先修好：\n" + "\n".join(f"- {e}" for e in errors))
         return 1

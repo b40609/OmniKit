@@ -333,6 +333,13 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 每一筆都查 GitHub 現況：封存的、名冊記了「別裝」的不列；沒有授權、一年沒更新、建立不到 14 天、星數不到 50 會標出來。這些候選**沒有實測過，也沒有做安全掃描**，建議裡會寫明「名冊外」。找的時候會連網，送出去的只有槽位的關鍵字；結果存在 `%LOCALAPPDATA%\omnikit\pool\`，7 天內不重抓。
 
+**名冊沒有你的工作**：說「幫我加一個領域」（`omnikit-setup`）。用幾句話描述工作，agent 草擬槽位、情境與找候選用的關鍵字，`engine/scripts/module_new.py` 驗證、預覽，同意後寫成這台的私有模組：
+
+- 存在 repo 外的 `%LOCALAPPDATA%\omnikit\modules\<層>\<id>.yaml`，不會被 commit。格式跟 `data/modules/` 的模組檔一樣，也可以自己手寫。
+- 放進去就啟用，刪掉檔案就停用。給建議與找候選時會看；公開的看板與評估紀錄不會讀它。
+- id 跟公開名冊重複、格式不對的不載入，`uv run engine/scripts/validate.py` 會列出原因，不影響名冊其他部分。
+- 找候選時關鍵字會送到外面，所以關鍵字用通用的說法；單位專屬的內容寫在名稱與情境裡。
+
 做法分三步：
 
 1. 腳本算出事實與候選：`uv run engine/scripts/advise.py`，輸出 JSON。只讀這台，不連網、不寫檔（名冊外的候選是 `pool.py find` 事先找好的）。

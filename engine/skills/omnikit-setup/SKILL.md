@@ -1,6 +1,6 @@
 ---
 name: omnikit-setup
-description: 用簡短訪談建立或重新設定使用者自己的 OmniKit profile（回覆語言與詳略、agent 可以自己做到哪、想改善的習慣、評估工具用的情境），並接上 Claude Code、Codex 與 Antigravity。使用者說「幫我設定 OmniKit」「設定我的 profile」「重新設定 OmniKit」「OmniKit 裝好了然後呢」時使用。Interviews the user and creates their personal OmniKit profile.
+description: 用簡短訪談建立或重新設定使用者自己的 OmniKit profile（回覆語言與詳略、agent 可以自己做到哪、想改善的習慣、評估工具用的情境），並接上 Claude Code、Codex 與 Antigravity。也替名冊沒有的工作加一個只在這台生效的領域（私有模組）。使用者說「幫我設定 OmniKit」「設定我的 profile」「重新設定 OmniKit」「OmniKit 裝好了然後呢」「我的工作不在清單裡」「幫我加一個領域」時使用。Interviews the user and creates their personal OmniKit profile.
 ---
 
 # OmniKit 設定訪談
@@ -55,7 +55,8 @@ Claude Code 用 AskUserQuestion（一次最多 4 題）；Codex 一次列出編�
   - `suggested` 是 true 的領域先幫使用者勾起來，並把 `why` 講出來（例如「專案裡有 package.json」）。預選只是建議，使用者可以改。
   - 領域超過 4 個，Claude Code 的 AskUserQuestion 放不下：這一題改成列出編號清單，請使用者回編號，或說「照建議」。
   - 選超過 3 個時提醒一句：選越多，建議會越多。
-  - 都不符合：先選最接近的一個，並把實際的工作寫進第 6 題的 `background`。
+  - 都不符合：先選最接近的一個（一個都不接近就不選），把實際的工作寫進第 6 題的 `background`；profile 建好之後，問要不要照第 5 節替這份工作加一個領域。
+  - 掃描結果的 `omnikit.private_modules` 是這台已經有的私有模組：一律啟用，不用放進這一題，講一句「另外有你自己加的：…」就好。`private_skipped` 不是空的，照實講哪個檔沒載入、原因是什麼。
 - 第 2 題選了「回覆太長」、第 3 題又選「詳細」：兩者矛盾，請使用者擇一。
 - profile 名稱用掃描的 `suggested_profile`（重新設定時用上次的名稱），在預覽時請使用者確認；沒有建議就問。名稱只能用小寫英數與 `-`，不能叫 `default`。
 - 專案名稱不能有 `<`、`>`。
@@ -114,3 +115,52 @@ uv run scripts/setup.py profile --answers <answers_file> --write --apply
 - 想知道這台該裝什麼、拿掉什麼、哪些用內建的就好：說「OmniKit 給我建議」（`omnikit-weekly`）。
 - profile 存在這台電腦的 `profiles_dir`（`%LOCALAPPDATA%\omnikit\profiles\<名稱>\`），在 repo 外，不會被 commit 或上傳。之後想手動改，直接改那裡的 `AGENTS.md`，再在 repo 根目錄跑 `uv run engine/scripts/profiles.py` 重新接上（Claude Code 直接讀這份；Codex 與 Antigravity 讀的是接在一起的副本）；想換別的 profile，跑 `uv run engine/scripts/profiles.py --set <名稱>`。
 - 輸出提到某個 agent 的規則「沒有覆蓋」或「沒有加回去」：那是使用者自己改過的檔案，這次沒動；要接上就在 repo 根目錄重跑 `install.ps1`。
+
+## 5. 名冊沒有的領域（私有模組）
+
+使用者的工作不在第 1 題的領域裡，或直接說「幫我加一個領域」時做。不用重新訪談。私有模組存在 repo 外的 `omnikit.modules_dir`（`%LOCALAPPDATA%\omnikit\modules\`），只在這台生效，不會被 commit；放進去就啟用，給建議與找候選時會看，公開的看板不會。
+
+1. 請使用者用幾句話講這份工作：平常要交出什麼成果、用到哪些檔案或軟體。不夠具體就追問一次，不要自己編。
+2. 草擬一個模組，存成 JSON 放在暫存資料夾（不要放進 repo）：
+
+   ```json
+   {
+     "id": "events",
+     "name": "活動與研討會籌辦",
+     "summary": "研討會與工作坊的議程、報名名單與會後整理",
+     "requires": ["office-docs"],
+     "signals": {"keywords": ["研討會", "議程"]},
+     "slots": [
+       {"id": "event-agenda", "name": "排議程與聯絡講者",
+        "scenarios": ["依講者可以的時段排出兩天的議程表，衝堂的標出來，並草擬給每位講者的確認信。"],
+        "search": ["event agenda planning", "calendar scheduling"]}
+     ]
+   }
+   ```
+
+   - 一個槽位是一件要交付的工作，用動作加成果命名，不是工具類別。2 到 6 個；超過就拆成兩個模組。
+   - `scenarios` 每個槽位至少一句，寫成可以實測的任務：給什麼、要交出什麼、怎樣算對。寫一句文字就好，編號由腳本給。
+   - `search` 是找候選用的關鍵字，會送到 GitHub 與官方 MCP Registry：用通用的英文說法（工具的類別、檔案格式、動作），**不要寫單位、客戶、專案或人的名稱**。
+   - `requires` 只能填能力模組的 `id`（repo 的 `data/modules/capability/`），用得到才填。
+   - `id` 用小寫英數與 `-`，不能跟名冊已經有的模組或槽位重複。任職單位專屬的內容可以寫在 `name`、`summary`、`scenarios`（這些不會送出去）。
+   - 不要寫 `answers`：還沒有人實測過，答案就是還不知道。
+3. 預覽，把輸出的模組內容給使用者看，問「照這樣加嗎？」：
+
+   ```
+   uv run scripts/setup.py module --draft <草稿檔>
+   ```
+
+   - 「草稿有問題」：照訊息修正 JSON 再預覽。
+   - 「已經存在」：是這台之前加的同名模組。問使用者要不要覆蓋，同意才在下一步加 `--force`，舊檔會備份成 `.bak`。
+4. 同意後寫入：
+
+   ```
+   uv run scripts/setup.py module --draft <草稿檔> --write
+   ```
+
+   輸出「已經啟用」就完成。告訴使用者：
+   - 這些槽位還沒有答案；說「OmniKit 給我建議」就會替它們找名冊外的候選，那些候選沒有實測過。
+   - 想改就直接改那個檔，想停用就刪掉它（檔案位置在輸出裡）；不要替使用者刪。
+   - 覺得別人也用得到，可以把檔案放進 repo 的 `data/modules/` 提成公版；提之前把單位專屬的內容拿掉。
+
+想看這台有哪些私有模組、哪個沒載入：`uv run scripts/setup.py module --list`。

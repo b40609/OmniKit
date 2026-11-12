@@ -340,14 +340,26 @@ def marketplace_added(home, name):
     return isinstance(doc, dict) and name in doc
 
 
+def private_notes(roster):
+    """這台的私有模組（repo 外）：載入了哪些、哪些沒載入與原因。"""
+    mine = roster.get("private") or {}
+    names = {m["id"]: m.get("name", m["id"]) for m in roster["modules"]}
+    out = []
+    if mine.get("loaded"):
+        out.append(f"含這台的私有模組：{'、'.join(names.get(i, i) for i in mine['loaded'])}（{mine['dir']}，不在公開名冊裡，沒有人實測過）")
+    for item in mine.get("skipped") or []:
+        out.append(f"私有模組沒載入：{item['file']}：{'；'.join(item['problems'][:3])}")
+    return out
+
+
 def collect(home, data, state, days=30, now=None, plugin_details=cost.details):
-    """讀這台的紀錄、設定與名冊，回傳事實與候選。只讀不寫、不連網。"""
-    errors, roster = validate.check(data, state=state)
+    """讀這台的紀錄、設定與名冊（含這台的私有模組），回傳事實與候選。只讀不寫、不連網。"""
+    errors, roster = validate.check(data, state=state, private=True)
     if errors:
         raise SystemExit("名冊驗證沒過，先修好再給建議：\n" + "\n".join(f"- {e}" for e in errors))
     now = now or time.time()
     used = usage.collect(home, days=days, now=now)
-    notes = []
+    notes = private_notes(roster)
     try:
         costs = cost.measure(home, state, now=now, plugin_details=plugin_details)
     except Exception as e:  # 成本量不到，不影響其他依據
@@ -841,6 +853,25 @@ def selftest():
         check("真的名冊、空的電腦：不連網也能跑，兩個 agent 都不出建議",
               all(not a["active"] and a["skip"] for a in empty["agents"].values()) and empty["roster"]["slots"] > 0)
         check("只讀不寫：診斷不在狀態資料夾留下任何檔案", not (tmp / "nostate").exists())
+
+        # 這台的私有模組（repo 外）：槽位照樣進名冊、進要找候選的清單，備註講明
+        mine = tmp / "mine" / "modules" / "domain"
+        mine.mkdir(parents=True)
+        (mine / "zz-private.yaml").write_text(
+            "id: zz-private\nkind: domain\nname: 測試領域\nsummary: s\nslots:\n  - id: zz-private-slot\n    name: 私有槽位\n"
+            "    focus: active\n    scenarios:\n      - {id: ZZZ999, text: t}\n    search: [zz private keyword]\n", encoding="utf-8")
+        (mine / "zz-broken.yaml").write_text("id: zz-other\n", encoding="utf-8")
+        _, mixed = validate.check(validate.ROOT / "data", state=tmp / "mine", private=True)
+        notes = private_notes(mixed)
+        check("私有模組：槽位進到要找候選的清單",
+              [o["keywords"] for o in pool.open_slots(mixed) if o["slot"] == "zz-private-slot"] == [["zz private keyword"]])
+        check("私有模組：備註講明含哪些、哪個沒載入與原因", len(notes) == 2 and "含這台的私有模組：測試領域" in notes[0]
+              and "沒有人實測過" in notes[0] and "私有模組沒載入" in notes[1] and "zz-broken.yaml" in notes[1])
+        check("沒有私有模組：不多話", private_notes({"modules": [], "private": {"dir": "x", "loaded": [], "skipped": []}}) == []
+              and private_notes({"modules": []}) == [])
+        with_mine = collect(tmp / "nobody", validate.ROOT / "data", tmp / "mine", plugin_details=None)
+        check("診斷讀得到私有模組：槽位數多一個，備註帶出來", with_mine["roster"]["slots"] == empty["roster"]["slots"] + 1
+              and any("含這台的私有模組" in n for n in with_mine["notes"]) and not any("私有模組" in n for n in empty["notes"]))
 
         home = tmp / "home"
         (home / ".claude" / "plugins").mkdir(parents=True)
