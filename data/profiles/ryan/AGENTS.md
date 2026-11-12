@@ -46,3 +46,4 @@ profile：ryan
   - 【進行中】：還有事在跑或還沒做完。
   - 【卡住】：做不下去，寫明卡在哪。
 - 交接與接手：我說「交接」、要照交接檔接手、或 OmniKit 提醒該開新對話而工作還沒做完時（先問我要不要交接），照 `omnikit-handoff` skill 做。狀態 repo 是私人 repo `b40609/omnikit-status`，本機在 `%LOCALAPPDATA%\omnikit\status`；不存在就先 `gh repo clone b40609/omnikit-status "$env:LOCALAPPDATA\omnikit\status"`。
+- 全自動模式：不要用會觸發 T3／Claude 跨目錄審批彈窗的指令。不直接讀寫或 cd 到目前工作目錄以外的資料夾，也不在那裡建 worktree；要動其他專案，就開在那個專案裡的子對話去做。
