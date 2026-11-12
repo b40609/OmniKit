@@ -62,6 +62,7 @@ jobs:
       - run: uv run engine/scripts/rules.py --selftest
       - run: uv run engine/scripts/pool.py --selftest
       - run: uv run engine/scripts/advise.py --selftest
+      - run: uv run engine/scripts/feedback.py --selftest
       - run: uv run engine/skills/omnikit-weekly/scripts/report.py advise > /dev/null
 
   # FR-34：同事用的是 Windows，上面「名冊」的每一個 uv run 都在 Windows 再跑一次（windows-ci.ps1 從這個檔案讀，

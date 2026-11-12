@@ -350,6 +350,15 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 profile 選了領域的話，只對那些領域的槽位出建議；沒選過就對照全部模組。這台沒裝、或 30 天內沒有對話紀錄的 agent 不出建議；Antigravity 目前不出建議。設計與業界做法的比較見 [docs/proposals/2026-11-11-diagnose-advice.md](docs/proposals/2026-11-11-diagnose-advice.md)。
 
+### 回流：把使用情況回報給維護者
+
+說「匯出回流」（`omnikit-weekly`）。OmniKit 不會自己送出任何東西：同意之後，`engine/scripts/feedback.py` 在這台產生一個檔，由你自己放到試點約定的共用位置。
+
+- **有什麼**：名冊裡的工具 id、這 30 天各有幾段對話用到、OmniKit 的版本、一個隨機的回報代號；這台裝了、而且是候選池找到的名冊外工具（公開的名稱與網址）。
+- **沒有什麼**：對話內容、專案名稱、路徑、帳號。不在名冊也不在候選池的工具只算個數；私有模組完全不出現。
+- **先預覽**：`uv run engine/scripts/feedback.py export` 印出來的就是檔案的全部內容，加 `--write` 才寫檔。沒有同意（`consent yes`）不匯出，`consent no` 隨時撤回。
+- **維護者**：`uv run engine/scripts/feedback.py import <資料夾>` 彙整每個工具幾個人裝了、幾個人有在用。名冊外的工具是提案，加 `--write` 才寫成「待評估」的工具卡，之後照評估漏斗走，不會直接改變任何人的工具包。
+
 ### 評估新工具
 
 在 Claude Code、Codex 或 Antigravity 裡直接說（訪談選了評估新工具才有；「每週彙整」是維護者看評估額度與評估漏斗用的）：
