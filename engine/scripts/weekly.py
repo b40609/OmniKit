@@ -11,7 +11,8 @@ omnikit-weekly 這個 skill 不在 profiles.OPTIONAL_SKILLS 裡，第 5 題選�
 內容依 PRD 的順序有六個區塊。查得到的照實列；還查不到的標「未知」並寫出原因，不當成「沒有」：
 1. 沒在用的工具：usage.py 讀三個 agent 的本機紀錄（預設 30 天沒用到；裝不到 30 天的先不判斷）。
 2. 上游有新版的工具：要等工具包 lock（FR-14）與「檢查更新」（FR-36），目前未知。
-3. 有更好的選擇（E3、E4）：要等工具卡的證據等級（FR-28）與通知規則（FR-16），目前未知。
+3. 有更好的選擇（E3、E4）：notify.py 依 OmniKit 自己的實測與初測紀錄算證據等級，列出這台還沒裝的；
+   E4 也會在 session 第一回合主動通知一次（FR-16），E3 只列在這裡。
 4. 設定被手動改過的項目：doctor.py 的寫入檢查（規則受管區塊、skills、MCP、權限與提醒 hook），只讀檔案，
    不跑 agent 的指令。
 5. 主動建議的接受率：要等主動建議開始記錄（FR-18 到 FR-21），目前未知。
@@ -39,6 +40,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import agents  # noqa: E402
 import cost  # noqa: E402
 import doctor  # noqa: E402
+import notify  # noqa: E402
 import profiles  # noqa: E402
 import usage  # noqa: E402
 import validate  # noqa: E402
@@ -48,7 +50,6 @@ SECTIONS = ("沒在用的工具", "上游有新版的工具", "有更好的選�
 # 還沒有資料來源的區塊：原因與之後由哪條需求補上
 PENDING = {
     "上游有新版的工具": "還沒有工具包 lock（FR-14）記下每個工具裝的版本，也還沒有「檢查更新」（FR-36）",
-    "有更好的選擇（E3、E4）": "工具卡還沒有證據等級（FR-28），通知規則（FR-16）也還沒做",
     "主動建議的接受率": "主動建議還沒開始記錄（FR-18 到 FR-21）",
 }
 
@@ -103,7 +104,15 @@ def cost_section(result):
     return cost.report(result), cost.summary(result)
 
 
-def build(env, record_path, today, days=30, collect_usage=None, collect_cost=None, persist=False):
+def better_section(env, today, collect_better=None):
+    """有更好的選擇；算不出來時那一區標未知，不影響其他區塊。"""
+    try:
+        return collect_better() if collect_better else notify.better_section(env, today)
+    except Exception as e:
+        return [f"- 未知：算不出來（{e}）"]
+
+
+def build(env, record_path, today, days=30, collect_usage=None, collect_cost=None, persist=False, collect_better=None):
     """組出週報（Markdown 的每一行）。只讀本機檔案，不連網。persist：存下成本監測要比對的清單與開頭大小。"""
     try:
         result = collect_usage() if collect_usage else usage.collect(env.home, days=days)
@@ -119,8 +128,9 @@ def build(env, record_path, today, days=30, collect_usage=None, collect_cost=Non
     known = lambda n, label: f"{label} {n} 項" if n is not None else f"{label}：未知"  # noqa: E731
     lines = [f"# OmniKit 本週週報（{week_of(today)}，{today}）", "",
              f"摘要：{known(unused, '沒在用的工具')}；{known(drift, '設定被手動改過')}；{cost_summary}；"
-             "上游新版、更好的選擇、主動建議接受率：還沒有資料（未知）"]
-    bodies = {"沒在用的工具": unused_lines, "設定被手動改過的項目": drift_lines, "成本": cost_lines}
+             "上游新版、主動建議接受率：還沒有資料（未知）"]
+    bodies = {"沒在用的工具": unused_lines, "設定被手動改過的項目": drift_lines, "成本": cost_lines,
+              "有更好的選擇（E3、E4）": better_section(env, today, collect_better)}
     for number, title in enumerate(SECTIONS, 1):
         body = bodies.get(title) or [f"- 未知：{PENDING[title]}。不是沒有，是還查不到"]
         lines += ["", f"## {number}. {title}", "", *body]
@@ -222,6 +232,12 @@ def selftest():
         text = "\n".join(build(env, record, today, collect_usage=broken))
         check("使用紀錄讀不到：那一區標未知，其他照常", "- 未知：讀不到使用紀錄（紀錄檔被鎖住）" in text
               and "沒在用的工具：未知" in text and "## 5. 主動建議的接受率" in text)
+        text = "\n".join(build(env, record, today, collect_usage=lambda: fake, collect_better=broken))
+        check("更好的選擇算不出來：那一區標未知，其他照常",
+              "## 3. 有更好的選擇（E3、E4）\n\n- 未知：算不出來（紀錄檔被鎖住）" in text and "old-helper" in text)
+        text = "\n".join(build(env, record, today, collect_usage=lambda: fake,
+                               collect_better=lambda: ["- E4（實測勝出，會主動通知一次）：Codex「瀏覽器」：X"]))
+        check("更好的選擇：照 notify 算的列在第 3 區", "## 3. 有更好的選擇（E3、E4）\n\n- E4（實測勝出" in text)
         text = "\n".join(build(env, record, today, collect_usage=lambda: fake, collect_cost=broken))
         check("成本量不到：那一區標未知，其他照常", "## 6. 成本\n\n- 未知：量不到（紀錄檔被鎖住）" in text and "old-helper" in text)
 

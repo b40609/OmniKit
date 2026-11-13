@@ -304,10 +304,54 @@ NixOS 出自搜尋到的官方文件與論壇摘要，VS Code 出自官方文件
 ### 沒做的
 
 - **真的替換一次**：要等名冊有候選，或維護者寫一張 `replaces` 的卡。
-- **FR-16 的通知與證據等級**：「換」現在只在使用者要建議時出現，不會主動通知；也還沒有 E3、E4 的分級。
+- **FR-16 的通知與證據等級**：「換」現在只在使用者要建議時出現，不會主動通知；也還沒有 E3、E4 的分級。（同一天由下一節「通知」補上。）
 - **FR-11 的煙霧測試**：確認只看 agent 的清單，沒有實際叫用一次。
 - **帳本與雜湊（FR-10、FR-14）**：換回比對的是清單裡的名稱與啟用狀態，不比對內容或版本。
 - 舊工具是 MCP 或 skill 時沒有停用的指令，試用期間兩個都在，可能互相搶著被叫用。
+
+## 通知（2026-11-14 加上）
+
+PRD 的 FR-16（證據等級與通知規則），加上 FR-19 裡跟通知有關的頻率與靜音。程式在 `engine/scripts/notify.py`（入口 `report.py notify`），顯示接在既有的 Stop hook `session_nudge.py`，週報第 3 區「有更好的選擇（E3、E4）」也改由它算。
+
+### 別人怎麼做
+
+| 做法 | 例子 | 重點 | 這裡怎麼用 |
+|---|---|---|---|
+| 背景檢查、下次執行才顯示，一天最多查一次 | npm 的 update-notifier：預設每 1 天檢查一次，結果存在本機設定檔；不是 TTY、CI、`NO_UPDATE_NOTIFIER` 都不顯示 | 檢查不擋使用者的指令 | hook 只讀 JSON；要讀名冊的計算在背景另開 uv 跑，一天最多一次，這次照舊用舊的結果 |
+| 固定間隔檢查、環境變數關閉 | GitHub CLI：每 24 小時檢查一次新版，提示印在 stderr；`GH_NO_UPDATE_NOTIFIER` 關閉 | 一個開關就能全關 | `OMNIKIT_NO_NOTIFY` 與 `CI` 不顯示；另外有「OmniKit 通知靜音」 |
+| 限量與排程 | Renovate：`prHourlyLimit`、`prConcurrentLimit`（預設 10）、`schedule` 限制 PR 的數量與時間 | 量多會被當成雜訊 | FR-16、FR-19 的數字：E4 每週 1 則、合計每週 3 則、每個 session 1 則 |
+| 可以忽略單一建議，也可以全部關掉 | VS Code 的擴充功能建議：單一擴充功能可以「Ignore Recommendation」，`extensions.ignoreRecommendations` 全部關掉；工作區建議只在第一次開啟時提示 | 兩種範圍的靜音 | `notify mute` 全部，或 `--tool` 只關一個工具 |
+
+update-notifier 與 GitHub CLI 讀了官方 README 與手冊原文；Renovate 的設定頁太長，只讀到前三分之一（`prHourlyLimit`、`schedule` 的預設值沒讀到）；VS Code 讀了官方文件。
+
+顯示的位置：Claude Code 的 SessionStart hook 會把輸出加進給模型的 context，`systemMessage` 會不會顯示給使用者，官方文件的那一節沒寫清楚（待驗證）；Codex 的 SessionStart 依第三方文章也是加進模型的 context。既有的 Stop hook 用 `systemMessage` 顯示提醒，已經在兩個 agent 用了一段時間，所以通知改在「第一回合結束時」顯示，不新增 hook。
+
+### 做法
+
+- **證據等級只取 OmniKit 自己的紀錄**（工具卡上沒有這個欄位，FR-28 還沒做）：
+  - E4（實測勝出）：`data/evals/*/result.json` 依規則判定 `Update`、勝出的是名冊上的工具；或槽位在這個 agent 的答案是「裝某張卡」，依據指到 `data/evals/` 裡存在的實測紀錄。依使用者決定（`decided_by: user`，等盲選）的不算。
+  - E3（初測通過）：`data/funnel/smoke/<id>.json` 裝得起來、有被叫用，而且第 1 層建議深評。PRD 的 E3 還要「資格賽贏過現任」，資格賽沒有獨立紀錄，先用第 1 層的深評代替（待驗證）。
+  - 打平、維持現任的不在等級裡，所以不會通知。
+- **候選**：每個 agent 還沒裝、E3 以上、支援這個 agent、不是拒絕或退役、在 profile 選的模組裡（維護者限定的模組只有維護者版看得到）、不是換回不到 30 天的工具。「裝了沒」只讀清單檔（skill 資料夾、plugin 清單、MCP 設定），不跑 agent 的指令。
+- **挑哪一則**（`pick`）：先提試用到期（`swaps.json` 裡試用中、過了試用期限的，每個替換一次），再提 E4。E4 每週最多 1 則；同一個工具同一份證據只提一次；同一個槽位提過之後 30 天內不再提，除非證據換了。試用到期與 E4 合計每週最多 3 則，每個 session 最多 1 則。候選清單超過 3 天沒更新就不拿來通知（可能已經裝了）。
+- **不顯示**：子對話、Codex 的 exec（`originator` 含 exec，待驗證）、`CI`、`OMNIKIT_NO_NOTIFY`、靜音。
+- **通知的內容**只講槽位、工具與依據的路徑，接著是「想試 14 天就說『OmniKit 給我建議』」與怎麼靜音；換工具一律走既有的建議與 `swap.py`，通知本身不給指令。
+- **記錄**：`%LOCALAPPDATA%\omnikit\notify\` 下的 `queue.json`（候選）、`shown.json`（提過的：槽位、工具 id、依據路徑、日期）、`mute.json`、`planning`（今天開始算了沒）。不連網、不上傳。
+
+### 實跑
+
+- 這台的 E3、E4：只有一筆 E4，Codex 的「瀏覽器」答案是 Chrome DevTools MCP（依據 `data/evals/2026-11-04-browser-u1.md`），這台的 Codex 已經裝了，所以沒有可以通知的；E3 沒有（`data/funnel/smoke/` 還是空的）。週報第 3 區照實寫「沒有」與這週通知了 0 則。
+- 用暫存的 `LOCALAPPDATA` 照註冊的指令（`uv run --quiet --script session_nudge.py`）跑一次假的第一回合：hook 0.97 秒結束、沒有輸出；背景的 uv 隨後寫出 `queue.json`。放一個假的 E4 候選再跑：印出一行通知；再跑一次：不再提。
+- 突變測試：在 repo 的暫存副本把 `notify.py` 與 `session_nudge.py` 的判斷一條一條改壞（44 條），跑 `--selftest`。第一輪抓到 34 條，補了測試（依據指到不是 `data/evals/` 的檔案、裝不起來、第 1 層沒建議深評、只看 profile 的模組、只支援某個 agent、只適用某個 agent 的答案、`OMNIKIT_NO_NOTIFY`）後抓到 44／44。補測試時也找到一個錯：某個工具只在一個 agent 有 E4 時，其他 agent 的 E3 會被吃掉，已修。
+
+### 沒做的
+
+- **FR-19 的其他規則**：沒回應累計 5 次自動靜音、「不要再建議」分三種範圍（目前只有全部與單一工具，沒有「這個專案」）、設定完成後 7 天內不主動建議。這些主要是主動建議（FR-18）的規則，提示還關著（PRD §6.1）。
+- **E2 進維護者週報**：沒做，維護者週報在 `omnikit-eval` 的每週彙整。
+- **安全類的立即通知**：要等「檢查更新」（FR-36）。
+- **工具卡的證據等級欄位**（FR-28）：等級每次從紀錄算，沒寫回卡片。
+- **Antigravity**：沒有 hook，不會顯示通知，只有週報。
+- 真的在 Claude Code 與 Codex 的新對話裡看到通知那一行，要等名冊有這台沒裝的 E4（或試用到期）；目前只在暫存狀態用假候選跑過。
 
 ## 回流（2026-11-12 加上）
 

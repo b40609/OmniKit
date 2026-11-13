@@ -10,6 +10,8 @@
    Codex 常設 96000），固定門檻一定會誤判；自動壓縮是 agent 自己判斷「滿了」，會跟著模型走。
 2. 任務告一段落：這一回合成功跑了 git push，而且是這段對話的第一次（之後每回合都 push，不再提醒）。
 Claude 的子對話（由別的對話開出來的）兩種都不提醒：做完就收，看收尾的狀態標籤就好。
+另外，主線 session 的第一回合結束時，附上 notify.py 挑的一則通知（有更好的選擇或試用到期；FR-16、FR-19）。
+子對話、Codex 的 exec（非互動）、CI 都不附。notify.py 只讀 JSON，要讀名冊的部分在背景另開 uv 算。
 
 從 stdin 讀 hook 輸入，再讀 transcript_path 的 JSONL（Claude Code 的對話紀錄或 Codex 的 rollout，
 自動分辨）；有話要說就印 {"systemMessage": ...}。任何錯誤都安靜結束（exit 0），提醒壞掉不能干擾對話。
@@ -154,6 +156,30 @@ def is_codex(entries: list[dict]) -> bool:
     return bool(entries) and entries[0].get("type") == "session_meta"
 
 
+def first_turn(entries: list[dict]) -> bool:
+    """主線 session 的第一回合：使用者只送過一則訊息，不是子對話，也不是 Codex 的 exec（非互動）。"""
+    if is_codex(entries):
+        if "exec" in str((entries[0].get("payload") or {}).get("originator", "")).lower():
+            return False
+        return sum(1 for it in codex_items(entries) if it.get("type") == "UserMessage") == 1
+    prompts = [e for e in entries if is_prompt(e)]
+    return len(prompts) == 1 and prompts[0].get("turnOrigin") != "sdk"
+
+
+def notice(entries: list[dict], due=None) -> list[str]:
+    """第一回合才問 notify.py 有沒有要通知的；任何錯誤都當成沒有。"""
+    if not first_turn(entries):
+        return []
+    try:
+        if due is None:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from notify import due
+        msg = due("codex" if is_codex(entries) else "claude")
+    except Exception:
+        return []
+    return [msg] if msg else []
+
+
 def main() -> int:
     try:
         data = json.load(sys.stdin)
@@ -161,6 +187,7 @@ def main() -> int:
             return 0
         entries = read_jsonl(data["transcript_path"])
         msgs = codex_nudge(entries, data.get("turn_id")) if is_codex(entries) else nudge(entries)
+        msgs += notice(entries)
     except Exception:
         return 0
     if msgs:
@@ -254,6 +281,22 @@ def selftest() -> int:
         assert is_codex(entries) and len(entries) == 4 and len(codex_nudge(entries, "a")) == 1
         path.write_text(json.dumps(prompt()) + "\n", encoding="utf-8")
         assert not is_codex(read_jsonl(str(path)))
+    # 通知：只在主線 session 的第一回合問 notify.py
+    asked = []
+
+    def fake_due(agent):
+        asked.append(agent)
+        return "通知"
+
+    assert notice([prompt(), reply(1)], fake_due) == ["通知"] and asked == ["claude"]
+    assert notice([prompt(), reply(1), prompt(), reply(1)], fake_due) == []  # 第二回合
+    assert notice([prompt(origin="sdk"), reply(1)], fake_due) == []  # 子對話
+    assert notice([prompt(), *squeeze(), reply(1)], fake_due) == ["通知"]  # 壓縮摘要不算使用者訊息
+    assert notice([meta, *turn("a")], fake_due) == ["通知"] and asked[-1] == "codex"
+    assert notice([meta, *turn("a"), *turn("b")], fake_due) == []
+    assert notice([{"type": "session_meta", "payload": {"originator": "codex_exec"}}, *turn("a")], fake_due) == []
+    assert notice([prompt()], lambda agent: None) == []
+    assert notice([prompt()], lambda agent: 1 / 0) == []  # notify 壞了不干擾
     print("session_nudge selftest OK")
     return 0
 

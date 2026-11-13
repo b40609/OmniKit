@@ -1,6 +1,6 @@
 ---
 name: omnikit-weekly
-description: 產生使用者自己的 OmniKit 個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率，以及成本（新裝工具的開頭成本、背景用量、對話開頭的大小）；也依這台裝了什麼、用了什麼給建議，分成裝、換、拿掉、用內建的就好四類（換是 14 天試用，可以一句話換回）（名冊沒有答案的槽位會從官方目錄找名冊外的候選），另外看規則檔（CLAUDE.md、AGENTS.md）每段對話花多少、哪些規則可以拿掉。也在使用者同意後，把去識別的使用統計匯出成檔案回報給維護者（回流）。使用者說「OmniKit 本週週報」「本週週報」「我的週報」「OmniKit 給我建議」「我該裝什麼」「哪些可以拿掉」「規則檔瘦身」「套用這個替換」「換回」「匯出回流」「回報我的使用情況」時使用；不管訪談時有沒有選評估新工具都有。Generates the user's personal weekly OmniKit report and install, remove, or use-built-in advice.
+description: 產生使用者自己的 OmniKit 個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率，以及成本（新裝工具的開頭成本、背景用量、對話開頭的大小）；也依這台裝了什麼、用了什麼給建議，分成裝、換、拿掉、用內建的就好四類（換是 14 天試用，可以一句話換回）（名冊沒有答案的槽位會從官方目錄找名冊外的候選），另外看規則檔（CLAUDE.md、AGENTS.md）每段對話花多少、哪些規則可以拿掉。也在使用者同意後，把去識別的使用統計匯出成檔案回報給維護者（回流）。使用者說「OmniKit 本週週報」「本週週報」「我的週報」「OmniKit 給我建議」「我該裝什麼」「哪些可以拿掉」「規則檔瘦身」「套用這個替換」「換回」「OmniKit 通知靜音」「通知打開」「匯出回流」「回報我的使用情況」時使用；不管訪談時有沒有選評估新工具都有。Generates the user's personal weekly OmniKit report and install, remove, or use-built-in advice.
 ---
 
 # OmniKit 個人週報
@@ -127,6 +127,14 @@ uv run scripts/report.py
    - 使用者說「換回」：`swap revert <id>`，照輸出跑指令，再 `swap check <id>`。輸出「已經換回」才算數；它只比對這次動到的兩個工具，另外列出的變動不要動。
    - 使用者說要留下新的：`swap keep <id>`。舊的要不要拿掉由使用者決定，拿掉是刪除，一項一項問。
    - `uv run scripts/report.py swap list` 看所有替換與剩幾天。
+
+## 通知
+
+Claude Code 與 Codex 在一段新對話的第一回合結束時，可能出現一行「OmniKit：…」：OmniKit 實測勝出（E4）而這台還沒裝的工具，或試用到期。使用者接著說「OmniKit 給我建議」就走上面的建議與「換與換回」；說留下或換回就照「換與換回」第 5 步。
+
+- 「OmniKit 通知靜音」：`uv run scripts/report.py notify mute`；只靜音一個工具加 `--tool <卡片 id>`（通知裡的工具名稱對到名冊的卡片 id）。
+- 「通知打開」：`notify unmute`（同樣可以加 `--tool`）。
+- 「有什麼通知」：`notify list`，照輸出講候選與這週通知了幾則。
 
 ## 回流：把使用情況回報給維護者
 

@@ -66,6 +66,10 @@ jobs:
       - run: uv run engine/scripts/swap.py --selftest
       - run: uv run engine/scripts/advise.py --selftest
       - run: uv run engine/scripts/feedback.py --selftest
+      # 通知（FR-16、FR-19）：證據等級只取 OmniKit 自己的實測與初測紀錄；E4 每週最多 1 則、同一份證據只提一次、
+      # 同槽位 30 天不重複、合計每週 3 則；子對話、CI、靜音不顯示；hook 只讀 JSON，名冊在背景一天最多算一次
+      - run: uv run engine/scripts/notify.py --selftest
+      - run: uv run engine/skills/omnikit-weekly/scripts/report.py notify list > /dev/null
       # 自我迭代第 1 階段：訊號只連本機來源、金鑰只放標頭、讀到上次的位置就停；判斷要有理由、名冊層要有目標；
       # 名冊層判斷送進漏斗（寫成待評估的卡或重評）、照第 0、1 層結果算命中率，滿 14 天、10 個結果、過半才算可以打開（假的 HTTP，不連網）
       - run: uv run engine/scripts/signals.py --selftest

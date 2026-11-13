@@ -361,6 +361,16 @@ profile 選了領域的話，只對那些領域的槽位出建議；沒選過就
 
 紀錄在 `%LOCALAPPDATA%\omnikit\swaps.json`，只有工具名稱與狀態；MCP 只讀名稱與有沒有啟用，不讀參數。
 
+### 通知
+
+Claude Code 與 Codex 在新對話的第一回合結束時，可能出現一行「OmniKit：…」（`engine/scripts/notify.py`，接在開新對話提醒的 hook 上）：
+
+- OmniKit 實測勝出（E4）、這台還沒裝的工具：每週最多 1 則；同一個工具同一份證據只提一次，同一個槽位 30 天內不再提，除非有新證據。初測通過（E3）的只列在週報。
+- 試用到期：說留下或換回。
+- 合計每週最多 3 則、每段對話最多 1 則；子對話、CI 不顯示。說「OmniKit 通知靜音」全部關掉（也可以只關一個工具），設環境變數 `OMNIKIT_NO_NOTIFY` 也行。
+
+證據等級只取 `data/evals/` 的實測結果與 `data/funnel/` 的初測紀錄；候選在背景一天最多算一次，紀錄在 `%LOCALAPPDATA%\omnikit\notify\`。
+
 ### 回流：把使用情況回報給維護者
 
 說「匯出回流」（`omnikit-weekly`）。OmniKit 不會自己送出任何東西：同意之後，`engine/scripts/feedback.py` 在這台產生一個檔，由你自己放到試點約定的共用位置。
