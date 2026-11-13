@@ -1,0 +1,571 @@
+diff --git a/engine/scripts/build.py b/engine/scripts/build.py
+index 4844186..7ca9d50 100644
+--- a/engine/scripts/build.py
++++ b/engine/scripts/build.py
+@@ -191,7 +191,7 @@ def slot_section(slot, tools, roster):
+     scenarios = "".join(f'<li><b>{esc(s["id"])}</b><span>{esc(s["text"])}</span></li>' for s in slot["scenarios"])
+     cards = "".join(card(t, roster) for t in ordered(tools))
+     if not cards:
+-        cards = '<p class="slot-note">還沒有工具卡。</p>'
++        cards = '<p class="slot-note">還沒有工具卡</p>'
+     return (
+         f'<section class="slot" id="slot-{slot["id"]}" data-focus="{slot["focus"]}" data-search="{esc(search)}">'
+         f'<header class="slot-head"><h3>{esc(slot["name"])}</h3>'
+@@ -247,7 +247,7 @@ def highlights(roster):
+         )
+         trial_html = f'<ul class="list">{items}</ul>'
+     else:
+-        trial_html = '<p class="empty">目前沒有試用中的工具。</p>'
++        trial_html = '<p class="empty">目前沒有試用中的工具</p>'
+ 
+     # 內建功能的卡（例如官方的評測指令）不是在第三方工具之間做的決定，不放進時間線
+     decided = sorted(
+@@ -279,7 +279,7 @@ def install_panel(roster):
+         return ""
+     plugins = "、".join(f"{esc(name)}（{'、'.join(agents)}）" for name, agents in sorted(agents_of.items()))
+     return (
+-        '<div class="panel"><h2>安裝預設的 plugin</h2>'
++        '<div class="panel" id="install"><h2>安裝預設的 plugin</h2>'
+         '<p class="panel-note">先把 OmniKit 加成 marketplace，再到各工具卡展開「安裝指令」。</p>'
+         '<dl class="steps">'
+         f'<dt>Claude Code</dt><dd><code>/plugin marketplace add {esc(cfg["repo"])}</code></dd>'
+@@ -314,14 +314,69 @@ def toolbar(roster):
+         for k, v in FOCUS.items()
+     )
+     return (
+-        '<div class="toolbar"><div class="wrap">'
+-        '<input id="q" class="search" type="search" placeholder="搜尋工具、理由、備註（按 / 開始）" aria-label="搜尋工具">'
+-        f'<div class="chips" role="group" aria-label="依狀態篩選" data-group="status">{status_chips}</div>'
+-        f'<div class="chips" role="group" aria-label="依槽位重點篩選" data-group="focus">{focus_chips}</div>'
++        '<div class="toolbar" id="tools"><div class="wrap">'
++        '<label class="search-wrap"><input id="q" class="search" type="search" placeholder="搜尋工具、槽位或理由" aria-label="搜尋工具">'
++        '<kbd class="key" aria-hidden="true">/</kbd></label>'
++        '<div class="chips" role="group" aria-label="依狀態篩選" data-group="status">'
++        f'<span class="chips-label" aria-hidden="true">狀態</span>{status_chips}</div>'
++        '<div class="chips" role="group" aria-label="依槽位重點篩選" data-group="focus">'
++        f'<span class="chips-label" aria-hidden="true">槽位重點</span>{focus_chips}</div>'
+         '<p class="count" id="count" aria-live="polite"></p></div></div>'
+     )
+ 
+ 
++def slot_state(tools):
++    """槽位在一覽裡的標記：有預設、試用中、只有待評估的卡，或還沒有卡。"""
++    statuses = {t["status"] for t in tools}
++    if "default" in statuses:
++        return "default"
++    if "trial" in statuses:
++        return "trial"
++    return "open" if tools else "empty"
++
++
++def board(roster):
++    """頁首下方的槽位一覽：一個模組一欄，列出它的槽位，點了跳到該槽位的工具卡。"""
++    tools = list(roster["tools"].values())
++    blocks = []
++    last_kind = None
++    for module in roster["modules"]:
++        rows = []
++        for slot in (s for s in roster["slots"] if s["module"] == module["id"]):
++            mine = [t for t in tools if slot["id"] in t["slots"]]
++            state = slot_state(mine)
++            picks = [t for t in ordered(mine) if t["status"] in ("default", "trial")]
++            pick = "".join(
++                f'<span class="b-pick st-{t["status"]}">{esc(t["name"])}</span>' for t in picks
++            )
++            rows.append(
++                f'<li class="b-{state}"><a href="#slot-{slot["id"]}"><span class="mark" aria-hidden="true"></span>'
++                f'<span class="b-name">{esc(slot["name"])}</span>'
++                f'<span class="b-n" title="{len(mine)} 張工具卡">{len(mine)}</span>{pick}</a></li>'
++            )
++        layer = ""
++        if module["kind"] != last_kind:
++            layer = f'<p class="b-layer">{LAYER[module["kind"]]}</p>'
++            last_kind = module["kind"]
++        blocks.append(
++            f'<div class="b-module">{layer}<h3><a href="#module-{module["id"]}">{esc(module["name"])}</a></h3>'
++            f'<ul>{"".join(rows)}</ul></div>'
++        )
++    legend = (
++        '<ul class="legend" aria-label="圖例">'
++        '<li class="b-default"><span class="mark"></span>有預設</li>'
++        '<li class="b-trial"><span class="mark"></span>試用中</li>'
++        '<li class="b-open"><span class="mark"></span>只有待評估</li>'
++        '<li class="b-empty"><span class="mark"></span>還沒有工具卡</li></ul>'
++    )
++    return (
++        '<section class="board" aria-labelledby="board-title"><div class="board-head">'
++        '<div><h2 id="board-title">槽位一覽</h2>'
++        '<p class="board-note">每件工作是一個槽位，每個槽位只留一個預設。點槽位就跳到它的工具卡，數字是卡片數。</p></div>'
++        f'{legend}</div><div class="board-grid">{"".join(blocks)}</div></section>'
++    )
++
++
+ def build_info():
+     sha = os.environ.get("GITHUB_SHA", "")
+     if not sha:
+@@ -337,6 +392,10 @@ def page(roster):
+     stats = "".join(
+         f'<li class="st-{k}"><b>{counts.get(k, 0)}</b>{v}</li>' for k, v in STATUS.items()
+     )
++    # 各狀態佔全部工具卡的比例，畫成一條堆疊長條
++    share = "".join(
++        f'<span class="st-{k}" style="flex-grow:{counts[k]}"></span>' for k in STATUS if counts.get(k)
++    )
+     sections = "".join(module_section(module, roster) for module in roster["modules"])
+     sections += unassigned_section([t for t in tools if not t["slots"]], roster)
+     sha, built = build_info()
+@@ -356,13 +415,20 @@ def page(roster):
+ </head>
+ <body>
+ <header class="masthead"><div class="wrap">
++<div class="intro">
+ <h1>{esc(cfg["title"])}</h1>
+-<p class="tagline">{esc(cfg["tagline"])}</p>
+-<ul class="stats"><li><b>{len(roster["modules"])}</b>個模組</li><li><b>{len(roster["slots"])}</b>個槽位</li><li><b>{len(tools)}</b>張工具卡</li>{stats}</ul>
++<p class="tagline">{esc(cfg["tagline"].rstrip("。"))}</p>
++<div class="actions"><a class="btn btn-primary" href="#q">搜尋工具</a><a class="btn" href="#install">安裝預設的 plugin</a></div>
++</div>
++<div class="figures">
++<ul class="stats totals"><li><b>{len(roster["modules"])}</b>個模組</li><li><b>{len(roster["slots"])}</b>個槽位</li><li><b>{len(tools)}</b>張工具卡</li></ul>
++<div class="share" aria-hidden="true">{share}</div>
++<ul class="stats status">{stats}</ul>
++</div>
+ <p class="meta">由 <a href="{repo_url}">{esc(cfg["repo"])}</a> 的名冊自動產生 · 更新於 {built}{f"（{sha}）" if sha else ""}</p>
+ </div></header>
+ <main>
+-<div class="wrap">{highlights(roster)}</div>
++<div class="wrap">{board(roster)}{highlights(roster)}</div>
+ {toolbar(roster)}
+ <div class="wrap">{sections}<p class="empty-state" id="empty" hidden>沒有符合的工具。換個關鍵字，或把上面的篩選打開。</p></div>
+ </main>
+diff --git a/engine/site/app.js b/engine/site/app.js
+index 449c055..25be3ed 100644
+--- a/engine/site/app.js
++++ b/engine/site/app.js
+@@ -53,6 +53,30 @@
+     empty.hidden = shown.size > 0 || document.querySelector(".slot:not([hidden])") !== null;
+   }
+ 
++  // 把搜尋與篩選都還原，讓所有槽位重新顯示
++  function reset() {
++    search.value = "";
++    for (const buttons of Object.values(groups)) {
++      for (const button of buttons) button.setAttribute("aria-pressed", "true");
++    }
++    apply();
++  }
++
++  document.addEventListener("click", (event) => {
++    const link = event.target.closest('a[href^="#"]');
++    if (!link) return;
++    // 頁首的「搜尋工具」直接把游標放進搜尋框
++    if (link.hash === "#q") {
++      event.preventDefault();
++      search.focus();
++      search.scrollIntoView({ block: "center" });
++      return;
++    }
++    // 從槽位一覽跳到被篩掉的槽位時，先清掉篩選，不然會跳到看不見的地方
++    const target = link.hash.length > 1 && document.getElementById(link.hash.slice(1));
++    if (target && target.closest("[hidden]")) reset();
++  });
++
+   search.addEventListener("input", apply);
+   document.addEventListener("keydown", (event) => {
+     if (event.key === "/" && document.activeElement !== search) {
+diff --git a/engine/site/style.css b/engine/site/style.css
+index d45ba79..e6c39f7 100644
+--- a/engine/site/style.css
++++ b/engine/site/style.css
+@@ -1,54 +1,54 @@
+-/* OmniKit 槽位看板。顏色都是 token，深色模式只換 token。 */
++/* OmniKit 槽位看板。顏色都是 token，深色模式只換 token。
++   介面保持中性，顏色只用在有意義的地方：品牌綠標示「有預設」，琥珀色標示「試用中」，紅色只給拒絕。
++   方形小標記是看板的記號：槽位一覽、篩選按鈕和圖例共用，代表槽位裡的狀態。 */
+ :root {
+   color-scheme: light dark;
+-  --bg: #f6f5f1;
++  --bg: #f7f6f3;
+   --surface: #ffffff;
+-  --surface-2: #faf9f6;
++  --surface-2: #f0efeb;
+   --text: #1c1b19;
+-  --muted: #67645e;
+-  --line: #e4e1da;
+-  --line-strong: #cfcbc2;
++  --text-2: #4d4a44;
++  --muted: #6b675f;
++  --faint: #a9a59c;
++  --line: rgba(28, 27, 25, .09);
++  --line-strong: rgba(28, 27, 25, .17);
+   --accent: #1d5c47;
+-  --ring: #2b6cb0;
++  --accent-soft: #e4efe9;
++  --on-accent: #ffffff;
++  --amber: #8a5800;
++  --amber-soft: #f5ecda;
++  --red: #b4322a;
++  --red-soft: #f8e6e3;
++  --ring: #1d5c47;
+ 
+-  --s-default: #1c7448;  --s-default-bg: #e2f2e8;
+-  --s-trial: #6440c2;    --s-trial-bg: #eee8fc;
+-  --s-pending: #67645e;  --s-pending-bg: #eeece7;
+-  --s-rejected: #b03020; --s-rejected-bg: #fbe6e2;
+-  --s-retired: #85560f;  --s-retired-bg: #f7edd9;
+-
+-  --f-active: #0c6a6a; --f-active-bg: #ddf0ef;
+-  --f-watch: #565f6d;  --f-watch-bg: #eaedf0;
+-  --f-frozen: #2c5c9a; --f-frozen-bg: #e2ebf7;
+-
+-  --radius: 12px;
++  --radius-s: 4px;
++  --radius-m: 8px;
++  --radius-l: 12px;
+   --shadow: 0 1px 2px rgba(28, 27, 25, .05);
++  --ease: cubic-bezier(.22, 1, .36, 1);
+   --font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+   --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+ }
+ 
+ @media (prefers-color-scheme: dark) {
+   :root {
+-    --bg: #121211;
+-    --surface: #1b1b19;
+-    --surface-2: #21211f;
+-    --text: #ecebe6;
+-    --muted: #a5a29a;
+-    --line: #2d2c29;
+-    --line-strong: #3d3c38;
+-    --accent: #84c9ab;
+-    --ring: #8ab4f8;
+-
+-    --s-default: #74d29f;  --s-default-bg: #183224;
+-    --s-trial: #bba5f6;    --s-trial-bg: #2a2342;
+-    --s-pending: #a5a29a;  --s-pending-bg: #2a2926;
+-    --s-rejected: #f29d8e; --s-rejected-bg: #3a1f1a;
+-    --s-retired: #e4b76d;  --s-retired-bg: #352919;
+-
+-    --f-active: #74d3cf; --f-active-bg: #163131;
+-    --f-watch: #adb5c2;  --f-watch-bg: #262a30;
+-    --f-frozen: #92b8ee; --f-frozen-bg: #1c2a3d;
+-
++    --bg: #141415;
++    --surface: #1a1a1b;
++    --surface-2: #232325;
++    --text: #ededed;
++    --text-2: #b9b9bd;
++    --muted: #8f8f95;
++    --faint: #5d5d63;
++    --line: rgba(237, 237, 237, .08);
++    --line-strong: rgba(237, 237, 237, .15);
++    --accent: #7cc4a4;
++    --accent-soft: #19302a;
++    --on-accent: #0e1a15;
++    --amber: #dfb062;
++    --amber-soft: #33291a;
++    --red: #ec7d73;
++    --red-soft: #3a201d;
++    --ring: #7cc4a4;
+     --shadow: none;
+   }
+ }
+@@ -56,127 +56,205 @@
+ * { box-sizing: border-box; }
+ [hidden] { display: none !important; }
+ html { -webkit-text-size-adjust: 100%; }
+-body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.65 var(--font); }
+-a { color: var(--accent); text-underline-offset: 2px; }
++body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--font); }
++a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; transition: color .15s var(--ease); }
+ a:hover { text-decoration-thickness: 2px; }
+-:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
+-code, time { font-family: var(--mono); }
+-
+-.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+-@media (max-width: 600px) { .wrap { padding: 0 16px; } }
+-
+-/* 每種狀態與重點的顏色：徽章、色條、篩選按鈕共用 --c 與 --cbg */
+-.st-default { --c: var(--s-default); --cbg: var(--s-default-bg); }
+-.st-trial { --c: var(--s-trial); --cbg: var(--s-trial-bg); }
+-.st-pending { --c: var(--s-pending); --cbg: var(--s-pending-bg); }
+-.st-rejected { --c: var(--s-rejected); --cbg: var(--s-rejected-bg); }
+-.st-retired { --c: var(--s-retired); --cbg: var(--s-retired-bg); }
+-.f-active { --c: var(--f-active); --cbg: var(--f-active-bg); }
+-.f-watch { --c: var(--f-watch); --cbg: var(--f-watch-bg); }
+-.f-frozen { --c: var(--f-frozen); --cbg: var(--f-frozen-bg); }
+-
+-/* 頁首 */
++:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--radius-s); }
++code, time, kbd { font-family: var(--mono); }
++h1, h2, h3 { font-weight: 500; }
++
++.wrap { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
++@media (max-width: 700px) { .wrap { padding: 0 16px; } }
++
++/* 每種狀態與重點的顏色：徽章、標記、篩選按鈕共用 --c 與 --cbg */
++.st-default { --c: var(--accent); --cbg: var(--accent-soft); }
++.st-trial { --c: var(--amber); --cbg: var(--amber-soft); }
++.st-pending { --c: var(--muted); --cbg: var(--surface-2); }
++.st-rejected { --c: var(--red); --cbg: var(--red-soft); }
++.st-retired { --c: var(--faint); --cbg: var(--surface-2); }
++.f-active { --c: var(--text); }
++.f-watch { --c: var(--muted); }
++.f-frozen { --c: var(--faint); }
++
++/* 頁首：左邊是在做什麼與兩個動作，右邊是數字 */
+ .masthead { background: var(--surface); border-bottom: 1px solid var(--line); }
+-.masthead .wrap { padding-top: 44px; padding-bottom: 28px; }
+-h1 { margin: 0; font-size: clamp(26px, 4vw, 34px); line-height: 1.25; font-weight: 700; letter-spacing: -.01em; }
+-.tagline { margin: 8px 0 22px; color: var(--muted); font-size: 16px; }
+-.stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+-.stats li { display: flex; align-items: baseline; gap: 6px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font-size: 13px; color: var(--muted); }
+-.stats b { font-size: 16px; color: var(--text); font-variant-numeric: tabular-nums; }
+-.stats .st-default b, .stats .st-trial b, .stats .st-rejected b, .stats .st-retired b { color: var(--c); }
+-.meta { margin: 18px 0 0; font-size: 12.5px; color: var(--muted); }
+-
+-/* 試用中與最近的決定 */
+-.highlights { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); align-items: start; gap: 16px; margin: 28px 0 0; }
++.masthead .wrap { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: end; gap: 24px 64px; padding-top: 64px; padding-bottom: 32px; }
++h1 { margin: 0; font-size: clamp(30px, 4.4vw, 44px); line-height: 1.15; letter-spacing: -.01em; }
++.tagline { margin: 12px 0 0; max-width: 32em; color: var(--text-2); font-size: 18px; line-height: 1.6; }
++.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
++.btn { display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border: 1px solid var(--line-strong); border-radius: var(--radius-m); background: var(--surface); color: var(--text); font-size: 15px; font-weight: 500; text-decoration: none; transition: background-color .15s var(--ease), border-color .15s var(--ease), transform .15s var(--ease); }
++.btn:hover { background: var(--surface-2); }
++.btn:active { transform: scale(.98); }
++.btn-primary { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
++.btn-primary:hover { background: color-mix(in srgb, var(--accent) 88%, var(--text)); }
++
++.figures { display: grid; gap: 12px; padding-bottom: 4px; }
++.stats { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 13px; }
++.stats li { display: flex; align-items: baseline; gap: 6px; }
++.stats b { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
++.totals b { font-size: 32px; line-height: 1.1; letter-spacing: -.01em; }
++.status b { font-size: 15px; }
++.status li::before { content: ""; align-self: center; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
++.share { display: flex; gap: 2px; height: 8px; margin-top: 8px; }
++.share span { min-width: 4px; border-radius: 2px; background: var(--c); }
++.share .st-pending { background: var(--line-strong); }
++.meta { grid-column: 1 / -1; margin: 8px 0 0; font-size: 12px; color: var(--muted); }
++.meta a { color: inherit; }
++
++@media (max-width: 860px) {
++  .masthead .wrap { grid-template-columns: minmax(0, 1fr); padding-top: 40px; padding-bottom: 24px; }
++  .actions { margin-top: 24px; }
++  .totals b { font-size: 28px; }
++}
++
++/* 槽位一覽：一個模組一塊，像貼了標籤的零件抽屜 */
++.board { margin-top: 40px; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l); box-shadow: var(--shadow); }
++.board-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 32px; margin-bottom: 24px; }
++.board h2 { margin: 0; font-size: 20px; line-height: 1.4; }
++.board-note { margin: 4px 0 0; max-width: 40em; color: var(--muted); font-size: 14px; }
++.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 12px; }
++.legend li { display: flex; align-items: center; gap: 6px; }
++.board-grid { columns: 5 196px; column-gap: 32px; }
++.b-module { break-inside: avoid; padding-bottom: 20px; }
++.b-layer { margin: 0 0 12px; padding-bottom: 4px; border-bottom: 1px solid var(--line-strong); color: var(--muted); font-size: 12px; }
++.b-module:not(:first-child) .b-layer { margin-top: 12px; }
++.b-module h3 { margin: 0 0 4px; font-size: 14px; line-height: 20px; }
++.b-module h3 a { color: var(--text); text-decoration: none; }
++.b-module h3 a:hover { text-decoration: underline; }
++.b-module ul { margin: 0; padding: 0; list-style: none; }
++.b-module li a { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: center; gap: 0 8px; margin: 0 -8px; padding: 4px 8px; border-radius: 6px; color: var(--text-2); font-size: 13px; line-height: 20px; text-decoration: none; transition: background-color .15s var(--ease), color .15s var(--ease); }
++.b-module li a:hover { background: var(--surface-2); color: var(--text); }
++.b-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
++.b-n { font: 12px/20px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
++.b-empty .b-n, .b-empty .b-name { color: var(--muted); }
++.b-pick { grid-column: 2 / 4; overflow: hidden; color: var(--c); font-size: 12px; line-height: 16px; text-overflow: ellipsis; white-space: nowrap; }
++.mark { width: 8px; height: 8px; border-radius: 2px; }
++.b-default .mark { background: var(--accent); }
++.b-trial .mark { background: var(--amber); }
++.b-open .mark { box-shadow: inset 0 0 0 1.5px var(--muted); }
++.b-empty .mark { border: 1px dashed var(--faint); }
++@media (max-width: 600px) {
++  .board { padding: 16px; }
++  .board-grid { columns: 2; column-gap: 16px; }
++  .b-n { display: none; }
++  .b-module li a { grid-template-columns: 8px minmax(0, 1fr); }
++  .b-pick { grid-column: 2; }
++}
++
++/* 試用中、安裝、評估紀錄與最近的決定 */
++.highlights { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); align-items: start; gap: 16px; margin: 16px 0 0; }
+ @media (max-width: 860px) { .highlights { grid-template-columns: minmax(0, 1fr); } }
+ .stack { display: grid; gap: 16px; align-content: start; min-width: 0; }
+-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); }
+-.panel h2 { margin: 0 0 12px; font-size: 15px; }
+-.panel-note { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
++.panel { padding: 20px 24px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l); box-shadow: var(--shadow); scroll-margin-top: 24px; }
++.panel h2 { margin: 0 0 12px; font-size: 16px; line-height: 24px; }
++.panel-note { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+ .panel-note:last-child { margin-bottom: 0; }
+-.steps { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; margin: 0 0 10px; font-size: 13px; }
+-.steps dt { color: var(--muted); line-height: 1.9; }
++.steps { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 12px; margin: 0 0 12px; font-size: 13px; }
++.steps dt { color: var(--muted); }
+ .steps dd { margin: 0; }
+-.steps code, .install code { display: block; padding: 3px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); color: var(--text); font-size: 12px; overflow-wrap: anywhere; }
++.steps code, .install code { display: block; padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--surface-2); color: var(--text); font-size: 12px; line-height: 20px; overflow-wrap: anywhere; }
+ .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+-.list li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 12px; font-size: 13.5px; }
+-.list time { grid-row: span 2; font-size: 12px; line-height: 1.9; color: var(--muted); }
+-.list .what { font-weight: 600; }
+-.list .what .badge { margin-left: 6px; vertical-align: 1px; }
+-.list .why { color: var(--muted); }
+-.empty { margin: 0; color: var(--muted); font-size: 13.5px; }
+-.left { font-weight: 600; color: var(--s-trial); }
+-.left.overdue { color: var(--s-rejected); }
++.list li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 12px; font-size: 14px; line-height: 22px; }
++.list time { grid-row: span 2; font-size: 12px; line-height: 22px; color: var(--muted); }
++.list .what { font-weight: 500; }
++.list .what .badge { margin-left: 8px; vertical-align: 1px; }
++.list .why { color: var(--muted); font-size: 13px; line-height: 20px; }
++.empty { margin: 0; color: var(--muted); font-size: 14px; }
++.left { font-weight: 500; color: var(--amber); }
++.left.overdue { color: var(--red); }
+ 
+ /* 搜尋與篩選 */
+-.toolbar { position: sticky; top: 0; z-index: 5; margin-top: 24px; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+-.toolbar .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding-top: 12px; padding-bottom: 12px; }
+-.search { flex: 1 1 240px; min-width: 0; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; font-size: 14px; }
+-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+-.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface); color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+-.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+-.chip .n { font-variant-numeric: tabular-nums; opacity: .75; }
+-.chip[aria-pressed="true"] { color: var(--text); border-color: var(--c); }
+-.chip[aria-pressed="false"] { text-decoration: line-through; text-decoration-color: var(--line-strong); }
++.toolbar { position: sticky; top: 0; z-index: 5; margin-top: 48px; background: var(--bg); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
++.toolbar .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding-top: 12px; padding-bottom: 12px; }
++.search-wrap { position: relative; flex: 1 1 260px; min-width: 0; }
++.search { width: 100%; height: 40px; padding: 0 40px 0 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-m); background: var(--surface); color: var(--text); font: inherit; font-size: 15px; transition: border-color .15s var(--ease); }
++.search::placeholder { color: var(--muted); }
++.search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
++.search:focus + .key, .search:not(:placeholder-shown) + .key { opacity: 0; }
++.key { position: absolute; top: 10px; right: 10px; min-width: 20px; height: 20px; padding: 0 6px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: var(--radius-s); background: var(--surface-2); color: var(--muted); font-size: 12px; line-height: 17px; text-align: center; pointer-events: none; transition: opacity .15s var(--ease); }
++.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
++.chips-label { margin-right: 4px; color: var(--muted); font-size: 12px; }
++.chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-m); background: var(--surface); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; transition: background-color .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease); }
++.chip:hover { background: var(--surface-2); }
++.chip:active { transform: scale(.98); }
++.chip .dot { width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
++.chip .n { font: 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
++.chip[aria-pressed="false"] { border-color: var(--line); background: transparent; color: var(--muted); text-decoration: line-through; text-decoration-color: var(--faint); }
+ .chip[aria-pressed="false"] .dot { background: transparent; box-shadow: inset 0 0 0 1.5px var(--c); }
+ .count { margin: 0 0 0 auto; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+ /* 手機上固定的搜尋列會擋掉半個畫面，改成跟著捲動 */
+ @media (max-width: 700px) {
+-  .toolbar { position: static; backdrop-filter: none; }
+-  .toolbar .wrap { gap: 8px; }
+-  .chip { padding: 3px 9px; font-size: 12.5px; }
++  .toolbar { position: static; margin-top: 32px; }
++  .toolbar .wrap { gap: 12px; }
++  .chips { gap: 4px; }
++  .count { margin-left: 0; }
+ }
+-.empty-state { margin: 40px 0; padding: 28px; border: 1px dashed var(--line-strong); border-radius: var(--radius); text-align: center; color: var(--muted); }
++.empty-state { margin: 48px 0; padding: 32px; border: 1px dashed var(--line-strong); border-radius: var(--radius-l); text-align: center; color: var(--muted); }
+ 
+-/* 模組：一層一個標籤，底下是槽位 */
+-.module { margin: 48px 0 0; padding-top: 22px; border-top: 1px solid var(--line-strong); scroll-margin-top: 140px; }
+-.module-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+-.module-head h2 { margin: 0; font-size: 24px; line-height: 1.3; }
+-.layer { padding: 2px 9px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--muted); }
+-.module-summary, .module-note { flex-basis: 100%; margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+-.module-note { font-size: 13px; }
++/* 模組：層級、名稱、標籤，底下是槽位 */
++.module { margin: 64px 0 0; padding-top: 24px; border-top: 1px solid var(--line-strong); scroll-margin-top: 140px; }
++.module-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
++.module-head h2 { margin: 0; font-size: 24px; line-height: 1.35; }
++.layer { flex-basis: 100%; color: var(--muted); font-size: 13px; }
++.module-summary, .module-note { flex-basis: 100%; max-width: 48em; margin: 4px 0 0; color: var(--text-2); font-size: 15px; }
++.module-note { margin-top: 0; color: var(--muted); font-size: 13px; }
+ 
+ /* 槽位 */
+-.slot { margin: 32px 0; scroll-margin-top: 140px; }
+-.slot-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 6px; }
+-.slot-head h2, .slot-head h3 { margin: 0; font-size: 20px; line-height: 1.35; }
++.slot { margin: 40px 0; scroll-margin-top: 140px; }
++.slot-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-bottom: 8px; }
++.slot-head h2, .slot-head h3 { margin: 0; font-size: 20px; line-height: 1.4; }
+ .module .slot-head h3 { font-size: 18px; }
+-.focus { padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--c); background: var(--cbg); }
+-.slot-id { font-size: 12px; color: var(--muted); }
+-.slot-note { margin: 0 0 12px; color: var(--muted); font-size: 13.5px; }
+-.answers { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; font-size: 13.5px; }
+-.answers li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+-.answers .verdict { padding: 0 8px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: 12px; white-space: nowrap; }
+-.answers .v-unknown { color: var(--muted); }
+-.scenarios { margin: 0 0 14px; padding: 0; list-style: none; color: var(--muted); font-size: 13.5px; }
+-.scenarios li { display: flex; gap: 8px; }
+-.scenarios b { flex: none; font: 600 12px/1.95 var(--mono); color: var(--text); }
+-
+-/* 工具卡 */
++.focus { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
++.focus::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
++/* 記號：槽位與模組的 id 像抽屜上的標籤 */
++.slot-id { padding: 0 6px; border: 1px solid var(--line-strong); border-radius: var(--radius-s); color: var(--muted); font-size: 12px; line-height: 20px; }
++.slot-note { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
++.answers { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; font-size: 14px; }
++.answers li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
++.answers b { min-width: 88px; font-weight: 500; }
++.answers .verdict { padding: 0 6px; border: 1px solid var(--line-strong); border-radius: var(--radius-s); color: var(--text-2); font-size: 12px; line-height: 20px; white-space: nowrap; }
++.answers .v-tool { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: var(--accent-soft); color: var(--accent); }
++.answers .v-none, .answers .v-unknown { color: var(--muted); }
++@media (max-width: 700px) { .answers b { min-width: 0; } }
++.answers li > span:last-child { color: var(--text-2); }
++.scenarios { display: grid; gap: 4px; margin: 0 0 16px; padding: 0; list-style: none; max-width: 64em; color: var(--text-2); font-size: 14px; }
++.scenarios li { display: flex; gap: 12px; }
++.scenarios b { flex: none; min-width: 32px; font: 500 12px/22px var(--mono); color: var(--muted); }
++
++/* 工具卡：已決定的卡帶狀態色的細框，待評估的保持安靜 */
+ .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); align-items: start; gap: 12px; }
+-.card { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 14px 16px 14px 19px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+-.card::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--c); }
+-.card.st-default, .card.st-trial { border-color: color-mix(in srgb, var(--c) 40%, var(--line)); }
+-.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+-.card h3 { margin: 0; font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
++.card { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 16px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l); box-shadow: var(--shadow); transition: border-color .15s var(--ease); }
++.card:hover { border-color: var(--line-strong); }
++.card.st-default, .card.st-trial { border-color: color-mix(in srgb, var(--c) 45%, transparent); }
++.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
++.card h3 { margin: 0; font-size: 16px; line-height: 24px; overflow-wrap: anywhere; }
+ .card h3 a { color: inherit; text-decoration: none; }
+ .card h3 a:hover { text-decoration: underline; }
+-.badge { flex: none; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.6; color: var(--c); background: var(--cbg); }
+-.card-meta { margin: 0; font-size: 12.5px; color: var(--muted); }
+-.reason, .trial { margin: 0; font-size: 13.5px; }
++.badge { flex: none; padding: 0 6px; border-radius: var(--radius-s); font-size: 12px; font-weight: 500; line-height: 20px; color: var(--c); background: var(--cbg); }
++.card-top .badge { margin-top: 2px; }
++.badge.st-pending { padding: 0; background: none; font-weight: 400; }
++.card-meta { margin: 0; font-size: 13px; color: var(--muted); }
++.reason, .trial { margin: 0; font-size: 14px; color: var(--text-2); }
+ .reason time { margin-right: 8px; font-size: 12px; color: var(--muted); }
+-.install { margin-top: 6px; display: grid; gap: 4px; font-size: 12.5px; }
++.trial time { font-size: 13px; }
++.install { margin-top: 8px; display: grid; gap: 4px; font-size: 12px; }
+ .card details { font-size: 13px; color: var(--muted); }
+-.card summary { width: fit-content; cursor: pointer; }
+-.card details p { margin: 6px 0 0; overflow-wrap: anywhere; }
+-.card-foot { margin-top: auto; padding-top: 4px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 12px; color: var(--muted); }
++.card summary { width: fit-content; cursor: pointer; transition: color .15s var(--ease); }
++.card summary:hover { color: var(--text); }
++.card details p { margin: 8px 0 0; color: var(--text-2); overflow-wrap: anywhere; }
++.card-foot { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+ .card-foot a { color: var(--muted); }
++.card-foot a:hover { color: var(--text); }
+ 
+ /* 評估紀錄與頁尾 */
++.evals .list { gap: 8px; }
+ .evals .list li { grid-template-columns: minmax(0, 1fr); }
+-footer { margin-top: 48px; padding: 24px 0 44px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+-footer p { margin: 0 0 6px; }
++footer { margin-top: 64px; padding: 32px 0 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
++footer p { margin: 0 0 8px; }
+ 
+ @media (prefers-reduced-motion: no-preference) {
+   html { scroll-behavior: smooth; }
+ }
++@media (prefers-reduced-motion: reduce) {
++  * { transition: none !important; }
++}

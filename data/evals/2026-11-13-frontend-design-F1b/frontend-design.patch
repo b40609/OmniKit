@@ -1,0 +1,683 @@
+diff --git a/engine/scripts/build.py b/engine/scripts/build.py
+index 4844186..89a5e15 100644
+--- a/engine/scripts/build.py
++++ b/engine/scripts/build.py
+@@ -134,13 +134,13 @@ def card(tool, roster):
+     text = [tool["id"], tool["name"], KIND.get(tool.get("kind"), ""), tool.get("reason", ""), tool.get("notes", ""),
+             *tool.get("sources", []), slot_label(roster, tool) if tool["slots"] else ""]
+     title = f'<a href="{esc(tool["url"])}">{esc(tool["name"])}</a>' if tool.get("url") else esc(tool["name"])
+-    meta = " · ".join(x for x in [KIND.get(tool.get("kind"), ""), "、".join(AGENT[a] for a in tool.get("works_with", []))] if x)
++    meta = "".join(f"<span>{esc(x)}</span>" for x in [KIND.get(tool.get("kind"), ""), "、".join(AGENT[a] for a in tool.get("works_with", []))] if x)
+     parts = [
+         f'<article class="card st-{status}" data-id="{tool["id"]}" data-status="{status}" data-search="{esc(" ".join(text).lower())}">',
+         f'<div class="card-top"><h3>{title}</h3><span class="badge st-{status}">{STATUS[status]}</span></div>',
+     ]
+     if meta:
+-        parts.append(f'<p class="card-meta">{esc(meta)}</p>')
++        parts.append(f'<p class="card-meta">{meta}</p>')
+     if tool.get("reason"):
+         parts.append(f'<p class="reason"><time datetime="{tool["decided_at"]}">{tool["decided_at"]}</time>{esc(tool["reason"])}</p>')
+     if tool.get("trial_until"):
+@@ -162,6 +162,8 @@ def ordered(tools):
+     return sorted(tools, key=lambda t: (ORDER[t["status"]], t["name"].lower()))
+ 
+ 
++HINTS = ["瀏覽器", "記憶", "前端", "簡報", "回測"]
++LAYER_NOTE = {"domain": "要交付的成果", "capability": "agent 碰得到什麼", "foundation": "agent 自己怎麼運作"}
+ VERDICT = {"native": "內建的就夠", "tool": "建議裝", "none": "沒有好選擇", "unknown": "還沒實測"}
+ 
+ 
+@@ -194,10 +196,11 @@ def slot_section(slot, tools, roster):
+         cards = '<p class="slot-note">還沒有工具卡。</p>'
+     return (
+         f'<section class="slot" id="slot-{slot["id"]}" data-focus="{slot["focus"]}" data-search="{esc(search)}">'
+-        f'<header class="slot-head"><h3>{esc(slot["name"])}</h3>'
++        f'<div class="slot-info"><header class="slot-head"><h3>{esc(slot["name"])}</h3>'
+         f'<span class="focus f-{slot["focus"]}">{FOCUS[slot["focus"]]}</span>'
+         f'<code class="slot-id">{slot["id"]}</code></header>'
+-        f'<ul class="scenarios">{scenarios}</ul>{answers_block(slot, roster)}<div class="cards">{cards}</div></section>'
++        f'<ul class="scenarios" aria-label="評估情境">{scenarios}</ul>{answers_block(slot, roster)}</div>'
++        f'<div class="cards">{cards}</div></section>'
+     )
+ 
+ 
+@@ -217,7 +220,7 @@ def module_section(module, roster):
+     note = f'<p class="module-note">{esc("；".join(notes))}</p>' if notes else ""
+     return (
+         f'<section class="module" id="module-{module["id"]}" data-kind="{module["kind"]}">'
+-        f'<header class="module-head"><span class="layer">{LAYER[module["kind"]]}</span>'
++        f'<header class="module-head"><span class="layer">{LAYER[module["kind"]]}模組</span>'
+         f'<h2>{esc(module["name"])}</h2><code class="slot-id">{module["id"]}</code>'
+         f'<p class="module-summary">{esc(module["summary"])}</p>{note}</header>{slots}</section>'
+     )
+@@ -228,9 +231,9 @@ def unassigned_section(tools, roster):
+         return ""
+     cards = "".join(card(t, roster) for t in ordered(tools))
+     return (
+-        '<section class="slot" id="unassigned" data-search="零件庫 未分配">'
+-        '<header class="slot-head"><h2>零件庫與未分配</h2></header>'
+-        '<p class="slot-note">還沒放進槽位的工具：大型 skill 合集當零件庫，從裡面挑單一 skill 放進槽位；另外是還不確定用途的。</p>'
++        '<section class="slot slot-loose" id="unassigned" data-search="零件庫 未分配">'
++        '<div class="slot-info"><header class="slot-head"><h2>零件庫與未分配</h2></header>'
++        '<p class="slot-note">還沒放進槽位的工具：大型 skill 合集當零件庫，從裡面挑單一 skill 放進槽位；另外是還不確定用途的。</p></div>'
+         f'<div class="cards">{cards}</div></section>'
+     )
+ 
+@@ -242,7 +245,7 @@ def highlights(roster):
+         items = "".join(
+             f'<li><time datetime="{t["trial_until"]}">{t["trial_until"]}</time>'
+             f'<span class="what">{esc(t["name"])}</span>'
+-            f'<span class="why">{esc(slot_label(roster, t))} · <span class="left" data-until="{t["trial_until"]}">到期日</span></span></li>'
++            f'<span class="why">{esc(slot_label(roster, t))}，<span class="left" data-until="{t["trial_until"]}">到期日</span></span></li>'
+             for t in trials
+         )
+         trial_html = f'<ul class="list">{items}</ul>'
+@@ -262,10 +265,10 @@ def highlights(roster):
+         for t in decided
+     )
+     return (
+-        '<section class="highlights" aria-label="重點"><div class="stack">'
+-        f'<div class="panel"><h2>試用中</h2>{trial_html}</div>'
+-        f'{install_panel(roster)}{eval_panel(roster["config"])}</div>'
+-        f'<div class="panel"><h2>最近的決定</h2><ul class="list">{items}</ul></div></section>'
++        '<section class="highlights" aria-label="重點">'
++        f'<div class="panel trials"><h2>試用中</h2>{trial_html}</div>'
++        f'<div class="panel recent"><h2>最近的決定</h2><ul class="list">{items}</ul></div>'
++        f'{install_panel(roster)}{eval_panel(roster["config"])}</section>'
+     )
+ 
+ 
+@@ -279,7 +282,7 @@ def install_panel(roster):
+         return ""
+     plugins = "、".join(f"{esc(name)}（{'、'.join(agents)}）" for name, agents in sorted(agents_of.items()))
+     return (
+-        '<div class="panel"><h2>安裝預設的 plugin</h2>'
++        '<div class="panel install-panel"><h2>安裝預設的 plugin</h2>'
+         '<p class="panel-note">先把 OmniKit 加成 marketplace，再到各工具卡展開「安裝指令」。</p>'
+         '<dl class="steps">'
+         f'<dt>Claude Code</dt><dd><code>/plugin marketplace add {esc(cfg["repo"])}</code></dd>'
+@@ -313,12 +316,68 @@ def toolbar(roster):
+         f'<span class="dot"></span>{v}<span class="n">{focus_counts.get(k, 0)}</span></button>'
+         for k, v in FOCUS.items()
+     )
++    hints ="".join(f'<button type="button" class="hint" data-q="{esc(w)}">{esc(w)}</button>' for w in HINTS)
+     return (
+         '<div class="toolbar"><div class="wrap">'
+-        '<input id="q" class="search" type="search" placeholder="搜尋工具、理由、備註（按 / 開始）" aria-label="搜尋工具">'
+-        f'<div class="chips" role="group" aria-label="依狀態篩選" data-group="status">{status_chips}</div>'
+-        f'<div class="chips" role="group" aria-label="依槽位重點篩選" data-group="focus">{focus_chips}</div>'
+-        '<p class="count" id="count" aria-live="polite"></p></div></div>'
++        '<div class="find"><label class="find-label" for="q">你要 agent 做什麼？</label>'
++        '<input id="q" class="search" type="search" placeholder="搜尋工作、工具、理由或備註（按 / 開始）">'
++        f'<p class="hints">試試看{hints}</p></div>'
++        '<div class="filters">'
++        f'<div class="chips" role="group" aria-label="依狀態篩選" data-group="status"><span class="chips-label">狀態</span>{status_chips}</div>'
++        f'<div class="chips" role="group" aria-label="依槽位重點篩選" data-group="focus"><span class="chips-label">槽位重點</span>{focus_chips}</div>'
++        '<p class="count" id="count" aria-live="polite"></p></div></div></div>'
++    )
++
++
++def socket_state(slot, tools):
++    """槽位一覽上的一格：有預設就是滿的，其次是試用、內建的就夠，剩下的還在找。"""
++    def names(status):
++        return "、".join(t["name"] for t in ordered(tools) if t["status"] == status)
++    if names("default"):
++        return "filled", f"預設 {names('default')}"
++    if names("trial"):
++        return "trial", f"試用 {names('trial')}"
++    if any(a["verdict"] == "native" for a in (slot.get("answers") or {}).values()):
++        return "filled", "內建的就夠"
++    pending = sum(1 for t in tools if t["status"] == "pending")
++    if pending:
++        return "open", f"{pending} 張待評估"
++    return "empty", "還沒有工具卡"
++
++
++def rack(roster):
++    """槽位一覽：照層與模組排好每個槽位，點了跳到該槽位；搜尋時只有符合的會亮著。"""
++    tools = list(roster["tools"].values())
++    layers = []
++    for kind, label in LAYER.items():
++        modules = [m for m in roster["modules"] if m["kind"] == kind]
++        if not modules:
++            continue
++        groups = []
++        for m in modules:
++            sockets = []
++            for slot in (s for s in roster["slots"] if s["module"] == m["id"]):
++                state, text = socket_state(slot, [t for t in tools if slot["id"] in t["slots"]])
++                sockets.append(
++                    f'<li><a class="socket s-{state}" href="#slot-{slot["id"]}" data-slot="slot-{slot["id"]}">'
++                    f'<span class="socket-name">{esc(slot["name"])}</span><span class="socket-state">{esc(text)}</span></a></li>'
++                )
++            groups.append(f'<div class="rack-module"><h4><a href="#module-{m["id"]}">{esc(m["name"])}</a></h4>'
++                          f'<ul>{"".join(sockets)}</ul></div>')
++        layers.append(f'<div class="rack-layer"><h3>{label}<span>{esc(LAYER_NOTE[kind])}</span></h3>'
++                      f'<div class="rack-modules">{"".join(groups)}</div></div>')
++    loose = sum(1 for t in tools if not t["slots"])
++    if loose:
++        layers.append('<div class="rack-layer rack-loose"><h3>還沒分配<span>不屬於任何槽位的工具卡</span></h3>'
++                      '<ul><li><a class="socket s-open" href="#unassigned" data-slot="unassigned">'
++                      f'<span class="socket-name">零件庫與未分配</span><span class="socket-state">{loose} 張工具卡</span></a></li></ul></div>')
++    return (
++        '<section class="rack board" aria-labelledby="rack-title"><div class="wrap">'
++        '<div class="rack-head"><h2 id="rack-title"><span class="when-idle">槽位一覽</span>'
++        '<span class="when-filtering">符合的槽位，點一下跳過去</span></h2>'
++        '<p class="legend"><span><i class="key s-filled"></i>已有預設或答案</span><span><i class="key s-trial"></i>試用中</span>'
++        '<span><i class="key s-open"></i>有候選，還在評估</span><span><i class="key s-empty"></i>還沒有工具卡</span></p></div>'
++        f'{"".join(layers)}</div></section>'
+     )
+ 
+ 
+@@ -341,6 +400,7 @@ def page(roster):
+     sections += unassigned_section([t for t in tools if not t["slots"]], roster)
+     sha, built = build_info()
+     repo_url = f"https://github.com/{cfg['repo']}"
++    fonts = "https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap"
+     css = (SITE_SRC / "style.css").read_text(encoding="utf-8")
+     js = (SITE_SRC / "app.js").read_text(encoding="utf-8")
+     return f"""<!doctype html>
+@@ -351,22 +411,27 @@ def page(roster):
+ <title>{esc(cfg["title"])}</title>
+ <meta name="description" content="{esc(cfg["tagline"])}">
+ <link rel="icon" href="{FAVICON}">
++<link rel="preconnect" href="https://fonts.googleapis.com">
++<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
++<link rel="stylesheet" href="{fonts}">
+ <style>
+ {css}</style>
+ </head>
+ <body>
+-<header class="masthead"><div class="wrap">
++<header class="masthead board"><div class="wrap">
+ <h1>{esc(cfg["title"])}</h1>
+ <p class="tagline">{esc(cfg["tagline"])}</p>
+-<ul class="stats"><li><b>{len(roster["modules"])}</b>個模組</li><li><b>{len(roster["slots"])}</b>個槽位</li><li><b>{len(tools)}</b>張工具卡</li>{stats}</ul>
+-<p class="meta">由 <a href="{repo_url}">{esc(cfg["repo"])}</a> 的名冊自動產生 · 更新於 {built}{f"（{sha}）" if sha else ""}</p>
++<p class="intro">每一種需求是一個槽位，配上幾個真實的工作情境；每個工具一張卡，記下狀態、日期與理由。每個槽位只留一個預設，新工具比贏了才換。</p>
++<ul class="stats" aria-label="名冊數量"><li><b>{len(roster["modules"])}</b>個模組</li><li><b>{len(roster["slots"])}</b>個槽位</li><li><b>{len(tools)}</b>張工具卡</li>{stats}</ul>
+ </div></header>
++{toolbar(roster)}
++{rack(roster)}
+ <main>
+ <div class="wrap">{highlights(roster)}</div>
+-{toolbar(roster)}
+-<div class="wrap">{sections}<p class="empty-state" id="empty" hidden>沒有符合的工具。換個關鍵字，或把上面的篩選打開。</p></div>
++<div class="wrap">{sections}<div class="empty-state" id="empty" hidden><p>沒有符合的工具。換個關鍵字，或把上面的篩選打開。</p><button type="button" class="reset" id="reset">清除搜尋與篩選</button></div></div>
+ </main>
+ <footer><div class="wrap">
++<p class="meta">由 <a href="{repo_url}">{esc(cfg["repo"])}</a> 的名冊自動產生，更新於 {built}{f"（{sha}）" if sha else ""}</p>
+ <p>每個槽位只留一個預設；新工具用真實情境評估，換或不換都把理由寫回名冊。</p>
+ {'<p>想知道 OmniKit 每個部分在做什麼：打開<a href="map.html">互動架構地圖</a>。</p>' if MAP.exists() else ''}
+ <p>想用同一套方法管理自己的設定：fork <a href="{repo_url}">{esc(cfg["repo"])}</a>，換掉 data/ 裡的資料即可。</p>
+diff --git a/engine/site/app.js b/engine/site/app.js
+index 449c055..ae119bc 100644
+--- a/engine/site/app.js
++++ b/engine/site/app.js
+@@ -1,8 +1,10 @@
+-// OmniKit 槽位看板：搜尋、依狀態與槽位重點篩選、試用剩餘天數。頁面本身已經是完整的 HTML，沒有這支也能看。
++// OmniKit 槽位看板：搜尋、依狀態與槽位重點篩選、槽位一覽跟著亮暗、試用剩餘天數。頁面本身已經是完整的 HTML，沒有這支也能看。
+ (() => {
+   const search = document.getElementById("q");
+   const count = document.getElementById("count");
+   const empty = document.getElementById("empty");
++  const rack = document.querySelector(".rack");
++  const highlights = document.querySelector(".highlights");
+   // 同一個工具可能放在兩個槽位，計數用不重複的 id
+   const total = new Set([...document.querySelectorAll(".card")].map((c) => c.dataset.id)).size;
+   const groups = {};
+@@ -45,6 +47,18 @@
+       // 還沒有工具卡的槽位：重點有選，而且沒在搜尋或搜尋到槽位本身，就顯示
+       slot.hidden = cards.length ? !any : !(focusOk && (term === "" || slotHit));
+     }
++    // 槽位一覽：搜尋或篩選時只留下符合的槽位，變成結果的目錄；重點區塊先收起來，結果緊接在下面
++    const filtering = term !== "" ||
++      Object.values(groups).some((buttons) => buttons.some((b) => b.getAttribute("aria-pressed") !== "true"));
++    for (const socket of document.querySelectorAll(".socket[data-slot]")) {
++      const slot = document.getElementById(socket.dataset.slot);
++      socket.parentElement.hidden = filtering && (!slot || slot.hidden);
++    }
++    for (const group of document.querySelectorAll(".rack-module, .rack-layer")) {
++      group.hidden = !group.querySelector("li:not([hidden])");
++    }
++    if (rack) rack.classList.toggle("filtering", filtering);
++    if (highlights) highlights.hidden = filtering;
+     for (const module of document.querySelectorAll(".module")) {
+       module.hidden = !module.querySelector(".slot:not([hidden])");
+     }
+@@ -54,6 +68,23 @@
+   }
+ 
+   search.addEventListener("input", apply);
++  // 「試試看」的字：填進搜尋框
++  for (const hint of document.querySelectorAll(".hint[data-q]")) {
++    hint.addEventListener("click", () => {
++      search.value = hint.dataset.q;
++      apply();
++      search.focus();
++    });
++  }
++  // 沒有結果時的「清除搜尋與篩選」：全部打開
++  document.getElementById("reset")?.addEventListener("click", () => {
++    search.value = "";
++    for (const buttons of Object.values(groups)) {
++      for (const b of buttons) b.setAttribute("aria-pressed", "true");
++    }
++    apply();
++    search.focus();
++  });
+   document.addEventListener("keydown", (event) => {
+     if (event.key === "/" && document.activeElement !== search) {
+       event.preventDefault();
+diff --git a/engine/site/style.css b/engine/site/style.css
+index d45ba79..96107be 100644
+--- a/engine/site/style.css
++++ b/engine/site/style.css
+@@ -1,19 +1,30 @@
+-/* OmniKit 槽位看板。顏色都是 token，深色模式只換 token。 */
++/* OmniKit 槽位看板。顏色都是 token，深色模式只換 token。
++   上方的深綠「板子」是品牌色：標題、搜尋、槽位一覽都在板子上；下面淺色是逐槽位的細節。 */
+ :root {
+   color-scheme: light dark;
+-  --bg: #f6f5f1;
++  --paper: #f0f2f1;
+   --surface: #ffffff;
+-  --surface-2: #faf9f6;
+-  --text: #1c1b19;
+-  --muted: #67645e;
+-  --line: #e4e1da;
+-  --line-strong: #cfcbc2;
++  --surface-2: #f6f8f7;
++  --text: #1b2622;
++  --muted: #5a6762;
++  --line: #dde3e0;
++  --line-strong: #c3ccc8;
+   --accent: #1d5c47;
+-  --ring: #2b6cb0;
++  --ring: #2563c9;
++
++  /* 板子 */
++  --board: #143f31;
++  --board-2: #1a4b3b;
++  --on-board: #eaf2ee;
++  --on-board-muted: #a9c4b9;
++  --on-board-line: rgba(234, 242, 238, .22);
++  --socket: #eaf2ee;
++  --socket-text: #17322a;
++  --board-ring: #ffd36b;
+ 
+   --s-default: #1c7448;  --s-default-bg: #e2f2e8;
+   --s-trial: #6440c2;    --s-trial-bg: #eee8fc;
+-  --s-pending: #67645e;  --s-pending-bg: #eeece7;
++  --s-pending: #5a6762;  --s-pending-bg: #e9edeb;
+   --s-rejected: #b03020; --s-rejected-bg: #fbe6e2;
+   --s-retired: #85560f;  --s-retired-bg: #f7edd9;
+ 
+@@ -21,48 +32,58 @@
+   --f-watch: #565f6d;  --f-watch-bg: #eaedf0;
+   --f-frozen: #2c5c9a; --f-frozen-bg: #e2ebf7;
+ 
+-  --radius: 12px;
+-  --shadow: 0 1px 2px rgba(28, 27, 25, .05);
+-  --font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system, "Segoe UI", sans-serif;
++  /* 卡在槽位上的記號：試用在板子上要看得清楚 */
++  --mark-filled: #5fd39a;
++  --mark-trial: #b9a2ff;
++
++  --font: "Archivo", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+   --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+ }
+ 
+ @media (prefers-color-scheme: dark) {
+   :root {
+-    --bg: #121211;
+-    --surface: #1b1b19;
+-    --surface-2: #21211f;
+-    --text: #ecebe6;
+-    --muted: #a5a29a;
+-    --line: #2d2c29;
+-    --line-strong: #3d3c38;
++    --paper: #141a18;
++    --surface: #1b2220;
++    --surface-2: #182019;
++    --text: #e6ece9;
++    --muted: #9fb0a9;
++    --line: #2a3431;
++    --line-strong: #3a4743;
+     --accent: #84c9ab;
+     --ring: #8ab4f8;
+ 
++    --board: #0f2a21;
++    --board-2: #143428;
++    --on-board: #e6efea;
++    --on-board-muted: #93b1a5;
++    --on-board-line: rgba(230, 239, 234, .18);
++    --socket: #d9e7e0;
++    --socket-text: #12291f;
++
+     --s-default: #74d29f;  --s-default-bg: #183224;
+     --s-trial: #bba5f6;    --s-trial-bg: #2a2342;
+-    --s-pending: #a5a29a;  --s-pending-bg: #2a2926;
++    --s-pending: #9fb0a9;  --s-pending-bg: #232b28;
+     --s-rejected: #f29d8e; --s-rejected-bg: #3a1f1a;
+     --s-retired: #e4b76d;  --s-retired-bg: #352919;
+ 
+     --f-active: #74d3cf; --f-active-bg: #163131;
+     --f-watch: #adb5c2;  --f-watch-bg: #262a30;
+     --f-frozen: #92b8ee; --f-frozen-bg: #1c2a3d;
+-
+-    --shadow: none;
+   }
+ }
+ 
+ * { box-sizing: border-box; }
+ [hidden] { display: none !important; }
+ html { -webkit-text-size-adjust: 100%; }
+-body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.65 var(--font); }
+-a { color: var(--accent); text-underline-offset: 2px; }
++body { margin: 0; background: var(--paper); color: var(--text); font: 15px/1.7 var(--font); font-stretch: 100%; }
++a { color: var(--accent); text-underline-offset: 3px; }
+ a:hover { text-decoration-thickness: 2px; }
+ :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
+-code, time { font-family: var(--mono); }
++code { font-family: var(--mono); }
++time { font-variant-numeric: tabular-nums; }
++h1, h2, h3, h4 { font-stretch: 87.5%; }
+ 
+-.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
++.wrap { max-width: 1200px; margin: 0 auto; padding: 0 28px; }
+ @media (max-width: 600px) { .wrap { padding: 0 16px; } }
+ 
+ /* 每種狀態與重點的顏色：徽章、色條、篩選按鈕共用 --c 與 --cbg */
+@@ -75,107 +96,212 @@ code, time { font-family: var(--mono); }
+ .f-watch { --c: var(--f-watch); --cbg: var(--f-watch-bg); }
+ .f-frozen { --c: var(--f-frozen); --cbg: var(--f-frozen-bg); }
+ 
+-/* 頁首 */
+-.masthead { background: var(--surface); border-bottom: 1px solid var(--line); }
+-.masthead .wrap { padding-top: 44px; padding-bottom: 28px; }
+-h1 { margin: 0; font-size: clamp(26px, 4vw, 34px); line-height: 1.25; font-weight: 700; letter-spacing: -.01em; }
+-.tagline { margin: 8px 0 22px; color: var(--muted); font-size: 16px; }
+-.stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+-.stats li { display: flex; align-items: baseline; gap: 6px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font-size: 13px; color: var(--muted); }
+-.stats b { font-size: 16px; color: var(--text); font-variant-numeric: tabular-nums; }
+-.stats .st-default b, .stats .st-trial b, .stats .st-rejected b, .stats .st-retired b { color: var(--c); }
+-.meta { margin: 18px 0 0; font-size: 12.5px; color: var(--muted); }
+-
+-/* 試用中與最近的決定 */
+-.highlights { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); align-items: start; gap: 16px; margin: 28px 0 0; }
+-@media (max-width: 860px) { .highlights { grid-template-columns: minmax(0, 1fr); } }
+-.stack { display: grid; gap: 16px; align-content: start; min-width: 0; }
+-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); }
+-.panel h2 { margin: 0 0 12px; font-size: 15px; }
++/* ---- 板子：標題、搜尋、槽位一覽 ---- */
++.board { background: var(--board); color: var(--on-board); }
++.board a { color: var(--on-board); }
++.board :focus-visible { outline-color: var(--board-ring); }
++
++.masthead .wrap { padding-top: 56px; padding-bottom: 8px; }
++h1 { margin: 0; font-size: clamp(36px, 7vw, 76px); line-height: 1.02; font-weight: 800; font-stretch: 75%; letter-spacing: -.015em; }
++.tagline { margin: 14px 0 0; max-width: 34em; font-size: clamp(17px, 2.2vw, 21px); line-height: 1.5; }
++.intro { margin: 10px 0 0; max-width: 40em; color: var(--on-board-muted); font-size: 15px; }
++.stats { display: flex; flex-wrap: wrap; gap: 2px 18px; margin: 18px 0 0; padding: 0; list-style: none; color: var(--on-board-muted); font-size: 13.5px; }
++.stats li { display: flex; align-items: baseline; gap: 4px; }
++.stats b { color: var(--on-board); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
++
++/* 搜尋與篩選：跟著捲動，留在板子的顏色上 */
++.toolbar { position: sticky; top: 0; z-index: 5; background: var(--board); border-bottom: 1px solid var(--on-board-line); }
++.toolbar { color: var(--on-board); }
++.toolbar :focus-visible { outline-color: var(--board-ring); }
++.toolbar .wrap { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: end; gap: 10px 32px; padding-top: 22px; padding-bottom: 14px; }
++.find { min-width: 0; }
++.find-label { display: block; margin-bottom: 6px; font-size: 15px; font-weight: 700; font-stretch: 87.5%; }
++.search { width: 100%; padding: 12px 16px; border: 2px solid transparent; border-radius: 10px; background: var(--socket); color: var(--socket-text); font: inherit; font-size: 16px; }
++.search::placeholder { color: #5f716a; }
++.search:focus-visible { outline: 3px solid var(--board-ring); outline-offset: 1px; }
++.hints { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 8px 0 0; font-size: 13px; color: var(--on-board-muted); }
++.hint { padding: 0 2px; border: 0; border-bottom: 1px dashed var(--on-board-muted); background: none; color: var(--on-board); font: inherit; cursor: pointer; }
++.hint:hover { border-bottom-style: solid; }
++.filters { display: grid; gap: 8px; min-width: 0; }
++.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
++.chips-label { min-width: 4.5em; font-size: 12.5px; color: var(--on-board-muted); }
++.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid var(--on-board-line); border-radius: 999px; background: transparent; color: var(--on-board-muted); font: inherit; font-size: 13px; line-height: 1.6; cursor: pointer; }
++.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
++.chip .n { font-variant-numeric: tabular-nums; opacity: .8; }
++.chip[aria-pressed="true"] { background: var(--socket); border-color: var(--socket); color: var(--socket-text); }
++.chip[aria-pressed="true"] .dot { background: var(--cl, var(--c)); }
++.chip[aria-pressed="false"] { text-decoration: line-through; }
++.chip[aria-pressed="false"] .dot { background: transparent; box-shadow: inset 0 0 0 1.5px var(--on-board-muted); }
++/* 亮色晶片上的點固定用淺色模式的狀態色，深色模式也看得清楚 */
++.chip.st-default { --cl: #1c7448; } .chip.st-trial { --cl: #6440c2; } .chip.st-pending { --cl: #5a6762; }
++.chip.st-rejected { --cl: #b03020; } .chip.st-retired { --cl: #85560f; }
++.chip.f-active { --cl: #0c6a6a; } .chip.f-watch { --cl: #565f6d; } .chip.f-frozen { --cl: #2c5c9a; }
++.count { margin: 0; font-size: 13px; color: var(--on-board-muted); font-variant-numeric: tabular-nums; }
++
++/* 槽位一覽：每個槽位是板子上的一個插座，滿的就是已經有答案 */
++.rack .wrap { padding-top: 26px; padding-bottom: 44px; }
++.rack-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 24px; margin-bottom: 18px; }
++.rack-head h2 { margin: 0; font-size: 22px; font-weight: 800; }
++.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; font-size: 12.5px; color: var(--on-board-muted); }
++.legend span { display: inline-flex; align-items: center; gap: 6px; }
++.key { width: 14px; height: 10px; border-radius: 3px; }
++.key.s-filled { background: var(--socket); box-shadow: inset 3px 0 0 var(--s-default); }
++.key.s-trial { background: var(--socket); box-shadow: inset 3px 0 0 var(--s-trial); }
++.key.s-open { border: 1.5px solid var(--on-board-muted); }
++.key.s-empty { border: 1.5px dashed var(--on-board-line); }
++
++.rack-layer { display: grid; grid-template-columns: 9.5em minmax(0, 1fr); gap: 12px 20px; padding: 16px 0; border-top: 1px solid var(--on-board-line); }
++.rack-layer h3 { margin: 0; font-size: 20px; font-weight: 800; line-height: 1.2; }
++.rack-layer h3 span { display: block; margin-top: 4px; font-size: 12.5px; font-weight: 400; font-stretch: 100%; color: var(--on-board-muted); }
++.rack-modules { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px 12px; }
++.rack-module h4 { margin: 0 0 6px; font-size: 14px; font-weight: 700; }
++.rack-module h4 a { text-decoration: none; }
++.rack-module h4 a:hover { text-decoration: underline; }
++.rack ul { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
++.socket { display: grid; padding: 6px 10px 7px 12px; border-radius: 6px; text-decoration: none; line-height: 1.35; }
++.board .socket { color: var(--on-board); }
++.socket-name { font-size: 13.5px; font-weight: 600; }
++.socket-state { font-size: 12px; color: var(--on-board-muted); overflow-wrap: anywhere; }
++.socket.s-filled, .socket.s-trial { background: var(--socket); color: var(--socket-text); box-shadow: inset 4px 0 0 var(--s-default); }
++.socket.s-trial { box-shadow: inset 4px 0 0 #6440c2; }
++.socket.s-filled .socket-state, .socket.s-trial .socket-state { color: #3f5a50; }
++.socket.s-open { border: 1px solid var(--on-board-muted); }
++.socket.s-empty { border: 1px dashed var(--on-board-line); }
++.socket.s-empty { padding-top: 4px; padding-bottom: 4px; }
++.socket.s-empty .socket-name { font-weight: 500; color: var(--on-board-muted); }
++/* 虛線框已經說了「還沒有工具卡」，字只留給螢幕閱讀器 */
++.socket.s-empty .socket-state { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
++.socket:hover { background: var(--board-2); }
++.socket.s-filled:hover, .socket.s-trial:hover { background: #fff; }
++.rack-loose ul { max-width: 240px; }
++/* 搜尋或篩選時只留下符合的槽位，標題改成結果的說法 */
++.rack-head .when-filtering { display: none; }
++.rack.filtering .rack-head .when-filtering { display: inline; }
++.rack.filtering .rack-head .when-idle { display: none; }
++.rack.filtering .wrap { padding-bottom: 28px; }
++@media (prefers-reduced-motion: no-preference) {
++  .rack.filtering .socket { animation: plug-in .25s ease-out; }
++  @keyframes plug-in { from { opacity: 0; transform: translateY(-3px); } }
++}
++
++@media (max-width: 860px) {
++  .toolbar .wrap { grid-template-columns: minmax(0, 1fr); }
++  .rack-layer { grid-template-columns: minmax(0, 1fr); }
++  .rack-layer h3 span { display: inline; margin-left: 8px; }
++}
++/* 手機上固定的搜尋列會擋掉半個畫面，改成跟著捲動 */
++@media (max-width: 700px) {
++  .masthead .wrap { padding-top: 36px; }
++  .toolbar { position: static; }
++  .toolbar .wrap { padding-top: 18px; }
++  .chips-label { min-width: 0; flex-basis: 100%; }
++  .chip { padding: 2px 9px; font-size: 12.5px; }
++  .rack-modules { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 8px; }
++  .socket { padding: 5px 8px 6px 10px; }
++  .socket-name { font-size: 13px; }
++}
++
++/* ---- 試用中、最近的決定、安裝、評估紀錄：同一條，欄與欄用細線分開 ---- */
++.highlights { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1.15fr); grid-template-areas: "trials recent install" "evals recent install"; margin: 36px 0 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
++.panel { min-width: 0; padding: 20px 22px; }
++.panel h2 { margin: 0 0 12px; font-size: 17px; font-weight: 800; }
++.trials { grid-area: trials; }
++.recent { grid-area: recent; border-left: 1px solid var(--line); }
++.install-panel { grid-area: install; border-left: 1px solid var(--line); background: var(--s-default-bg); }
++.evals { grid-area: evals; border-top: 1px solid var(--line); }
++@media (max-width: 1000px) {
++  .highlights { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "trials install" "recent recent" "evals evals"; }
++  .recent { border-left: 0; border-top: 1px solid var(--line); }
++}
++@media (max-width: 640px) {
++  .highlights { grid-template-columns: minmax(0, 1fr); grid-template-areas: "trials" "install" "recent" "evals"; }
++  .install-panel { border-left: 0; border-top: 1px solid var(--line); }
++  .panel { padding: 18px 16px; }
++}
+ .panel-note { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+ .panel-note:last-child { margin-bottom: 0; }
+-.steps { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; margin: 0 0 10px; font-size: 13px; }
+-.steps dt { color: var(--muted); line-height: 1.9; }
+-.steps dd { margin: 0; }
+-.steps code, .install code { display: block; padding: 3px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); color: var(--text); font-size: 12px; overflow-wrap: anywhere; }
++.steps { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; margin: 0 0 12px; font-size: 13px; }
++.steps dt { color: var(--muted); }
++.steps dd { margin: 0 0 6px; }
++.steps code, .install code { display: block; padding: 5px 9px; border-radius: 6px; background: var(--surface); color: var(--text); font-size: 12.5px; overflow-wrap: anywhere; }
++.install code { background: var(--surface-2); border: 1px solid var(--line); }
+ .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+-.list li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 12px; font-size: 13.5px; }
+-.list time { grid-row: span 2; font-size: 12px; line-height: 1.9; color: var(--muted); }
+-.list .what { font-weight: 600; }
++.list li { display: grid; grid-template-columns: 5.8em minmax(0, 1fr); gap: 0 12px; font-size: 13.5px; }
++.list time { grid-row: span 2; font-size: 12.5px; line-height: 1.85; color: var(--muted); }
++.list .what { font-weight: 700; }
+ .list .what .badge { margin-left: 6px; vertical-align: 1px; }
+ .list .why { color: var(--muted); }
++.evals .list { gap: 6px; }
++.evals .list li { grid-template-columns: minmax(0, 1fr); }
+ .empty { margin: 0; color: var(--muted); font-size: 13.5px; }
+-.left { font-weight: 600; color: var(--s-trial); }
++.left { font-weight: 700; color: var(--s-trial); }
+ .left.overdue { color: var(--s-rejected); }
+ 
+-/* 搜尋與篩選 */
+-.toolbar { position: sticky; top: 0; z-index: 5; margin-top: 24px; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+-.toolbar .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding-top: 12px; padding-bottom: 12px; }
+-.search { flex: 1 1 240px; min-width: 0; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; font-size: 14px; }
+-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+-.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface); color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+-.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+-.chip .n { font-variant-numeric: tabular-nums; opacity: .75; }
+-.chip[aria-pressed="true"] { color: var(--text); border-color: var(--c); }
+-.chip[aria-pressed="false"] { text-decoration: line-through; text-decoration-color: var(--line-strong); }
+-.chip[aria-pressed="false"] .dot { background: transparent; box-shadow: inset 0 0 0 1.5px var(--c); }
+-.count { margin: 0 0 0 auto; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+-/* 手機上固定的搜尋列會擋掉半個畫面，改成跟著捲動 */
+-@media (max-width: 700px) {
+-  .toolbar { position: static; backdrop-filter: none; }
+-  .toolbar .wrap { gap: 8px; }
+-  .chip { padding: 3px 9px; font-size: 12.5px; }
+-}
+-.empty-state { margin: 40px 0; padding: 28px; border: 1px dashed var(--line-strong); border-radius: var(--radius); text-align: center; color: var(--muted); }
+-
+-/* 模組：一層一個標籤，底下是槽位 */
+-.module { margin: 48px 0 0; padding-top: 22px; border-top: 1px solid var(--line-strong); scroll-margin-top: 140px; }
+-.module-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+-.module-head h2 { margin: 0; font-size: 24px; line-height: 1.3; }
+-.layer { padding: 2px 9px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--muted); }
+-.module-summary, .module-note { flex-basis: 100%; margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+-.module-note { font-size: 13px; }
+-
+-/* 槽位 */
+-.slot { margin: 32px 0; scroll-margin-top: 140px; }
+-.slot-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 6px; }
+-.slot-head h2, .slot-head h3 { margin: 0; font-size: 20px; line-height: 1.35; }
+-.module .slot-head h3 { font-size: 18px; }
+-.focus { padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--c); background: var(--cbg); }
++.empty-state { margin: 40px 0; padding: 28px; border: 1px dashed var(--line-strong); border-radius: 14px; text-align: center; color: var(--muted); }
++.empty-state p { margin: 0 0 12px; }
++.reset { padding: 7px 16px; border: 0; border-radius: 8px; background: var(--accent); color: var(--surface); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
++
++/* ---- 模組：一層一個標籤，底下是槽位 ---- */
++.module { margin: 64px 0 0; scroll-margin-top: 170px; }
++.module-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding-bottom: 14px; border-bottom: 3px solid var(--text); }
++.module-head h2 { margin: 0; font-size: clamp(26px, 3.6vw, 36px); line-height: 1.15; font-weight: 800; font-stretch: 75%; }
++.layer { order: -1; flex-basis: 100%; font-size: 13px; font-weight: 600; color: var(--muted); }
++.module-summary, .module-note { flex-basis: 100%; margin: 4px 0 0; color: var(--muted); font-size: 14.5px; }
++.module-note { font-size: 13px; margin-top: 0; }
++
++/* ---- 槽位：左邊是需求與情境，右邊是工具卡 ---- */
++.slot { display: grid; grid-template-columns: minmax(0, 330px) minmax(0, 1fr); gap: 14px 32px; padding: 26px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 170px; }
++.slot-loose { margin-top: 64px; border-top: 3px solid var(--text); }
++@media (max-width: 860px) { .slot { grid-template-columns: minmax(0, 1fr); } }
++@media (max-width: 700px) { .module, .slot { scroll-margin-top: 12px; } }
++.slot-info { min-width: 0; }
++.slot-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 8px; }
++.slot-head h2, .slot-head h3 { margin: 0; font-size: 21px; line-height: 1.3; font-weight: 800; }
++.focus { padding: 0 9px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.8; color: var(--c); background: var(--cbg); }
+ .slot-id { font-size: 12px; color: var(--muted); }
+ .slot-note { margin: 0 0 12px; color: var(--muted); font-size: 13.5px; }
+-.answers { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; font-size: 13.5px; }
+-.answers li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+-.answers .verdict { padding: 0 8px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: 12px; white-space: nowrap; }
++.scenarios { margin: 0 0 12px; padding: 0; list-style: none; font-size: 13.5px; line-height: 1.65; }
++.scenarios li { display: grid; grid-template-columns: 2.6em minmax(0, 1fr); gap: 8px; margin-bottom: 6px; }
++.scenarios b { font-size: 12.5px; font-weight: 700; color: var(--accent); }
++.scenarios span { color: var(--muted); }
++.answers { list-style: none; margin: 0; padding: 10px 12px; display: grid; gap: 8px; font-size: 13px; background: var(--surface-2); border-radius: 8px; }
++.answers li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
++.answers b { font-weight: 700; }
++.answers .verdict { padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--surface); border: 1px solid var(--line-strong); }
++.answers .v-native, .answers .v-tool { color: var(--s-default); border-color: currentColor; }
+ .answers .v-unknown { color: var(--muted); }
+-.scenarios { margin: 0 0 14px; padding: 0; list-style: none; color: var(--muted); font-size: 13.5px; }
+-.scenarios li { display: flex; gap: 8px; }
+-.scenarios b { flex: none; font: 600 12px/1.95 var(--mono); color: var(--text); }
+-
+-/* 工具卡 */
+-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); align-items: start; gap: 12px; }
+-.card { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 14px 16px 14px 19px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+-.card::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--c); }
+-.card.st-default, .card.st-trial { border-color: color-mix(in srgb, var(--c) 40%, var(--line)); }
++.answers li > span:last-child { flex-basis: 100%; color: var(--muted); }
++
++/* ---- 工具卡：已決定的大，待評估的精簡 ---- */
++.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); align-items: start; gap: 10px; min-width: 0; }
++.card { display: flex; flex-direction: column; gap: 5px; min-width: 0; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
++.card.st-default, .card.st-trial { grid-column: span 2; padding: 16px 18px; border: 2px solid var(--c); }
++@media (max-width: 1100px) { .card.st-default, .card.st-trial { grid-column: auto; } }
++.card.st-pending { background: transparent; border-style: solid; }
++.card.st-rejected, .card.st-retired { background: transparent; border-style: dashed; }
+ .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+-.card h3 { margin: 0; font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
++.card h3 { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
++.card.st-default h3, .card.st-trial h3 { font-size: 19px; font-weight: 800; }
+ .card h3 a { color: inherit; text-decoration: none; }
+ .card h3 a:hover { text-decoration: underline; }
+-.badge { flex: none; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.6; color: var(--c); background: var(--cbg); }
+-.card-meta { margin: 0; font-size: 12.5px; color: var(--muted); }
++.badge { flex: none; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.7; color: var(--c); background: var(--cbg); }
++.card.st-pending .badge { background: transparent; padding: 0; font-weight: 500; }
++.card-meta { display: flex; flex-wrap: wrap; gap: 0 10px; margin: 0; font-size: 12.5px; color: var(--muted); }
+ .reason, .trial { margin: 0; font-size: 13.5px; }
+ .reason time { margin-right: 8px; font-size: 12px; color: var(--muted); }
+ .install { margin-top: 6px; display: grid; gap: 4px; font-size: 12.5px; }
+ .card details { font-size: 13px; color: var(--muted); }
+ .card summary { width: fit-content; cursor: pointer; }
+ .card details p { margin: 6px 0 0; overflow-wrap: anywhere; }
+-.card-foot { margin-top: auto; padding-top: 4px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 12px; color: var(--muted); }
++.card-foot { margin-top: auto; padding-top: 2px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 12px; color: var(--muted); }
+ .card-foot a { color: var(--muted); }
+ 
+-/* 評估紀錄與頁尾 */
+-.evals .list li { grid-template-columns: minmax(0, 1fr); }
+-footer { margin-top: 48px; padding: 24px 0 44px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+-footer p { margin: 0 0 6px; }
++/* ---- 頁尾 ---- */
++footer { margin-top: 72px; padding: 28px 0 48px; background: var(--board); color: var(--on-board-muted); font-size: 13.5px; }
++footer a { color: var(--on-board); }
++footer p { margin: 0 0 6px; max-width: 48em; }
++footer .meta { margin-bottom: 14px; font-size: 12.5px; }
++footer :focus-visible { outline-color: var(--board-ring); }
+ 
+ @media (prefers-reduced-motion: no-preference) {
+   html { scroll-behavior: smooth; }
