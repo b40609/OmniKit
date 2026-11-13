@@ -97,6 +97,15 @@ LinePort 的控制台：`yomi-probe/index.html` 一個檔（約 99 KB，CSS 與 
 - 新增 `web-pages`「前端設計：網頁與形象頁」（情境 WP1），taste-skill 在這裡試用。網頁沒有實測過，是依它的說明與第二輪做成形象頁的風格推論。
 - ryan 的 profile 加上分工規則：網頁用 taste-skill，工具介面用 unslop，用的時候直接點名。
 
+### taste-skill 在 CatOS 自由發揮（只給使用者看，不進判定）
+
+不給方向文件，同第一輪的副本與假後端。約 27 分鐘，17 個檔（+807／−793），型別檢查與建置通過，用了 retis 週額度約 3%。它沒有做成行銷頁，自己判斷這是盯盤用的操作台，保留黑金深色與面板工作台，跟原版很接近。使用者看完：「普普通通」。
+
+### 試用的設定（2026-11-14）
+
+- 已安裝：taste-skill 用官方 plugin（Claude Code 與 Codex，2.5.1）；unslop 照 README 複製到 Claude Code 與 Codex／Antigravity 的 skill 資料夾（`97daa3e`）。OmniKit 的「換」只處理週報建議裡的候選，這兩張卡沒有安裝資訊，所以沒走那條路。
+- ryan 的規則改成：前端介面預設 unslop；網頁或使用者明確要求高質感時才用 taste-skill，用在工具介面仍以功能優先。
+
 ### 額度消耗（retis 的 Claude，Opus 5.5，依執行順序）
 
 | 組 | 秒數 | 5 小時額度 | 週額度 |
