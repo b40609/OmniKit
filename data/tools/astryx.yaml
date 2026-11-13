@@ -1,0 +1,10 @@
+id: astryx
+name: astryx（meta）
+slots:
+- frontend-design
+status: pending
+url: https://github.com/meta/astryx
+sources:
+- 自我迭代訊號
+notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:69a4163e4c44）：Meta 開源、給 coding agent 用的設計系統，可當前端設計槽位的素材或候選。名冊外，還沒評估。
+added: '2026-11-13'

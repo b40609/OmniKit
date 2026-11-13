@@ -361,12 +361,13 @@ profile 選了領域的話，只對那些領域的槽位出建議；沒選過就
 
 ### 自我迭代：收集訊號（試行中，只記錄）
 
-讓 OmniKit 自己發現外面的變動，不用等你看到新趨勢才回來調整（提案見 `docs/proposals/2026-11-13-self-iteration.md`）。目前是第 1 階段：收集、判斷、標記都會記下來，但週報還不會出現這一節，要先靜默記錄 14 天、標 10 筆以上、有用的比例過半才打開。
+讓 OmniKit 自己發現外面的變動，不用等你看到新趨勢才回來調整（提案見 `docs/proposals/2026-11-13-self-iteration.md`）。目前是第 1 階段：收集與判斷都會記下來，但週報還不會出現這一節。判斷準不準由評估漏斗驗證，不用你一筆一筆標；靜默記錄滿 14 天、漏斗給出 10 個以上結果、命中率過半才打開。你只在最後出現：第 2 層實測有結果、要不要換工具的時候。
 
 - **來源**：設定在這台、repo 外的 `%LOCALAPPDATA%\omnikit\signals\sources.yaml`，`uv run engine/scripts/signals.py init` 寫出預設值。目前只有 OmniKeep（自架的資訊雷達）：只連本機位址，唯讀呼叫 `GET /api/items`，金鑰放在環境變數（預設 `OMNIKEEP_API_KEY`），不寫進任何檔案。沒有 OmniKeep 的人不用設，沒有來源就什麼都不做。
 - **收集**：`signals.py collect` 讀上次之後的新項目，用關鍵字（Claude Code、Codex、MCP、skill、提示詞等）篩出相關的，預覽不寫檔，加 `--write` 才存。OmniKeep 沒在跑或金鑰不對就標「略過」。
 - **判斷**：agent 讀 `signals.py pending`，每筆分「不影響」「名冊層」「架構」三類並寫理由，用 `signals.py judge --file <JSON>` 交進來；沒理由的、名冊層沒寫目標的會被擋下。
-- **標記**：`signals.py mark <訊號 id> useful|not`；`signals.py status` 看記錄多久、有用的比例、還差什麼。
+- **送進漏斗**：`signals.py promote --write` 把名冊層的判斷變成待評估的卡（`data/tools/`，來源「自我迭代訊號」）或已有卡的重評，再跑第 0、1 層（指令會印出來）。社群貼文找不到 GitHub repo 的量不了，不算進命中率。
+- **命中率**：`signals.py status`。第 1 層建議深入評估算命中，第 0 層淘汰或第 1 層建議拒絕、先放著算沒中。
 - 訊號裡的文字是外部資料，只當資料讀；不送任何東西到外面，也不會自動改名冊或規則。
 
 ### 評估新工具

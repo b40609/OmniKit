@@ -7,8 +7,10 @@
 # ///
 """自我迭代第 1 階段：收集訊號、記錄影響判斷、量「有用」的比例（docs/proposals/2026-11-13-self-iteration.md）。
 
-這一階段只記錄，不提示、不改任何東西：週報還不會列出這一節，要先靜默記錄 2 週，
-使用者標「有用」的比例過半，才在第 3 階段打開（沿用 PRD §0.1 第 5 題）。
+這一階段只記錄，不提示：週報還不會列出這一節。判斷準不準由評估漏斗驗證，不用使用者一筆一筆標：
+名冊層的判斷變成待評估的卡或重評請求，第 0、1 層跑完，第 1 層建議深入評估的算命中。
+靜默記錄滿 2 週、漏斗給出 10 個以上結果、命中率過半，才在第 3 階段打開（沿用 PRD §0.1 第 5 題的門檻，量法改成漏斗）。
+使用者只在最後一步出現：第 2 層實測有結果、要不要換工具時。
 
 來源設定在這台、repo 外：%LOCALAPPDATA%\\omnikit\\signals\\sources.yaml，沒有這個檔就沒有來源。例如：
   sources:
@@ -27,7 +29,10 @@ OmniKeep 沒在跑、金鑰沒設或不對，這個來源就標「略過」，�
      none          不影響
      roster        名冊層：新增、替換或重評某張卡（要寫 target：工具卡 id 或槽位 id）
      architecture  架構或優先順序：之後要寫成提案
-3. mark：使用者標哪些判斷有用。status 算有用的比例，以及是否已經可以打開週報那一節。
+     名冊層的訊號是社群貼文時，agent 可以另外寫 repo_url（工具的 GitHub repo）。
+3. promote：名冊層的判斷送進漏斗。目標是已有的卡就重評；目標是槽位、指到名冊沒有的 GitHub repo 就寫成
+   待評估的卡（data/tools/，來源「自我迭代訊號」）；找不到 repo 的量不了，不算進命中率。預覽不寫檔。
+4. 跑第 0、1 層（promote --write 會印出指令），status 照漏斗的結果算命中率。
 
 訊號裡的文字是外部資料，只存、只給 agent 當資料讀，不執行、不當指令。不送任何東西到外面。
 
@@ -37,8 +42,8 @@ OmniKeep 沒在跑、金鑰沒設或不對，這個來源就標「略過」，�
   uv run engine/scripts/signals.py collect [--write]                收集；預覽不寫檔
   uv run engine/scripts/signals.py pending [--days N]               還沒判斷的訊號（JSON，給 agent 讀）
   uv run engine/scripts/signals.py judge --file <JSON> [--write]    交判斷；預覽不寫檔
-  uv run engine/scripts/signals.py mark <訊號 id> useful|not        標有沒有用
-  uv run engine/scripts/signals.py status                           記錄了多久、有用的比例、能不能打開
+  uv run engine/scripts/signals.py promote [--write]                名冊層的判斷送進評估漏斗；預覽不寫檔
+  uv run engine/scripts/signals.py status                           漏斗結果、命中率、能不能打開
   uv run engine/scripts/signals.py --selftest
 """
 import argparse
@@ -59,7 +64,9 @@ import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pool  # noqa: E402  名冊比對（同一個 repo 有沒有卡）跟候選池同一套
 import profiles  # noqa: E402
+import validate  # noqa: E402
 from fsretry import retry  # noqa: E402
 
 ROOT = profiles.ROOT
@@ -70,10 +77,11 @@ PAGE = 100            # OmniKeep 的 limit 上限
 MAX_PAGES = 20        # 第一次收集最多往回讀這麼多頁
 FIRST_DAYS = 30       # 第一次收集只讀這麼多天內的
 SILENT_DAYS = 14      # 靜默記錄至少這麼久
-MIN_MARKS = 10        # 至少標了這麼多筆，比例才算數
-USEFUL_RATE = 0.5     # 有用的比例要超過這個
+MIN_DECIDED = 10      # 漏斗至少給出這麼多個結果，命中率才算數
+HIT_RATE = 0.5        # 命中率要超過這個
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+GITHUB_REPO = re.compile(r"^https://github\.com/([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+?)(?:\.git)?/?$")
 # 預設關鍵字：比對標題、摘要與標籤（不分大小寫）。只放通用的說法
 KEYWORDS = (
     "claude code", "claude.md", "codex", "agents.md", "antigravity", "gemini cli", "coding agent", "agentic",
@@ -444,41 +452,168 @@ def check_judgments(base, doc):
         if j["impact"] == "roster" and (not isinstance(target, str) or not ID.match(target)):
             bad.append(f"{where}（{sid}）：名冊層要寫 target（工具卡或槽位的 id）")
             continue
+        repo_url = j.get("repo_url")
+        if repo_url is not None and not (isinstance(repo_url, str) and GITHUB_REPO.match(repo_url)):
+            bad.append(f"{where}（{sid}）：repo_url 要是 https://github.com/<擁有者>/<repo>")
+            continue
         seen.add(sid)
         row = {"signal": sid, "impact": j["impact"], "reason": reason.strip()[:1000], "at": iso(now())}
         if j["impact"] == "roster":
             row["target"] = target
+            if repo_url:
+                row["repo_url"] = repo_url.rstrip("/")
         ok.append(row)
     return ok, bad
 
 
-def marks(base):
+def repo_from(*urls):
+    """第一個是 GitHub repo 網址的，回 (owner/repo 小寫, 網址)；都不是回 (None, None)。"""
+    for u in urls:
+        m = GITHUB_REPO.match(u or "")
+        if m and m.group(1).lower() not in ("orgs", "topics", "search", "features", "marketplace"):
+            return f"{m.group(1)}/{m.group(2)}".lower(), f"https://github.com/{m.group(1)}/{m.group(2)}"
+    return None, None
+
+
+def promotions(base):
     out = {}
-    for r in read_jsonl(base / "marks.jsonl"):
-        if isinstance(r, dict) and r.get("useful") in (True, False) and isinstance(r.get("signal"), str):
+    for r in read_jsonl(base / "promotions.jsonl"):
+        if isinstance(r, dict) and isinstance(r.get("signal"), str):
             out[r["signal"]] = r
     return out
 
 
-def status(base, today=None):
+def plan_promotions(base, roster, today):
+    """名冊層的判斷 → 送進評估漏斗的動作（還沒寫檔）：
+       reeval  目標是名冊已有的卡，或訊號的 repo 已經有卡：重跑那張卡的第 0、1 層
+       card    目標是槽位、訊號指到名冊沒有的 GitHub repo：寫成待評估的卡，照常走第 0、1 層
+       skip    找不到 GitHub repo（社群貼文、做法類）或名冊已經拒絕：漏斗量不了，不算進命中率"""
+    sigs, done = all_signals(base), promotions(base)
+    tools, slots = roster["tools"], {sl["id"] for sl in roster["slots"]}
+    index = pool.roster_index(roster)
+    taken, actions = set(tools), []
+    for sid, j in judged(base).items():
+        if j["impact"] != "roster" or sid in done or sid not in sigs:
+            continue
+        sig, target = sigs[sid], j["target"]
+        row = {"signal": sid, "target": target}
+        repo, url = repo_from(j.get("repo_url"), sig["url"])
+        # 有些 id 同時是槽位與工具卡（例如 frontend-design）：有 repo 就當槽位的新候選，沒有才當重評那張卡
+        if target in tools and not (target in slots and repo):
+            if target in slots:
+                actions.append({**row, "action": "skip", "why": f"{target} 同時是槽位與工具卡，訊號沒有 GitHub repo，分不出要重評哪個"})
+            else:
+                actions.append({**row, "action": "reeval", "tool": target, "why": "目標是名冊已有的卡"})
+            continue
+        if target not in slots:
+            actions.append({**row, "action": "skip", "why": f"名冊沒有 {target} 這張卡或這個槽位"})
+            continue
+        if not repo:
+            actions.append({**row, "action": "skip", "why": "找不到 GitHub repo，漏斗量不了"})
+            continue
+        hit = pool.in_roster({"repo": repo, "name": "", "id": f"web:{repo}"}, index)
+        if hit:
+            if hit["code"] == "roster-no":
+                actions.append({**row, "action": "skip", "why": f"名冊已經拒絕或退役（{hit['tool']}）"})
+            else:
+                actions.append({**row, "action": "reeval", "tool": hit["tool"], "why": "這個 repo 名冊已經有卡"})
+            continue
+        name = repo.split("/")[-1]
+        cid = base_id = re.sub(r"[^a-z0-9]+", "-", name).strip("-") or "signal"
+        if cid in taken:
+            cid = re.sub(r"[^a-z0-9]+", "-", repo).strip("-")
+        n = 2
+        while cid in taken:
+            cid, n = f"{base_id}-{n}", n + 1
+        taken.add(cid)
+        card = {"id": cid, "name": f"{name}（{repo.split('/')[0]}）", "slots": [target], "status": "pending", "url": url,
+                "sources": ["自我迭代訊號"],
+                "notes": f"自我迭代從 {sig['source']} 的收錄找到（{today.isoformat()}，訊號 {sid}）：{j['reason']}。名冊外，還沒評估。",
+                "added": today.isoformat()}
+        actions.append({**row, "action": "card", "tool": cid, "card": card, "why": "名冊沒有，寫成待評估的卡"})
+    return actions
+
+
+def promote(base, data, write=False, today=None, state=None):
+    """回 (動作清單, 問題)。write 才寫卡與 promotions.jsonl；寫完照名冊驗證。"""
+    today = today or datetime.now().date()
+    errors, roster = validate.check(data, state=state)
+    if errors:
+        return [], ["名冊驗證沒過，先修好：" + "；".join(errors[:3])]
+    actions = plan_promotions(base, roster, today)
+    if not write:
+        return actions, []
+    problems, rows = [], []
+    check_tool = validate.validator("tool.schema.json")
+    for a in actions:
+        if a["action"] == "card":
+            path = Path(data) / "tools" / f"{a['tool']}.yaml"
+            bad = validate.schema_errors(check_tool, a["card"], path)
+            if bad or path.exists():
+                problems.append(f"沒寫 {path.name}：{bad[0] if bad else '檔案已經存在'}")
+                continue
+            retry(path.write_bytes, yaml.safe_dump(a["card"], allow_unicode=True, sort_keys=False, width=10000).encode("utf-8"))
+        row = {k: a[k] for k in ("signal", "target", "action", "why")}
+        if a.get("tool"):
+            row["tool"] = a["tool"]
+        rows.append({**row, "at": iso(now())})
+    errors, _ = validate.check(data, state=state)
+    if errors:
+        problems.append("寫卡之後名冊驗證沒過：" + "；".join(errors[:3]))
+    append_jsonl(base / "promotions.jsonl", rows)
+    return actions, problems
+
+
+def outcome(funnel, tool_id, since):
+    """漏斗對一張卡的結果，第 1 層只看 since 那天之後跑的：
+       hit      第 1 層建議深入評估（deep_eval）
+       miss     第 0 層淘汰，或第 1 層建議拒絕、先放著
+       waiting  還沒跑到"""
+    funnel = Path(funnel)
+    tools = load_json(funnel / "layer0.json", {}).get("tools") or {}
+    l0 = tools.get(tool_id) if isinstance(tools, dict) else next((t for t in tools if t.get("id") == tool_id), None)
+    if isinstance(l0, dict) and l0.get("fails"):
+        return "miss", "第 0 層淘汰：" + "、".join(map(str, l0["fails"]))
+    l1 = load_json(funnel / "layer1" / f"{tool_id}.json", None)
+    if isinstance(l1, dict):
+        ran = parse_time(str((l1.get("meta") or {}).get("generated") or (l1.get("meta") or {}).get("date") or ""))
+        if not since or not ran or ran.date() >= since.date():
+            rec = l1.get("recommendation")
+            if rec == "deep_eval":
+                return "hit", "第 1 層建議深入評估"
+            return "miss", "第 1 層建議" + ("拒絕" if rec == "reject" else "先放著")
+    return "waiting", "第 1 層還沒跑"
+
+
+def status(base, funnel=None, today=None):
+    """命中率由評估漏斗的結果算，不用使用者標記。只有送進漏斗的名冊層判斷量得到；
+    「不影響」與「架構」量不到，只列個數。"""
     today = today or now()
-    js = judged(base)
-    ms = {k: v for k, v in marks(base).items() if k in js}
+    funnel = Path(funnel) if funnel else ROOT / "data" / "funnel"
+    js, proms = judged(base), promotions(base)
     first_at = min((parse_time(j.get("at")) for j in js.values() if parse_time(j.get("at"))), default=None)
     days = (today - first_at).days if first_at else 0
-    useful = sum(1 for m in ms.values() if m["useful"])
-    rate = useful / len(ms) if ms else None
     by = {k: sum(1 for j in js.values() if j["impact"] == k) for k in IMPACTS}
-    ready = days >= SILENT_DAYS and len(ms) >= MIN_MARKS and rate is not None and rate > USEFUL_RATE
+    results = {"hit": [], "miss": [], "waiting": [], "skip": []}
+    for sid, r in proms.items():
+        if r.get("action") == "skip" or not r.get("tool"):
+            results["skip"].append({"signal": sid, "why": r.get("why", "")})
+            continue
+        res, why = outcome(funnel, r["tool"], parse_time(r.get("at")))
+        results[res].append({"signal": sid, "tool": r["tool"], "why": why})
+    decided = len(results["hit"]) + len(results["miss"])
+    rate = len(results["hit"]) / decided if decided else None
+    unpromoted = sum(1 for sid, j in js.items() if j["impact"] == "roster" and sid not in proms)
+    ready = days >= SILENT_DAYS and decided >= MIN_DECIDED and rate is not None and rate > HIT_RATE
     missing = []
     if days < SILENT_DAYS:
         missing.append(f"記錄滿 {SILENT_DAYS} 天（目前 {days} 天）")
-    if len(ms) < MIN_MARKS:
-        missing.append(f"至少標 {MIN_MARKS} 筆（目前 {len(ms)} 筆）")
-    if rate is not None and rate <= USEFUL_RATE:
-        missing.append(f"有用的比例超過 {USEFUL_RATE:.0%}（目前 {rate:.0%}）")
-    return {"signals": len(all_signals(base)), "pending": len(pending(base)), "judged": by, "marked": len(ms),
-            "useful": useful, "rate": rate, "days": days, "ready": ready, "missing": missing}
+    if decided < MIN_DECIDED:
+        missing.append(f"漏斗至少給出 {MIN_DECIDED} 個結果（目前 {decided} 個）")
+    if rate is not None and rate <= HIT_RATE:
+        missing.append(f"命中率超過 {HIT_RATE:.0%}（目前 {rate:.0%}）")
+    return {"signals": len(all_signals(base)), "pending": len(pending(base)), "judged": by, "unpromoted": unpromoted,
+            "results": results, "decided": decided, "rate": rate, "days": days, "ready": ready, "missing": missing}
 
 
 # ---------- 自我測試 ----------
@@ -608,38 +743,106 @@ def selftest():
         cfg.write_text(saved, encoding="utf-8")
         check("days：只列這麼多天內的", pending(base, days=1) and not pending(base, days=1, today=now() + timedelta(days=3)))
 
-        st = status(base)
-        check("剛開始：不能打開，列出還差什麼", not st["ready"] and len(st["missing"]) == 2 and st["judged"]["roster"] == 1)
+        funnel = Path(tmp) / "funnel"
+        st = status(base, funnel=funnel)
+        check("剛開始：不能打開，列出還差什麼；名冊層還沒送進漏斗", not st["ready"] and len(st["missing"]) == 2
+              and st["judged"]["roster"] == 1 and st["unpromoted"] == 1)
 
-        # 造 14 天前開始、12 筆判斷、標 8 筆有用 4 筆沒用
-        start = now() - timedelta(days=15)
-        fake_sigs = [{"id": f"omnikeep:f{i}", "source": "omnikeep", "url": "https://example.com/f", "title": f"f{i}",
-                      "date": iso(start)} for i in range(12)]
-        write_json(base / "batches" / "fake.json", {"format": 1, "collected_at": iso(start), "sources": [], "signals": fake_sigs})
-        append_jsonl(base / "judgments.jsonl", [{"signal": s["id"], "impact": "none", "reason": "測試用理由", "at": iso(start)}
-                                                for s in fake_sigs])
-        append_jsonl(base / "marks.jsonl", [{"signal": s["id"], "useful": i < 8, "at": iso(start)} for i, s in enumerate(fake_sigs)])
-        append_jsonl(base / "marks.jsonl", [{"signal": "omnikeep:nojudge", "useful": False, "at": iso(start)}])
-        st = status(base)
-        check("滿 14 天、標 12 筆、有用 8 筆（67%）：可以打開；沒判斷過的標記不算",
-              st["ready"] and st["marked"] == 12 and st["useful"] == 8 and st["days"] >= 14)
-        append_jsonl(base / "marks.jsonl", [{"signal": s["id"], "useful": False, "at": iso(now())} for s in fake_sigs[:3]])
-        st = status(base)
-        check("改標之後照最新的算：有用 5／12，不能打開", not st["ready"] and st["useful"] == 5
-              and any("比例" in m for m in st["missing"]))
+        # 送進漏斗：用複製的真名冊
+        import shutil
+        data = Path(tmp) / "data"
+        shutil.copytree(profiles.DATA, data)
+        nostate = Path(tmp) / "nostate"
+        roster = validate.check(data, state=nostate)[1]
+        slot = roster["slots"][0]["id"]
+        card_id = next(iter(roster["tools"]))
+        card_url = roster["tools"][card_id].get("url") or ""
+        t1 = now() - timedelta(hours=1)
+        extra = [
+            {"id": "omnikeep:n1", "source": "omnikeep", "url": "https://github.com/Acme/Brand-New-Skill", "title": "n1", "date": iso(t1)},
+            {"id": "omnikeep:n2", "source": "omnikeep", "url": "https://www.threads.net/@x/post/1", "title": "n2", "date": iso(t1)},
+            {"id": "omnikeep:n3", "source": "omnikeep", "url": "https://www.threads.net/@x/post/2", "title": "n3", "date": iso(t1)},
+            {"id": "omnikeep:n4", "source": "omnikeep", "url": "https://example.com/n4", "title": "n4", "date": iso(t1)},
+            {"id": "omnikeep:n5", "source": "omnikeep", "url": card_url or "https://example.com/n5", "title": "n5", "date": iso(t1)},
+        ]
+        write_json(base / "batches" / "extra.json", {"format": 1, "collected_at": iso(t1), "sources": [], "signals": extra})
+        ok, bad = check_judgments(base, [
+            {"signal": "omnikeep:n1", "impact": "roster", "target": slot, "reason": "名冊沒有的新工具"},
+            {"signal": "omnikeep:n2", "impact": "roster", "target": slot, "reason": "社群貼文，有補 repo",
+             "repo_url": "https://github.com/acme/other-tool"},
+            {"signal": "omnikeep:n3", "impact": "roster", "target": slot, "reason": "社群貼文，沒補 repo"},
+            {"signal": "omnikeep:n4", "impact": "roster", "target": "no-such-slot", "reason": "目標不存在"},
+            {"signal": "omnikeep:n5", "impact": "roster", "target": card_id, "reason": "已有的卡要重評"},
+            {"signal": "omnikeep:a3", "impact": "roster", "target": slot, "reason": "repo 網址不對", "repo_url": "https://gitlab.com/x/y"},
+        ])
+        check("判斷：repo_url 只收 GitHub repo 網址", len(ok) == 5 and len(bad) == 1 and "repo_url" in bad[0])
+        append_jsonl(base / "judgments.jsonl", ok)
+
+        actions, problems = promote(base, data, write=False, state=nostate)
+        by = {a["signal"]: a for a in actions}
+        check("promote 預覽：新 repo 寫卡、補了 repo 的社群貼文寫卡、沒 repo 量不了、目標不存在量不了、已有的卡重評",
+              by["omnikeep:n1"]["action"] == "card" and by["omnikeep:n1"]["tool"] == "brand-new-skill"
+              and by["omnikeep:n2"]["action"] == "card" and by["omnikeep:n2"]["card"]["url"] == "https://github.com/acme/other-tool"
+              and by["omnikeep:n3"]["action"] == "skip" and by["omnikeep:n4"]["action"] == "skip"
+              and by["omnikeep:n5"]["action"] == "reeval" and by["omnikeep:n5"]["tool"] == card_id and not problems)
+        check("promote 預覽：不寫卡、不記錄", not (data / "tools" / "brand-new-skill.yaml").exists()
+              and not (base / "promotions.jsonl").exists())
+        actions, problems = promote(base, data, write=True, state=nostate)
+        made = yaml.safe_load((data / "tools" / "brand-new-skill.yaml").read_text(encoding="utf-8"))
+        check("promote --write：寫成待評估的卡、來源是自我迭代訊號、名冊驗證照過",
+              made["status"] == "pending" and made["slots"] == [slot] and made["sources"] == ["自我迭代訊號"]
+              and not problems and not validate.check(data, state=nostate)[0])
+        check("promote 再跑一次：送過的不再送", promote(base, data, write=False, state=nostate)[0] == [])
+
+        both = sorted(set(roster["tools"]) & {sl["id"] for sl in roster["slots"]})
+        if both:
+            twin = both[0]
+            t2 = [{"id": "omnikeep:w1", "source": "omnikeep", "url": "https://github.com/acme/twin-new", "title": "w1", "date": iso(t1)},
+                  {"id": "omnikeep:w2", "source": "omnikeep", "url": "https://www.threads.net/@x/post/9", "title": "w2", "date": iso(t1)}]
+            write_json(base / "batches" / "twin.json", {"format": 1, "collected_at": iso(t1), "sources": [], "signals": t2})
+            append_jsonl(base / "judgments.jsonl", check_judgments(base, [
+                {"signal": "omnikeep:w1", "impact": "roster", "target": twin, "reason": "槽位的新候選"},
+                {"signal": "omnikeep:w2", "impact": "roster", "target": twin, "reason": "沒有 repo 的貼文"}])[0])
+            by = {a["signal"]: a for a in promote(base, data, write=False, state=nostate)[0]}
+            check(f"目標同時是槽位與卡（{twin}）：有 repo 當槽位的新候選，沒有 repo 量不了，不會誤當重評",
+                  by["omnikeep:w1"]["action"] == "card" and by["omnikeep:w2"]["action"] == "skip")
+            promote(base, data, write=True, state=nostate)
+
+        # 漏斗結果：第 0 層淘汰、第 1 層 deep_eval／reject、沒跑過、舊的第 1 層結果不算
+        (funnel / "layer1").mkdir(parents=True)
+        write_json(funnel / "layer0.json", {"tools": [{"id": "other-tool", "fails": ["H6"]}]})
+        write_json(funnel / "layer1" / "brand-new-skill.json", {"recommendation": "deep_eval", "meta": {"date": iso(now())[:10]}})
+        write_json(funnel / "layer1" / f"{card_id}.json", {"recommendation": "deep_eval", "meta": {"date": "2026-01-01"}})
+        st = status(base, funnel=funnel)
+        r = {k: [x.get("tool") for x in v] for k, v in st["results"].items()}
+        check("status：第 1 層 deep_eval 算命中、第 0 層淘汰算沒中、送進漏斗前跑的舊結果不算",
+              r["hit"] == ["brand-new-skill"] and r["miss"] == ["other-tool"] and card_id in r["waiting"]
+              and len(r["skip"]) >= 3 and st["rate"] == 0.5 and st["decided"] == 2)
+        write_json(funnel / "layer1" / f"{card_id}.json", {"recommendation": "reject", "meta": {"date": iso(now())[:10]}})
+        check("status：重評後第 1 層建議拒絕算沒中", status(base, funnel=funnel)["results"]["miss"][-1]["tool"] == card_id)
+
+        # 門檻：滿 14 天、10 個結果、命中率過半
+        start_at = now() - timedelta(days=15)
+        rows = [{"signal": f"omnikeep:g{i}", "target": slot, "action": "card", "tool": f"g{i}", "why": "測試", "at": iso(start_at)}
+                for i in range(12)]
+        append_jsonl(base / "promotions.jsonl", rows)
+        append_jsonl(base / "judgments.jsonl", [{"signal": f"omnikeep:g{i}", "impact": "roster", "target": slot,
+                                                 "reason": "測試用理由", "at": iso(start_at)} for i in range(12)])
+        for i in range(12):
+            write_json(funnel / "layer1" / f"g{i}.json", {"recommendation": "deep_eval" if i < 9 else "keep_pending",
+                                                          "meta": {"date": iso(now())[:10]}})
+        st = status(base, funnel=funnel)
+        check("門檻：滿 14 天、15 個結果、命中 10 個（67%）可以打開", st["ready"] and st["decided"] == 15 and st["days"] >= 14)
+        for i in range(9):
+            write_json(funnel / "layer1" / f"g{i}.json", {"recommendation": "reject", "meta": {"date": iso(now())[:10]}})
+        st = status(base, funnel=funnel)
+        check("門檻：命中率沒過半就不能打開，說明差什麼", not st["ready"] and any("命中率" in m for m in st["missing"]))
 
         # 壞掉的訊號檔不讀
         (base / "batches" / "broken.json").write_text('{"format": 1, "signals": "x"}', encoding="utf-8")
         check("格式不對的訊號檔略過，不影響其他的", "omnikeep:a1" in all_signals(base))
 
         # 命令列
-        out = io.StringIO()
-        with contextlib.redirect_stdout(out):
-            code = main(["mark", "omnikeep:a1", "useful"], base=base)
-        check("mark：判斷過的才能標", code == 0 and marks(base)["omnikeep:a1"]["useful"] is True)
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            code = main(["mark", "omnikeep:a3", "useful"], base=base)
-        check("mark：還沒判斷的不能標", code == 1)
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             main(["sources"], base=base)
@@ -651,7 +854,7 @@ def selftest():
 
 # ---------- 命令列 ----------
 
-def main(argv=None, base=None):
+def main(argv=None, base=None, data=None):
     parser = argparse.ArgumentParser(description="OmniKit 自我迭代第 1 階段：收集訊號、記錄影響判斷、量有用的比例")
     parser.add_argument("--selftest", action="store_true")
     sub = parser.add_subparsers(dest="cmd")
@@ -664,9 +867,8 @@ def main(argv=None, base=None):
     p = sub.add_parser("judge")
     p.add_argument("--file", required=True)
     p.add_argument("--write", action="store_true")
-    p = sub.add_parser("mark")
-    p.add_argument("signal")
-    p.add_argument("value", choices=["useful", "not"])
+    p = sub.add_parser("promote")
+    p.add_argument("--write", action="store_true")
     sub.add_parser("status")
     args = parser.parse_args(argv)
     if args.selftest:
@@ -714,19 +916,32 @@ def main(argv=None, base=None):
         elif ok:
             print("\n（預覽，沒有寫檔；加 --write 才記下）")
         return 0 if not bad else 1
-    if args.cmd == "mark":
-        if args.signal not in judged(base):
-            print(f"{args.signal} 還沒有判斷，不能標", file=sys.stderr)
-            return 1
-        append_jsonl(base / "marks.jsonl", [{"signal": args.signal, "useful": args.value == "useful", "at": iso(now())}])
-        print(f"{args.signal}：{'有用' if args.value == 'useful' else '沒用'}")
-        return 0
+    if args.cmd == "promote":
+        actions, problems = promote(base, data or profiles.DATA, write=args.write)
+        names = {"reeval": "重評", "card": "寫成待評估的卡", "skip": "量不了"}
+        for a in actions:
+            print(f"- {a['signal']} → {names[a['action']]}" + (f" {a['tool']}" if a.get("tool") else "") + f"：{a['why']}")
+        for p in problems:
+            print(f"問題：{p}")
+        tools = sorted({a["tool"] for a in actions if a.get("tool")})
+        if args.write and tools:
+            print("\n接著跑漏斗（第 0 層看 GitHub 現況，第 1 層用便宜模型讀 README）：")
+            print(f"  uv run engine/skills/omnikit-eval/scripts/batch0.py --only {','.join(tools)}")
+            print(f"  uv run engine/skills/omnikit-eval/scripts/layer1.py run --force --only {','.join(tools)}")
+        elif actions and not args.write:
+            print("\n（預覽，沒有寫檔；加 --write 才寫卡並記下）")
+        return 0 if not problems else 1
     if args.cmd == "status":
         st = status(base)
         rate = "還沒有" if st["rate"] is None else f"{st['rate']:.0%}"
+        r = st["results"]
         print(f"訊號 {st['signals']} 筆，待判斷 {st['pending']} 筆；判斷：不影響 {st['judged']['none']}、"
-              f"名冊層 {st['judged']['roster']}、架構 {st['judged']['architecture']}")
-        print(f"記錄 {st['days']} 天；標了 {st['marked']} 筆，有用 {st['useful']} 筆（{rate}）")
+              f"名冊層 {st['judged']['roster']}（還沒送進漏斗 {st['unpromoted']}）、架構 {st['judged']['architecture']}")
+        print(f"漏斗結果：命中 {len(r['hit'])}、沒中 {len(r['miss'])}、還沒跑到 {len(r['waiting'])}、量不了 {len(r['skip'])}；"
+              f"命中率 {rate}；記錄 {st['days']} 天")
+        for key, word in (("hit", "命中"), ("miss", "沒中"), ("waiting", "等漏斗")):
+            for x in r[key]:
+                print(f"  {word}：{x['tool']}（{x['signal']}）{x['why']}")
         print("可以在週報打開這一節。" if st["ready"] else "還不能打開：" + "；".join(st["missing"]))
         return 0
     parser.print_help()

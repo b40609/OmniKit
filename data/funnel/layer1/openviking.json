@@ -1,0 +1,69 @@
+{
+ "layer": 1,
+ "tool_id": "openviking",
+ "name": "openviking（volcengine）",
+ "url": "https://github.com/volcengine/openviking",
+ "slots": [
+  "memory"
+ ],
+ "scenarios": [
+  "M1"
+ ],
+ "summary": "OpenViking 是給 agent 用的上下文與記憶資料庫，README 宣稱有 Claude Code 與 Codex 的 hooks＋MCP 整合，可以在兩邊共用記憶，對應 memory 槽位的 M1（Claude Code 做到一半、換到 Codex 接手）。內建的 auto memory（Claude）與 memories（Codex）彼此不互通，所以跨 harness 交接是內建沒有的能力，值得實測。代價是要自架或連雲端服務、安裝器只支援 macOS／Linux，Windows 只有 beta 桌面版，且主程式是 AGPLv3。M2（compaction 後仍記得進度）README 沒有直接證據，先不放進槽位。",
+ "differences": "相較於內建（現任為空，以內建比較）：多了跨 Claude Code 與 Codex 共用的記憶、可用 ls／find／grep 瀏覽的檔案化記憶，以及可以直接開檔檢視與編輯的記憶內容。少了開箱即用：要先架 server（或訂閱雲端服務）、要裝 hooks 與 MCP，Windows 沒有 CLI 安裝路徑，授權是 AGPLv3。內建 auto memory 預設開、零設定，對單一工具的偏好記憶已經夠用。",
+ "claims": [
+  {
+   "claim": "支援 Claude Code 與 Codex 的 hooks＋MCP 整合，兩者都能掛上同一份記憶。",
+   "kind": "capability",
+   "how_to_verify": "依官方 Claude Code 與 Codex 整合文件安裝外掛，在 Claude 寫入一則偏好，換到 Codex 新 session 查詢是否取得。"
+  },
+  {
+   "claim": "需要自架 server（openviking-server init）或使用 Volcengine 雲端服務，不是單純的本機套件。",
+   "kind": "compat",
+   "how_to_verify": "在測試機上依 README 安裝並執行 init，確認 server 是否必要；檢查雲端方案的資料存放位置與費用條款。"
+  },
+  {
+   "claim": "安裝器需要 macOS 或 Linux，Windows 只提供 beta 桌面版（x64）。",
+   "kind": "compat",
+   "how_to_verify": "在這台 Windows 11 上執行官方安裝指令，看是否失敗；另外確認桌面版能否配置 Claude Code 與 Codex 的 hooks。"
+  },
+  {
+   "claim": "記憶與對話會存成可讀可改的 Markdown 檔，並提供 viking:// 路徑瀏覽。",
+   "kind": "quality",
+   "how_to_verify": "啟動 server 後提交一段 session，檢查輸出檔案是否為 Markdown，並用 ov ls／ov tree 確認路徑結構。"
+  },
+  {
+   "claim": "主程式採 AGPLv3 授權；ov_cli 為 Apache 2.0。",
+   "kind": "security",
+   "how_to_verify": "檢視 repo 的 LICENSE 與 crates/LICENSE，確認授權條款與團隊的使用與散布政策相符。"
+  },
+  {
+   "claim": "在 LoCoMo 等基準上的準確率提升（Claude Code 由 57% 到 80%）。這是專案自己公布的數字。",
+   "kind": "quality",
+   "how_to_verify": "依 benchmark 目錄的腳本在本機重跑 LoCoMo，對照沒裝 OpenViking 的基準，確認數字是否可重現。"
+  }
+ ],
+ "native_coverage": {
+  "level": "partial",
+  "by": [
+   "memory"
+  ],
+  "note": "Claude Code auto memory 預設開、Codex memories 預設關，兩者都不互通；跨 harness 共用、可檢視的檔案化記憶是內建沒有的。M1 只部分涵蓋，M2 未評估。"
+ },
+ "cluster": "context-database-server",
+ "recommendation": "deep_eval",
+ "needs_user": "請維護者決定三件事：(1) 這台 Windows 要走桌面版 beta、還是在 WSL 裡跑 server；(2) AGPLv3 授權與資料留在本機或上雲，是否可以接受；(3) M2（compaction 後記憶）要不要另外納入評估，目前 README 沒有直接證據。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-13",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 22676,
+   "cached": 3784,
+   "output": 3229
+  },
+  "readme_sha": "8d76530b5f69",
+  "readme_chars": 27299
+ }
+}

@@ -1,0 +1,10 @@
+id: openviking
+name: openviking（volcengine）
+slots:
+- memory
+status: pending
+url: https://github.com/volcengine/openviking
+sources:
+- 自我迭代訊號
+notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:33254c76e035）：給 agent 用的上下文與記憶資料庫，相容 Claude Code，記憶槽位的名冊外候選；AGPLv3 要注意。名冊外，還沒評估。
+added: '2026-11-13'

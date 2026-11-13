@@ -1,0 +1,63 @@
+{
+ "layer": 1,
+ "tool_id": "stack-diagram",
+ "name": "stack-diagram（caru-ini）",
+ "url": "https://github.com/caru-ini/stack-diagram",
+ "slots": [],
+ "scenarios": [],
+ "summary": "這是用自然語言描述系統架構、產生架構示意圖的 skill，輸出 HTML、PNG 或 React 元件。它不讀資料、不產生由數據繪製的圖表，所以對不上 figures-reports 的 DS3（報告等級的資料圖表、數值對得上原始資料）。卡片掛在 figures-reports 下，但功能不符，沒有任何情境能放進槽位。",
+ "differences": "與 figures-reports 槽位要求相比：多了架構圖的版面與官方 logo 圖示、HTML/PNG/React 等輸出格式；少了資料讀取、軸與單位、圖上數值與原始資料的對應與核對。內建功能在此槽位沒有對應項目，因此沒有可比的現任。",
+ "claims": [
+  {
+   "claim": "可用一句自然語言描述產生架構圖，輸出單一 HTML 檔、PNG 或無相依的 React 元件",
+   "kind": "capability",
+   "how_to_verify": "依 README 安裝 skill 後實際下指令，檢查輸出檔案格式與內容"
+  },
+  {
+   "claim": "需要 Python 3.9+ 與網路以下載 logo；PNG 匯出需要 Playwright 與 Chromium",
+   "kind": "compat",
+   "how_to_verify": "在乾淨環境檢查 requirements 與腳本的 import、下載與 Playwright 呼叫"
+  },
+  {
+   "claim": "logo 依序從 svgl、devicon、gilbarbara/logos 或品牌官方儲存庫取得",
+   "kind": "security",
+   "how_to_verify": "在腳本中搜尋這些來源網址，確認下載來源與是否執行下載內容"
+  },
+  {
+   "claim": "程式碼為 MIT 授權；logo 不隨 skill 打包，各自有不同授權",
+   "kind": "compat",
+   "how_to_verify": "檢查 LICENSE 檔與建置腳本，確認 logo 是否在執行時才下載"
+  },
+  {
+   "claim": "可選擇把圖發布到外部公開 gallery（stacks.caru.moe），發布前需使用者確認兩次",
+   "kind": "security",
+   "how_to_verify": "閱讀 skill 指示與 site/ 原始碼，確認確認流程與送出的內容欄位"
+  },
+  {
+   "claim": "可以在本機完整產生圖，不必發布到外部服務",
+   "kind": "capability",
+   "how_to_verify": "切斷外部發布路徑後實際產生 HTML 與 PNG，確認流程能完成"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單沒有 figures-reports 項目，Claude Code 與 Codex 的內建工具也不產生架構示意圖。"
+ },
+ "cluster": "architecture-diagram-render",
+ "recommendation": "reject",
+ "needs_user": "卡片把它掛在 figures-reports，但功能是架構示意圖，不是資料圖表。請確認：要維持 reject，還是另開一個「架構圖／示意圖」槽位來收這類工具。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-13",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 79464,
+   "cached": 7568,
+   "output": 3997
+  },
+  "readme_sha": "5f55b53b49ce",
+  "readme_chars": 8528
+ }
+}

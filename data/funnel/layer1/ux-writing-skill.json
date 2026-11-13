@@ -1,0 +1,63 @@
+{
+ "layer": 1,
+ "tool_id": "ux-writing-skill",
+ "name": "ux-writing-skill（content-designer）",
+ "url": "https://github.com/content-designer/ux-writing-skill",
+ "slots": [],
+ "scenarios": [],
+ "summary": "這是一個 UX 文案 skill，規範介面微文案（錯誤訊息、按鈕文字、空白狀態）的撰寫與改寫，不涉及視覺設計、版面或前端程式實作。frontend-design 槽位的 F1 到 F3 都是 React／Vite 實作、版面樣式與原版重建，沒有一個情境是寫文案，所以不放入任何槽位。卡片備註提到的「有效」回饋只是來源訊號，本次無法查證，不作為依據。建議 reject。",
+ "differences": "跟現任 frontend-design 比：多了一套文案品質標準（四個面向）與常見介面文案型態的範例、模板；少了視覺設計、版面與樣式、React／Vite 實作，以及照原版重建網站的能力，這些正是 F1 到 F3 的內容。它不產出程式或版面，不能取代現任。",
+ "claims": [
+  {
+   "claim": "以 skills CLI（npx skills add）安裝，並宣稱支援 Claude Code、Codex、Cursor。",
+   "kind": "compat",
+   "how_to_verify": "在隔離的空目錄執行安裝指令，確認各 agent 的設定目錄都產生 SKILL.md。"
+  },
+  {
+   "claim": "內含 SKILL.md、docs、references、templates 等參考資料，採按需漸進載入。",
+   "kind": "capability",
+   "how_to_verify": "安裝後列出目錄結構，確認檔案存在，並檢查 SKILL.md 是否指示按需讀取參考檔。"
+  },
+  {
+   "claim": "定義四項文案品質標準：Purposeful、Concise、Conversational、Clear。",
+   "kind": "capability",
+   "how_to_verify": "閱讀 SKILL.md 與 references，確認四項標準有可操作的檢查表，而不只是口號。"
+  },
+  {
+   "claim": "Figma 整合需要另外設定，設定指南位於 docs/figma-integration.md。",
+   "kind": "cost",
+   "how_to_verify": "閱讀該指南，確認是否需要 Figma 帳號、權杖或額外的 MCP 服務。"
+  },
+  {
+   "claim": "授權為 MIT，版本 1.6.0。",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 的 LICENSE 檔，並比對 SKILL.md 或 README 的版本欄位是否一致。"
+  },
+  {
+   "claim": "文案 before/after 範例與評分能改善實際的介面文案品質。",
+   "kind": "quality",
+   "how_to_verify": "用 agent-eval 的盲評設計，同一批介面文案分別在有裝與沒裝的情況下產出，交由盲評比較。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單沒有 frontend-design 或文案相關項目；Claude Code 與 Codex 的內建能力只有一般搜尋與文件 skill，都不涵蓋 UX 文案規範。"
+ },
+ "cluster": "markdown-skill-pack",
+ "recommendation": "reject",
+ "needs_user": "UX 文案目前不在任何槽位內。如果維護者想另開一個槽位來評，需要先決定；這不影響本次的 reject 判斷。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-13",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 14707,
+   "cached": 3784,
+   "output": 5305
+  },
+  "readme_sha": "cd91a5041ba5",
+  "readme_chars": 9921
+ }
+}

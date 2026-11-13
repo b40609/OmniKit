@@ -1,0 +1,10 @@
+id: ux-writing-skill
+name: ux-writing-skill（content-designer）
+slots:
+- frontend-design
+status: pending
+url: https://github.com/content-designer/ux-writing-skill
+sources:
+- 自我迭代訊號
+notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:4c4cb0e696b5）：UX 文案 skill，dc108580f194 的回饋說它有效，可以跟前端設計槽位一起實測。名冊外，還沒評估。
+added: '2026-11-13'

@@ -1,0 +1,63 @@
+{
+ "layer": 1,
+ "tool_id": "trader-skill",
+ "name": "trader-skill（jakeschincariol）",
+ "url": "https://github.com/jakeschincariol/trader-skill",
+ "claims": [
+  {
+   "claim": "核心工具只用 Python 標準函式庫，安裝不需要 pip 套件（README 寫 Python 3.8 以上）",
+   "kind": "capability",
+   "how_to_verify": "檢查 trader-*/ 下各 .py 檔的 import 列表，確認沒有第三方套件；在 Python 3.8 環境執行 python -m unittest discover -s tests -v"
+  },
+  {
+   "claim": "預設為模擬盤：config.example.json 的 paper 預設為 true，Alpaca MCP 預設指向紙上帳戶",
+   "kind": "security",
+   "how_to_verify": "讀 trader-budget/config.example.json 的 paper 欄位，以及 trader-broker/SKILL.md 與 claude_desktop_config.example.json 的 Alpaca 設定"
+  },
+  {
+   "claim": "下單需使用者逐筆輸入同意，且 /trader-broker 必須在 /trader-risk 通過後才會產生下單",
+   "kind": "security",
+   "how_to_verify": "閱讀 trader-broker/SKILL.md 與 trader-risk/SKILL.md 的流程，確認沒有自動下單路徑，並確認 ticket.py 的 show 與送出指令分開"
+  },
+  {
+   "claim": "資料來源包含 SEC EDGAR、眾議院書記官處（House Clerk）、新聞 RSS 與 Yahoo Finance chart 端點（非官方、可能變動）",
+   "kind": "capability",
+   "how_to_verify": "檢查 trader-news/news.py、trader-pelosi/ptr.py、trader-analyst/facts.py 與 trader-alerts/alerts.py 實際呼叫的網址"
+  },
+  {
+   "claim": "使用 SEC 資料前必須設定 SEC_USER_AGENT（含姓名與電子郵件），否則腳本不會送出請求",
+   "kind": "compat",
+   "how_to_verify": "檢查 edgar13f.py 與 facts.py 讀取 config.json 或 SEC_USER_AGENT 環境變數的邏輯，並在未設定時執行一次，觀察錯誤訊息"
+  },
+  {
+   "claim": "README 未說明 Windows 原生支援；作者示範指令都是 bash 與 python3 寫法",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 11 與 PowerShell 下，以 python 執行 trader-news/news.py --help 與 trader-budget/size.py --help，確認是否能正常執行"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單沒有 quant-data 的條目，因此沒有可以比較的內建做法，覆蓋程度記為 none。"
+ },
+ "slots": [],
+ "scenarios": [],
+ "summary": "這是一組面向個人投資的技能包，功能包括跟單大型投資人的 13F 持股、監看新聞與 SEC 8-K、國會議員股票揭露、預算配置、風控與下單票據。沒有任何一條情境對得上現有槽位：quant-data 要的是行情管線的補缺漏、時間對齊與可重跑的資料品質檢查，README 只提到讀取公開資料，沒有這些功能。下單安全的設計（預設模擬、需逐筆確認）值得肯定，但那是產品本身的設計，不是我們要評估的開發改動情境。建議不收。",
+ "differences": "相對於 quant-data 沒有現任，因此以內建功能比較：內建沒有行情管線或資料品質檢查。這個工具多了 SEC 13F 解析、國會 PTR 解析、新聞與價格提醒、預算與風控計算，以及經由 Alpaca MCP 下單的票據流程，這些都是投資決策功能，不在我們的槽位範圍內。它少了的是補缺漏、時間對齊、可重跑的資料品質檢查，以及回測與績效報告。價格來源是非官方的 Yahoo chart 端點，README 也自己承認可能變動。",
+ "cluster": "trading-skill-pack",
+ "recommendation": "reject",
+ "needs_user": "如果維護者想把 quant-data 的範圍擴大到「個人投資輔助」，這個工具可以重新評估；在目前的槽位定義下，它不在範圍內。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-13",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 220834,
+   "cached": 142720,
+   "output": 9679
+  },
+  "readme_sha": "8f515f242b6d",
+  "readme_chars": 9784
+ }
+}

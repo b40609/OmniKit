@@ -1,0 +1,68 @@
+{
+ "layer": 1,
+ "tool_id": "astryx",
+ "name": "astryx（meta）",
+ "url": "https://github.com/meta/astryx",
+ "slots": [
+  "frontend-design"
+ ],
+ "scenarios": [
+  "F1",
+  "F2"
+ ],
+ "summary": "Astryx 是 Meta 開源的 React 元件庫與設計系統（目前為 Beta），附主題、CLI 與給人和 AI 共用的文件。它能當 frontend-design 槽位 F1（重新設計 CatOS 的 React/Vite 前端）與 F2（決定前端呈現方式）的素材，但它是元件庫，不是設計流程的 skill，類別與現任不同，需要實測才知道對 CatOS 有沒有實際幫助。",
+ "differences": "相較現任 frontend-design：多了一套可直接 import 的元件（150 種以上）、主題系統（七組 theme 套件）、CLI 查元件文件與樣板，以及針對 AI 助手整理的文件。少了的是設計流程與決策指引：它主要提供元件與樣式，版面與風格仍要自己判斷。另外它要求 React 19 以上，並採用 StyleX，若 CatOS 不符合這些前提，導入成本會上升。Windows 原生執行沒有在 README 中說明，需要實測。",
+ "claims": [
+  {
+   "claim": "需要 React 19 以上版本（react 與 react-dom 為 peer dependencies）",
+   "kind": "compat",
+   "how_to_verify": "到 npm 查看 @astryxdesign/core 的 package.json 中 peerDependencies 欄位，並在 CatOS 的 React 版本下安裝測試"
+  },
+  {
+   "claim": "提供 @astryxdesign/cli，可列出元件文件（component --list）與樣板",
+   "kind": "capability",
+   "how_to_verify": "安裝 @astryxdesign/cli 後執行 component --list 與 docs 指令，確認輸出內容"
+  },
+  {
+   "claim": "樣式採用 StyleX 撰寫，使用端可用 className 覆寫（Tailwind、CSS modules 或純 CSS）",
+   "kind": "compat",
+   "how_to_verify": "在測試專案中匯入一個元件，套用 className 覆寫樣式，確認覆寫生效且不需額外 build plugin"
+  },
+  {
+   "claim": "提供七組現成主題套件（@astryxdesign/theme-*）",
+   "kind": "capability",
+   "how_to_verify": "到 npm 搜尋 @astryxdesign/theme- 前綴，確認套件數量與名稱"
+  },
+  {
+   "claim": "目前為 Beta，圖表套件（vega、charts）只發佈 @canary 標籤，尚無穩定版",
+   "kind": "quality",
+   "how_to_verify": "執行 npm view @astryxdesign/charts dist-tags 與 npm view @astryxdesign/vega dist-tags，確認是否只有 canary 標籤"
+  },
+  {
+   "claim": "README 未說明支援 Windows 原生環境（PowerShell）",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 11 PowerShell 依 README 安裝並執行 CLI 與 pnpm install，記錄成功或失敗的指令輸出"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單沒有 frontend-design 項目；內建 browser 的 Browser 面板只能用於驗證畫面，不提供設計能力。"
+ },
+ "cluster": "design-system-library",
+ "recommendation": "deep_eval",
+ "needs_user": "請維護者決定：Astryx 是元件庫，現任 frontend-design 是設計 skill，兩者類別不同，要不要把元件庫算作這個槽位的候選（或改為補充而非取代）。另請確認 CatOS 是否使用 React 19，這會決定能否直接導入。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-13",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 79668,
+   "cached": 3784,
+   "output": 4747
+  },
+  "readme_sha": "a8d4bd74d79a",
+  "readme_chars": 9082
+ }
+}

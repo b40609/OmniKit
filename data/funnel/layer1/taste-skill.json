@@ -1,0 +1,68 @@
+{
+ "layer": 1,
+ "tool_id": "taste-skill",
+ "name": "taste-skill（leonxlnx）",
+ "url": "https://github.com/leonxlnx/taste-skill",
+ "slots": [
+  "frontend-design"
+ ],
+ "scenarios": [
+  "F1",
+  "F2"
+ ],
+ "summary": "taste-skill 對得上前端設計槽位的 F1 與 F2。它是給 coding agent 用的設計技能，主要用來做公司官網與品牌頁，過程會在無頭瀏覽器中逐寬度檢查。F3（照原版精準重建）不是它的設計目標，所以不列入。內建功能沒有前端設計項目，屬於無內建涵蓋；但它的適用範圍是官網而非應用介面，實際效果需要實測。",
+ "differences": "同槽位現任只寫了 frontend-design，沒有具體工具名稱，無法逐項比較；若以內建功能為基準（前端設計沒有內建項目），它多了版面與配色的發牌規則、照片與圖示的取得流程、以及無頭 Chrome 逐寬度檢查與收尾 gate。少了的部分是：它的設計流程以公司官網與品牌頁為主，對 CatOS 這類應用介面的適用性還不確定；另外需要 Node 22 與本機 Chrome。",
+ "claims": [
+  {
+   "claim": "需要 Node 22 以上與本機 Chrome、Edge 或 Chromium；ffmpeg 為選用",
+   "kind": "compat",
+   "how_to_verify": "在乾淨的 Windows 環境只裝 Node 22，執行 scripts/start.mjs，確認 Chrome 路徑偵測與缺少依賴時的錯誤訊息；再裝 ffmpeg 確認 WebP 輸出差異。"
+  },
+  {
+   "claim": "同時提供 Claude Code plugin 與 Codex plugin 的安裝方式",
+   "kind": "compat",
+   "how_to_verify": "分別在 Claude Code 與 Codex 執行 README 內的安裝指令，確認 skill 出現在可用清單中，且新 session 能載入。"
+  },
+  {
+   "claim": "Windows 原生可用；install.sh 需要 Git Bash 才能建立連結",
+   "kind": "compat",
+   "how_to_verify": "在 PowerShell、不開 Git Bash 的情況下直接執行 Node 腳本（如 scripts/start.mjs deal），確認是否能跑；並比對 README 對 Windows 的描述。"
+  },
+  {
+   "claim": "用無頭 Chrome 在 1440、1024、768、390 等寬度檢查頁面",
+   "kind": "quality",
+   "how_to_verify": "對一個範例頁執行 node scripts/consistency.mjs <檔案或網址> --page software，確認各寬度都有輸出並判定 PASS、WARN 或 FAIL。"
+  },
+  {
+   "claim": "設計範圍是公司官網與品牌頁，會依業態分類（軟體、遊戲、科技、產品、服務、場所）",
+   "kind": "capability",
+   "how_to_verify": "拿 CatOS 的一個應用內頁（非行銷頁）當輸入，看產出是否偏向行銷版面，評估它是否符合 F1 的重新設計需求。"
+  },
+  {
+   "claim": "不需要 API 金鑰；只有下載額外照片、字型與圖示時才需要網路",
+   "kind": "security",
+   "how_to_verify": "在斷網或有防火牆監控的環境執行 deal 與檢查流程，記錄對外連線；確認只有取得額外素材時才會連線。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單沒有前端設計項目，Claude Code 與 Codex 的通用能力也不在對照的功能清單內。"
+ },
+ "cluster": "browser-checked-design",
+ "recommendation": "deep_eval",
+ "needs_user": "frontend-design 槽位的現任只寫了 id，沒有具體工具名稱；請確認現任是哪一個工具，才能做正式的 differences 比較。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-13",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 19399,
+   "cached": 3784,
+   "output": 4685
+  },
+  "readme_sha": "f044ee75b887",
+  "readme_chars": 19338
+ }
+}

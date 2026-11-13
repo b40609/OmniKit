@@ -1,0 +1,10 @@
+id: stack-diagram
+name: stack-diagram（caru-ini）
+slots:
+- figures-reports
+status: pending
+url: https://github.com/caru-ini/stack-diagram
+sources:
+- 自我迭代訊號
+notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:19477b246523）：自然語言產生架構圖的 skill，可當圖表槽位的名冊外候選。名冊外，還沒評估。
+added: '2026-11-13'

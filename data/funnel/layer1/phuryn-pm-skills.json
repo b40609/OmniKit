@@ -1,0 +1,63 @@
+{
+ "layer": 1,
+ "tool_id": "phuryn-pm-skills",
+ "name": "pm-skills（phuryn）",
+ "url": "https://github.com/phuryn/pm-skills",
+ "slots": [],
+ "scenarios": [],
+ "summary": "pm-skills 是一組產品管理（PM）用的 Markdown 技能與指令集合。工具卡登記的槽位 product-research 不在凍結的槽位清單中，它的內容也沒有對應到任何現有情境（CAD、資料分析、計畫書、影片、交易、前端等），因此不放進任何槽位。內建功能沒有相對應的能力可比。依規則判定為不在範圍內，建議 reject。",
+ "differences": "相對於內建功能（此類別沒有內建對應），它多了一整套 PM 框架類的技能（探索、策略、PRD、OKR、市場研究等）與 slash 指令。它沒有提供任何本專案槽位列出的工作情境能力，也沒有 Windows CI 的佐證。第 0 層的相容線索顯示 skill_md 為 false、skills 為 0，與 README 宣稱的 skills/*/SKILL.md 結構不一致，需要實際查看 repo 才能確認。",
+ "claims": [
+  {
+   "claim": "README 宣稱提供 72 個 PM 技能與 9 個 plugin",
+   "kind": "capability",
+   "how_to_verify": "在乾淨目錄 clone repo，數 skills/ 底下 SKILL.md 檔案數與 plugin 數量，與 README 數字比對"
+  },
+  {
+   "claim": "支援 Claude Code 的 plugin marketplace 安裝（claude plugin marketplace add）",
+   "kind": "compat",
+   "how_to_verify": "在測試環境執行 claude plugin marketplace add phuryn/pm-skills 與 claude plugin install，確認指令成功且 skill 可被載入"
+  },
+  {
+   "claim": "宣稱可用 Codex plugin marketplace 安裝，但第 0 層 codex_plugin 為 false",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 是否有 Codex plugin manifest，並在 Codex CLI 實際執行 codex plugin marketplace add 與 codex plugin add，比對結果"
+  },
+  {
+   "claim": "skills 為 SKILL.md 格式，可複製到 Gemini CLI、OpenCode、Cursor、Kiro 等工具使用",
+   "kind": "compat",
+   "how_to_verify": "列出 repo 樹狀結構，確認是否存在 skills/*/SKILL.md；第 0 層 skill_md 為 false 與 skills 為 0 需要以實際檔案數核對"
+  },
+  {
+   "claim": "repo 沒有 Windows 的 CI 設定",
+   "kind": "compat",
+   "how_to_verify": "檢查 .github/workflows 內的 runs-on 欄位是否包含 windows-latest"
+  },
+  {
+   "claim": "授權為 MIT",
+   "kind": "security",
+   "how_to_verify": "讀取 repo 根目錄的 LICENSE 檔案內容"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能沒有 PM 框架或產品研究類的對應能力；本工具卡的槽位 product-research 也不在槽位清單中，無法對照任何現任。"
+ },
+ "cluster": "markdown-skill-pack",
+ "recommendation": "reject",
+ "needs_user": "工具卡的槽位 product-research 不在凍結的槽位清單中，無法對應。若維護者想收這類 PM 技能，需要決定是否新增槽位；否則維持 reject。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-13",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 21673,
+   "cached": 3784,
+   "output": 3095
+  },
+  "readme_sha": "cd430e39e903",
+  "readme_chars": 25918
+ }
+}

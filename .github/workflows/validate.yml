@@ -64,7 +64,7 @@ jobs:
       - run: uv run engine/scripts/advise.py --selftest
       - run: uv run engine/scripts/feedback.py --selftest
       # 自我迭代第 1 階段：訊號只連本機來源、金鑰只放標頭、讀到上次的位置就停；判斷要有理由、名冊層要有目標；
-      # 靜默記錄滿 14 天、標 10 筆以上、有用過半才算可以打開（假的 HTTP，不連網）
+      # 名冊層判斷送進漏斗（寫成待評估的卡或重評）、照第 0、1 層結果算命中率，滿 14 天、10 個結果、過半才算可以打開（假的 HTTP，不連網）
       - run: uv run engine/scripts/signals.py --selftest
       - run: uv run engine/skills/omnikit-weekly/scripts/report.py advise > /dev/null
 

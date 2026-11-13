@@ -1,0 +1,67 @@
+{
+ "layer": 1,
+ "tool_id": "unslop",
+ "name": "unslop（heydamir）",
+ "url": "https://github.com/heydamir/unslop",
+ "slots": [
+  "frontend-design"
+ ],
+ "scenarios": [
+  "F2"
+ ],
+ "summary": "unslop 是給 Claude Code、Codex、Google Antigravity 用的 skill，針對已存在的前端畫面做「去 AI 感」修正：先找出制式的視覺與文案問題，再依產品定調，分輪調整間距、配色、圖示、文案、版型等。它對應 F2（後端已完成、決定前端怎麼呈現）有合理的重疊。但它改的是既有畫面，不是依參考風格重新設計（F1），也不是照原版重建（F3），所以只列入 F2。",
+ "differences": "相較現任 frontend-design：多了「先審查、再定方向、分輪修正」的流程，以及可選的圖像生成與介紹影片產出；少了的部分，從卡片與 README 看不出對 React／Vite 專案的專門支援，也沒有 Windows 下的實測紀錄。另外，它的起點是既有畫面，對「給一張參考圖、依需求重新設計」這種 F1 情境幫助有限。",
+ "claims": [
+  {
+   "claim": "支援 Claude Code、Codex、Google Antigravity 三種 agent，以 skill 形式安裝",
+   "kind": "compat",
+   "how_to_verify": "依 README 的三組安裝指令各裝一次，確認 skills/unslop 能被對應 agent 找到並觸發 /unslop 或 $unslop"
+  },
+  {
+   "claim": "Windows 環境可用（README 未說明 Windows 支援）",
+   "kind": "compat",
+   "how_to_verify": "在 Windows 11 上用 Claude Code 與 Codex 各跑一次安裝與觸發，記錄 PowerShell 下的路徑與錯誤"
+  },
+  {
+   "claim": "產生介紹影片或擷取線上網站時，需要另外安裝 Playwright、Chromium 與 ffmpeg",
+   "kind": "cost",
+   "how_to_verify": "在沒有 Playwright 與 ffmpeg 的環境跑 story video 流程，確認失敗點與安裝步驟是否與 README 相符"
+  },
+  {
+   "claim": "修改前會先列出問題清單並提出方向，等使用者確認後才動手",
+   "kind": "quality",
+   "how_to_verify": "對 examples 裡的兩個畫面執行，檢查第一輪輸出是否只有 audit 與方向，沒有直接改檔"
+  },
+  {
+   "claim": "需要圖像時可透過 fal、Replicate、OpenAI images 或 Higgsfield 等服務的 MCP 生成，付費生成前會先顯示提示詞並詢問",
+   "kind": "security",
+   "how_to_verify": "在未設定任何 API 金鑰的環境觸發需要圖像的情境，確認沒有自動付費呼叫，且會先顯示提示詞"
+  },
+  {
+   "claim": "在既有 React／Vite 專案上，修正後的畫面能通過 build 且不破壞原有功能",
+   "kind": "capability",
+   "how_to_verify": "挑一個 Vite 小專案執行 unslop，前後各跑 build 與基本操作測試，比對差異"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單沒有 frontend-design 這一項，目前沒有內建功能涵蓋這個做法。"
+ },
+ "cluster": "ui-slop-audit",
+ "recommendation": "deep_eval",
+ "needs_user": "現任「frontend-design」與槽位 id 同名，請維護者確認現任的實際工具與能力，才能判斷 unslop 是否真的多出能力。另外，F1（依參考風格重新設計）是否也要納入 unslop 的評估範圍，也請確認。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-13",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 12761,
+   "cached": 3784,
+   "output": 3840
+  },
+  "readme_sha": "bfd3abede142",
+  "readme_chars": 3896
+ }
+}

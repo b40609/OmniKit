@@ -1,0 +1,63 @@
+{
+ "layer": 1,
+ "tool_id": "markitdown",
+ "name": "markitdown（microsoft）",
+ "url": "https://github.com/microsoft/markitdown",
+ "slots": [],
+ "scenarios": [],
+ "summary": "markitdown 是把文件（PDF、Office、HTML 等）轉成 Markdown 的 Python 工具。它不做影片的格式或解析度轉換，也不抽取指定時間點的畫面，對不上 MD2 的情境。內建功能沒有對應項目，因此不放進任何槽位，建議 reject。",
+ "differences": "相較於 media-convert 槽位（內建沒有對應功能）：多了文件轉 Markdown 的能力，以及影片與語音走雲端服務的轉錄選項（按次計費）；少了影片轉碼、批次改解析度與抽幀，這些是 MD2 要的。",
+ "claims": [
+  {
+   "claim": "主要支援 PDF、PowerPoint、Word、Excel、HTML、CSV/JSON/XML 等文件轉 Markdown",
+   "kind": "capability",
+   "how_to_verify": "讀 README 的「MarkItDown currently supports」清單；安裝後對一份 PDF 與一份 docx 各跑一次 markitdown，確認輸出為 Markdown 文字。"
+  },
+  {
+   "claim": "內建轉換器不支援影片；影片只能透過 Azure Content Understanding 處理",
+   "kind": "capability",
+   "how_to_verify": "讀 README「When to use Content Understanding」下的比較表（Audio and video 列）；對一支 mp4 在未設定 cu_endpoint 的情況下執行，確認沒有影片輸出。"
+  },
+  {
+   "claim": "不提供影片轉碼、解析度調整或指定時間點抽幀",
+   "kind": "capability",
+   "how_to_verify": "執行 markitdown --help 檢視所有參數，確認沒有轉碼、解析度或抽幀選項；在隔離環境跑一次 mp4 轉換，確認只產出文字內容。"
+  },
+  {
+   "claim": "影像描述、語音轉錄、Document Intelligence、Content Understanding 依賴雲端服務，並按次計費",
+   "kind": "cost",
+   "how_to_verify": "讀 README 的 Cost note 與 Document Intelligence 段落的 pricing 連結；未設定 endpoint 時確認這些功能不會被呼叫。"
+  },
+  {
+   "claim": "需要 Python 3.10 到 3.14，建議用虛擬環境安裝",
+   "kind": "compat",
+   "how_to_verify": "讀 README 的 Prerequisites；在 Windows 上執行 python --version 確認版本範圍，再用 venv 試裝 markitdown[all]。"
+  },
+  {
+   "claim": "以目前程序的權限讀取檔案與網路資源，不應直接餵入未信任的輸入",
+   "kind": "security",
+   "how_to_verify": "讀 README 的 IMPORTANT 區塊與 Security Considerations 段落；若要處理外部檔案，先確認輸入來源並限制路徑或 URI。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單沒有 media-convert 的條目，也沒有對應的內建做法可比，視為沒有內建覆蓋。"
+ },
+ "cluster": "document-markdown-converter",
+ "recommendation": "reject",
+ "needs_user": "markitdown 不對得上任何 active 槽位。若要評估「把文件轉成 Markdown 給 LLM 讀」這類需求，需要維護者另外定義槽位；目前名冊沒有這個槽位，所以先不評。",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-13",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 63235,
+   "cached": 0,
+   "output": 3824
+  },
+  "readme_sha": "7d27ea30126c",
+  "readme_chars": 21397
+ }
+}

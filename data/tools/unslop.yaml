@@ -1,0 +1,10 @@
+id: unslop
+name: unslop（heydamir）
+slots:
+- frontend-design
+status: pending
+url: https://github.com/heydamir/unslop
+sources:
+- 自我迭代訊號
+notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:3c5fcdbfe765）：支援 Claude Code、Codex、Antigravity 三個 agent 的去 AI 感 skill，前端設計槽位的名冊外候選。名冊外，還沒評估。
+added: '2026-11-13'

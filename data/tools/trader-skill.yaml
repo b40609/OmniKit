@@ -1,0 +1,10 @@
+id: trader-skill
+name: trader-skill（jakeschincariol）
+slots:
+- quant-data
+status: pending
+url: https://github.com/jakeschincariol/trader-skill
+sources:
+- 自我迭代訊號
+notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:c5f0c6f7f1f1）：量化領域的候選技能包，預設模擬盤、要人工確認才下單，符合不實盤下單的紅線；名冊外，沒有評估過。名冊外，還沒評估。
+added: '2026-11-13'

@@ -1,0 +1,67 @@
+{
+ "layer": 1,
+ "tool_id": "firecrawl",
+ "name": "Firecrawl",
+ "url": "https://github.com/firecrawl/firecrawl",
+ "slots": [
+  "web-sources"
+ ],
+ "scenarios": [
+  "WR1"
+ ],
+ "summary": "Firecrawl 是雲端網頁搜尋與抓取 API，可搜尋後回傳頁面內容，並附來源網址，README 另列 MCP 與 CLI 介面。工具卡寫的槽位 product-research 不在目前清單，依用途最接近 WR1（找一手來源並附出處）。內建清單沒有 web-sources 紀錄，視為未覆蓋。尚未實測。",
+ "differences": "跟內建功能比（清單無此槽位紀錄）：多了可直接搜尋並抓取整頁內容、附網址的結果，以及 MCP 與 CLI 介面；少了離線與免費使用的可能，要 API 金鑰、依賴雲端服務，README 也提到部分功能只在雲端版提供。",
+ "claims": [
+  {
+   "claim": "提供搜尋（search）與單頁抓取（scrape）兩個 API 端點，搜尋結果回傳網址與頁面內容",
+   "kind": "capability",
+   "how_to_verify": "用一組測試金鑰呼叫 /v2/search 與 /v2/scrape，確認回傳含 url 與 markdown 欄位。"
+  },
+  {
+   "claim": "提供 MCP server 與 CLI，可接到 Claude Code",
+   "kind": "compat",
+   "how_to_verify": "依 README 安裝 firecrawl-mcp 與 firecrawl-cli，在 Claude Code 內列出工具並實際呼叫一次。"
+  },
+  {
+   "claim": "使用需要 API 金鑰與雲端帳號，README 提到部分功能（如 Alexandria）只在雲端版提供",
+   "kind": "cost",
+   "how_to_verify": "檢查官方定價頁與 API 文件的計費與免費額度，確認無金鑰時哪些端點不可用。"
+  },
+  {
+   "claim": "授權為 AGPL-3.0（主程式），部分 SDK 為 MIT",
+   "kind": "compat",
+   "how_to_verify": "檢查 repo 根目錄 LICENSE 與各 SDK 目錄的授權檔，確認範圍。"
+  },
+  {
+   "claim": "官方 CI 未在 Windows 上執行測試（第 0 層 windows_ci 為 false）",
+   "kind": "compat",
+   "how_to_verify": "檢查 .github/workflows 內每個 workflow 的 runs-on 欄位，確認有無 windows 執行環境。"
+  },
+  {
+   "claim": "在 Windows 上可直接用 CLI 或 MCP 完成一次搜尋與抓取",
+   "kind": "quality",
+   "how_to_verify": "於 Windows 11 安裝 CLI，執行一次搜尋並抓取一個已知網頁，比對回傳內容與原頁是否一致。"
+  }
+ ],
+ "native_coverage": {
+  "level": "none",
+  "by": [],
+  "note": "內建功能清單沒有 web-sources 這一項，視為沒有覆蓋；需維護者確認是否補上對應紀錄。"
+ },
+ "cluster": "hosted-web-api",
+ "recommendation": "deep_eval",
+ "needs_user": "工具卡的槽位 product-research 不在目前槽位清單：是否改對到 web-sources（WR1）？內建清單沒有 web-sources 紀錄：是否補上？",
+ "similar_rejected": [],
+ "meta": {
+  "date": "2026-11-13",
+  "agent": "claude",
+  "model": "haiku",
+  "usage": {
+   "input": 36743,
+   "cached": 0,
+   "output": 3353
+  },
+  "readme_sha": "743bc82fb4a0",
+  "readme_chars": 25869
+ }
+}

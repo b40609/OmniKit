@@ -1,0 +1,10 @@
+id: markitdown
+name: markitdown（microsoft）
+slots:
+- media-convert
+status: pending
+url: https://github.com/microsoft/markitdown
+sources:
+- 自我迭代訊號
+notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:8f7a863967f8）：提到 markitdown（文件轉 Markdown），名冊沒有，可當轉檔槽位的候選；同一則的 browser-use 名冊已有。名冊外，還沒評估。
+added: '2026-11-13'
