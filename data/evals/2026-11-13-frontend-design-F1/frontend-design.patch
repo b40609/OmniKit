@@ -1,0 +1,1526 @@
+diff --git a/docs/dashboard-design-plan.md b/docs/dashboard-design-plan.md
+new file mode 100644
+index 0000000..e7e4541
+--- /dev/null
++++ b/docs/dashboard-design-plan.md
+@@ -0,0 +1,70 @@
++# 儀表板（/）視覺打磨計畫
++
++依 `.agents/skills/frontend-design/SKILL.md` 的流程撰寫；方向以 `docs/design-direction.md` 為準，不變更。
++
++## 主題、讀者、主要工作
++
++- 主題：CatOS，本機量化交易終端，跑模擬的 OKX 永續合約 bot。
++- 讀者：單一操作者（也是寫策略的人），一天會開好幾次，需要很快掃過。
++- 首頁要做的事：三秒內回答三個問題，依序是「錢還好嗎」「有沒有東西出錯」「bot 在做什麼」。
++
++## Token
++
++### 顏色（沿用 globals.css 既有值，不新增色系）
++
++| 名稱 | 值 | 用途 |
++| --- | --- | --- |
++| Ink | `oklch(0.155 0.004 260)` ≈ #16171a | 頁面底色 |
++| Slate | `oklch(0.19 0.004 260)` ≈ #1e1f22 | 面板底色 |
++| Gold | `oklch(0.78 0.15 75)` ≈ #e8b45e | 品牌、選取中、權益曲線。**只代表「你的／目前選取的」，不拿來表示狀態** |
++| Up | `oklch(0.78 0.15 165)` | 獲利、運行中、正常 |
++| Down | `oklch(0.64 0.2 22)` | 虧損、失敗、錯誤 |
++| Warn | `oklch(0.8 0.15 75)` 系的琥珀 | 警告、軟鎖存 |
++
++規則：首頁面板裡寫死的 `emerald / rose / amber / zinc / sky` 換成 `up / down / warn / muted-foreground` token，讓狀態色只有一套。
++
++### 字體
++
++- Work Sans（中文落到系統黑體）：標題、標籤、按鈕、分頁。句首大寫或中文，不用全大寫，不加字距。
++- JetBrains Mono：只用在數字、價格、時間、ID。標籤不再用等寬字。
++- 字級：t1 9px 軸刻度；t2 10px 次要說明；t3 11px 列內文字；t4 12px 面板標題與強調數字；2xl 只給帳戶總權益。
++
++### 版面
++
++工作台的樹狀分割、面板與拖曳都不動，只調整面板內部：
++
++```
++┌ 帳戶權益 ──────────────── sim-btc-sma ● 運行中 ┐ ┌ 槓桿與曝險 ─────┐
++│ $1,024.16   ← 全頁最大的字          ╱‾‾╲_╱‾  │ │                 │
++│ +$24.16 +2.42%                    ╱          │ │                 │
++│ 已實現 未實現 基準 手續費 (單行、不換行)        │ │                 │
++└───────────────────────────────────────────────┘ └─────────────────┘
++┌ 策略實例 ─────────────────────┐ ┌ 事件與成交 ─────────────────────┐
++│ 每列一個 bot：狀態點 名稱 損益  │ │ ▌異常 4  ← 固定在最上方，永遠看得到 │
++│                               │ │ ▌…                              │
++├ 持倉 ─────────────────────────┤ ├────────────────────────────────┤
++│                               │ │ 20:26:25 訊號  #54 NO_CHANGE …  │ ← 單行 22px
++└───────────────────────────────┘ └────────────────────────────────┘
++```
++
++對齊：文字靠左，數字靠右並用 tabular-nums，讓同一欄的位數對齊。
++
++## 原則
++
++1. 異常優先：有 WARN/ERROR 時，事件面板頂端固定顯示異常區，不必切分頁也看得到。
++2. 金色只代表「你的／目前選取的」：品牌、選取中的導航、權益曲線、總權益。狀態一律用 up/down/warn。
++3. 文字用 Sans，數字用 Mono。
++4. 工程證據（run ID、seq、instance）收進 tooltip 或展開的詳情，不占主畫面。
++5. 大膽只用在一個地方：帳戶總權益。其他地方保持安靜。
++
++## 對照 brief 的檢查與修訂
++
++- 「黑底配單一亮色強調」本來就是常見的預設樣式，但這裡是使用者指定的黑金方向，保留。修訂的地方是：金色原本同時代表品牌、狀態和警告（琥珀色的「焦點:」標籤、警告膠囊），現在收斂成只代表「選取中／你的」，狀態另外用一套顏色。
++- 「小資料標籤用等寬字＋全大寫眉標」是模板化的痕跡：原本導航群組（OVERVIEW…）、每個項目的英文副標、表頭、標籤都是 mono 大寫。修訂：導航改成單行中文、英文移到 tooltip；群組標題改用中文；表頭與標籤改用 Sans。等寬字只留給數字。
++- 「中間點串接 meta」：事件列與圖表圖例原本到處是 `·` 串接。修訂：run ID 移到詳情，圖例只留一個重點。
++- 事件時間軸原本每列約 41px，還有沒有作用的光子動畫程式碼，不符合「緊湊密度」。修訂：改成 22px 的單行列，移除那些裝飾。
++
++## 實作筆記
++
++- 改動集中在：`shell.tsx`（導航）、`account-equity-band.tsx`、`v0-bot-table.tsx`、`activity-panel.tsx`、`unified-incident-activity-card.tsx`、`allocation-donut-card.tsx` 的標題列、`globals.css`（加上 reduced-motion）。
++- 共用的分段切換鈕樣式統一：Sans、t2、選取中是 secondary 底色加上金色文字。
+diff --git a/src/components/catos/account-equity-band.tsx b/src/components/catos/account-equity-band.tsx
+index a516738..bc1fa7f 100644
+--- a/src/components/catos/account-equity-band.tsx
++++ b/src/components/catos/account-equity-band.tsx
+@@ -1,10 +1,10 @@
+ import React, { useState, useRef, useEffect, useMemo } from "react";
+ import { cn } from "@/lib/utils";
+ import { CardHeaderTitle } from "./card-header-title";
+-import { BorderBeam } from "./motion/border-beam";
++
+ import { useCatStore } from "@/state/catStore";
+ import { StateAdapter } from "@/state/stateAdapter";
+-import { formatClock, formatDateTime, formatDecimal, formatRatioPct, toPlotNumber, toneOf, shortId } from "@/lib/format";
++import { formatClock, formatDateTime, formatDecimal, formatRatioPct, toPlotNumber, toneOf } from "@/lib/format";
+ 
+ interface AccountEquityBandProps {
+   className?: string;
+@@ -155,88 +155,101 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+     : curve.length === 0 ? "本次 run 尚無已收盤 K 線觀測"
+     : null;
+ 
+-  const Kpi = ({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) => (
+-    <div className="flex flex-col gap-0.5">
+-      <span className="text-t2 text-muted-foreground">{label}</span>
+-      <span className={cn("text-xs font-semibold leading-tight", tone ?? "text-foreground")}>{value}</span>
+-      {sub && <span className="text-t1 text-muted-foreground">{sub}</span>}
++  const Kpi = ({ label, value, sub, tone, title }: { label: string; value: string; sub?: string; tone?: string; title?: string }) => (
++    <div className="flex flex-col min-w-0" title={title}>
++      <span className="text-t2 text-muted-foreground truncate">{label}</span>
++      <span className={cn("num text-t4 font-semibold leading-snug truncate", tone ?? "text-foreground")}>{value}</span>
++      {sub && <span className="num text-t1 text-muted-foreground/80 truncate">{sub}</span>}
+     </div>
+   );
+ 
++  const stateLabel = STATE_LABEL[bot?.state ?? ""] ?? bot?.state ?? "";
++  const isRunning = bot?.state === "running" || bot?.state === "starting";
++
+   return (
+     <div ref={bandRef} className={cn("flex flex-col h-full w-full select-none overflow-hidden", className)}>
+       {showHeader && (
+         <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
+-          <CardHeaderTitle cardId="equity" title="帳戶權益與損益" />
+-          <div className="flex items-center gap-0.5 bg-background/70 border border-border/70 rounded p-0.5 text-t1 font-mono shrink-0">
+-            <span className="px-2 py-0.5 rounded bg-secondary text-foreground font-bold shadow-xs">
+-              {bot ? bot.bot_id : "sim"}
+-            </span>
+-            <span className="px-1.5 py-0.5 text-muted-foreground whitespace-nowrap">
+-              {runId ? `run ${shortId(runId)} · ${STATE_LABEL[bot?.state ?? ""] ?? bot?.state}` : "無 run"}
++          <CardHeaderTitle cardId="equity" title="帳戶權益" />
++          <div
++            className="flex items-center gap-2 text-t2 shrink-0 whitespace-nowrap"
++            title={runId ? `run ${runId}` : "尚未啟動 run"}
++          >
++            <span className="num text-foreground font-medium">{bot ? bot.bot_id : "sim"}</span>
++            <span className={cn("flex items-center gap-1", isRunning ? "text-up" : "text-muted-foreground")}>
++              <span className={cn("size-1.5 rounded-full", isRunning ? "bg-up" : "bg-muted-foreground/60")} />
++              {runId ? stateLabel : "無 run"}
+             </span>
+           </div>
+         </div>
+       )}
+ 
+       <div className="flex flex-1 min-h-0 overflow-hidden relative">
+-        <BorderBeam size={180} duration={8} borderWidth={1.5} colorFrom="var(--color-primary, #e8b45e)" />
+-
+         {/* 左側 KPI 欄：全部來自 summary（後端 Decimal 計算） */}
+         <div className={cn(
+-          "shrink-0 border-r border-border/80 flex flex-col justify-between overflow-y-auto bg-surface/30 custom-scrollbar",
+-          isNarrow ? "w-[130px] p-2 gap-1.5" : "w-[205px] p-2.5 gap-2"
++          "shrink-0 border-r border-border/80 flex flex-col overflow-y-auto bg-surface/30 custom-scrollbar",
++          isNarrow ? "w-[176px] p-2" : "w-[228px] px-3 py-2.5"
+         )}>
+-          <div className="flex flex-col gap-2">
+-            <div className="flex flex-col gap-0.5">
+-              <span className="text-t2 text-muted-foreground uppercase font-mono tracking-wider flex items-center justify-between">
++          <div className="flex flex-col gap-2.5">
++            <div className="flex flex-col">
++              <span className="text-t2 text-muted-foreground flex items-center justify-between gap-2">
+                 <span>帳戶總權益</span>
+                 {!isNarrow && (
+-                  <span className={cn("text-t1 font-mono flex items-center gap-1",
+-                    connection.status === "ok" ? "text-emerald-400" : "text-amber-400")}>
+-                    <span className={cn("size-1.5 rounded-full", connection.status === "ok" ? "bg-emerald-400 animate-ping" : "bg-amber-400")} />
+-                    {connection.status === "ok" ? "local-sim" : connection.status}
++                  <span
++                    className={cn("text-t1 flex items-center gap-1", connection.status === "ok" ? "text-muted-foreground" : "text-warn")}
++                    title={connection.status === "ok" ? "local-sim：本機模擬帳戶" : `連線狀態：${connection.status}`}
++                  >
++                    <span className={cn("size-1.5 rounded-full", connection.status === "ok" ? "bg-up" : "bg-warn")} />
++                    {connection.status === "ok" ? "模擬帳戶" : "連線異常"}
+                   </span>
+                 )}
+               </span>
+-              <div className={cn("font-mono font-bold text-foreground tracking-tight", isNarrow ? "text-lg" : "text-2xl")}>
+-                {summary ? formatDecimal(summary.equity, { prefix: "$" }) : <span className="text-muted-foreground text-sm">未啟動</span>}
++              <div className={cn("num font-semibold text-gold-bright leading-none mt-1.5", isNarrow ? "text-xl" : "text-3xl")}>
++                {summary ? formatDecimal(summary.equity, { prefix: "$" }) : <span className="text-muted-foreground text-sm font-normal">未啟動</span>}
+               </div>
+-              <div className={cn("font-mono font-semibold", isNarrow ? "text-t2" : "text-t3", toneOf(summary?.period_pnl))}>
+-                {summary?.period_pnl != null
+-                  ? `${formatDecimal(summary.period_pnl, { sign: true, prefix: "$" })} (${formatRatioPct(summary.period_pnl_ratio)})`
+-                  : "風控期間損益 不適用"}
++              <div
++                className={cn("num font-semibold mt-1.5 flex gap-2", isNarrow ? "text-t2" : "text-t3", toneOf(summary?.period_pnl))}
++                title="風控期間損益（相對期間基準）"
++              >
++                {summary?.period_pnl != null ? (
++                  <>
++                    <span>{formatDecimal(summary.period_pnl, { sign: true, prefix: "$" })}</span>
++                    <span>{formatRatioPct(summary.period_pnl_ratio)}</span>
++                  </>
++                ) : "風控期間損益不適用"}
+               </div>
+             </div>
+ 
+-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60 font-mono">
++            <div className={cn("grid grid-cols-2 gap-y-2 pt-2.5 border-t border-border/60", isNarrow ? "gap-x-2" : "gap-x-3")}>
+               <Kpi label="已實現損益" value={formatDecimal(summary?.realized_pnl, { sign: true, prefix: "$" }, "未啟動")}
+-                   tone={summary ? toneOf(summary.realized_pnl) : undefined} sub="OKX 專用子帳戶 (模擬)" />
++                   tone={summary ? toneOf(summary.realized_pnl) : undefined} sub="模擬子帳戶" title="OKX 專用子帳戶（模擬）" />
+               <Kpi label="未實現損益" value={formatDecimal(summary?.unrealized_pnl, { sign: true, prefix: "$" }, "未啟動")}
+-                   tone={summary ? toneOf(summary.unrealized_pnl) : undefined} sub={risk?.snapshot ? `mark $${formatDecimal(risk.snapshot.mark)}` : "尚無 mark"} />
+-              <Kpi label="風控期間基準" value={summary?.basis_equity ? formatDecimal(summary.basis_equity, { prefix: "$" }) : "不適用"}
+-                   sub={summary?.period_start_ms ? `${formatDateTime(summary.period_start_ms)} 起算 (合成基準)` : "尚無基準"} />
+-              <Kpi label="手續費累計" value={formatDecimal(summary?.fees, { prefix: "$", digits: 4 }, "未啟動")}
+-                   tone={summary ? "text-rose-400" : undefined} sub={summary ? `槓桿上限 ${formatDecimal(summary.leverage_limit, { digits: 1 })}x` : undefined} />
++                   tone={summary ? toneOf(summary.unrealized_pnl) : undefined} sub={risk?.snapshot ? `標記 $${formatDecimal(risk.snapshot.mark)}` : "尚無標記價"} />
++              <Kpi label="期間基準" value={summary?.basis_equity ? formatDecimal(summary.basis_equity, { prefix: "$" }) : "不適用"}
++                   sub={summary?.period_start_ms ? `${formatDateTime(summary.period_start_ms)} 起` : "尚無基準"}
++                   title="風控期間基準（合成基準）" />
++              <Kpi label="累計手續費" value={formatDecimal(summary?.fees, { prefix: "$", digits: 4 }, "未啟動")}
++                   tone={summary ? "text-down" : undefined} sub={summary ? `槓桿上限 ${formatDecimal(summary.leverage_limit, { digits: 1 })}x` : undefined} />
+             </div>
+           </div>
+         </div>
+ 
+         {/* 右側 SVG 走勢圖：本次 run 的權益曲線 */}
+         <div className={cn("flex-1 flex flex-col min-w-0", isCompact ? "p-1.5" : "p-2.5")}>
+-          <div className="flex items-center justify-between gap-2 text-t3 font-mono text-muted-foreground h-5 shrink-0 px-1 min-w-0">
+-            <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
++          <div className="flex items-center justify-between gap-2 text-t2 text-muted-foreground h-5 shrink-0 px-1 min-w-0">
++            <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap" title="本次 run 的權益曲線，時間軸為合成時間">
+               <span className="w-2.5 h-[2px] bg-primary inline-block" />
+-              <span>{isNarrow ? `run 權益 · ${curve.length} 點` : `本次 run 權益曲線 · 合成時間 · ${curve.length} 點`}</span>
++              <span>本次 run 權益變化</span>
+             </div>
+-            <div className="min-w-0 truncate text-right">
++            <div className="min-w-0 truncate text-right num">
+               {hover ? (
+-                <span className="text-foreground font-mono text-t2 whitespace-nowrap">
+-                  [{formatClock(hover.time_ms, false)}] 權益 {formatDecimal(hover.equity, { prefix: "$" })} ·{" "}
+-                  <span className="text-primary font-bold">{fmtPctNumber(hoverPct)}</span>
++                <span className="text-foreground whitespace-nowrap">
++                  <span className="text-muted-foreground">{formatClock(hover.time_ms, false)}</span>
++                  <span className="ml-2">{formatDecimal(hover.equity, { prefix: "$" })}</span>
++                  <span className="ml-2 text-primary font-semibold">{fmtPctNumber(hoverPct)}</span>
+                 </span>
+               ) : (
+-                <span className="text-muted-foreground/60 text-t2 whitespace-nowrap hidden lg:inline">游標懸停檢視各 bar 的權益</span>
++                <span className="whitespace-nowrap">{curve.length} 根 K 線</span>
+               )}
+             </div>
+           </div>
+diff --git a/src/components/catos/activity-panel.tsx b/src/components/catos/activity-panel.tsx
+index f999718..39c45d0 100644
+--- a/src/components/catos/activity-panel.tsx
++++ b/src/components/catos/activity-panel.tsx
+@@ -23,17 +23,17 @@ const RUN_STATE_LABEL: Record<BotControlState, string> = {
+ };
+ 
+ const RUN_STATE_TONE: Record<BotControlState, string> = {
+-  starting: "border-amber-400/30 text-amber-400",
+-  running: "border-emerald-400/30 text-emerald-400",
+-  stopping: "border-amber-400/30 text-amber-400",
++  starting: "border-warn/35 text-warn",
++  running: "border-up/30 text-up",
++  stopping: "border-warn/35 text-warn",
+   completed: "border-border/80 text-muted-foreground",
+   stopped: "border-border/80 text-muted-foreground",
+-  failed: "border-rose-400/30 text-rose-400",
+-  recovery_required: "border-rose-400/30 text-rose-400",
++  failed: "border-down/35 text-down",
++  recovery_required: "border-down/35 text-down",
+ };
+ 
+-const NA_CLASS = "text-t3 text-muted-foreground leading-tight";
+-const NA_SUB_CLASS = "text-t1 text-muted-foreground/70 leading-tight mt-0.5";
++const NA_CLASS = "text-t3 text-muted-foreground/80 leading-tight";
++const NA_SUB_CLASS = "text-t1 text-muted-foreground/60 leading-tight mt-0.5";
+ 
+ /** Explicit not-applicable cell: primary state text + reason line, tooltip explains why. */
+ function NotApplicableCell({ label, reason, title }: { label: string; reason: string; title: string }) {
+@@ -58,30 +58,30 @@ function magnitude(value: string): string {
+ function PositionRowView({ p }: { p: PositionDTO }) {
+   const sign = signOf(p.position);
+   const isShort = sign === "negative";
+-  const sideLabel = isShort ? "▼ 空" : "▲ 多";
++  const sideLabel = isShort ? "空" : "多";
+ 
+   return (
+     <tr className="hover:bg-secondary/30 transition-colors group">
+       {/* 1. 合約標的 + 方向標籤 + 實質持倉 */}
+-      <td className="py-2.5 pl-3 pr-2">
++      <td className="py-2 pl-3 pr-2">
+         <div className="flex flex-col">
+           <div className="flex items-center gap-1.5">
+             <span
+               className={cn(
+-                "px-1 py-0.2 rounded text-t1 font-bold font-mono inline-flex items-center",
++                "px-1 rounded text-t2 font-semibold leading-4 inline-flex items-center border",
+                 isShort
+-                  ? "bg-rose-400/10 text-rose-400 border border-rose-400/25"
+-                  : "bg-emerald-400/10 text-emerald-400 border border-emerald-400/25"
++                  ? "bg-down/12 text-down border-down/35"
++                  : "bg-up/10 text-up border-up/30"
+               )}
+             >
+               {sideLabel}
+             </span>
+-            <span className="text-t4 font-bold text-foreground leading-tight whitespace-nowrap">
++            <span className="num text-t4 font-semibold text-foreground leading-tight whitespace-nowrap">
+               {p.inst_id ?? "不適用"}
+             </span>
+             <span
+               className={cn(
+-                "px-1 py-0.2 rounded border text-t1 font-mono leading-tight whitespace-nowrap",
++                "px-1 rounded border text-t2 leading-4 whitespace-nowrap",
+                 RUN_STATE_TONE[p.run_state]
+               )}
+               title={`run_state: ${p.run_state}`}
+@@ -89,13 +89,11 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+               {RUN_STATE_LABEL[p.run_state]}
+             </span>
+           </div>
+-          <span className="text-t2 font-mono text-muted-foreground leading-tight pl-0.5 mt-0.5 whitespace-nowrap">
+-            {formatDecimal(magnitude(p.position), { digits: 0 })} 張
+-            <span className="mx-1 text-border">·</span>
+-            名目 {formatDecimal(p.notional, { prefix: "$" })}
+-            <span className="mx-1 text-border">·</span>
++          <span className="num text-t2 text-muted-foreground leading-tight mt-1 whitespace-nowrap flex gap-2">
++            <span>{formatDecimal(magnitude(p.position), { digits: 0 })} 張</span>
++            <span title="名目價值">{formatDecimal(p.notional, { prefix: "$" })}</span>
+             <span
+-              className={cn(p.verified ? "text-emerald-400/80" : "text-amber-400/80")}
++              className={cn(p.verified ? "text-muted-foreground" : "text-warn")}
+               title={p.verified ? "部位已對帳" : "部位尚未對帳或對帳狀態未知"}
+             >
+               {p.verified ? "已對帳" : "未對帳"}
+@@ -122,7 +120,7 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+       {/* 3. 未實現損益 (金額；ROE 無保證金模型) */}
+       <td className="px-2 py-2.5 text-right font-mono">
+         <div className="flex flex-col items-end">
+-          <span className={cn("text-t4 font-bold leading-tight", toneOf(p.unrealized_pnl))}>
++          <span className={cn("text-t4 leading-tight", toneOf(p.unrealized_pnl))}>
+             {formatDecimal(p.unrealized_pnl, { sign: true, prefix: "$" })}
+           </span>
+           <span className={NA_SUB_CLASS} title="local-sim 無保證金模型，無法計算 ROE">
+@@ -195,7 +193,7 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+         <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
+           <CardHeaderTitle
+             cardId="positions"
+-            title="持倉明細與交易所風控"
++            title="持倉"
+           />
+ 
+           <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 whitespace-nowrap flex-nowrap">
+@@ -203,25 +201,25 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+               type="button"
+               onClick={() => setTab("positions")}
+               className={cn(
+-                "px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
++                "flex items-center gap-1 px-2 py-0.5 text-t2 rounded transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                 tab === "positions"
+-                  ? "bg-secondary text-foreground font-semibold shadow-xs"
++                  ? "bg-secondary text-foreground font-semibold"
+                   : "text-muted-foreground hover:text-foreground"
+               )}
+             >
+-              持倉({positions.length})
++              持倉 <span className="num text-t1 text-muted-foreground">{positions.length}</span>
+             </button>
+             <button
+               type="button"
+               onClick={() => setTab("orders")}
+               className={cn(
+-                "px-2 py-0.5 text-t2 font-mono rounded transition-colors inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0",
++                "px-2 py-0.5 text-t2 rounded transition-colors inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                 tab === "orders"
+-                  ? "bg-secondary text-foreground font-semibold shadow-xs"
++                  ? "bg-secondary text-foreground font-semibold"
+                   : "text-muted-foreground hover:text-foreground"
+               )}
+             >
+-              <span className="whitespace-nowrap">掛單(0)</span>
++              <span className="whitespace-nowrap">掛單 <span className="num text-t1 text-muted-foreground">0</span></span>
+             </button>
+           </div>
+         </div>
+@@ -238,21 +236,21 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+             {/* ================= Tab 1: 持倉明細 ================= */}
+             {tab === "positions" && (
+               <table className="w-full text-left border-collapse table-auto min-w-[540px]">
+-                <thead className="border-b border-border/80 bg-background/40 text-t1 font-mono text-muted-foreground sticky top-0 z-10 backdrop-blur-sm">
++                <thead className="border-b border-border/80 bg-surface text-t2 text-muted-foreground sticky top-0 z-10">
+                   <tr>
+-                    <th className="py-2.5 pl-3 pr-2 font-medium">合約 / 部位</th>
+-                    <th className="px-2 text-right font-medium">開倉 / 標記價</th>
+-                    <th className="px-2 text-right font-medium">未實現損益</th>
+-                    <th className="px-2 text-right font-medium hidden sm:table-cell">資金費率</th>
+-                    <th className="px-2 text-right font-medium hidden md:table-cell">強平安全墊</th>
+-                    <th className="px-2 text-right font-medium">交易所強制停損</th>
+-                    <th className="py-2.5 pr-3 pl-2 text-right font-medium">操作</th>
++                    <th className="py-1.5 pl-3 pr-2 font-normal">合約與部位</th>
++                    <th className="px-2 text-right font-normal">開倉 / 標記價</th>
++                    <th className="px-2 text-right font-normal">未實現損益</th>
++                    <th className="px-2 text-right font-normal hidden sm:table-cell">資金費率</th>
++                    <th className="px-2 text-right font-normal hidden md:table-cell">強平安全墊</th>
++                    <th className="px-2 text-right font-normal">交易所停損</th>
++                    <th className="py-1.5 pr-3 pl-2 text-right font-normal">操作</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-border/40 text-xs">
+                   {positions.length === 0 ? (
+                     <tr>
+-                      <td colSpan={7} className="py-8 text-center text-muted-foreground font-mono text-xs">
++                      <td colSpan={7} className="py-8 text-center text-muted-foreground text-t3">
+                         {noRunYet ? "尚未啟動模擬 run" : "目前無未平倉部位"}
+                       </td>
+                     </tr>
+@@ -276,19 +274,16 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+         )}
+ 
+         {/* 底部摘要與模式說明條 */}
+-        <div className="flex items-center justify-between px-3 py-1.5 border-t border-border/80 bg-secondary/30 text-t2 font-mono text-muted-foreground shrink-0">
+-          <div className="flex items-center gap-3 whitespace-nowrap">
+-            <span>持倉筆數: <strong className="text-foreground">{positions.length}</strong></span>
+-            <span className="text-border">|</span>
++        <div className="flex items-center justify-between px-3 py-1.5 border-t border-border/80 bg-secondary/30 text-t2 text-muted-foreground shrink-0 overflow-hidden">
++          <div className="flex items-center gap-4 whitespace-nowrap">
+             <span title={summary ? `invariants.settlement = ${summary.invariants.settlement}` : "尚無 summary，無法得知保證金模式"}>
+-              保證金模式:{" "}
+-              <strong className={summary ? "text-emerald-400" : "text-muted-foreground"}>
++              保證金模式{" "}
++              <strong className={cn("num font-medium", summary ? "text-foreground" : "text-muted-foreground")}>
+                 {settlementLabel(summary?.invariants.settlement)}
+               </strong>
+             </span>
+-            <span className="text-border">|</span>
+             <span title="v1 local-sim 無平倉端點">
+-              緊急處置: <strong className="text-muted-foreground">平倉出口 v1 未接線</strong>
++              緊急平倉 <strong className="font-medium text-muted-foreground">未接入</strong>
+             </span>
+           </div>
+         </div>
+diff --git a/src/components/catos/allocation-donut-card.tsx b/src/components/catos/allocation-donut-card.tsx
+index 19174f5..af8b986 100644
+--- a/src/components/catos/allocation-donut-card.tsx
++++ b/src/components/catos/allocation-donut-card.tsx
+@@ -76,12 +76,12 @@ const BOT_STATE_LABEL: Record<BotControlState, string> = {
+ };
+ 
+ const RISK_STATUS_CHIP: Record<RiskStatus, { label: string; className: string }> = {
+-  normal: { label: "正常", className: "bg-emerald-500/15 border-emerald-500/35 text-emerald-400" },
+-  soft_latch: { label: "軟鎖存", className: "bg-amber-500/15 border-amber-500/35 text-amber-400" },
+-  hard_latch: { label: "硬鎖存", className: "bg-rose-500/15 border-rose-500/35 text-rose-400" },
+-  missing: { label: "缺基準", className: "bg-zinc-500/15 border-zinc-500/35 text-zinc-400" },
++  normal: { label: "正常", className: "bg-up/10 border-up/30 text-up" },
++  soft_latch: { label: "軟鎖存", className: "bg-warn/10 border-warn/35 text-warn" },
++  hard_latch: { label: "硬鎖存", className: "bg-down/12 border-down/35 text-down" },
++  missing: { label: "缺基準", className: "bg-muted border-border text-muted-foreground" },
+ };
+-const NO_OBSERVATION_CHIP = { label: "尚無觀測", className: "bg-zinc-500/15 border-zinc-500/35 text-zinc-400" };
++const NO_OBSERVATION_CHIP = { label: "尚無觀測", className: "bg-muted border-border text-muted-foreground" };
+ 
+ const TEXT_UNAVAILABLE = "不適用";
+ const TEXT_NO_RISK = "尚無風控觀測";
+@@ -692,11 +692,11 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+         <div className="flex items-center gap-2 min-w-0">
+           <CardHeaderTitle
+             cardId="allocation"
+-            title="槓桿倍數與資產曝險"
++            title="槓桿與曝險"
+             subtext={
+               <span
+                 className={cn(
+-                  "px-1.5 py-0.5 rounded border text-t1 font-mono font-semibold leading-none shrink-0 whitespace-nowrap",
++                  "px-1.5 rounded border text-t2 font-medium leading-4 shrink-0 whitespace-nowrap",
+                   statusChip.className
+                 )}
+                 title={statusTooltip}
+@@ -707,57 +707,59 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+           />
+ 
+           {/* 核心焦點切換鈕：金額主導 vs 槓桿倍數 */}
+-          <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 text-t2 font-mono">
+-            <span className="text-amber-400 font-bold px-1 text-t1 sm:text-t1">焦點:</span>
++          <div role="group" aria-label="中央讀數" className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 text-t2">
+             <button
+               type="button"
+               onClick={() => setHudFocus("leverage")}
+               className={cn(
+-                "px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
++                "px-2 py-0.5 text-t2 rounded transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                 hudFocus === "leverage"
+-                  ? "bg-secondary text-foreground font-semibold shadow-xs"
++                  ? "bg-secondary text-foreground font-semibold"
+                   : "text-muted-foreground hover:text-foreground"
+               )}
+               title={`風控焦點：帳戶有效槓桿 (上限 ${leverageLimitText})`}
+             >
+-              x 槓桿
++              槓桿
+             </button>
+             <button
+               type="button"
+               onClick={() => setHudFocus("money")}
+               className={cn(
+-                "px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
++                "px-2 py-0.5 text-t2 rounded transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                 hudFocus === "money"
+-                  ? "bg-secondary text-foreground font-semibold shadow-xs"
++                  ? "bg-secondary text-foreground font-semibold"
+                   : "text-muted-foreground hover:text-foreground"
+               )}
+               title="資產焦點：名目持倉總額與總曝險預算"
+             >
+-              $ 名目
++              名目
+             </button>
+           </div>
+         </div>
+ 
+         {/* 核心維度分段鈕 (幣種配置 | 策略實例 | 多空部位曝險 | 保證金佔用 | 損益分佈) */}
+-        <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 text-t2 font-mono">
++        <div role="tablist" aria-label="曝險維度" className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 text-t2 overflow-x-auto custom-scrollbar min-w-0">
+           {TABS.map((tab) => {
+             const isActive = viewMode === tab.id;
+             return (
+               <button
+                 key={tab.id}
+                 type="button"
++                role="tab"
++                aria-selected={isActive}
++                title={tab.label}
+                 onClick={() => {
+                   setViewMode(tab.id);
+                   setHoveredIndex(null);
+                 }}
+                 className={cn(
+-                  "px-1.5 sm:px-2 py-0.5 rounded transition-all cursor-pointer font-medium select-none text-t2 sm:text-t3",
++                  "px-2 py-0.5 rounded transition-colors cursor-pointer select-none text-t2 whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                   isActive
+-                    ? "bg-secondary text-foreground font-semibold shadow-xs border border-white/[0.16]"
+-                    : "text-zinc-300 hover:text-white hover:bg-white/[0.08]"
++                    ? "bg-secondary text-foreground font-semibold"
++                    : "text-muted-foreground hover:text-foreground"
+                 )}
+               >
+-                {isNarrow ? tab.shortLabel : tab.label}
++                {tab.shortLabel}
+               </button>
+             );
+           })}
+diff --git a/src/components/catos/shell.tsx b/src/components/catos/shell.tsx
+index 9a095c4..109376f 100644
+--- a/src/components/catos/shell.tsx
++++ b/src/components/catos/shell.tsx
+@@ -242,12 +242,13 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+         </Link>
+ 
+         {/* 導覽選單（單行高密度、支援方案 A/B/C 標題與微型 Badge） */}
+-        <nav aria-label="Main navigation" className="min-h-0 flex-1 space-y-2 overflow-y-auto overflow-x-hidden px-2 pb-2 pt-1">
+-          {GROUPS.map((group) => (
+-            <div key={group.key} className="space-y-0.5">
+-              {!collapsed && (
+-                <p className="mb-1 mt-2.5 px-2.5 font-mono text-t1 font-semibold uppercase tracking-wider text-muted-foreground/60 truncate">
+-                  {group.titleMono}
++        <nav aria-label="Main navigation" className="min-h-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden px-2 pb-2 pt-1">
++          {GROUPS.map((group, groupIndex) => (
++            <div key={group.key} className={cn("space-y-0.5", collapsed && groupIndex > 0 && "border-t border-border/60 pt-2")}>
++              {/* 只有一個同名項目的群組不另加標題，避免重複標籤 */}
++              {!collapsed && !(group.items.length === 1 && group.items[0].name === group.titleZh) && (
++                <p className="mb-1 px-2.5 text-t2 text-muted-foreground/70 truncate">
++                  {language === "en" ? group.titleEn.charAt(0) + group.titleEn.slice(1).toLowerCase() : group.titleZh}
+                 </p>
+               )}
+               <div className="space-y-0.5">
+@@ -257,17 +258,17 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+                     to={to}
+                     title={`${language === "en" ? sub : name} (${language === "en" ? name : sub})`}
+                     activeOptions={{ exact: to === "/" }}
+-                    activeProps={{ className: "bg-secondary text-foreground [&_svg]:text-primary font-medium shadow-xs" }}
++                    activeProps={{ className: "bg-secondary text-foreground [&_svg]:text-primary font-medium before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-primary" }}
+                     inactiveProps={{ className: "text-muted-foreground hover:bg-secondary/60 hover:text-foreground" }}
+                     className={cn(
+-                      "relative transition-all",
++                      "relative transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                       collapsed
+                         ? "flex size-10 items-center justify-center mx-auto rounded-md group my-1"
+-                        : "flex min-h-[46px] items-center gap-3 rounded-md px-3 py-1.5"
++                        : "flex h-8 items-center gap-2.5 rounded-md px-2.5"
+                     )}
+                   >
+                     <span className="relative flex size-5 shrink-0 items-center justify-center">
+-                      <Icon className="size-4 shrink-0 transition-transform group-hover:scale-110" strokeWidth={1.8} />
++                      <Icon className="size-4 shrink-0" strokeWidth={1.8} />
+                       {hasPulse && (
+                         <PulseBeacon
+                           size={5}
+@@ -277,14 +278,9 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+                       )}
+                     </span>
+                     {!collapsed && (
+-                      <div className="flex flex-col min-w-0 flex-1 leading-tight">
+-                        <span className="text-t4 font-medium text-foreground tracking-wide truncate">
+-                          {language === "en" ? sub : name}
+-                        </span>
+-                        <span className="text-t1 font-mono font-semibold text-muted-foreground uppercase tracking-wider truncate mt-0.5">
+-                          {language === "en" ? name : sub}
+-                        </span>
+-                      </div>
++                      <span className="text-xs truncate min-w-0 flex-1">
++                        {language === "en" ? sub.charAt(0) + sub.slice(1).toLowerCase() : name}
++                      </span>
+                     )}
+                   </Link>
+                 ))}
+diff --git a/src/components/catos/unified-incident-activity-card.tsx b/src/components/catos/unified-incident-activity-card.tsx
+index de77ce2..caed352 100644
+--- a/src/components/catos/unified-incident-activity-card.tsx
++++ b/src/components/catos/unified-incident-activity-card.tsx
+@@ -1,6 +1,6 @@
+ import { useState, useMemo, useRef, useEffect } from 'react';
+ import { useCatStore } from '@/state/catStore';
+-import type { EventDTO, EventLevel } from '@/contracts';
++import type { EventDTO } from '@/contracts';
+ import { CardHeaderTitle } from './card-header-title';
+ import { ChevronDown, ChevronUp, Inbox } from 'lucide-react';
+ import { cn } from '@/lib/utils';
+@@ -17,30 +17,6 @@ export interface CategoryTabItem {
+   filterFn: (ev: EventDTO) => boolean;
+ }
+ 
+-// 2026-10-22 使用者拍板定案參數 (純白光子 · 11s 時序湧動 · 完全無框)
+-export const INCIDENT_ACTIVITY_PARAMS = {
+-  durationSec: 11,
+-  photonLength: 15,
+-  photonWidth: 0.5,
+-  photonBrightness: 100,
+-  glowSpread: 8,
+-  bloomIntensity: 30,
+-  glassBlur: 32,
+-  cardShimmer: 0,
+-  borderOpacity: 0,
+-} as const;
+-
+-const {
+-  durationSec: DURATION_SEC,
+-  photonLength: PHOTON_LENGTH,
+-  photonWidth: PHOTON_WIDTH,
+-  photonBrightness: PHOTON_BRIGHTNESS,
+-  glowSpread: GLOW_SPREAD,
+-  bloomIntensity: BLOOM_INTENSITY,
+-  glassBlur: GLASS_BLUR,
+-  cardShimmer: CARD_SHIMMER,
+-} = INCIDENT_ACTIVITY_PARAMS;
+-
+ const NA = '不適用';
+ 
+ // ---- payload 安全存取（payload 為 Record<string, unknown>，所有金額皆為 Decimal 字串） ----
+@@ -207,69 +183,45 @@ function toRow(ev: EventDTO, instLabel: string): EventRow {
+   };
+ }
+ 
+-// 小圓點與標籤樣式：定案固化方案 C (macOS Sequoia 晶透黑曜石微膠囊風格)
+-function getBadgeMeta(ev: EventDTO, side: Side) {
+-  if (ev.level === 'ERROR') {
+-    return {
+-      label: 'ERROR',
+-      badgeClass: 'bg-rose-500/15 text-rose-200 border border-rose-500/30 rounded-full px-2 font-medium backdrop-blur-xs',
+-      coreClass: 'bg-[#f43f5e] shadow-[0_0_8px_rgba(244,63,94,0.55)] ring-1 ring-rose-400/40',
+-      sonarClass: 'bg-rose-500/25',
+-      bloomAnimation: 'crystal-optical-bloom-rose',
+-    };
+-  }
+-  if (ev.level === 'WARN') {
+-    return {
+-      label: 'WARN',
+-      badgeClass: 'bg-amber-500/15 text-amber-200 border border-amber-500/30 rounded-full px-2 font-medium backdrop-blur-xs',
+-      coreClass: 'bg-[#f59e0b] shadow-[0_0_8px_rgba(245,158,11,0.55)] ring-1 ring-amber-400/40',
+-      sonarClass: 'bg-amber-500/25',
+-      bloomAnimation: 'crystal-optical-bloom-amber',
+-    };
+-  }
+-  if (ev.category === 'ORDER') {
+-    const isShort = side === 'sell';
+-    return {
+-      label: '成交',
+-      badgeClass: isShort
+-        ? 'bg-rose-500/15 text-rose-200 border border-rose-500/25 rounded-full px-2 font-medium backdrop-blur-xs'
+-        : 'bg-emerald-500/15 text-emerald-200 border border-emerald-500/25 rounded-full px-2 font-medium backdrop-blur-xs',
+-      coreClass: isShort
+-        ? 'bg-[#f43f5e] shadow-[0_0_8px_rgba(244,63,94,0.45)] ring-1 ring-rose-400/30'
+-        : 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.45)] ring-1 ring-emerald-400/30',
+-      sonarClass: isShort ? 'bg-rose-500/20' : 'bg-emerald-500/20',
+-      bloomAnimation: isShort ? 'crystal-optical-bloom-rose' : 'crystal-optical-bloom-emerald',
+-    };
+-  }
+-  if (ev.category === 'WORKER') {
+-    return {
+-      label: 'INFO',
+-      badgeClass: 'bg-white/[0.04] text-zinc-400 border border-white/[0.06] rounded-full px-2 font-medium backdrop-blur-xs',
+-      coreClass: 'bg-zinc-600/70 ring-1 ring-zinc-600/40',
+-      sonarClass: 'bg-zinc-600/15',
+-      bloomAnimation: 'crystal-optical-bloom-neutral',
+-    };
++
++// 首頁卡片用的標題：run ID 屬於工程證據，收進展開詳情，不放在列上。
++function cardTitle(ev: EventDTO, fallback: string): string {
++  const p = ev.payload;
++  switch (ev.kind) {
++    case 'run_state': {
++      const previous = asString(p.previous);
++      return `狀態 ${previous ?? '(新建)'} → ${asText(p.state)}`;
++    }
++    case 'stop_requested':
++      return '已請求停止 run';
++    case 'stop':
++    case 'anomaly':
++      return asString(p.error) ?? fallback;
++    default:
++      return fallback;
+   }
+-  // RISK / SYSTEM / SUPERVISOR
+-  return {
+-    label: ev.category === 'RISK' ? '風控' : 'INFO',
+-    badgeClass: 'bg-sky-500/15 text-sky-300 border border-sky-500/30 rounded-full px-2 font-medium backdrop-blur-xs',
+-    coreClass: 'bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.5)] ring-1 ring-sky-400/40',
+-    sonarClass: 'bg-sky-500/20',
+-    bloomAnimation: 'crystal-optical-bloom-neutral',
+-  };
+ }
+ 
+-function levelCapsuleClass(level: EventLevel): string {
+-  return level === 'ERROR'
+-    ? 'bg-rose-500/15 border border-rose-500/30 text-rose-200'
+-    : 'bg-amber-500/15 border border-amber-500/30 text-amber-200 animate-pulse';
++// 事件種類標籤：狀態色只用 up / down / warn / info token；一般 worker 訊號保持安靜。
++function kindBadge(ev: EventDTO, side: Side): { label: string; className: string } {
++  if (ev.level === 'ERROR') return { label: '錯誤', className: 'text-down bg-down/12 border-down/35' };
++  if (ev.level === 'WARN') return { label: '警告', className: 'text-warn bg-warn/10 border-warn/35' };
++  if (ev.category === 'ORDER') {
++    return side === 'sell'
++      ? { label: '賣出', className: 'text-down bg-down/10 border-down/30' }
++      : { label: '買入', className: 'text-up bg-up/10 border-up/30' };
++  }
++  if (ev.category === 'RISK') return { label: '風控', className: 'text-info bg-info/10 border-info/30' };
++  if (ev.category === 'WORKER') return { label: '訊號', className: 'text-muted-foreground border-border' };
++  return { label: '系統', className: 'text-muted-foreground border-border' };
+ }
+ 
+ interface UnifiedIncidentActivityCardProps {
+   className?: string;
+ }
+ 
++const PINNED_ALERT_LIMIT = 3;
++
+ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivityCardProps) {
+   const events = useCatStore((s) => s.events);
+   const eventsOmitted = useCatStore((s) => s.eventsOmitted);
+@@ -279,34 +231,22 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+   const [category, setCategory] = useState<string>('ALL');
+ 
+-  // DOM 容器與節點座標引用
+   const cardRef = useRef<HTMLDivElement>(null);
+-  const containerRef = useRef<HTMLDivElement>(null);
+-  const nodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+-
+-  // 雙向物理尺寸監聽 (ResizeObserver 自適應 Header 與標籤)
+-  const [dimensions, setDimensions] = useState({ width: 600, height: 240 });
++  const listRef = useRef<HTMLDivElement>(null);
++  const [width, setWidth] = useState(600);
+ 
+   useEffect(() => {
+     const el = cardRef.current;
+     if (!el) return;
+     const observer = new ResizeObserver((entries) => {
+-      for (const entry of entries) {
+-        setDimensions({
+-          width: entry.contentRect.width,
+-          height: entry.contentRect.height,
+-        });
+-      }
++      for (const entry of entries) setWidth(entry.contentRect.width);
+     });
+     observer.observe(el);
+     return () => observer.disconnect();
+   }, []);
+ 
+-  const isNarrow = dimensions.width < 500;
+-  const isSuperNarrow = dimensions.width < 380;
+-
+-  // 時序湧動：量測各節點真實 offsetTop 相對於底部的延遲 (秒)
+-  const [bottomUpDelays, setBottomUpDelays] = useState<Record<string, number>>({});
++  const isNarrow = width < 500;
++  const isSuperNarrow = width < 380;
+ 
+   // bot_id → inst_id，成交標題使用合約名稱
+   const instById = useMemo(() => {
+@@ -324,6 +264,8 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+       .map((ev) => toRow(ev, instById.get(ev.bot_id) ?? '合約'));
+   }, [events, instById]);
+ 
++  const alertRows = useMemo(() => rows.filter((r) => r.isAlert), [rows]);
++
+   // 分類依 category／level 直接判定，不做字串推斷
+   const availableTabs = useMemo<CategoryTabItem[]>(() => {
+     const isAlert = (e: EventDTO) => e.level === 'WARN' || e.level === 'ERROR';
+@@ -334,12 +276,12 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+     const countSystem = events.filter((e) => e.category === 'SYSTEM').length;
+ 
+     return [
+-      { id: 'ALL', label: `全部(${events.length})`, shortLabel: '全部', badgeCount: events.length, filterFn: () => true },
+-      { id: 'ALERT', label: `異常(${countAlert})`, shortLabel: countAlert > 0 ? `異常(${countAlert})` : '異常', badgeCount: countAlert, isAlert: countAlert > 0, filterFn: isAlert },
+-      { id: 'RISK', label: `風控(${countRisk})`, shortLabel: '風控', badgeCount: countRisk, filterFn: (e) => e.category === 'RISK' },
+-      { id: 'ORDER', label: `成交(${countOrder})`, shortLabel: '成交', badgeCount: countOrder, filterFn: (e) => e.category === 'ORDER' },
+-      { id: 'WORKER', label: `Worker(${countWorker})`, shortLabel: 'Worker', badgeCount: countWorker, filterFn: (e) => e.category === 'WORKER' },
+-      { id: 'SYSTEM', label: `系統(${countSystem})`, shortLabel: '系統', badgeCount: countSystem, filterFn: (e) => e.category === 'SYSTEM' },
++      { id: 'ALL', label: '全部', shortLabel: '全部', badgeCount: events.length, filterFn: () => true },
++      { id: 'ALERT', label: '異常', shortLabel: '異常', badgeCount: countAlert, isAlert: countAlert > 0, filterFn: isAlert },
++      { id: 'ORDER', label: '成交', shortLabel: '成交', badgeCount: countOrder, filterFn: (e) => e.category === 'ORDER' },
++      { id: 'RISK', label: '風控', shortLabel: '風控', badgeCount: countRisk, filterFn: (e) => e.category === 'RISK' },
++      { id: 'WORKER', label: '訊號', shortLabel: '訊號', badgeCount: countWorker, filterFn: (e) => e.category === 'WORKER' },
++      { id: 'SYSTEM', label: '系統', shortLabel: '系統', badgeCount: countSystem, filterFn: (e) => e.category === 'SYSTEM' },
+     ];
+   }, [events]);
+ 
+@@ -352,296 +294,201 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+     return rows.filter((row) => currentTab.filterFn(row.event));
+   }, [rows, currentTab]);
+ 
+-  // 由下往上物理幾何計算：當前節點距離容器底部的真實像素距離比率
+-  useEffect(() => {
+-    if (!containerRef.current) return;
+-    const totalH = containerRef.current.scrollHeight;
+-    if (totalH <= 0) return;
+-
+-    const newDelays: Record<string, number> = {};
+-    filteredRows.forEach((row) => {
+-      const el = nodeRefs.current.get(row.key);
+-      if (el) {
+-        const nodeY = el.offsetTop + 8;
+-        // 由下往上：離底部的距離 = totalH - nodeY
+-        const distFromBottom = Math.max(0, totalH - nodeY);
+-        const ratio = Math.max(0, Math.min(1, distFromBottom / totalH));
+-        newDelays[row.key] = Number((ratio * DURATION_SEC).toFixed(3));
+-      }
+-    });
+-    setBottomUpDelays(newDelays);
+-  }, [filteredRows, expandedKey]);
+-
+   const toggleRow = (key: string) => {
+     setExpandedKey((prev) => (prev === key ? null : key));
+   };
+ 
++  const openAlert = (key: string) => {
++    setCategory('ALERT');
++    setExpandedKey(key);
++    listRef.current?.scrollTo({ top: 0 });
++  };
++
+   const emptyMessage =
+     connectionStatus === 'mode_not_open'
+       ? '此模式未開放（demo/live 不在 v1 範圍）'
+       : events.length === 0
+-      ? '尚無事件 · 啟動模擬 run 後顯示'
+-      : '此分類無事件';
++      ? '尚無事件。啟動模擬 run 後會出現在這裡'
++      : '這個分類目前沒有事件';
+ 
+   const showEmpty = connectionStatus === 'mode_not_open' || filteredRows.length === 0;
++  // 異常固定區：只要有 WARN/ERROR，且目前不在「異常」分頁，就固定在列表上方
++  const showPinned = alertRows.length > 0 && category !== 'ALERT' && connectionStatus !== 'mode_not_open';
++  const hasError = alertRows.some((r) => r.event.level === 'ERROR');
++  const visibleTabs = isSuperNarrow ? availableTabs.slice(0, 4) : availableTabs;
+ 
+   return (
+-    <div ref={cardRef} className={cn('flex flex-col h-full w-full select-none overflow-hidden bg-surface/40 font-mono', className)}>
+-      {/* 1. Header 區域：整合卡片標題 + 右上角統一微膠囊 (窄版自適應簡短標籤，杜絕標題截字) */}
++    <div ref={cardRef} className={cn('flex flex-col h-full w-full select-none overflow-hidden bg-surface/40', className)}>
++      {/* 標題列 */}
+       <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
+         <CardHeaderTitle
+           cardId="activity_deck"
+-          title="事件審計與成交流水"
++          title="事件與成交"
+           subtext={
+             !isNarrow ? (
+-              <span className="text-t2 font-mono text-muted-foreground ml-1">
+-                {filteredRows.length} 筆
+-              </span>
++              <span className="num text-t2 text-muted-foreground ml-1">{filteredRows.length}</span>
+             ) : undefined
+           }
+         />
+ 
+-        {/* 右上角切換膠囊：完全統一規格 (窄版自動切換為簡稱，超窄只顯示核心 4 標籤) */}
+-        <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 overflow-x-auto max-w-[65%] custom-scrollbar">
+-          {(isSuperNarrow ? availableTabs.slice(0, 4) : availableTabs).map((tab) => (
++        <div
++          role="tablist"
++          aria-label="事件分類"
++          className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 overflow-x-auto max-w-[70%] custom-scrollbar"
++        >
++          {visibleTabs.map((tab) => {
++            const active = category === tab.id;
++            return (
++              <button
++                key={tab.id}
++                type="button"
++                role="tab"
++                aria-selected={active}
++                onClick={() => setCategory(tab.id)}
++                className={cn(
++                  'flex items-center gap-1 px-2 py-0.5 text-t2 rounded transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
++                  active ? 'bg-secondary text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
++                )}
++              >
++                {isNarrow ? tab.shortLabel : tab.label}
++                {tab.badgeCount > 0 && !isSuperNarrow && (
++                  <span className={cn('num text-t1', tab.isAlert ? 'text-warn font-semibold' : active ? 'text-muted-foreground' : 'text-muted-foreground/70')}>
++                    {tab.badgeCount}
++                  </span>
++                )}
++              </button>
++            );
++          })}
++        </div>
++      </div>
++
++      {/* 異常固定區：有效異常始終可見 */}
++      {showPinned && (
++        <div
++          className={cn(
++            'shrink-0 border-b border-border/80 border-l-2',
++            hasError ? 'border-l-down bg-down/[0.06]' : 'border-l-warn bg-warn/[0.05]'
++          )}
++        >
++          <div className="flex items-center justify-between px-3 pt-1.5 pb-0.5">
++            <span className={cn('text-t3 font-semibold', hasError ? 'text-down' : 'text-warn')}>
++              {alertRows.length} 個異常待確認
++            </span>
+             <button
+-              key={tab.id}
+               type="button"
+-              onClick={() => setCategory(tab.id)}
+-              className={cn(
+-                'px-1.5 sm:px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0',
+-                category === tab.id
+-                  ? 'bg-secondary text-foreground font-semibold shadow-xs'
+-                  : tab.isAlert
+-                  ? 'text-amber-300/90 hover:text-amber-200'
+-                  : 'text-muted-foreground hover:text-foreground'
+-              )}
++              onClick={() => setCategory('ALERT')}
++              className="text-t2 text-muted-foreground hover:text-foreground underline-offset-2 hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
+             >
+-              {isNarrow ? tab.shortLabel : tab.label}
++              查看全部異常
+             </button>
+-          ))}
++          </div>
++          <ul className="pb-1">
++            {alertRows.slice(0, PINNED_ALERT_LIMIT).map((row) => (
++              <li key={row.key}>
++                <button
++                  type="button"
++                  onClick={() => openAlert(row.key)}
++                  className="w-full grid grid-cols-[3.25rem_2.25rem_minmax(0,auto)_minmax(0,1fr)] items-center gap-2 px-3 h-6 text-left hover:bg-white/[0.03] cursor-pointer focus-visible:outline-none focus-visible:bg-white/[0.05]"
++                >
++                  <span className="num text-t2 text-muted-foreground">{row.time}</span>
++                  <span className={cn('text-t1 text-center rounded border px-1 leading-4', kindBadge(row.event, row.side).className)}>
++                    {kindBadge(row.event, row.side).label}
++                  </span>
++                  <span className="text-t3 text-foreground font-medium truncate">{row.event.bot_id}</span>
++                  <span className="num text-t2 text-muted-foreground truncate">{cardTitle(row.event, row.title)}</span>
++                </button>
++              </li>
++            ))}
++          </ul>
+         </div>
+-      </div>
++      )}
+ 
+-      {/* 2. 核心時間軸內容區 */}
+-      <div
+-        key={`timeline-${expandedKey}`}
+-        ref={containerRef}
+-        className="flex-1 min-h-0 overflow-y-auto p-3 pr-2 relative"
+-        style={{
+-          '--photon-duration': `${DURATION_SEC}s`,
+-          '--photon-length': `${PHOTON_LENGTH}px`,
+-          '--photon-width': `${PHOTON_WIDTH}px`,
+-          '--photon-opacity': `${(PHOTON_BRIGHTNESS / 100).toFixed(2)}`,
+-          '--bloom-intensity': `${(BLOOM_INTENSITY / 100).toFixed(2)}`,
+-          '--glass-blur': `${GLASS_BLUR}px`,
+-          '--card-shimmer-opacity': `${(CARD_SHIMMER / 100).toFixed(2)}`,
+-        } as React.CSSProperties}
+-      >
++      {/* 事件列表 */}
++      <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+         {showEmpty ? (
+-          <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-1">
+-            <Inbox className="size-6 text-zinc-500/80 mb-1" />
+-            <span className="text-t2">{emptyMessage}</span>
++          <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-1.5 py-8">
++            <Inbox className="size-5 text-muted-foreground/60" />
++            <span className="text-t3">{emptyMessage}</span>
+           </div>
+         ) : (
+-          <div className="relative pl-3 space-y-2.5">
+-            {/* 導軌系統：由下往上向上湧動 */}
+-            <div className="absolute left-[20px] -translate-x-1/2 top-2 bottom-2 w-[20px] pointer-events-none z-0 overflow-hidden">
+-              {/* 1. 底層 1px 磨砂暗色導軌線 */}
+-              <div className="absolute left-[10px] -translate-x-1/2 top-0 bottom-0 w-[1px] bg-white/[0.08]" />
+-
+-              {/* 2. 由下往上光子漫射流束 (純白光) */}
+-              <div
+-                className="absolute left-[2px] bottom-0 w-[20px]"
+-                style={{ display: 'none' }}
+-              >
+-                <div
+-                  className="hidden"
+-                  style={{
+-                    width: `${GLOW_SPREAD}px`,
+-                    height: `${Math.round(PHOTON_LENGTH * 1.25)}px`,
+-                    opacity: PHOTON_BRIGHTNESS / 100,
+-                    filter: `blur(${Math.max(2, Math.round(GLOW_SPREAD * 0.28))}px)`,
+-                  }}
+-                />
+-                <div
+-                  className="hidden"
+-                  style={{
+-                    width: `${PHOTON_WIDTH}px`,
+-                    height: `${PHOTON_LENGTH}px`,
+-                    opacity: 1,
+-                    boxShadow: `0 0 ${Math.round(8 * (BLOOM_INTENSITY / 100))}px ${Math.round(1 * (BLOOM_INTENSITY / 100))}px rgba(255, 255, 255, 0.7)`,
+-                  }}
+-                />
+-              </div>
+-            </div>
+-
++          <ul className="py-1">
+             {filteredRows.map((row) => {
+               const ev = row.event;
+               const isExp = expandedKey === row.key;
+-              const meta = getBadgeMeta(ev, row.side);
+-              const isWarn = ev.level === 'WARN';
+-              const isError = ev.level === 'ERROR';
++              const badge = kindBadge(ev, row.side);
+               const detailFields = isExp ? buildDetailFields(ev) : null;
+ 
+-              // 取得該節點離底部的真實幾何延遲 (秒)
+-              const bottomDelay = bottomUpDelays[row.key] ?? 0;
+-
+               return (
+-                <div
++                <li
+                   key={row.key}
+-                  ref={(el) => {
+-                    if (el) nodeRefs.current.set(row.key, el);
+-                    else nodeRefs.current.delete(row.key);
+-                  }}
+-                  className="relative flex items-start gap-2.5 group"
++                  className={cn(
++                    'border-l-2',
++                    ev.level === 'ERROR' ? 'border-l-down/70' : ev.level === 'WARN' ? 'border-l-warn/70' : 'border-l-transparent',
++                    isExp && 'bg-white/[0.03]'
++                  )}
+                 >
+-                  {/* 時間軸節點小圓點容器 */}
+-                  <div className="relative mt-1 shrink-0 z-10 flex items-center justify-center size-4 pointer-events-none">
+-                    {/* 由下往上光子穿透之次表面柔霧微光環 */}
++                  <button
++                    type="button"
++                    aria-expanded={isExp}
++                    onClick={() => toggleRow(row.key)}
++                    className="group w-full grid grid-cols-[3.25rem_2.25rem_minmax(0,1fr)_auto] items-center gap-2 pl-2.5 pr-3 h-[22px] text-left hover:bg-white/[0.025] cursor-pointer focus-visible:outline-none focus-visible:bg-white/[0.05]"
++                  >
++                    <span className="num text-t2 text-muted-foreground/80">{row.time}</span>
++                    <span className={cn('text-t1 text-center rounded border px-1 leading-4', badge.className)}>{badge.label}</span>
+                     <span
+                       className={cn(
+-                        'absolute inline-flex size-2 rounded-full pointer-events-none',
+-                        meta.sonarClass
++                        'num text-t2 truncate',
++                        row.isAlert || ev.category === 'ORDER' ? 'text-foreground' : 'text-muted-foreground'
+                       )}
+-                      style={{
+-                        animation: `optical-halation-fade ${DURATION_SEC}s cubic-bezier(0.16, 1, 0.3, 1) infinite`,
+-                        animationDelay: `${bottomDelay}s`,
+-                      }}
+-                    />
+-
+-                    {/* 實心核心點：5px 寶石微核，光子經過時產生次表面 Bloom */}
+-                    <span
+-                      className={cn(
+-                        'relative inline-flex size-1.5 rounded-full transition-all duration-150',
+-                        meta.coreClass,
+-                        row.isAlert && 'crystal-breathe-subtle'
++                    >
++                      {cardTitle(row.event, row.title)}
++                    </span>
++                    <span className="flex items-center gap-2 shrink-0">
++                      {row.rightText && (
++                        <span className="num text-t2 text-foreground/85 hidden sm:inline">{row.rightText}</span>
+                       )}
+-                      style={{
+-                        animation: `${meta.bloomAnimation} ${DURATION_SEC}s cubic-bezier(0.16, 1, 0.3, 1) infinite`,
+-                        animationDelay: `${bottomDelay}s`,
+-                      }}
+-                    />
+-                  </div>
+-
+-                  {/* 事件行容器：完全無框純淨數據流 (Zero-Waste) */}
+-                  <div
+-                    onClick={() => toggleRow(row.key)}
+-                    className={cn(
+-                      'flex-1 min-w-0 transition-all duration-150 cursor-pointer p-2 rounded-md',
+-                      isExp
+-                        ? 'bg-white/[0.035]'
+-                        : isError
+-                        ? 'bg-rose-500/[0.02] hover:bg-rose-500/[0.04]'
+-                        : isWarn
+-                        ? 'bg-amber-500/[0.02] hover:bg-amber-500/[0.04]'
+-                        : 'hover:bg-white/[0.025]'
+-                    )}
+-                  >
+-                    {/* 表頭一行：時間 + 標籤 + 買賣方向 + run + 標題 + 右側權益/等級 + 箭頭 */}
+-                    <div className="flex items-center justify-between gap-2 text-t2">
+-                      <div className="flex items-center gap-1.5 min-w-0">
+-                        {/* 時間戳 (wall_time，Asia/Taipei) */}
+-                        <span className="text-zinc-500 text-t1 shrink-0 font-mono">{row.time}</span>
+-
+-                        {/* 類型 Badge */}
+-                        <span className={cn('px-1.5 py-0.2 rounded text-t1 shrink-0', meta.badgeClass)}>
+-                          {meta.label}
+-                        </span>
+-
+-                        {/* 買賣方向專屬微徽章 (僅成交顯示) */}
+-                        {row.side && (
+-                          <span
+-                            className={cn(
+-                              'px-1.5 py-0.2 rounded text-t1 font-mono shrink-0 font-semibold border',
+-                              row.side === 'buy'
+-                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+-                                : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+-                            )}
+-                          >
+-                            {row.side === 'buy' ? '買入' : '賣出'}
+-                          </span>
+-                        )}
+-
+-                        {/* 關聯 run */}
+-                        <span className="text-zinc-500 text-t1 shrink-0 font-mono hidden sm:inline">
+-                          [{shortId(ev.run_id)}]
+-                        </span>
+-
+-                        {/* 事件主標題 */}
+-                        <span
+-                          className={cn(
+-                            'truncate leading-tight tracking-tight text-t2',
+-                            row.isAlert ? 'text-zinc-100 font-medium' : 'text-zinc-300 font-normal'
+-                          )}
+-                        >
+-                          {row.title}
+-                        </span>
+-                      </div>
+-
+-                      {/* 右側：成交後權益 / 等級膠囊 / 展開箭頭 */}
+-                      <div className="flex items-center gap-2 shrink-0">
+-                        {row.rightText ? (
+-                          <span className="text-t2 font-mono tracking-tight text-zinc-300 hidden sm:inline">
+-                            {row.rightText}
+-                          </span>
+-                        ) : row.isAlert ? (
+-                          <span className={cn('text-t1 font-medium px-2 py-0.2 rounded-full backdrop-blur-xs', levelCapsuleClass(ev.level))}>
+-                            {ev.level}
+-                          </span>
+-                        ) : null}
+-
+-                        <button
+-                          type="button"
+-                          className="text-zinc-500 group-hover:text-zinc-300 shrink-0 transition-transform duration-200"
+-                          aria-label={isExp ? '收合' : '展開'}
+-                        >
+-                          {isExp ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+-                        </button>
+-                      </div>
++                      {isExp ? (
++                        <ChevronUp className="size-3 text-muted-foreground" />
++                      ) : (
++                        <ChevronDown className="size-3 text-muted-foreground/50 group-hover:text-muted-foreground" />
++                      )}
++                    </span>
++                  </button>
++
++                  {/* 展開詳情：工程證據（seq、run、合成時間）收在這裡 */}
++                  {isExp && (
++                    <div className="pl-[4.25rem] pr-3 pb-2 pt-0.5 space-y-1.5 select-text">
++                      {detailFields ? (
++                        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1.5 p-2 rounded bg-background/50 border border-border/60">
++                          {detailFields.map((field) => (
++                            <div key={field.label} className="min-w-0">
++                              <dt className="text-t1 text-muted-foreground">{field.label}</dt>
++                              <dd className="num text-t2 font-medium text-foreground break-all">{field.value}</dd>
++                            </div>
++                          ))}
++                        </dl>
++                      ) : (
++                        <pre className="num text-t1 max-h-40 overflow-auto p-2 rounded bg-background/50 border border-border/60 text-muted-foreground whitespace-pre-wrap break-all custom-scrollbar">
++                          {JSON.stringify(ev.payload, null, 1)}
++                        </pre>
++                      )}
++                      <p className="num text-t1 text-muted-foreground/80 truncate">
++                        {ev.bot_id} / run {shortId(ev.run_id)} / seq {ev.seq} / {ev.category}
++                        {row.syntheticLabel ? ` / 合成時間 ${row.syntheticLabel}` : ''}
++                      </p>
+                     </div>
+-
+-                    {/* 展開詳情面板 */}
+-                    {isExp && (
+-                      <div
+-                        onClick={(e) => e.stopPropagation()}
+-                        className="mt-2 pt-2 border-t border-white/[0.05] text-t1 space-y-2 text-zinc-300 snap-accordion-enter"
+-                      >
+-                        {detailFields ? (
+-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2 rounded-md bg-secondary/40 border border-border/60 text-t1 font-mono">
+-                            {detailFields.map((field) => (
+-                              <div key={field.label} className="min-w-0">
+-                                <span className="text-muted-foreground block text-t1 uppercase tracking-wider">{field.label}</span>
+-                                <span className="font-semibold text-foreground break-all">{field.value}</span>
+-                              </div>
+-                            ))}
+-                          </div>
+-                        ) : (
+-                          <pre className="text-t1 font-mono max-h-40 overflow-auto p-2 rounded-md bg-secondary/40 border border-border/60 text-zinc-300 whitespace-pre-wrap break-all custom-scrollbar">
+-                            {JSON.stringify(ev.payload, null, 1)}
+-                          </pre>
+-                        )}
+-
+-                        {/* 底部來源列 */}
+-                        <div className="flex items-center justify-between pt-1 border-t border-white/[0.04] text-t1 text-zinc-500">
+-                          <span className="truncate">
+-                            {`seq ${ev.seq} · ${row.syntheticLabel ? '合成時間 ' + row.syntheticLabel + ' · ' : ''}${ev.category}`}
+-                          </span>
+-                        </div>
+-                      </div>
+-                    )}
+-                  </div>
+-                </div>
++                  )}
++                </li>
+               );
+             })}
+-          </div>
++          </ul>
+         )}
+       </div>
+ 
+-      {/* 3. 後端環形緩衝省略提示：據實回報，不隱藏 */}
++      {/* 後端環形緩衝省略提示：據實回報，不隱藏 */}
+       {eventsOmitted > 0 && (
+-        <div className="shrink-0 px-3 py-1 border-t border-border/60 bg-secondary/30 text-t1 font-mono text-amber-300/90">
+-          後端環形緩衝已省略 {eventsOmitted} 筆
++        <div className="shrink-0 px-3 py-1 border-t border-border/60 bg-secondary/30 text-t2 text-warn">
++          後端緩衝已省略較舊的 {eventsOmitted} 筆事件
+         </div>
+       )}
+     </div>
+diff --git a/src/components/catos/v0-bot-table.tsx b/src/components/catos/v0-bot-table.tsx
+index 8224884..efd029f 100644
+--- a/src/components/catos/v0-bot-table.tsx
++++ b/src/components/catos/v0-bot-table.tsx
+@@ -15,10 +15,10 @@ interface V0BotTableProps {
+ }
+ 
+ export const RISK_STATUS_META: Record<string, { label: string; className: string }> = {
+-  normal: { label: "正常", className: "bg-emerald-400/10 text-emerald-400 border-emerald-400/30" },
+-  soft_latch: { label: "軟鎖存", className: "bg-amber-400/10 text-amber-400 border-amber-400/30" },
+-  hard_latch: { label: "硬鎖存", className: "bg-rose-400/10 text-rose-400 border-rose-400/30" },
+-  missing: { label: "缺基準", className: "bg-zinc-400/10 text-zinc-300 border-zinc-400/30" },
++  normal: { label: "正常", className: "bg-up/10 text-up border-up/30" },
++  soft_latch: { label: "軟鎖存", className: "bg-warn/10 text-warn border-warn/35" },
++  hard_latch: { label: "硬鎖存", className: "bg-down/12 text-down border-down/35" },
++  missing: { label: "缺基準", className: "bg-muted text-muted-foreground border-border" },
+ };
+ 
+ export const BOT_STATE_LABEL: Record<string, string> = {
+@@ -107,17 +107,19 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+     <div className={cn("flex flex-col h-full w-full select-none overflow-hidden bg-surface/40", className)}>
+       {showHeader && (
+         <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
+-          <CardHeaderTitle cardId="bots" title="策略實例監控矩陣" />
+-          <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 whitespace-nowrap flex-nowrap">
++          <CardHeaderTitle cardId="bots" title="策略實例" />
++          <div role="tablist" aria-label="實例篩選" className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 whitespace-nowrap flex-nowrap">
+             {[
+-              { id: "all", label: `全部(${bots.length})` },
+-              { id: "running", label: `運作(${runningCount})` },
+-              { id: "stopped", label: `停止(${bots.length - runningCount})` },
++              { id: "all", label: "全部", count: bots.length },
++              { id: "running", label: "運行中", count: runningCount },
++              { id: "stopped", label: "已停止", count: bots.length - runningCount },
+             ].map((f) => (
+-              <button key={f.id} type="button" onClick={() => setBotFilter(f.id as typeof botFilter)}
+-                className={cn("px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
+-                  botFilter === f.id ? "bg-secondary text-foreground font-semibold shadow-xs" : "text-muted-foreground hover:text-foreground")}>
++              <button key={f.id} type="button" role="tab" aria-selected={botFilter === f.id}
++                onClick={() => setBotFilter(f.id as typeof botFilter)}
++                className={cn("flex items-center gap-1 px-2 py-0.5 text-t2 rounded transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
++                  botFilter === f.id ? "bg-secondary text-foreground font-semibold" : "text-muted-foreground hover:text-foreground")}>
+                 {f.label}
++                <span className="num text-t1 text-muted-foreground">{f.count}</span>
+               </button>
+             ))}
+           </div>
+@@ -126,19 +128,19 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+ 
+       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto min-w-0 max-w-full">
+         <table className="w-full text-left border-collapse table-auto min-w-[540px]">
+-          <thead className="border-b border-border/80 bg-background/40 text-t1 font-mono text-muted-foreground sticky top-0 z-10 backdrop-blur-sm">
++          <thead className="border-b border-border/80 bg-surface text-t2 text-muted-foreground sticky top-0 z-10">
+             <tr>
+-              <th className="py-2.5 pl-3 pr-2 font-medium">實例 / 標的</th>
+-              <th className="px-2 font-medium">策略模型 / 曝險</th>
+-              <th className="px-2 text-right font-medium">風控期間損益</th>
+-              <th className="px-2 text-right font-medium hidden sm:table-cell">權益</th>
+-              <th className="px-2 font-medium hidden md:table-cell">風控狀態</th>
+-              <th className="py-2.5 pr-3 pl-2 text-right font-medium">走勢與操作</th>
++              <th className="py-1.5 pl-3 pr-2 font-normal">實例</th>
++              <th className="px-2 font-normal">策略與曝險</th>
++              <th className="px-2 text-right font-normal">期間損益</th>
++              <th className="px-2 text-right font-normal hidden sm:table-cell">權益</th>
++              <th className="px-2 font-normal hidden md:table-cell">風控</th>
++              <th className="py-1.5 pr-3 pl-2 text-right font-normal">操作</th>
+             </tr>
+           </thead>
+           <tbody className="divide-y divide-border/40 text-xs">
+             {rows.length === 0 && (
+-              <tr><td colSpan={6} className="py-8 text-center text-muted-foreground font-mono text-xs">{emptyText}</td></tr>
++              <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-t3">{emptyText}</td></tr>
+             )}
+             {rows.map((bot) => {
+               const isActive = ACTIVE_STATES.has(bot.state);
+@@ -149,52 +151,62 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+               const busyKey = controls.busy;
+               return (
+                 <tr key={bot.bot_id} onClick={() => selectBot(bot.bot_id)}
+-                  className={cn("hover:bg-secondary/30 transition-all group cursor-pointer",
+-                    isSelected && "bg-secondary/40", !isActive && "opacity-80")}
++                  className={cn("hover:bg-secondary/30 transition-colors group cursor-pointer border-l-2",
++                    isSelected ? "bg-secondary/40 border-l-primary" : "border-l-transparent")}
+                   title="點擊選取此實例">
+-                  <td className="py-2.5 pl-3 pr-2">
+-                    <div className="flex items-center gap-2">
+-                      <span className={cn("w-2 h-2 rounded-full shrink-0",
+-                        isActive ? "bg-emerald-400 shadow-[0_0_6px_var(--emerald-400)]"
+-                        : bot.state === "failed" || bot.state === "recovery_required" ? "bg-rose-400" : "bg-muted-foreground/50")} />
+-                      <div className="flex flex-col min-w-0">
+-                        <span className="text-t4 font-bold text-foreground leading-tight group-hover:text-primary transition-colors whitespace-nowrap">
+-                          {bot.bot_id}
++                  <td className="py-2 pl-2.5 pr-2">
++                    <div className="flex flex-col min-w-0 gap-0.5">
++                      <span className={cn("num text-t4 font-semibold leading-tight whitespace-nowrap transition-colors",
++                        isActive ? "text-foreground" : "text-foreground/75", "group-hover:text-primary")}>
++                        {bot.bot_id}
++                      </span>
++                      <div className="flex items-center gap-1.5 text-t2 leading-tight whitespace-nowrap">
++                        <span className={cn("flex items-center gap-1",
++                          isActive ? "text-up"
++                          : bot.state === "failed" || bot.state === "recovery_required" ? "text-down font-medium"
++                          : "text-muted-foreground")}>
++                          <span className={cn("size-1.5 rounded-full shrink-0",
++                            isActive ? "bg-up"
++                            : bot.state === "failed" || bot.state === "recovery_required" ? "bg-down" : "bg-muted-foreground/50")} />
++                          {BOT_STATE_LABEL[bot.state] ?? bot.state}
+                         </span>
+-                        <div className="flex items-center gap-1 text-t1 font-mono text-muted-foreground leading-tight">
+-                          <span className="text-primary font-semibold whitespace-nowrap">{bot.inst_id ?? "不適用"}</span>
+-                          <span>{formatTimeframe(bot.timeframe_ms)}</span>
+-                          <span>· {BOT_STATE_LABEL[bot.state] ?? bot.state}</span>
+-                        </div>
++                        <span className="num text-t1 text-muted-foreground">{bot.inst_id ?? "不適用"} {formatTimeframe(bot.timeframe_ms)}</span>
+                       </div>
+                     </div>
+                   </td>
+ 
+-                  <td className="px-2 py-2.5">
++                  <td className="px-2 py-2">
+                     <div className="flex flex-col gap-0.5">
+-                      <span className="text-t3 font-semibold text-foreground leading-tight">{bot.strategy_name}</span>
+-                      <span className="text-t1 font-mono text-muted-foreground leading-tight">
++                      <span className="text-t3 font-medium text-foreground leading-tight">{bot.strategy_name}</span>
++                      <span className="num text-t1 text-muted-foreground leading-tight whitespace-nowrap"
++                            title={botRisk ? "名目曝險 / 單幣預算上限" : undefined}>
+                         {botRisk
+-                          ? `名目 ${formatDecimal(botRisk.derived.notional, { prefix: "$" })} · 單幣上限 ${formatDecimal(botRisk.derived.symbol_budget, { prefix: "$" })}`
++                          ? `${formatDecimal(botRisk.derived.notional, { prefix: "$" })} / ${formatDecimal(botRisk.derived.symbol_budget, { prefix: "$" })}`
+                           : "尚無風控觀測"}
+                       </span>
+                     </div>
+                   </td>
+ 
+-                  <td className="px-2 py-2.5 text-right font-mono">
++                  <td className="px-2 py-2 text-right font-mono">
+                     <div className="flex flex-col items-end">
+-                      <span className={cn("text-t4 font-bold leading-tight", toneOf(botRisk?.derived.period_pnl))}>
+-                        {formatDecimal(botRisk?.derived.period_pnl, { sign: true, prefix: "$" })}
+-                      </span>
+-                      <span className={cn("text-t1 leading-tight font-semibold", toneOf(botRisk?.derived.period_pnl_ratio))}>
+-                        {formatRatioPct(botRisk?.derived.period_pnl_ratio)}
+-                      </span>
++                      {botRisk ? (
++                        <>
++                          <span className={cn("text-t4 leading-tight", toneOf(botRisk.derived.period_pnl))}>
++                            {formatDecimal(botRisk.derived.period_pnl, { sign: true, prefix: "$" })}
++                          </span>
++                          <span className={cn("text-t1 leading-tight", toneOf(botRisk.derived.period_pnl_ratio))}>
++                            {formatRatioPct(botRisk.derived.period_pnl_ratio)}
++                          </span>
++                        </>
++                      ) : (
++                        <span className="text-t2 text-muted-foreground/70 leading-tight" title="此實例目前沒有風控觀測">不適用</span>
++                      )}
+                     </div>
+                   </td>
+ 
+-                  <td className="px-2 py-2.5 text-right font-mono hidden sm:table-cell">
++                  <td className="px-2 py-2 text-right font-mono hidden sm:table-cell">
+                     <div className="flex flex-col items-end">
+-                      <span className="text-t3 font-bold leading-tight text-foreground">
++                      <span className="text-t3 font-semibold leading-tight text-foreground">
+                         {formatDecimal(bot.equity, { prefix: "$" }, "未啟動")}
+                       </span>
+                       <span className="text-t1 text-muted-foreground leading-tight">
+@@ -203,11 +215,14 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+                     </div>
+                   </td>
+ 
+-                  <td className="px-2 py-2.5 font-mono hidden md:table-cell">
++                  <td className="px-2 py-2 hidden md:table-cell">
+                     {statusMeta ? (
+                       <div className="flex items-center gap-1.5 leading-tight">
+-                        <span className={cn("px-1.5 py-0.2 rounded border text-t1 font-semibold whitespace-nowrap", statusMeta.className)}>
+-                          {statusMeta.label} (槓桿 {formatDecimal(botRisk?.derived.effective_leverage, { digits: 2 })}x)
++                        <span className={cn("px-1.5 rounded border text-t2 font-medium leading-4 whitespace-nowrap", statusMeta.className)}>
++                          {statusMeta.label}
++                        </span>
++                        <span className="num text-t2 text-muted-foreground whitespace-nowrap" title="有效槓桿">
++                          {formatDecimal(botRisk?.derived.effective_leverage, { digits: 2 })}x
+                         </span>
+                       </div>
+                     ) : (
+@@ -215,11 +230,11 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+                     )}
+                   </td>
+ 
+-                  <td className="py-2.5 pr-3 pl-2 text-right">
++                  <td className="py-2 pr-3 pl-2 text-right">
+                     <div className="flex items-center justify-end gap-2">
+                       {spark.path ? (
+                         <svg width={56} height={16} className="overflow-visible shrink-0 hidden xl:block">
+-                          <path d={spark.path} fill="none" stroke={spark.isGain ? "var(--primary)" : "#f43f5e"}
++                          <path d={spark.path} fill="none" stroke={spark.isGain ? "var(--primary)" : "var(--down)"}
+                                 strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+                         </svg>
+                       ) : null}
+@@ -227,21 +242,21 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+                         <button type="button" disabled={!controls.canStop || busyKey !== null}
+                           onClick={(e) => { e.stopPropagation(); void controls.stop(bot); }}
+                           title={controls.canStop ? "完成當前事件後停止此 run" : "目前不可停止"}
+-                          className="px-2 py-0.5 rounded text-t2 font-mono border border-border/80 bg-background/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+-                          {busyKey === `stop:${bot.bot_id}` ? "送出中" : "暫停"}
++                          className="px-2 py-0.5 rounded text-t2 border border-border/80 bg-background/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
++                          {busyKey === `stop:${bot.bot_id}` ? "送出中" : "停止"}
+                         </button>
+                       ) : (
+                         <button type="button" disabled={!controls.canStart || busyKey !== null}
+                           onClick={(e) => { e.stopPropagation(); void controls.start(bot); }}
+                           title={controls.canStart ? "以固定模板啟動新 run (POST /bots/start)" : "槽位占用、來源漂移或非本機模式時不可啟動"}
+-                          className="px-2 py-0.5 rounded text-t2 font-mono border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+-                          {busyKey === `start:${bot.bot_id}` ? "送出中" : "恢復"}
++                          className="px-2 py-0.5 rounded text-t2 border border-up/35 bg-up/10 text-up hover:bg-up/20 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
++                          {busyKey === `start:${bot.bot_id}` ? "送出中" : "啟動"}
+                         </button>
+                       )}
+                       <button type="button"
+                         onClick={(e) => { e.stopPropagation(); selectBot(bot.bot_id); navigate("/bots"); }}
+                         title="開啟實例監控頁"
+-                        className="px-2 py-0.5 rounded text-t2 font-mono border border-primary/40 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all cursor-pointer flex items-center gap-0.5 whitespace-nowrap">
++                        className="px-1.5 py-0.5 rounded text-t2 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer flex items-center gap-0.5 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                         <span>詳情</span>
+                         <ArrowUpRight className="size-2.5" />
+                       </button>
+@@ -253,7 +268,7 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+           </tbody>
+         </table>
+         {controls.error && (
+-          <div className="px-3 py-1.5 text-t1 font-mono text-rose-400 border-t border-border/60">命令失敗：{controls.error}</div>
++          <div className="px-3 py-1.5 text-t2 text-down border-t border-border/60">命令失敗：{controls.error}</div>
+         )}
+       </div>
+     </div>
+diff --git a/src/lib/format.ts b/src/lib/format.ts
+index b8640ee..c2b563c 100644
+--- a/src/lib/format.ts
++++ b/src/lib/format.ts
+@@ -143,8 +143,8 @@ export function signOf(value: DecimalString | null | undefined): Sign | null {
+ /** Tailwind tone for a signed Decimal string. */
+ export function toneOf(value: DecimalString | null | undefined): string {
+   const sign = signOf(value);
+-  if (sign === 'positive') return 'text-emerald-400 font-semibold';
+-  if (sign === 'negative') return 'text-rose-400 font-semibold';
++  if (sign === 'positive') return 'text-up font-semibold';
++  if (sign === 'negative') return 'text-down font-semibold';
+   return 'text-muted-foreground';
+ }
+ 
+diff --git a/src/styles/globals.css b/src/styles/globals.css
+index 8180f7d..69c4e2a 100644
+--- a/src/styles/globals.css
++++ b/src/styles/globals.css
+@@ -313,3 +313,15 @@ body, aside, nav, header {
+ .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+   background: rgba(232, 180, 94, 0.45);
+ }
++
++/* 尊重系統的減少動態設定：狀態呼吸燈、閃爍與滑入改為靜態 */
++@media (prefers-reduced-motion: reduce) {
++  *,
++  *::before,
++  *::after {
++    animation-duration: 0.01ms !important;
++    animation-iteration-count: 1 !important;
++    transition-duration: 0.01ms !important;
++    scroll-behavior: auto !important;
++  }
++}

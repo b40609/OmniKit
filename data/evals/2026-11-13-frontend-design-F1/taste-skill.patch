@@ -1,0 +1,1233 @@
+diff --git a/docs/dashboard-polish-notes.md b/docs/dashboard-polish-notes.md
+new file mode 100644
+index 0000000..92012f1
+--- /dev/null
++++ b/docs/dashboard-polish-notes.md
+@@ -0,0 +1,49 @@
++# 儀表板首頁（/）打磨紀錄
++
++依 `docs/design-direction.md` 的既定方向，參照 `.agents/skills/taste-skill`（SKILL.md 與它要求先讀的
++copy.md、copy-voice.md、system.md、layout-v4.md、sections.md）做的視覺、層級與可讀性調整。
++
++## 1. 這頁的類型，與 skill 的適用範圍
++
++- 類型：software（自家交易終端的內部工作台），不是對外的公司網站。
++- skill 的版面規則是為行銷頁寫的：一屏一節、hero、照片、dealt 配色與字體、gate 檢查。這些會推翻
++  使用者已確認的方向（黑金、緊湊、圖示導航、面板工作台），所以**不採用**，也沒有跑 deal 與 gate。
++- 採用的是能套到應用介面的部分：一套系統（一種按鈕、一種 hairline、一種分段切換）、對比與字級的
++  下限、等寬數字、文字顏色不靠透明度調淡、沒有全大寫加字距的標籤、不用紫色、每個控制項都有名字、
++  copy 用名詞說清楚是什麼。
++
++## 2. 事實清單（本頁已有的資料）
++
++- 主要流程：帳戶權益 → 策略實例 → 持倉 → 事件；配置/槓桿在右上。
++- 工程證據（run ID、instance ID、request ID、seq）：只放在 tooltip 或展開的事件詳情裡。
++- 未接資料：平倉端點、在途掛單、資金費率、強平、交易所停損，一律用簡短狀態（「未接入」「不適用」）。
++
++## 3. 規則（這次落地的版本）
++
++| 項目 | 規則 |
++|---|---|
++| 字級 | 資料列 12px（`text-xs`），列內第二行與表頭 10px（`text-t2`），切換鈕 11px（`text-t3`）；首頁不再用 9px（`text-t1`）。不新增任意字級，`check:tokens` 仍通過。 |
++| 灰階 | 次要文字一律 `text-muted-foreground`，不再疊 `/60`、`/70` 透明度或 `zinc-500`。 |
++| 字重 | 標題 600；數字 500；不用 700 粗體堆疊強調。 |
++| 數字 | 金額、價格、時間、ID 用 `num`（等寬、tabular）。 |
++| 表格 | 表頭與儲存格不換行；欄名短（「策略 / 名目」「期間損益」「風控」）；列高約 40px。 |
++| 狀態 | 一個徽章只放一個狀態詞；數值（如槓桿）放在旁邊，不塞進括號。 |
++| 按鈕 | 列內按鈕同高 24px、同一種邊框；「詳情」改成中性外框，hover 才出現金色，避免每列一個金色焦點。 |
++| 裝飾動態 | 移除權益卡片的 BorderBeam 流光邊框與「本機模擬」的 ping 動畫；事件時間軸的定案光暈保留。 |
++| 顏色 | 黑金保留；配置環的第三系列色由紫（#8b8df8）改為銅色，`--allocation-eth` 色相 290 → 255。 |
++
++## 4. 各面板的變更
++
++- **側欄**：分組標題改為中文名、不全大寫；英文副標改句首大寫；目前頁加 2px 金色左側標記；只有一項的「總覽」分組不顯示重複標題。圖示與所有項目不變。
++- **頂部狀態列**：拿掉 `instance xxxx`，移到「槽位」的 tooltip；待確認命令不再顯示 request ID。
++- **帳戶權益與損益**：標題列只顯示 bot 名與狀態徽章，run ID 移到 tooltip；KPI 數值 14px；曲線標題簡化為「權益曲線 · N 根」，軸標從 9px 半透明改為 10px 可讀灰。
++- **策略實例監控矩陣**：欄位不再換行；名目／單幣上限合成一行；風控徽章與槓桿分開；在窄面板時隱藏走勢小圖，確保「詳情」按鈕留在可視範圍。
++- **持倉明細**：表頭不換行，「未接線」統一為「未接入」，底部摘要用細分隔線取代 `|`。
++- **槓桿與曝險**：標題列在 840px 以下改用兩字分頁名，不再被裁切；焦點切換縮為 `x` / `$`（附 aria-label 與 tooltip）；環心文字放大且限制在環內；列內標籤過長時截斷，不再壓到金額。
++- **事件審計**：每列從約 42px 壓到約 30px，同一屏可見事件數約增加四成；run ID 移到展開詳情；詳情欄名不再全大寫。
++
++## 5. 沒有做／留待之後
++
++- 字體檔：`index.html` 不在 `src/` 範圍內，未調整字體載入。
++- 側欄底部帳戶區（`account-menu`）的截字未處理。
++- skill 的 gate／consistency 腳本以靜態行銷頁為對象，沒有執行；以 `npm run typecheck`、`npm run check:tokens` 與 1440／1024 截圖檢查。
+diff --git a/src/components/catos/account-equity-band.tsx b/src/components/catos/account-equity-band.tsx
+index a516738..e3524b1 100644
+--- a/src/components/catos/account-equity-band.tsx
++++ b/src/components/catos/account-equity-band.tsx
+@@ -1,7 +1,6 @@
+ import React, { useState, useRef, useEffect, useMemo } from "react";
+ import { cn } from "@/lib/utils";
+ import { CardHeaderTitle } from "./card-header-title";
+-import { BorderBeam } from "./motion/border-beam";
+ import { useCatStore } from "@/state/catStore";
+ import { StateAdapter } from "@/state/stateAdapter";
+ import { formatClock, formatDateTime, formatDecimal, formatRatioPct, toPlotNumber, toneOf, shortId } from "@/lib/format";
+@@ -156,10 +155,10 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+     : null;
+ 
+   const Kpi = ({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) => (
+-    <div className="flex flex-col gap-0.5">
++    <div className="flex flex-col gap-0.5 min-w-0">
+       <span className="text-t2 text-muted-foreground">{label}</span>
+-      <span className={cn("text-xs font-semibold leading-tight", tone ?? "text-foreground")}>{value}</span>
+-      {sub && <span className="text-t1 text-muted-foreground">{sub}</span>}
++      <span className={cn("num font-semibold leading-tight", isNarrow ? "text-xs" : "text-sm", tone ?? "text-foreground")}>{value}</span>
++      {sub && <span className="text-t2 text-muted-foreground leading-snug">{sub}</span>}
+     </div>
+   );
+ 
+@@ -168,54 +167,54 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+       {showHeader && (
+         <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
+           <CardHeaderTitle cardId="equity" title="帳戶權益與損益" />
+-          <div className="flex items-center gap-0.5 bg-background/70 border border-border/70 rounded p-0.5 text-t1 font-mono shrink-0">
+-            <span className="px-2 py-0.5 rounded bg-secondary text-foreground font-bold shadow-xs">
+-              {bot ? bot.bot_id : "sim"}
+-            </span>
+-            <span className="px-1.5 py-0.5 text-muted-foreground whitespace-nowrap">
+-              {runId ? `run ${shortId(runId)} · ${STATE_LABEL[bot?.state ?? ""] ?? bot?.state}` : "無 run"}
++          <div className="flex items-center gap-2 text-t3 shrink-0 whitespace-nowrap"
++               title={runId ? `run ${shortId(runId)}` : undefined}>
++            <span className="num font-medium text-foreground">{bot ? bot.bot_id : "sim"}</span>
++            <span className={cn("rounded border px-1.5 leading-4 text-t2",
++              runId && bot && (bot.state === "running" || bot.state === "starting")
++                ? "border-emerald-400/30 text-emerald-400"
++                : "border-border text-muted-foreground")}>
++              {runId ? (STATE_LABEL[bot?.state ?? ""] ?? bot?.state) : "未啟動"}
+             </span>
+           </div>
+         </div>
+       )}
+ 
+       <div className="flex flex-1 min-h-0 overflow-hidden relative">
+-        <BorderBeam size={180} duration={8} borderWidth={1.5} colorFrom="var(--color-primary, #e8b45e)" />
+-
+         {/* 左側 KPI 欄：全部來自 summary（後端 Decimal 計算） */}
+         <div className={cn(
+           "shrink-0 border-r border-border/80 flex flex-col justify-between overflow-y-auto bg-surface/30 custom-scrollbar",
+-          isNarrow ? "w-[130px] p-2 gap-1.5" : "w-[205px] p-2.5 gap-2"
++          isNarrow ? "w-[136px] p-2 gap-1.5" : "w-[212px] p-3 gap-2"
+         )}>
+-          <div className="flex flex-col gap-2">
+-            <div className="flex flex-col gap-0.5">
+-              <span className="text-t2 text-muted-foreground uppercase font-mono tracking-wider flex items-center justify-between">
++          <div className="flex flex-col gap-2.5">
++            <div className="flex flex-col gap-1">
++              <span className="text-t3 text-muted-foreground flex items-center justify-between">
+                 <span>帳戶總權益</span>
+                 {!isNarrow && (
+-                  <span className={cn("text-t1 font-mono flex items-center gap-1",
++                  <span className={cn("text-t2 flex items-center gap-1",
+                     connection.status === "ok" ? "text-emerald-400" : "text-amber-400")}>
+-                    <span className={cn("size-1.5 rounded-full", connection.status === "ok" ? "bg-emerald-400 animate-ping" : "bg-amber-400")} />
+-                    {connection.status === "ok" ? "local-sim" : connection.status}
++                    <span className={cn("size-1.5 rounded-full", connection.status === "ok" ? "bg-emerald-400" : "bg-amber-400")} />
++                    {connection.status === "ok" ? "本機模擬" : connection.status}
+                   </span>
+                 )}
+               </span>
+-              <div className={cn("font-mono font-bold text-foreground tracking-tight", isNarrow ? "text-lg" : "text-2xl")}>
+-                {summary ? formatDecimal(summary.equity, { prefix: "$" }) : <span className="text-muted-foreground text-sm">未啟動</span>}
++              <div className={cn("num font-semibold text-foreground tracking-tight leading-none", isNarrow ? "text-lg" : "text-2xl")}>
++                {summary ? formatDecimal(summary.equity, { prefix: "$" }) : <span className="text-muted-foreground text-sm font-normal">未啟動</span>}
+               </div>
+-              <div className={cn("font-mono font-semibold", isNarrow ? "text-t2" : "text-t3", toneOf(summary?.period_pnl))}>
++              <div className={cn("num font-medium", isNarrow ? "text-t3" : "text-xs", toneOf(summary?.period_pnl))}>
+                 {summary?.period_pnl != null
+                   ? `${formatDecimal(summary.period_pnl, { sign: true, prefix: "$" })} (${formatRatioPct(summary.period_pnl_ratio)})`
+                   : "風控期間損益 不適用"}
+               </div>
+             </div>
+ 
+-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60 font-mono">
++            <div className={cn("grid gap-x-2 gap-y-2.5 pt-2.5 border-t border-border/60", isNarrow ? "grid-cols-1" : "grid-cols-2")}>
+               <Kpi label="已實現損益" value={formatDecimal(summary?.realized_pnl, { sign: true, prefix: "$" }, "未啟動")}
+-                   tone={summary ? toneOf(summary.realized_pnl) : undefined} sub="OKX 專用子帳戶 (模擬)" />
++                   tone={summary ? toneOf(summary.realized_pnl) : undefined} sub="OKX 子帳戶（模擬）" />
+               <Kpi label="未實現損益" value={formatDecimal(summary?.unrealized_pnl, { sign: true, prefix: "$" }, "未啟動")}
+                    tone={summary ? toneOf(summary.unrealized_pnl) : undefined} sub={risk?.snapshot ? `mark $${formatDecimal(risk.snapshot.mark)}` : "尚無 mark"} />
+               <Kpi label="風控期間基準" value={summary?.basis_equity ? formatDecimal(summary.basis_equity, { prefix: "$" }) : "不適用"}
+-                   sub={summary?.period_start_ms ? `${formatDateTime(summary.period_start_ms)} 起算 (合成基準)` : "尚無基準"} />
++                   sub={summary?.period_start_ms ? `${formatDateTime(summary.period_start_ms)} 起` : "尚無基準"} />
+               <Kpi label="手續費累計" value={formatDecimal(summary?.fees, { prefix: "$", digits: 4 }, "未啟動")}
+                    tone={summary ? "text-rose-400" : undefined} sub={summary ? `槓桿上限 ${formatDecimal(summary.leverage_limit, { digits: 1 })}x` : undefined} />
+             </div>
+@@ -224,10 +223,11 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+ 
+         {/* 右側 SVG 走勢圖：本次 run 的權益曲線 */}
+         <div className={cn("flex-1 flex flex-col min-w-0", isCompact ? "p-1.5" : "p-2.5")}>
+-          <div className="flex items-center justify-between gap-2 text-t3 font-mono text-muted-foreground h-5 shrink-0 px-1 min-w-0">
+-            <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+-              <span className="w-2.5 h-[2px] bg-primary inline-block" />
+-              <span>{isNarrow ? `run 權益 · ${curve.length} 點` : `本次 run 權益曲線 · 合成時間 · ${curve.length} 點`}</span>
++          <div className="flex items-center justify-between gap-2 text-t3 text-muted-foreground h-5 shrink-0 px-1 min-w-0">
++            <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap" title="本次 run，合成時間軸">
++              <span className="w-2.5 h-0.5 bg-primary inline-block" aria-hidden="true" />
++              <span className="text-foreground">權益曲線</span>
++              <span className="num">{curve.length} 根</span>
+             </div>
+             <div className="min-w-0 truncate text-right">
+               {hover ? (
+@@ -236,7 +236,7 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+                   <span className="text-primary font-bold">{fmtPctNumber(hoverPct)}</span>
+                 </span>
+               ) : (
+-                <span className="text-muted-foreground/60 text-t2 whitespace-nowrap hidden lg:inline">游標懸停檢視各 bar 的權益</span>
++                <span className="text-muted-foreground text-t2 whitespace-nowrap hidden lg:inline">懸停查看每根 K 線的權益</span>
+               )}
+             </div>
+           </div>
+@@ -248,7 +248,7 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+             onPointerLeave={() => setHoverIdx(null)}
+           >
+             {emptyReason ? (
+-              <div className="absolute inset-0 flex items-center justify-center text-t3 font-mono text-muted-foreground">
++              <div className="absolute inset-0 flex items-center justify-center text-t3 text-muted-foreground">
+                 {emptyReason}
+               </div>
+             ) : chartWidth > 0 && chartHeight > 0 && (
+@@ -265,7 +265,7 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+                     <line x1={0} x2={plotW} y1={getY(t)} y2={getY(t)} stroke="currentColor" className="text-border/40"
+                           strokeDasharray={t === 0 ? undefined : "3 3"} strokeWidth={t === 0 ? 1 : 0.75} />
+                     <text x={plotW + 6} y={getY(t) + 3} fill="currentColor"
+-                          className={cn("text-t1 font-mono", t === 0 ? "text-primary font-bold" : "text-muted-foreground/60")}>
++                          className={cn("text-t2 font-mono", t === 0 ? "text-primary font-medium" : "text-muted-foreground")}>
+                       {t > 0 ? `+${t.toFixed(2)}%` : `${t.toFixed(2)}%`}
+                     </text>
+                   </g>
+@@ -274,7 +274,7 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+                 {xTicks.map((idx) => (
+                   <text key={idx} x={getX(idx)} y={plotH + 13}
+                         textAnchor={idx === 0 ? "start" : idx === n - 1 ? "end" : "middle"}
+-                        fill="currentColor" className="text-t1 font-mono text-muted-foreground/60">
++                        fill="currentColor" className="text-t2 font-mono text-muted-foreground">
+                     {formatClock(curve[idx]?.time_ms, false)}
+                   </text>
+                 ))}
+diff --git a/src/components/catos/activity-panel.tsx b/src/components/catos/activity-panel.tsx
+index f999718..3cb6afa 100644
+--- a/src/components/catos/activity-panel.tsx
++++ b/src/components/catos/activity-panel.tsx
+@@ -32,8 +32,8 @@ const RUN_STATE_TONE: Record<BotControlState, string> = {
+   recovery_required: "border-rose-400/30 text-rose-400",
+ };
+ 
+-const NA_CLASS = "text-t3 text-muted-foreground leading-tight";
+-const NA_SUB_CLASS = "text-t1 text-muted-foreground/70 leading-tight mt-0.5";
++const NA_CLASS = "text-t3 text-muted-foreground leading-tight whitespace-nowrap";
++const NA_SUB_CLASS = "text-t2 text-muted-foreground leading-tight mt-0.5 whitespace-nowrap";
+ 
+ /** Explicit not-applicable cell: primary state text + reason line, tooltip explains why. */
+ function NotApplicableCell({ label, reason, title }: { label: string; reason: string; title: string }) {
+@@ -63,12 +63,12 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+   return (
+     <tr className="hover:bg-secondary/30 transition-colors group">
+       {/* 1. 合約標的 + 方向標籤 + 實質持倉 */}
+-      <td className="py-2.5 pl-3 pr-2">
++      <td className="py-2 pl-3 pr-2">
+         <div className="flex flex-col">
+           <div className="flex items-center gap-1.5">
+             <span
+               className={cn(
+-                "px-1 py-0.2 rounded text-t1 font-bold font-mono inline-flex items-center",
++                "px-1 rounded text-t2 leading-4 font-medium inline-flex items-center whitespace-nowrap",
+                 isShort
+                   ? "bg-rose-400/10 text-rose-400 border border-rose-400/25"
+                   : "bg-emerald-400/10 text-emerald-400 border border-emerald-400/25"
+@@ -76,12 +76,12 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+             >
+               {sideLabel}
+             </span>
+-            <span className="text-t4 font-bold text-foreground leading-tight whitespace-nowrap">
++            <span className="num text-xs font-medium text-foreground leading-tight whitespace-nowrap">
+               {p.inst_id ?? "不適用"}
+             </span>
+             <span
+               className={cn(
+-                "px-1 py-0.2 rounded border text-t1 font-mono leading-tight whitespace-nowrap",
++                "px-1 rounded border text-t2 leading-4 whitespace-nowrap",
+                 RUN_STATE_TONE[p.run_state]
+               )}
+               title={`run_state: ${p.run_state}`}
+@@ -89,7 +89,7 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+               {RUN_STATE_LABEL[p.run_state]}
+             </span>
+           </div>
+-          <span className="text-t2 font-mono text-muted-foreground leading-tight pl-0.5 mt-0.5 whitespace-nowrap">
++          <span className="num text-t2 text-muted-foreground leading-tight mt-1 whitespace-nowrap">
+             {formatDecimal(magnitude(p.position), { digits: 0 })} 張
+             <span className="mx-1 text-border">·</span>
+             名目 {formatDecimal(p.notional, { prefix: "$" })}
+@@ -105,13 +105,13 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+       </td>
+ 
+       {/* 2. 開倉均價與最新標記價 */}
+-      <td className="px-2 py-2.5 text-right font-mono">
++      <td className="px-2 py-2 text-right font-mono">
+         <div className="flex flex-col items-end">
+-          <span className="text-t3 font-medium text-foreground leading-tight">
++          <span className="text-xs text-foreground leading-tight whitespace-nowrap">
+             {formatDecimal(p.average_entry, { prefix: "$" })}
+           </span>
+           <span
+-            className={cn("text-t1 leading-tight mt-0.5", p.mark === null ? "text-muted-foreground/70" : "text-muted-foreground")}
++            className="text-t2 leading-tight mt-0.5 text-muted-foreground whitespace-nowrap"
+             title={p.mark === null ? "本輪尚無標記價觀測" : "最新標記價"}
+           >
+             {formatDecimal(p.mark, { prefix: "$" })}
+@@ -120,9 +120,9 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+       </td>
+ 
+       {/* 3. 未實現損益 (金額；ROE 無保證金模型) */}
+-      <td className="px-2 py-2.5 text-right font-mono">
++      <td className="px-2 py-2 text-right font-mono">
+         <div className="flex flex-col items-end">
+-          <span className={cn("text-t4 font-bold leading-tight", toneOf(p.unrealized_pnl))}>
++          <span className={cn("text-xs font-medium leading-tight whitespace-nowrap", toneOf(p.unrealized_pnl))}>
+             {formatDecimal(p.unrealized_pnl, { sign: true, prefix: "$" })}
+           </span>
+           <span className={NA_SUB_CLASS} title="local-sim 無保證金模型，無法計算 ROE">
+@@ -132,7 +132,7 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+       </td>
+ 
+       {/* 4. 資金費率 */}
+-      <td className="px-2 py-2.5 text-right hidden sm:table-cell font-mono">
++      <td className="px-2 py-2 text-right hidden sm:table-cell font-mono">
+         <NotApplicableCell
+           label="不適用"
+           reason="合成 funding=0"
+@@ -141,7 +141,7 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+       </td>
+ 
+       {/* 5. 強平安全墊 */}
+-      <td className="px-2 py-2.5 text-right hidden md:table-cell font-mono">
++      <td className="px-2 py-2 text-right hidden md:table-cell font-mono">
+         <NotApplicableCell
+           label="不適用"
+           reason="無保證金模型"
+@@ -150,7 +150,7 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+       </td>
+ 
+       {/* 6. 交易所強制停損 (P6) */}
+-      <td className="px-2 py-2.5 text-right font-mono">
++      <td className="px-2 py-2 text-right font-mono">
+         <NotApplicableCell
+           label="未啟用"
+           reason="P6 未配置"
+@@ -159,18 +159,18 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+       </td>
+ 
+       {/* 7. 操作出口：v1 無平倉端點 */}
+-      <td className="py-2.5 pr-3 pl-2 text-right font-mono">
++      <td className="py-2 pr-3 pl-2 text-right font-mono">
+         <div className="flex flex-col items-end gap-0.5">
+           <button
+             type="button"
+             disabled
+             aria-disabled="true"
+-            className="px-2.5 py-0.5 rounded text-t2 font-mono border border-border/80 bg-background/40 text-muted-foreground cursor-not-allowed opacity-60"
+-            title="未接線：v1 local-sim 尚無平倉端點"
++            className="px-2 h-6 rounded text-t3 border border-border bg-background/40 text-muted-foreground cursor-not-allowed opacity-60"
++            title="未接入：v1 local-sim 尚無平倉端點"
+           >
+             平倉
+           </button>
+-          <span className="text-t1 text-muted-foreground/70 leading-tight">未接線</span>
++          <span className="text-t2 text-muted-foreground leading-tight">未接入</span>
+         </div>
+       </td>
+     </tr>
+@@ -203,7 +203,7 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+               type="button"
+               onClick={() => setTab("positions")}
+               className={cn(
+-                "px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
++                "px-2 py-0.5 text-t3 rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
+                 tab === "positions"
+                   ? "bg-secondary text-foreground font-semibold shadow-xs"
+                   : "text-muted-foreground hover:text-foreground"
+@@ -215,7 +215,7 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+               type="button"
+               onClick={() => setTab("orders")}
+               className={cn(
+-                "px-2 py-0.5 text-t2 font-mono rounded transition-colors inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0",
++                "px-2 py-0.5 text-t3 rounded transition-colors inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0",
+                 tab === "orders"
+                   ? "bg-secondary text-foreground font-semibold shadow-xs"
+                   : "text-muted-foreground hover:text-foreground"
+@@ -231,28 +231,28 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto flex flex-col justify-between min-w-0 max-w-full">
+         {modeNotOpen ? (
+           <div className="flex-1 flex items-center justify-center py-12 text-center text-muted-foreground">
+-            <span className="text-xs font-mono">此模式未開放（demo/live 不在 v1 範圍）</span>
++            <span className="text-xs">此模式未開放（demo/live 不在 v1 範圍）</span>
+           </div>
+         ) : (
+           <>
+             {/* ================= Tab 1: 持倉明細 ================= */}
+             {tab === "positions" && (
+               <table className="w-full text-left border-collapse table-auto min-w-[540px]">
+-                <thead className="border-b border-border/80 bg-background/40 text-t1 font-mono text-muted-foreground sticky top-0 z-10 backdrop-blur-sm">
++                <thead className="border-b border-border/80 bg-surface text-t2 text-muted-foreground sticky top-0 z-10 whitespace-nowrap">
+                   <tr>
+-                    <th className="py-2.5 pl-3 pr-2 font-medium">合約 / 部位</th>
++                    <th className="py-2 pl-3 pr-2 font-medium">合約 / 部位</th>
+                     <th className="px-2 text-right font-medium">開倉 / 標記價</th>
+                     <th className="px-2 text-right font-medium">未實現損益</th>
+                     <th className="px-2 text-right font-medium hidden sm:table-cell">資金費率</th>
+                     <th className="px-2 text-right font-medium hidden md:table-cell">強平安全墊</th>
+-                    <th className="px-2 text-right font-medium">交易所強制停損</th>
+-                    <th className="py-2.5 pr-3 pl-2 text-right font-medium">操作</th>
++                    <th className="px-2 text-right font-medium">交易所停損</th>
++                    <th className="py-2 pr-3 pl-2 text-right font-medium">操作</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-border/40 text-xs">
+                   {positions.length === 0 ? (
+                     <tr>
+-                      <td colSpan={7} className="py-8 text-center text-muted-foreground font-mono text-xs">
++                      <td colSpan={7} className="py-8 text-center text-muted-foreground text-xs">
+                         {noRunYet ? "尚未啟動模擬 run" : "目前無未平倉部位"}
+                       </td>
+                     </tr>
+@@ -266,8 +266,8 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+             {/* ================= Tab 2: 在途掛單 (v1 無資料來源) ================= */}
+             {tab === "orders" && (
+               <div className="flex-1 flex flex-col items-center justify-center py-12 text-center text-muted-foreground px-4">
+-                <span className="text-xs font-mono">v1 沒有在途掛單</span>
+-                <span className="text-t2 font-mono text-muted-foreground/60 mt-1">
++                <span className="text-xs">v1 沒有在途掛單</span>
++                <span className="text-t2 text-muted-foreground mt-1">
+                   local-sim 的策略意圖在同一根 bar 內以合成成交終結，沒有在途掛單
+                 </span>
+               </div>
+@@ -276,19 +276,19 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+         )}
+ 
+         {/* 底部摘要與模式說明條 */}
+-        <div className="flex items-center justify-between px-3 py-1.5 border-t border-border/80 bg-secondary/30 text-t2 font-mono text-muted-foreground shrink-0">
+-          <div className="flex items-center gap-3 whitespace-nowrap">
+-            <span>持倉筆數: <strong className="text-foreground">{positions.length}</strong></span>
+-            <span className="text-border">|</span>
++        <div className="flex items-center justify-between px-3 py-1.5 border-t border-border/80 bg-secondary/30 text-t2 text-muted-foreground shrink-0 overflow-hidden">
++          <div className="flex items-center gap-3 whitespace-nowrap min-w-0">
++            <span>持倉 <strong className="num font-medium text-foreground">{positions.length}</strong></span>
++            <span className="h-3 w-px bg-border" aria-hidden="true" />
+             <span title={summary ? `invariants.settlement = ${summary.invariants.settlement}` : "尚無 summary，無法得知保證金模式"}>
+-              保證金模式:{" "}
+-              <strong className={summary ? "text-emerald-400" : "text-muted-foreground"}>
++              保證金模式{" "}
++              <strong className={cn("num font-medium", summary ? "text-foreground" : "text-muted-foreground")}>
+                 {settlementLabel(summary?.invariants.settlement)}
+               </strong>
+             </span>
+-            <span className="text-border">|</span>
++            <span className="h-3 w-px bg-border" aria-hidden="true" />
+             <span title="v1 local-sim 無平倉端點">
+-              緊急處置: <strong className="text-muted-foreground">平倉出口 v1 未接線</strong>
++              緊急平倉 <strong className="font-medium text-muted-foreground">未接入</strong>
+             </span>
+           </div>
+         </div>
+diff --git a/src/components/catos/allocation-donut-card.tsx b/src/components/catos/allocation-donut-card.tsx
+index 19174f5..66e2acb 100644
+--- a/src/components/catos/allocation-donut-card.tsx
++++ b/src/components/catos/allocation-donut-card.tsx
+@@ -16,7 +16,7 @@ const COLORS = {
+ };
+ 
+ // 策略實例依序循環的系列色（不綁定任何幣種）
+-const BOT_PALETTE = ["#e8b45e", "#7faee2", "#8b8df8", "#a1a1aa", "#f59e0b"];
++const BOT_PALETTE = ["#e8b45e", "#7faee2", "#d08a6a", "#a1a1aa", "#f59e0b"];
+ 
+ interface DonutItem {
+   key: string;
+@@ -43,7 +43,7 @@ const R = 75;
+ const STROKE_WIDTH = 9.5;
+ const CIRCUMFERENCE = 2 * Math.PI * R; // 471.2389
+ const SLICE_GAP = 2.5; // 幾何微縫隙
+-const HUD_INNER_WIDTH = 140; // 環內可用文字寬度
++const HUD_INNER_WIDTH = 116; // 環內可用文字寬度（扣除弦長收窄與等寬字距）
+ 
+ export type DonutViewMode = "allocation" | "bots" | "delta" | "margin" | "pnl";
+ export type HudFocus = "money" | "leverage";
+@@ -152,6 +152,8 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+   }, []);
+ 
+   const isNarrow = dimensions.width < 460;
++  // 標題列放不下五個完整分頁名時改用兩字簡稱，避免分頁被裁切
++  const tabsShort = dimensions.width < 840;
+   const isSuperNarrow = dimensions.width < 340;
+   const isShort = dimensions.height < 170;
+   const isCompact = isNarrow || isShort;
+@@ -566,12 +568,11 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                 <>
+                   <text
+                     x={CX}
+-                    y={CY - 16}
++                    y={CY - 18}
+                     textAnchor="middle"
+-                    fill="#94a3b8"
+-                    fontSize="9"
++                    fill="#a1a1aa"
++                    fontSize={hudFontSize(activeHoverItem.shortLabel, 12)}
+                     fontWeight="500"
+-                    letterSpacing="0.06em"
+                     className="hud-text"
+                   >
+                     {activeHoverItem.shortLabel}
+@@ -589,10 +590,10 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                   </text>
+                   <text
+                     x={CX}
+-                    y={CY + 25}
++                    y={CY + 28}
+                     textAnchor="middle"
+-                    fill="#64748b"
+-                    fontSize="8.5"
++                    fill="#a1a1aa"
++                    fontSize="11"
+                     className="hud-text"
+                   >
+                     {activeHoverItem.hidePct || !shareCaption
+@@ -622,12 +623,11 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                   {/* 1. 頂部類別：沉穩弱化微型標籤，附帶倍數或百分比徽記 */}
+                   <text
+                     x={CX}
+-                    y={CY - 16}
++                    y={CY - 20}
+                     textAnchor="middle"
+-                    fill="#94a3b8"
+-                    fontSize="8.5"
++                    fill="#a1a1aa"
++                    fontSize={hudFontSize(`${hudTitle} · ${hudTag}`, 12)}
+                     fontWeight="500"
+-                    letterSpacing="0.06em"
+                     className="hud-text"
+                   >
+                     {hudTitle} · {hudTag}
+@@ -636,10 +636,10 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                   {/* 2. 核心指標：俐落清晰珍珠白大數據 (金額或槓桿) */}
+                   <text
+                     x={CX}
+-                    y={CY + 6}
++                    y={CY + 7}
+                     textAnchor="middle"
+                     fill={hudValueColor}
+-                    fontSize={hudFontSize(hudValue, 25)}
++                    fontSize={hudFontSize(hudValue, 28)}
+                     fontWeight="600"
+                     className="hud-text"
+                   >
+@@ -649,15 +649,15 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                   {/* 3. 微型高科技進度刻度槽 (長 56px，直觀展示佔比) */}
+                   <rect
+                     x={72}
+-                    y={CY + 14}
++                    y={CY + 15}
+                     width={56}
+                     height={3}
+                     rx={1.5}
+-                    fill="#27272a"
++                    fill="#2f2f35"
+                   />
+                   <rect
+                     x={72}
+-                    y={CY + 14}
++                    y={CY + 15}
+                     width={Math.max(2, 56 * (Math.min(100, progressPct) / 100))}
+                     height={3}
+                     rx={1.5}
+@@ -667,11 +667,10 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                   {/* 4. 底部輔助指標：弱化灰色、緊湊交代上限與預算 */}
+                   <text
+                     x={CX}
+-                    y={CY + 26}
++                    y={CY + 32}
+                     textAnchor="middle"
+-                    fill="#64748b"
+-                    fontSize={hudFontSize(hudSub, 8)}
+-                    letterSpacing="0.02em"
++                    fill="#a1a1aa"
++                    fontSize={hudFontSize(hudSub, 11)}
+                     className="hud-text"
+                   >
+                     {hudSub}
+@@ -693,10 +692,11 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+           <CardHeaderTitle
+             cardId="allocation"
+             title="槓桿倍數與資產曝險"
++            className="shrink"
+             subtext={
+               <span
+                 className={cn(
+-                  "px-1.5 py-0.5 rounded border text-t1 font-mono font-semibold leading-none shrink-0 whitespace-nowrap",
++                  "px-1.5 rounded border text-t2 leading-4 font-medium shrink-0 whitespace-nowrap",
+                   statusChip.className
+                 )}
+                 title={statusTooltip}
+@@ -707,39 +707,42 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+           />
+ 
+           {/* 核心焦點切換鈕：金額主導 vs 槓桿倍數 */}
+-          <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 text-t2 font-mono">
+-            <span className="text-amber-400 font-bold px-1 text-t1 sm:text-t1">焦點:</span>
++          <div className={cn("items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 text-t3", dimensions.width < 560 ? "hidden" : "flex")} role="group" aria-label="環心焦點">
+             <button
+               type="button"
+               onClick={() => setHudFocus("leverage")}
++              aria-pressed={hudFocus === "leverage"}
++              aria-label="環心顯示有效槓桿"
+               className={cn(
+-                "px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
++                "px-2 py-0.5 text-t3 num rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
+                 hudFocus === "leverage"
+                   ? "bg-secondary text-foreground font-semibold shadow-xs"
+                   : "text-muted-foreground hover:text-foreground"
+               )}
+               title={`風控焦點：帳戶有效槓桿 (上限 ${leverageLimitText})`}
+             >
+-              x 槓桿
++              x
+             </button>
+             <button
+               type="button"
+               onClick={() => setHudFocus("money")}
++              aria-pressed={hudFocus === "money"}
++              aria-label="環心顯示名目金額"
+               className={cn(
+-                "px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
++                "px-2 py-0.5 text-t3 num rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
+                 hudFocus === "money"
+                   ? "bg-secondary text-foreground font-semibold shadow-xs"
+                   : "text-muted-foreground hover:text-foreground"
+               )}
+               title="資產焦點：名目持倉總額與總曝險預算"
+             >
+-              $ 名目
++              $
+             </button>
+           </div>
+         </div>
+ 
+         {/* 核心維度分段鈕 (幣種配置 | 策略實例 | 多空部位曝險 | 保證金佔用 | 損益分佈) */}
+-        <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 text-t2 font-mono">
++        <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 text-t3" role="group" aria-label="配置維度">
+           {TABS.map((tab) => {
+             const isActive = viewMode === tab.id;
+             return (
+@@ -750,14 +753,16 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                   setViewMode(tab.id);
+                   setHoveredIndex(null);
+                 }}
++                aria-pressed={isActive}
++                title={tab.label}
+                 className={cn(
+-                  "px-1.5 sm:px-2 py-0.5 rounded transition-all cursor-pointer font-medium select-none text-t2 sm:text-t3",
++                  "px-1.5 sm:px-2 py-0.5 rounded transition-colors cursor-pointer select-none text-t3 whitespace-nowrap",
+                   isActive
+-                    ? "bg-secondary text-foreground font-semibold shadow-xs border border-white/[0.16]"
+-                    : "text-zinc-300 hover:text-white hover:bg-white/[0.08]"
++                    ? "bg-secondary text-foreground font-semibold shadow-xs"
++                    : "text-muted-foreground hover:text-foreground"
+                 )}
+               >
+-                {isNarrow ? tab.shortLabel : tab.label}
++                {tabsShort ? tab.shortLabel : tab.label}
+               </button>
+             );
+           })}
+@@ -774,7 +779,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+           {/* 右側：精緻高密度金融行 (min-w-0 自適應彈性收縮，杜絕推擠左側 Donut) */}
+           <div className={cn(
+             "flex-1 min-w-0 max-w-[480px] h-full flex flex-col py-0.5 overflow-hidden",
+-            isCompact ? "justify-center gap-1" : "justify-between"
++            isCompact ? "justify-center gap-1" : "justify-center gap-2"
+           )}>
+             {currentItems.map((item, idx) => {
+               const isHovered = hoveredIndex === idx;
+@@ -819,10 +824,10 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                     {/* 首行內容：左側標籤 + 徽章 */}
+                     <div className="relative z-10 flex items-center gap-1 sm:gap-1.5 min-w-0">
+                       <span className="size-2 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: item.color }} />
+-                      <span className="font-bold text-foreground text-t3 tracking-tight truncate shrink-0">{displayLabel}</span>
++                      <span className="font-medium text-foreground text-t3 tracking-tight truncate shrink-0">{displayLabel}</span>
+                       {displayBadge && (
+                         <span className={cn(
+-                          "px-1 py-0.2 rounded border text-t1 font-mono shrink-0 leading-none",
++                          "px-1 rounded border text-t2 num min-w-0 truncate leading-4",
+                           item.isLoss
+                             ? "bg-rose-500/15 border-rose-500/30 text-rose-400 font-semibold"
+                             : "bg-white/[0.06] border-white/[0.10] text-zinc-300"
+@@ -841,12 +846,12 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                         {item.amountStr}
+                       </span>
+                       {!item.hidePct && (
+-                        <span className="font-bold text-foreground text-t3 min-w-[34px] text-right font-mono">
++                        <span className="font-medium text-foreground text-t3 min-w-[34px] text-right font-mono">
+                           {item.pct_share.toFixed(1)}%
+                         </span>
+                       )}
+                       {isNearLimit && !isNarrow && (
+-                        <span className="px-1 py-0.2 rounded text-t1 font-bold bg-amber-500/20 text-amber-400 border border-amber-500/35 leading-none">
++                        <span className="px-1 rounded text-t2 font-medium bg-amber-500/20 text-amber-400 border border-amber-500/35 leading-4">
+                           逼近50%
+                         </span>
+                       )}
+@@ -862,7 +867,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                   onMouseEnter={() => setHoveredIndex(idx)}
+                   onMouseLeave={() => setHoveredIndex(null)}
+                   className={cn(
+-                    "group flex flex-col justify-center px-2.5 py-1 sm:py-1.5 rounded-lg transition-all cursor-pointer border select-none min-h-0",
++                    "group flex flex-col justify-center px-2.5 py-1.5 rounded-md transition-colors cursor-pointer border select-none min-h-0",
+                     isHovered
+                       ? "bg-white/[0.08] border-primary/45 shadow-xs"
+                       : "bg-surface-raised/40 hover:bg-white/[0.04] border-white/[0.06]"
+@@ -872,9 +877,9 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                   <div className="flex items-center justify-between gap-1.5 leading-none">
+                     <div className="flex items-center gap-1.5 min-w-0">
+                       <span className="size-2 sm:size-2.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: item.color }} />
+-                      <span className="font-bold text-foreground text-t3 sm:text-xs tracking-tight whitespace-nowrap shrink-0">{item.shortLabel}</span>
+-                      <span className={cn(
+-                        "px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded border text-t1 sm:text-t1 font-mono shrink-0 leading-none",
++                      <span className="font-medium text-foreground text-t3 sm:text-xs tracking-tight whitespace-nowrap shrink-0">{item.shortLabel}</span>
++                      <span title={item.badgeStr} className={cn(
++                        "px-1.5 rounded border text-t2 num min-w-0 truncate leading-4",
+                         item.isLoss
+                           ? "bg-rose-500/15 border-rose-500/30 text-rose-400 font-semibold"
+                           : "bg-white/[0.06] border-white/[0.10] text-zinc-300"
+@@ -891,13 +896,13 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                         {item.amountStr}
+                       </span>
+                       {!item.hidePct && (
+-                        <span className="font-bold text-foreground text-t3 sm:text-xs min-w-[38px] text-right font-mono">
++                        <span className="font-medium text-foreground text-t3 sm:text-xs min-w-[38px] text-right font-mono">
+                           {item.pct_share.toFixed(1)}%
+                         </span>
+                       )}
+                       {/* 僅當逼近單幣上限時靜默提醒 */}
+                       {isNearLimit && (
+-                        <span className="px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded text-t1 sm:text-t1 font-bold bg-amber-500/20 text-amber-400 border border-amber-500/35 leading-none">
++                        <span className="px-1.5 rounded text-t2 font-medium bg-amber-500/20 text-amber-400 border border-amber-500/35 leading-4">
+                           逼近50%
+                         </span>
+                       )}
+diff --git a/src/components/catos/shell.tsx b/src/components/catos/shell.tsx
+index 9a095c4..e29b53a 100644
+--- a/src/components/catos/shell.tsx
++++ b/src/components/catos/shell.tsx
+@@ -226,7 +226,7 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+           )}
+           title="CatOS Dashboard"
+         >
+-          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-[0_0_12px_var(--color-primary)]/40">
++          <span className="grid size-8 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
+             <Cat className="size-5" strokeWidth={2} />
+           </span>
+           {!collapsed && (
+@@ -234,7 +234,7 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+               <span className="text-lg font-semibold tracking-tight">
+                 catOS<span className="ml-0.5 text-primary">.</span>
+               </span>
+-              <span className="font-mono text-t2 text-muted-foreground/60" title="frontend package version">
++              <span className="num text-t2 text-muted-foreground" title="frontend package version">
+                 v{pkg.version}
+               </span>
+             </div>
+@@ -245,9 +245,9 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+         <nav aria-label="Main navigation" className="min-h-0 flex-1 space-y-2 overflow-y-auto overflow-x-hidden px-2 pb-2 pt-1">
+           {GROUPS.map((group) => (
+             <div key={group.key} className="space-y-0.5">
+-              {!collapsed && (
+-                <p className="mb-1 mt-2.5 px-2.5 font-mono text-t1 font-semibold uppercase tracking-wider text-muted-foreground/60 truncate">
+-                  {group.titleMono}
++              {!collapsed && group.items.length > 1 && (
++                <p className="mb-1 mt-3 px-3 text-t2 font-medium text-muted-foreground truncate">
++                  {language === "en" ? group.titleEn : group.titleZh}
+                 </p>
+               )}
+               <div className="space-y-0.5">
+@@ -257,13 +257,13 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+                     to={to}
+                     title={`${language === "en" ? sub : name} (${language === "en" ? name : sub})`}
+                     activeOptions={{ exact: to === "/" }}
+-                    activeProps={{ className: "bg-secondary text-foreground [&_svg]:text-primary font-medium shadow-xs" }}
++                    activeProps={{ className: "bg-secondary text-foreground [&_svg]:text-primary font-medium shadow-xs before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-primary" }}
+                     inactiveProps={{ className: "text-muted-foreground hover:bg-secondary/60 hover:text-foreground" }}
+                     className={cn(
+                       "relative transition-all",
+                       collapsed
+                         ? "flex size-10 items-center justify-center mx-auto rounded-md group my-1"
+-                        : "flex min-h-[46px] items-center gap-3 rounded-md px-3 py-1.5"
++                        : "flex min-h-10 items-center gap-3 rounded-md px-3 py-1"
+                     )}
+                   >
+                     <span className="relative flex size-5 shrink-0 items-center justify-center">
+@@ -278,11 +278,11 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+                     </span>
+                     {!collapsed && (
+                       <div className="flex flex-col min-w-0 flex-1 leading-tight">
+-                        <span className="text-t4 font-medium text-foreground tracking-wide truncate">
++                        <span className="text-xs font-medium text-foreground truncate">
+                           {language === "en" ? sub : name}
+                         </span>
+-                        <span className="text-t1 font-mono font-semibold text-muted-foreground uppercase tracking-wider truncate mt-0.5">
+-                          {language === "en" ? name : sub}
++                        <span className="text-t2 text-muted-foreground truncate">
++                          {language === "en" ? name : sub.charAt(0) + sub.slice(1).toLowerCase()}
+                         </span>
+                       </div>
+                     )}
+@@ -322,8 +322,8 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+ 
+             {/* Breadcrumbs: Dim Workspace / Bright Active Page */}
+             <div className="flex items-center gap-1.5 text-xs">
+-              <span className="hidden text-muted-foreground/75 sm:inline">{t("workspace_trail")}</span>
+-              <span className="hidden text-muted-foreground/40 sm:inline">/</span>
++              <span className="hidden text-muted-foreground sm:inline">{t("workspace_trail")}</span>
++              <span className="hidden text-muted-foreground/70 sm:inline" aria-hidden="true">/</span>
+               <span className="font-medium text-foreground">{language === "en" ? (current?.sub ?? "Dashboard") : (current?.name ?? "系統總覽")}</span>
+             </div>
+           </div>
+diff --git a/src/components/catos/simulation-status-strip.tsx b/src/components/catos/simulation-status-strip.tsx
+index 93737cf..09693aa 100644
+--- a/src/components/catos/simulation-status-strip.tsx
++++ b/src/components/catos/simulation-status-strip.tsx
+@@ -39,17 +39,15 @@ export function SimulationStatusStrip({ className }: { className?: string }) {
+   };
+ 
+   return (
+-    <div className={cn("flex items-center gap-2 text-t1 font-mono whitespace-nowrap min-w-0", className)}>
++    <div className={cn("flex items-center gap-2.5 text-t3 whitespace-nowrap min-w-0", className)}>
+       <span className={cn("flex items-center gap-1", statusTone)}>
+         <span className={cn("size-1.5 rounded-full", connection.status === "ok" ? "bg-emerald-400" : connection.status === "mode_not_open" ? "bg-cyan-400" : connection.status === "loading" ? "bg-muted-foreground animate-pulse" : "bg-rose-400")} />
+         {mode === "local" ? "本機模擬" : mode.toUpperCase()} · {statusText}
+       </span>
+       {service && (
+         <>
+-          <span className="text-border">|</span>
+-          <span className="text-muted-foreground">槽位 <strong className="text-foreground">{SLOT_LABEL[service.slot] ?? service.slot}</strong></span>
+-          <span className="text-border">|</span>
+-          <span className="text-muted-foreground" title={service.instance_id}>instance {shortId(service.instance_id)}</span>
++          <span className="h-3 w-px bg-border" aria-hidden="true" />
++          <span className="text-muted-foreground" title={`instance ${service.instance_id}`}>槽位 <strong className="font-medium text-foreground">{SLOT_LABEL[service.slot] ?? service.slot}</strong></span>
+           {service.restart_required && (
+             <span className="px-1.5 py-0.2 rounded border border-amber-500/40 bg-amber-500/10 text-amber-300 font-semibold"
+                   title={`loaded ${shortId(service.build_id)} ≠ current ${shortId(service.current_build_id)}`}>
+@@ -64,7 +62,7 @@ export function SimulationStatusStrip({ className }: { className?: string }) {
+       {pending && (
+         <span className="flex items-center gap-1 px-1.5 py-0.2 rounded border border-amber-500/40 bg-amber-500/10 text-amber-200"
+               title={`request_id ${pending.body.request_id} 已送出但未收到回應；重送使用同一 request_id`}>
+-          命令結果未知 ({pending.command_type} {shortId(pending.body.request_id)})
++          命令結果未知 ({pending.command_type})
+           <button type="button" disabled={busy} onClick={() => void retry()}
+                   className="underline underline-offset-2 hover:text-foreground disabled:opacity-50 cursor-pointer">重送</button>
+           <button type="button" onClick={() => stateAdapter.discardPendingCommand()}
+diff --git a/src/components/catos/unified-incident-activity-card.tsx b/src/components/catos/unified-incident-activity-card.tsx
+index de77ce2..a6e577f 100644
+--- a/src/components/catos/unified-incident-activity-card.tsx
++++ b/src/components/catos/unified-incident-activity-card.tsx
+@@ -394,7 +394,7 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+           title="事件審計與成交流水"
+           subtext={
+             !isNarrow ? (
+-              <span className="text-t2 font-mono text-muted-foreground ml-1">
++              <span className="num text-t2 text-muted-foreground ml-1">
+                 {filteredRows.length} 筆
+               </span>
+             ) : undefined
+@@ -402,14 +402,15 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+         />
+ 
+         {/* 右上角切換膠囊：完全統一規格 (窄版自動切換為簡稱，超窄只顯示核心 4 標籤) */}
+-        <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 overflow-x-auto max-w-[65%] custom-scrollbar">
++        <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 overflow-x-auto max-w-[70%] custom-scrollbar" role="group" aria-label="事件分類">
+           {(isSuperNarrow ? availableTabs.slice(0, 4) : availableTabs).map((tab) => (
+             <button
+               key={tab.id}
+               type="button"
+               onClick={() => setCategory(tab.id)}
++              aria-pressed={category === tab.id}
+               className={cn(
+-                'px-1.5 sm:px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0',
++                'px-1.5 sm:px-2 py-0.5 text-t3 font-sans rounded transition-colors cursor-pointer whitespace-nowrap shrink-0',
+                 category === tab.id
+                   ? 'bg-secondary text-foreground font-semibold shadow-xs'
+                   : tab.isAlert
+@@ -427,7 +428,7 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+       <div
+         key={`timeline-${expandedKey}`}
+         ref={containerRef}
+-        className="flex-1 min-h-0 overflow-y-auto p-3 pr-2 relative"
++        className="flex-1 min-h-0 overflow-y-auto px-2 py-1.5 relative custom-scrollbar"
+         style={{
+           '--photon-duration': `${DURATION_SEC}s`,
+           '--photon-length': `${PHOTON_LENGTH}px`,
+@@ -441,12 +442,12 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+         {showEmpty ? (
+           <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-1">
+             <Inbox className="size-6 text-zinc-500/80 mb-1" />
+-            <span className="text-t2">{emptyMessage}</span>
++            <span className="text-t3 font-sans">{emptyMessage}</span>
+           </div>
+         ) : (
+-          <div className="relative pl-3 space-y-2.5">
++          <div className="relative pl-1 space-y-px">
+             {/* 導軌系統：由下往上向上湧動 */}
+-            <div className="absolute left-[20px] -translate-x-1/2 top-2 bottom-2 w-[20px] pointer-events-none z-0 overflow-hidden">
++            <div className="absolute left-[12px] -translate-x-1/2 top-3 bottom-3 w-[20px] pointer-events-none z-0 overflow-hidden">
+               {/* 1. 底層 1px 磨砂暗色導軌線 */}
+               <div className="absolute left-[10px] -translate-x-1/2 top-0 bottom-0 w-[1px] bg-white/[0.08]" />
+ 
+@@ -494,10 +495,10 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                     if (el) nodeRefs.current.set(row.key, el);
+                     else nodeRefs.current.delete(row.key);
+                   }}
+-                  className="relative flex items-start gap-2.5 group"
++                  className="relative flex items-start gap-1.5 group"
+                 >
+                   {/* 時間軸節點小圓點容器 */}
+-                  <div className="relative mt-1 shrink-0 z-10 flex items-center justify-center size-4 pointer-events-none">
++                  <div className="relative mt-[7px] shrink-0 z-10 flex items-center justify-center size-4 pointer-events-none">
+                     {/* 由下往上光子穿透之次表面柔霧微光環 */}
+                     <span
+                       className={cn(
+@@ -528,7 +529,7 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                   <div
+                     onClick={() => toggleRow(row.key)}
+                     className={cn(
+-                      'flex-1 min-w-0 transition-all duration-150 cursor-pointer p-2 rounded-md',
++                      'flex-1 min-w-0 transition-colors duration-150 cursor-pointer px-2 py-1.5 rounded',
+                       isExp
+                         ? 'bg-white/[0.035]'
+                         : isError
+@@ -539,13 +540,13 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                     )}
+                   >
+                     {/* 表頭一行：時間 + 標籤 + 買賣方向 + run + 標題 + 右側權益/等級 + 箭頭 */}
+-                    <div className="flex items-center justify-between gap-2 text-t2">
++                    <div className="flex items-center justify-between gap-2 text-t3">
+                       <div className="flex items-center gap-1.5 min-w-0">
+                         {/* 時間戳 (wall_time，Asia/Taipei) */}
+-                        <span className="text-zinc-500 text-t1 shrink-0 font-mono">{row.time}</span>
++                        <span className="num text-muted-foreground text-t2 shrink-0">{row.time}</span>
+ 
+                         {/* 類型 Badge */}
+-                        <span className={cn('px-1.5 py-0.2 rounded text-t1 shrink-0', meta.badgeClass)}>
++                        <span className={cn('px-1.5 leading-4 text-t2 shrink-0', meta.badgeClass)}>
+                           {meta.label}
+                         </span>
+ 
+@@ -553,7 +554,7 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                         {row.side && (
+                           <span
+                             className={cn(
+-                              'px-1.5 py-0.2 rounded text-t1 font-mono shrink-0 font-semibold border',
++                              'px-1.5 leading-4 rounded text-t2 shrink-0 font-medium border',
+                               row.side === 'buy'
+                                 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                 : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+@@ -563,17 +564,13 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                           </span>
+                         )}
+ 
+-                        {/* 關聯 run */}
+-                        <span className="text-zinc-500 text-t1 shrink-0 font-mono hidden sm:inline">
+-                          [{shortId(ev.run_id)}]
+-                        </span>
+-
+                         {/* 事件主標題 */}
+                         <span
+                           className={cn(
+-                            'truncate leading-tight tracking-tight text-t2',
+-                            row.isAlert ? 'text-zinc-100 font-medium' : 'text-zinc-300 font-normal'
++                            'truncate leading-tight text-t3',
++                            row.isAlert ? 'text-foreground font-medium' : 'text-foreground/85 font-normal'
+                           )}
++                          title={row.title}
+                         >
+                           {row.title}
+                         </span>
+@@ -582,19 +579,20 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                       {/* 右側：成交後權益 / 等級膠囊 / 展開箭頭 */}
+                       <div className="flex items-center gap-2 shrink-0">
+                         {row.rightText ? (
+-                          <span className="text-t2 font-mono tracking-tight text-zinc-300 hidden sm:inline">
++                          <span className="num text-t2 text-foreground/85 hidden sm:inline">
+                             {row.rightText}
+                           </span>
+                         ) : row.isAlert ? (
+-                          <span className={cn('text-t1 font-medium px-2 py-0.2 rounded-full backdrop-blur-xs', levelCapsuleClass(ev.level))}>
++                          <span className={cn('text-t2 font-medium px-1.5 leading-4 rounded-full', levelCapsuleClass(ev.level))}>
+                             {ev.level}
+                           </span>
+                         ) : null}
+ 
+                         <button
+                           type="button"
+-                          className="text-zinc-500 group-hover:text-zinc-300 shrink-0 transition-transform duration-200"
+-                          aria-label={isExp ? '收合' : '展開'}
++                          className="text-muted-foreground group-hover:text-foreground shrink-0 transition-colors duration-150"
++                          aria-label={isExp ? '收合事件詳情' : '展開事件詳情'}
++                          aria-expanded={isExp}
+                         >
+                           {isExp ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                         </button>
+@@ -605,27 +603,27 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                     {isExp && (
+                       <div
+                         onClick={(e) => e.stopPropagation()}
+-                        className="mt-2 pt-2 border-t border-white/[0.05] text-t1 space-y-2 text-zinc-300 snap-accordion-enter"
++                        className="mt-1.5 pt-1.5 border-t border-border/60 text-t2 space-y-1.5 text-foreground/85 snap-accordion-enter"
+                       >
+                         {detailFields ? (
+-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2 rounded-md bg-secondary/40 border border-border/60 text-t1 font-mono">
++                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1.5 p-2 rounded bg-secondary/40 border border-border/60 text-t2">
+                             {detailFields.map((field) => (
+                               <div key={field.label} className="min-w-0">
+-                                <span className="text-muted-foreground block text-t1 uppercase tracking-wider">{field.label}</span>
+-                                <span className="font-semibold text-foreground break-all">{field.value}</span>
++                                <span className="text-muted-foreground block font-sans">{field.label}</span>
++                                <span className="font-medium text-foreground break-all">{field.value}</span>
+                               </div>
+                             ))}
+                           </div>
+                         ) : (
+-                          <pre className="text-t1 font-mono max-h-40 overflow-auto p-2 rounded-md bg-secondary/40 border border-border/60 text-zinc-300 whitespace-pre-wrap break-all custom-scrollbar">
++                          <pre className="text-t2 font-mono max-h-40 overflow-auto p-2 rounded bg-secondary/40 border border-border/60 text-foreground/85 whitespace-pre-wrap break-all custom-scrollbar">
+                             {JSON.stringify(ev.payload, null, 1)}
+                           </pre>
+                         )}
+ 
+                         {/* 底部來源列 */}
+-                        <div className="flex items-center justify-between pt-1 border-t border-white/[0.04] text-t1 text-zinc-500">
+-                          <span className="truncate">
+-                            {`seq ${ev.seq} · ${row.syntheticLabel ? '合成時間 ' + row.syntheticLabel + ' · ' : ''}${ev.category}`}
++                        <div className="flex items-center justify-between pt-1 text-t2 text-muted-foreground">
++                          <span className="truncate num">
++                            {`run ${shortId(ev.run_id)} · seq ${ev.seq} · ${row.syntheticLabel ? '合成時間 ' + row.syntheticLabel + ' · ' : ''}${ev.category}`}
+                           </span>
+                         </div>
+                       </div>
+@@ -640,7 +638,7 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+ 
+       {/* 3. 後端環形緩衝省略提示：據實回報，不隱藏 */}
+       {eventsOmitted > 0 && (
+-        <div className="shrink-0 px-3 py-1 border-t border-border/60 bg-secondary/30 text-t1 font-mono text-amber-300/90">
++        <div className="shrink-0 px-3 py-1 border-t border-border/60 bg-secondary/30 text-t2 text-amber-300">
+           後端環形緩衝已省略 {eventsOmitted} 筆
+         </div>
+       )}
+diff --git a/src/components/catos/v0-bot-table.tsx b/src/components/catos/v0-bot-table.tsx
+index 8224884..3e9d7b2 100644
+--- a/src/components/catos/v0-bot-table.tsx
++++ b/src/components/catos/v0-bot-table.tsx
+@@ -104,7 +104,7 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+     : bots.length === 0 ? "等待模擬服務…" : "此篩選無實例";
+ 
+   return (
+-    <div className={cn("flex flex-col h-full w-full select-none overflow-hidden bg-surface/40", className)}>
++    <div className={cn("@container flex flex-col h-full w-full select-none overflow-hidden bg-surface/40", className)}>
+       {showHeader && (
+         <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
+           <CardHeaderTitle cardId="bots" title="策略實例監控矩陣" />
+@@ -115,7 +115,8 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+               { id: "stopped", label: `停止(${bots.length - runningCount})` },
+             ].map((f) => (
+               <button key={f.id} type="button" onClick={() => setBotFilter(f.id as typeof botFilter)}
+-                className={cn("px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
++                aria-pressed={botFilter === f.id}
++                className={cn("px-2 py-0.5 text-t3 rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
+                   botFilter === f.id ? "bg-secondary text-foreground font-semibold shadow-xs" : "text-muted-foreground hover:text-foreground")}>
+                 {f.label}
+               </button>
+@@ -126,19 +127,19 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+ 
+       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto min-w-0 max-w-full">
+         <table className="w-full text-left border-collapse table-auto min-w-[540px]">
+-          <thead className="border-b border-border/80 bg-background/40 text-t1 font-mono text-muted-foreground sticky top-0 z-10 backdrop-blur-sm">
++          <thead className="border-b border-border/80 bg-surface text-t2 text-muted-foreground sticky top-0 z-10 whitespace-nowrap">
+             <tr>
+-              <th className="py-2.5 pl-3 pr-2 font-medium">實例 / 標的</th>
+-              <th className="px-2 font-medium">策略模型 / 曝險</th>
+-              <th className="px-2 text-right font-medium">風控期間損益</th>
++              <th className="py-2 pl-3 pr-2 font-medium">實例 / 標的</th>
++              <th className="px-2 font-medium">策略 / 名目</th>
++              <th className="px-2 text-right font-medium">期間損益</th>
+               <th className="px-2 text-right font-medium hidden sm:table-cell">權益</th>
+-              <th className="px-2 font-medium hidden md:table-cell">風控狀態</th>
+-              <th className="py-2.5 pr-3 pl-2 text-right font-medium">走勢與操作</th>
++              <th className="px-2 font-medium hidden md:table-cell">風控</th>
++              <th className="py-2 pr-3 pl-2 text-right font-medium">走勢 / 操作</th>
+             </tr>
+           </thead>
+           <tbody className="divide-y divide-border/40 text-xs">
+             {rows.length === 0 && (
+-              <tr><td colSpan={6} className="py-8 text-center text-muted-foreground font-mono text-xs">{emptyText}</td></tr>
++              <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-xs">{emptyText}</td></tr>
+             )}
+             {rows.map((bot) => {
+               const isActive = ACTIVE_STATES.has(bot.state);
+@@ -150,76 +151,81 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+               return (
+                 <tr key={bot.bot_id} onClick={() => selectBot(bot.bot_id)}
+                   className={cn("hover:bg-secondary/30 transition-all group cursor-pointer",
+-                    isSelected && "bg-secondary/40", !isActive && "opacity-80")}
++                    isSelected && "bg-secondary/40 shadow-[inset_2px_0_0_var(--primary)]")}
+                   title="點擊選取此實例">
+-                  <td className="py-2.5 pl-3 pr-2">
++                  <td className="py-2 pl-3 pr-2">
+                     <div className="flex items-center gap-2">
+-                      <span className={cn("w-2 h-2 rounded-full shrink-0",
+-                        isActive ? "bg-emerald-400 shadow-[0_0_6px_var(--emerald-400)]"
+-                        : bot.state === "failed" || bot.state === "recovery_required" ? "bg-rose-400" : "bg-muted-foreground/50")} />
++                      <span title={BOT_STATE_LABEL[bot.state] ?? bot.state}
++                        className={cn("size-1.5 rounded-full shrink-0",
++                        isActive ? "bg-emerald-400"
++                        : bot.state === "failed" || bot.state === "recovery_required" ? "bg-rose-400" : "bg-muted-foreground/60")} />
+                       <div className="flex flex-col min-w-0">
+-                        <span className="text-t4 font-bold text-foreground leading-tight group-hover:text-primary transition-colors whitespace-nowrap">
++                        <span className="num text-xs font-medium text-foreground leading-tight group-hover:text-primary transition-colors whitespace-nowrap">
+                           {bot.bot_id}
+                         </span>
+-                        <div className="flex items-center gap-1 text-t1 font-mono text-muted-foreground leading-tight">
+-                          <span className="text-primary font-semibold whitespace-nowrap">{bot.inst_id ?? "不適用"}</span>
+-                          <span>{formatTimeframe(bot.timeframe_ms)}</span>
++                        <div className="flex items-center gap-1 text-t2 text-muted-foreground leading-tight mt-0.5 whitespace-nowrap">
++                          <span className="num text-foreground/85">{bot.inst_id ?? "不適用"}</span>
++                          <span className="num">{formatTimeframe(bot.timeframe_ms)}</span>
+                           <span>· {BOT_STATE_LABEL[bot.state] ?? bot.state}</span>
+                         </div>
+                       </div>
+                     </div>
+                   </td>
+ 
+-                  <td className="px-2 py-2.5">
++                  <td className="px-2 py-2">
+                     <div className="flex flex-col gap-0.5">
+-                      <span className="text-t3 font-semibold text-foreground leading-tight">{bot.strategy_name}</span>
+-                      <span className="text-t1 font-mono text-muted-foreground leading-tight">
++                      <span className="text-t3 font-medium text-foreground leading-tight whitespace-nowrap">{bot.strategy_name}</span>
++                      <span className="num text-t2 text-muted-foreground leading-tight whitespace-nowrap"
++                        title={botRisk ? `名目 / 單幣上限 ${formatDecimal(botRisk.derived.symbol_budget, { prefix: "$" })}` : undefined}>
+                         {botRisk
+-                          ? `名目 ${formatDecimal(botRisk.derived.notional, { prefix: "$" })} · 單幣上限 ${formatDecimal(botRisk.derived.symbol_budget, { prefix: "$" })}`
+-                          : "尚無風控觀測"}
++                          ? `${formatDecimal(botRisk.derived.notional, { prefix: "$" })} / ${formatDecimal(botRisk.derived.symbol_budget, { prefix: "$" })}`
++                          : "尚無觀測"}
+                       </span>
+                     </div>
+                   </td>
+ 
+-                  <td className="px-2 py-2.5 text-right font-mono">
++                  <td className="px-2 py-2 text-right font-mono">
+                     <div className="flex flex-col items-end">
+-                      <span className={cn("text-t4 font-bold leading-tight", toneOf(botRisk?.derived.period_pnl))}>
++                      <span className={cn("text-xs font-medium leading-tight whitespace-nowrap", toneOf(botRisk?.derived.period_pnl))}>
+                         {formatDecimal(botRisk?.derived.period_pnl, { sign: true, prefix: "$" })}
+                       </span>
+-                      <span className={cn("text-t1 leading-tight font-semibold", toneOf(botRisk?.derived.period_pnl_ratio))}>
++                      <span className={cn("text-t2 leading-tight mt-0.5", toneOf(botRisk?.derived.period_pnl_ratio))}>
+                         {formatRatioPct(botRisk?.derived.period_pnl_ratio)}
+                       </span>
+                     </div>
+                   </td>
+ 
+-                  <td className="px-2 py-2.5 text-right font-mono hidden sm:table-cell">
++                  <td className="px-2 py-2 text-right font-mono hidden sm:table-cell">
+                     <div className="flex flex-col items-end">
+-                      <span className="text-t3 font-bold leading-tight text-foreground">
++                      <span className="text-xs font-medium leading-tight text-foreground whitespace-nowrap">
+                         {formatDecimal(bot.equity, { prefix: "$" }, "未啟動")}
+                       </span>
+-                      <span className="text-t1 text-muted-foreground leading-tight">
++                      <span className="text-t2 text-muted-foreground leading-tight mt-0.5 whitespace-nowrap">
+                         {bot.account_source ? ACCOUNT_SOURCE_LABEL[bot.account_source] : "無帳戶觀測"}
+                       </span>
+                     </div>
+                   </td>
+ 
+-                  <td className="px-2 py-2.5 font-mono hidden md:table-cell">
++                  <td className="px-2 py-2 font-mono hidden md:table-cell">
+                     {statusMeta ? (
+                       <div className="flex items-center gap-1.5 leading-tight">
+-                        <span className={cn("px-1.5 py-0.2 rounded border text-t1 font-semibold whitespace-nowrap", statusMeta.className)}>
+-                          {statusMeta.label} (槓桿 {formatDecimal(botRisk?.derived.effective_leverage, { digits: 2 })}x)
++                        <span className={cn("px-1.5 rounded border text-t2 leading-4 font-medium whitespace-nowrap", statusMeta.className)}>
++                          {statusMeta.label}
++                        </span>
++                        <span className="num text-t2 text-muted-foreground whitespace-nowrap" title="有效槓桿">
++                          {formatDecimal(botRisk?.derived.effective_leverage, { digits: 2 })}x
+                         </span>
+                       </div>
+                     ) : (
+-                      <span className="text-t2 text-muted-foreground">尚無觀測</span>
++                      <span className="text-t2 text-muted-foreground whitespace-nowrap">尚無觀測</span>
+                     )}
+                   </td>
+ 
+-                  <td className="py-2.5 pr-3 pl-2 text-right">
++                  <td className="py-2 pr-3 pl-2 text-right">
+                     <div className="flex items-center justify-end gap-2">
+                       {spark.path ? (
+-                        <svg width={56} height={16} className="overflow-visible shrink-0 hidden xl:block">
+-                          <path d={spark.path} fill="none" stroke={spark.isGain ? "var(--primary)" : "#f43f5e"}
++                        <svg width={56} height={16} className="overflow-visible shrink-0 hidden @3xl:block">
++                          <path d={spark.path} fill="none" stroke={spark.isGain ? "var(--primary)" : "var(--down)"}
+                                 strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+                         </svg>
+                       ) : null}
+@@ -227,23 +233,24 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+                         <button type="button" disabled={!controls.canStop || busyKey !== null}
+                           onClick={(e) => { e.stopPropagation(); void controls.stop(bot); }}
+                           title={controls.canStop ? "完成當前事件後停止此 run" : "目前不可停止"}
+-                          className="px-2 py-0.5 rounded text-t2 font-mono border border-border/80 bg-background/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
++                          className="px-2 h-6 rounded text-t3 border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap border-border bg-background/60 text-foreground/85 hover:text-foreground hover:bg-secondary">
+                           {busyKey === `stop:${bot.bot_id}` ? "送出中" : "暫停"}
+                         </button>
+                       ) : (
+                         <button type="button" disabled={!controls.canStart || busyKey !== null}
+                           onClick={(e) => { e.stopPropagation(); void controls.start(bot); }}
+                           title={controls.canStart ? "以固定模板啟動新 run (POST /bots/start)" : "槽位占用、來源漂移或非本機模式時不可啟動"}
+-                          className="px-2 py-0.5 rounded text-t2 font-mono border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
++                          className="px-2 h-6 rounded text-t3 border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20">
+                           {busyKey === `start:${bot.bot_id}` ? "送出中" : "恢復"}
+                         </button>
+                       )}
+                       <button type="button"
+                         onClick={(e) => { e.stopPropagation(); selectBot(bot.bot_id); navigate("/bots"); }}
+                         title="開啟實例監控頁"
+-                        className="px-2 py-0.5 rounded text-t2 font-mono border border-primary/40 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all cursor-pointer flex items-center gap-0.5 whitespace-nowrap">
++                        aria-label={`開啟 ${bot.bot_id} 的實例詳情`}
++                        className="px-2 h-6 rounded text-t3 border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-0.5 border-border bg-background/60 text-foreground/85 hover:border-primary/60 hover:text-primary">
+                         <span>詳情</span>
+-                        <ArrowUpRight className="size-2.5" />
++                        <ArrowUpRight className="size-3" aria-hidden="true" />
+                       </button>
+                     </div>
+                   </td>
+@@ -253,7 +260,7 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+           </tbody>
+         </table>
+         {controls.error && (
+-          <div className="px-3 py-1.5 text-t1 font-mono text-rose-400 border-t border-border/60">命令失敗：{controls.error}</div>
++          <div className="px-3 py-1.5 text-t2 text-rose-400 border-t border-border/60" role="alert">命令失敗：{controls.error}</div>
+         )}
+       </div>
+     </div>
+diff --git a/src/styles/globals.css b/src/styles/globals.css
+index 8180f7d..fd32aad 100644
+--- a/src/styles/globals.css
++++ b/src/styles/globals.css
+@@ -133,7 +133,7 @@
+   --sidebar-border: var(--border);
+   --sidebar-ring: var(--ring);
+   --allocation-btc: oklch(0.78 0.15 75);
+-  --allocation-eth: oklch(0.66 0.11 290);
++  --allocation-eth: oklch(0.66 0.11 255);
+   --allocation-sol: oklch(0.74 0.1 235);
+   --allocation-arb: oklch(0.8 0.13 85);
+   --allocation-cash: oklch(0.48 0.009 260);

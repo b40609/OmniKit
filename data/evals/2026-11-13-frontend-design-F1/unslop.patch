@@ -1,0 +1,2183 @@
+diff --git a/docs/dashboard-unslop.md b/docs/dashboard-unslop.md
+new file mode 100644
+index 0000000..83e2583
+--- /dev/null
++++ b/docs/dashboard-unslop.md
+@@ -0,0 +1,35 @@
++# 儀表板首頁（/）打磨紀錄
++
++方法：unslop（Damir Sokolovsky, @heydamir, CC BY 4.0）。既定方向見 `design-direction.md`，本次屬 **polish mode**：保留黑金配色、Work Sans + JetBrains Mono、緊湊密度、圖示導航與面板工作台，只修稽核找到的問題。
++
++## Direction
++
++- **Product**：本機量化交易模擬終端，讓單人操盤者同時盯住策略實例、帳戶權益、槓桿曝險與事件流水。
++- **Character**：冷靜、精確、警覺。
++- **World**：夜班交易台的儀表與行情螢幕，近黑底、細刻度、金色指針。
++- **Moments**：本次 run 的權益曲線（全畫面唯一的金色面積）；槓桿曝險環（持倉是金，未用預算退成灰階）。
++- **Signature**：狀態點。只有真的在運行的東西有實心綠點，靜止不閃；其他狀態用灰點。
++
++## Audit（原始畫面）
++
++| 類別 | 發現 | 位置 |
++| --- | --- | --- |
++| 光暈 | Logo 金磚外發光、側欄分隔線 hover 金色發光、工具鈕開啟時金色發光 | `shell.tsx`、`layout-mode-toolbar.tsx`、`mode-selector.tsx` |
++| 光暈 | 狀態點、事件時間軸圓點帶彩色 box-shadow；甜甜圈 hover drop-shadow；配置列 hover 發光 | `v0-bot-table.tsx`、`unified-incident-activity-card.tsx`、`allocation-donut-card.tsx` |
++| 動態 | 權益卡 BorderBeam 流光邊框；`animate-ping` 狀態點；WARN 膠囊 `animate-pulse`；呼吸光暈 keyframes | `account-equity-band.tsx`、`pulse-beacon.tsx`、`globals.css`、事件卡 |
++| 動態 | `transition-all`、icon `hover:scale-110`、頭像 `scale-115`、側欄寬度動畫 | `shell.tsx`、`account-menu.tsx`、`tree-node-renderer.tsx` |
++| 字型 | 全大寫加寬字距的標籤（`OVERVIEW`、`DASHBOARD`、`STRATEGY HUB`…、詳情欄位標籤） | `shell.tsx`、事件卡、`globals.css` 的 `label-xs` |
++| 字型 | 大量 `font-bold`／`tracking-tight` 用在 9–12px 小字與數字 | 四張卡片 |
++| 色彩 | 金色重複出現在每列的「詳情」鈕、合約代碼、0% 刻度；綠色出現在「恢復」鈕、保證金模式、甜甜圈最大弧（未用預算） | 實例表、持倉卡、配置卡 |
++| 色彩 | 語意色混用 `emerald-400`／`rose-400`／`--up`／`--down` 與硬寫 slate hex | `format.ts`、配置卡、事件卡 |
++| 色彩 | 邊框 38% 不透明，非細線 | `globals.css` |
++| 版面 | 權益 KPI 欄寬不足：數字與副標重疊、底部被裁切 | `account-equity-band.tsx` |
++| 版面 | 配置卡標題列擠爆：「焦點:」與分頁鈕互相覆蓋 | `allocation-donut-card.tsx` |
++| 版面 | 配置清單 `justify-between` 讓兩列分到上下兩端，中間空洞 | `allocation-donut-card.tsx` |
++| 間距 | 導航列高 46px、兩行中英對照，不是緊湊導航 | `shell.tsx` |
++| 元件 | 事件標籤是 `rounded-full` + backdrop-blur 膠囊；「成交」與「買入」雙綠徽章重複 | 事件卡 |
++
++## 本次不改
++
++- 頭像 emoji（使用者在個人設定可自選，屬內容不是裝飾）。
++- 其他頁面的 `PageHead`／`Panel`；共用 token（邊框、狀態點靜止、`toneOf`）會一併影響其他頁，方向一致。
+diff --git a/src/components/catos/account-equity-band.tsx b/src/components/catos/account-equity-band.tsx
+index a516738..b3b6f0c 100644
+--- a/src/components/catos/account-equity-band.tsx
++++ b/src/components/catos/account-equity-band.tsx
+@@ -1,7 +1,6 @@
+ import React, { useState, useRef, useEffect, useMemo } from "react";
+ import { cn } from "@/lib/utils";
+ import { CardHeaderTitle } from "./card-header-title";
+-import { BorderBeam } from "./motion/border-beam";
+ import { useCatStore } from "@/state/catStore";
+ import { StateAdapter } from "@/state/stateAdapter";
+ import { formatClock, formatDateTime, formatDecimal, formatRatioPct, toPlotNumber, toneOf, shortId } from "@/lib/format";
+@@ -156,10 +155,10 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+     : null;
+ 
+   const Kpi = ({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) => (
+-    <div className="flex flex-col gap-0.5">
+-      <span className="text-t2 text-muted-foreground">{label}</span>
+-      <span className={cn("text-xs font-semibold leading-tight", tone ?? "text-foreground")}>{value}</span>
+-      {sub && <span className="text-t1 text-muted-foreground">{sub}</span>}
++    <div className="flex min-w-0 flex-col gap-0.5">
++      <span className="truncate font-sans text-t2 text-muted-foreground">{label}</span>
++      <span className={cn("num truncate text-xs leading-4", tone ?? "text-foreground")} title={value}>{value}</span>
++      {sub && <span className="truncate text-t2 text-muted-foreground" title={sub}>{sub}</span>}
+     </div>
+   );
+ 
+@@ -168,11 +167,11 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+       {showHeader && (
+         <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
+           <CardHeaderTitle cardId="equity" title="帳戶權益與損益" />
+-          <div className="flex items-center gap-0.5 bg-background/70 border border-border/70 rounded p-0.5 text-t1 font-mono shrink-0">
+-            <span className="px-2 py-0.5 rounded bg-secondary text-foreground font-bold shadow-xs">
++          <div className="flex items-center gap-2 text-t2 font-mono shrink-0 min-w-0">
++            <span className="text-foreground truncate">
+               {bot ? bot.bot_id : "sim"}
+             </span>
+-            <span className="px-1.5 py-0.5 text-muted-foreground whitespace-nowrap">
++            <span className="text-muted-foreground whitespace-nowrap">
+               {runId ? `run ${shortId(runId)} · ${STATE_LABEL[bot?.state ?? ""] ?? bot?.state}` : "無 run"}
+             </span>
+           </div>
+@@ -180,36 +179,41 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+       )}
+ 
+       <div className="flex flex-1 min-h-0 overflow-hidden relative">
+-        <BorderBeam size={180} duration={8} borderWidth={1.5} colorFrom="var(--color-primary, #e8b45e)" />
+-
+         {/* 左側 KPI 欄：全部來自 summary（後端 Decimal 計算） */}
+         <div className={cn(
+-          "shrink-0 border-r border-border/80 flex flex-col justify-between overflow-y-auto bg-surface/30 custom-scrollbar",
+-          isNarrow ? "w-[130px] p-2 gap-1.5" : "w-[205px] p-2.5 gap-2"
++          "shrink-0 border-r border-border flex flex-col overflow-y-auto custom-scrollbar",
++          isNarrow ? "w-[136px] p-2" : "w-[232px] p-3"
+         )}>
+-          <div className="flex flex-col gap-2">
+-            <div className="flex flex-col gap-0.5">
+-              <span className="text-t2 text-muted-foreground uppercase font-mono tracking-wider flex items-center justify-between">
++          <div className="flex flex-col gap-3">
++            <div className="flex flex-col gap-1">
++              <span className="text-t3 text-muted-foreground flex items-center justify-between">
+                 <span>帳戶總權益</span>
+                 {!isNarrow && (
+-                  <span className={cn("text-t1 font-mono flex items-center gap-1",
+-                    connection.status === "ok" ? "text-emerald-400" : "text-amber-400")}>
+-                    <span className={cn("size-1.5 rounded-full", connection.status === "ok" ? "bg-emerald-400 animate-ping" : "bg-amber-400")} />
++                  <span className={cn("text-t2 font-mono flex items-center gap-1",
++                    connection.status === "ok" ? "text-muted-foreground" : "text-warn")}>
++                    <span className={cn("size-1.5 rounded-full", connection.status === "ok" ? "bg-up" : "bg-warn")} />
+                     {connection.status === "ok" ? "local-sim" : connection.status}
+                   </span>
+                 )}
+               </span>
+-              <div className={cn("font-mono font-bold text-foreground tracking-tight", isNarrow ? "text-lg" : "text-2xl")}>
++              <div className={cn("num font-medium text-foreground leading-none py-0.5", isNarrow ? "text-lg" : "text-2xl")}>
+                 {summary ? formatDecimal(summary.equity, { prefix: "$" }) : <span className="text-muted-foreground text-sm">未啟動</span>}
+               </div>
+-              <div className={cn("font-mono font-semibold", isNarrow ? "text-t2" : "text-t3", toneOf(summary?.period_pnl))}>
+-                {summary?.period_pnl != null
+-                  ? `${formatDecimal(summary.period_pnl, { sign: true, prefix: "$" })} (${formatRatioPct(summary.period_pnl_ratio)})`
+-                  : "風控期間損益 不適用"}
++              <div className={cn("num truncate", isNarrow ? "text-t2" : "text-t3")}>
++                {summary?.period_pnl != null ? (
++                  <>
++                    <span className={toneOf(summary.period_pnl)}>
++                      {`${formatDecimal(summary.period_pnl, { sign: true, prefix: "$" })} (${formatRatioPct(summary.period_pnl_ratio)})`}
++                    </span>
++                    {!isNarrow && <span className="font-sans text-muted-foreground"> 較期間基準</span>}
++                  </>
++                ) : (
++                  <span className="text-muted-foreground">風控期間損益 不適用</span>
++                )}
+               </div>
+             </div>
+ 
+-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60 font-mono">
++            <div className="grid grid-cols-2 gap-x-3 gap-y-2 pt-3 border-t border-border font-mono">
+               <Kpi label="已實現損益" value={formatDecimal(summary?.realized_pnl, { sign: true, prefix: "$" }, "未啟動")}
+                    tone={summary ? toneOf(summary.realized_pnl) : undefined} sub="OKX 專用子帳戶 (模擬)" />
+               <Kpi label="未實現損益" value={formatDecimal(summary?.unrealized_pnl, { sign: true, prefix: "$" }, "未啟動")}
+@@ -217,26 +221,27 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+               <Kpi label="風控期間基準" value={summary?.basis_equity ? formatDecimal(summary.basis_equity, { prefix: "$" }) : "不適用"}
+                    sub={summary?.period_start_ms ? `${formatDateTime(summary.period_start_ms)} 起算 (合成基準)` : "尚無基準"} />
+               <Kpi label="手續費累計" value={formatDecimal(summary?.fees, { prefix: "$", digits: 4 }, "未啟動")}
+-                   tone={summary ? "text-rose-400" : undefined} sub={summary ? `槓桿上限 ${formatDecimal(summary.leverage_limit, { digits: 1 })}x` : undefined} />
++                   sub={summary ? `槓桿上限 ${formatDecimal(summary.leverage_limit, { digits: 1 })}x` : undefined} />
+             </div>
+           </div>
+         </div>
+ 
+         {/* 右側 SVG 走勢圖：本次 run 的權益曲線 */}
+-        <div className={cn("flex-1 flex flex-col min-w-0", isCompact ? "p-1.5" : "p-2.5")}>
++        <div className={cn("flex-1 flex flex-col min-w-0", isCompact ? "p-2" : "p-3")}>
+           <div className="flex items-center justify-between gap-2 text-t3 font-mono text-muted-foreground h-5 shrink-0 px-1 min-w-0">
+             <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+-              <span className="w-2.5 h-[2px] bg-primary inline-block" />
+-              <span>{isNarrow ? `run 權益 · ${curve.length} 點` : `本次 run 權益曲線 · 合成時間 · ${curve.length} 點`}</span>
++              <span className="w-3 h-0.5 rounded-full bg-primary inline-block" />
++              <span className="font-sans text-foreground">{isNarrow ? "run 權益" : "本次 run 權益曲線"}</span>
++              <span className="text-t2">{isNarrow ? `${curve.length} 點` : `合成時間 · ${curve.length} 點`}</span>
+             </div>
+             <div className="min-w-0 truncate text-right">
+               {hover ? (
+                 <span className="text-foreground font-mono text-t2 whitespace-nowrap">
+                   [{formatClock(hover.time_ms, false)}] 權益 {formatDecimal(hover.equity, { prefix: "$" })} ·{" "}
+-                  <span className="text-primary font-bold">{fmtPctNumber(hoverPct)}</span>
++                  <span className="text-primary">{fmtPctNumber(hoverPct)}</span>
+                 </span>
+               ) : (
+-                <span className="text-muted-foreground/60 text-t2 whitespace-nowrap hidden lg:inline">游標懸停檢視各 bar 的權益</span>
++                <span className="text-muted-foreground text-t2 whitespace-nowrap hidden lg:inline">懸停檢視各 bar</span>
+               )}
+             </div>
+           </div>
+@@ -255,17 +260,17 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+               <svg width={chartWidth} height={height} className="w-full h-full overflow-visible">
+                 <defs>
+                   <linearGradient id="v0EqGradReact2" x1="0" y1="0" x2="0" y2="1">
+-                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.16} />
++                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.2} />
+                     <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.0} />
+                   </linearGradient>
+                 </defs>
+ 
+                 {yBounds.ticks.map((t) => (
+                   <g key={t}>
+-                    <line x1={0} x2={plotW} y1={getY(t)} y2={getY(t)} stroke="currentColor" className="text-border/40"
+-                          strokeDasharray={t === 0 ? undefined : "3 3"} strokeWidth={t === 0 ? 1 : 0.75} />
++                    <line x1={0} x2={plotW} y1={getY(t)} y2={getY(t)} stroke="currentColor"
++                          className={t === 0 ? "text-foreground/25" : "text-foreground/[0.07]"} strokeWidth={1} />
+                     <text x={plotW + 6} y={getY(t) + 3} fill="currentColor"
+-                          className={cn("text-t1 font-mono", t === 0 ? "text-primary font-bold" : "text-muted-foreground/60")}>
++                          className={cn("text-t2 font-mono", t === 0 ? "text-muted-foreground" : "text-muted-foreground/70")}>
+                       {t > 0 ? `+${t.toFixed(2)}%` : `${t.toFixed(2)}%`}
+                     </text>
+                   </g>
+@@ -274,19 +279,19 @@ export function AccountEquityBand({ className, showHeader = true }: AccountEquit
+                 {xTicks.map((idx) => (
+                   <text key={idx} x={getX(idx)} y={plotH + 13}
+                         textAnchor={idx === 0 ? "start" : idx === n - 1 ? "end" : "middle"}
+-                        fill="currentColor" className="text-t1 font-mono text-muted-foreground/60">
++                        fill="currentColor" className="text-t2 font-mono text-muted-foreground/70">
+                     {formatClock(curve[idx]?.time_ms, false)}
+                   </text>
+                 ))}
+ 
+                 {areaPath && <path d={areaPath} fill="url(#v0EqGradReact2)" />}
+-                {line && <path d={line} fill="none" stroke="var(--primary)" strokeWidth={2} />}
++                {line && <path d={line} fill="none" stroke="var(--primary)" strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />}
+                 {n === 1 && <circle cx={getX(0)} cy={getY(points[0])} r={3} fill="var(--primary)" />}
+ 
+                 {hoverIdx !== null && (
+                   <g>
+-                    <line x1={getX(hoverIdx)} x2={getX(hoverIdx)} y1={8} y2={plotH} stroke="var(--primary)"
+-                          strokeWidth={1} strokeDasharray="2 2" opacity={0.8} />
++                    <line x1={getX(hoverIdx)} x2={getX(hoverIdx)} y1={8} y2={plotH} stroke="var(--foreground)"
++                          strokeWidth={1} opacity={0.25} />
+                     <circle cx={getX(hoverIdx)} cy={getY(points[hoverIdx] ?? 0)} r={3.5} fill="var(--primary)"
+                             stroke="var(--background)" strokeWidth={1.5} />
+                   </g>
+diff --git a/src/components/catos/account-menu.tsx b/src/components/catos/account-menu.tsx
+index 4ee518c..595b4d9 100644
+--- a/src/components/catos/account-menu.tsx
++++ b/src/components/catos/account-menu.tsx
+@@ -78,7 +78,7 @@ export function AccountMenu({ isFolded = false }: { isFolded?: boolean }) {
+           {/* 定案方案 2：純淨幽靈（Ghost）底座——完全零灰塊，滑鼠指過去背景純黑，文字純白提亮 + 圖標微彈 */}
+           <DropdownMenuTrigger
+             className={cn(
+-              "group flex items-center outline-none select-none text-left bg-transparent hover:bg-transparent transition-all",
++              "group flex items-center rounded-md outline-none select-none text-left bg-transparent hover:bg-secondary/60 focus-visible:ring-2 focus-visible:ring-ring transition-colors duration-150",
+               isFolded
+                 ? "size-10 justify-center mx-auto"
+                 : "w-full gap-2.5 px-2.5 py-1.5"
+@@ -89,7 +89,7 @@ export function AccountMenu({ isFolded = false }: { isFolded?: boolean }) {
+             <div className="relative shrink-0 flex items-center justify-center">
+               <span
+                 className={cn(
+-                  "flex items-center justify-center leading-none select-none text-foreground shrink-0 transition-transform duration-200 group-hover:scale-115",
++                  "flex items-center justify-center leading-none select-none text-foreground shrink-0",
+                   isFolded ? "size-10 text-xl" : "size-7 text-lg"
+                 )}
+               >
+@@ -113,20 +113,20 @@ export function AccountMenu({ isFolded = false }: { isFolded?: boolean }) {
+               <>
+                 <div className="flex min-w-0 flex-1 flex-col justify-center leading-tight">
+                   <div className="flex items-center gap-1.5 min-w-0">
+-                    <span className="truncate text-t4 font-medium text-foreground/90 transition-colors group-hover:text-foreground group-hover:font-semibold">
++                    <span className="truncate text-t4 font-medium text-foreground">
+                       {effectiveName}
+                     </span>
+-                    <span className="shrink-0 rounded bg-primary/10 px-1 py-0.2 font-mono text-t1 text-primary border border-primary/20">
++                    <span className="shrink-0 rounded border border-border px-1 font-mono text-t1 text-muted-foreground">
+                       {traderBadge}
+                     </span>
+                   </div>
+-                  <div className="mt-0.5 flex items-center gap-1 text-t2 font-mono text-muted-foreground/80 leading-tight">
+-                    <span className={cn("font-semibold", engineOnline ? "text-up" : "text-muted-foreground")}>{engineLabel}</span>
++                  <div className="mt-0.5 flex items-center gap-1 text-t2 font-mono text-muted-foreground leading-tight">
++                    <span className={cn(engineOnline ? "text-up" : "text-muted-foreground")}>{engineLabel}</span>
+                     <span className="text-muted-foreground/40">·</span>
+-                    <span className="truncate text-muted-foreground/60">{service ? `slot ${service.slot}` : instanceShort}</span>
++                    <span className="truncate">{service ? `slot ${service.slot}` : instanceShort}</span>
+                   </div>
+                 </div>
+-                <ChevronsUpDown className="size-3.5 text-muted-foreground transition-colors group-hover:text-primary shrink-0" />
++                <ChevronsUpDown className="size-3.5 text-muted-foreground transition-colors group-hover:text-foreground shrink-0" />
+               </>
+             )}
+           </DropdownMenuTrigger>
+diff --git a/src/components/catos/activity-panel.tsx b/src/components/catos/activity-panel.tsx
+index f999718..ca936ea 100644
+--- a/src/components/catos/activity-panel.tsx
++++ b/src/components/catos/activity-panel.tsx
+@@ -23,17 +23,17 @@ const RUN_STATE_LABEL: Record<BotControlState, string> = {
+ };
+ 
+ const RUN_STATE_TONE: Record<BotControlState, string> = {
+-  starting: "border-amber-400/30 text-amber-400",
+-  running: "border-emerald-400/30 text-emerald-400",
+-  stopping: "border-amber-400/30 text-amber-400",
+-  completed: "border-border/80 text-muted-foreground",
+-  stopped: "border-border/80 text-muted-foreground",
+-  failed: "border-rose-400/30 text-rose-400",
+-  recovery_required: "border-rose-400/30 text-rose-400",
++  starting: "border-warn/30 text-warn",
++  running: "border-up/25 text-up",
++  stopping: "border-warn/30 text-warn",
++  completed: "border-border text-muted-foreground",
++  stopped: "border-border text-muted-foreground",
++  failed: "border-down/30 text-down",
++  recovery_required: "border-down/30 text-down",
+ };
+ 
+ const NA_CLASS = "text-t3 text-muted-foreground leading-tight";
+-const NA_SUB_CLASS = "text-t1 text-muted-foreground/70 leading-tight mt-0.5";
++const NA_SUB_CLASS = "text-t2 text-muted-foreground/70 leading-tight mt-0.5 whitespace-nowrap";
+ 
+ /** Explicit not-applicable cell: primary state text + reason line, tooltip explains why. */
+ function NotApplicableCell({ label, reason, title }: { label: string; reason: string; title: string }) {
+@@ -61,27 +61,27 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+   const sideLabel = isShort ? "▼ 空" : "▲ 多";
+ 
+   return (
+-    <tr className="hover:bg-secondary/30 transition-colors group">
++    <tr className="hover:bg-foreground/[0.03] transition-colors duration-150 group">
+       {/* 1. 合約標的 + 方向標籤 + 實質持倉 */}
+-      <td className="py-2.5 pl-3 pr-2">
++      <td className="py-2 pl-3 pr-2">
+         <div className="flex flex-col">
+           <div className="flex items-center gap-1.5">
+             <span
+               className={cn(
+-                "px-1 py-0.2 rounded text-t1 font-bold font-mono inline-flex items-center",
++                "px-1 rounded text-t2 font-mono leading-4 inline-flex items-center border",
+                 isShort
+-                  ? "bg-rose-400/10 text-rose-400 border border-rose-400/25"
+-                  : "bg-emerald-400/10 text-emerald-400 border border-emerald-400/25"
++                  ? "bg-down/10 text-down border-down/25"
++                  : "bg-up/10 text-up border-up/25"
+               )}
+             >
+               {sideLabel}
+             </span>
+-            <span className="text-t4 font-bold text-foreground leading-tight whitespace-nowrap">
++            <span className="text-t4 font-medium text-foreground leading-tight whitespace-nowrap">
+               {p.inst_id ?? "不適用"}
+             </span>
+             <span
+               className={cn(
+-                "px-1 py-0.2 rounded border text-t1 font-mono leading-tight whitespace-nowrap",
++                "px-1 rounded border text-t2 leading-4 whitespace-nowrap",
+                 RUN_STATE_TONE[p.run_state]
+               )}
+               title={`run_state: ${p.run_state}`}
+@@ -89,13 +89,13 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+               {RUN_STATE_LABEL[p.run_state]}
+             </span>
+           </div>
+-          <span className="text-t2 font-mono text-muted-foreground leading-tight pl-0.5 mt-0.5 whitespace-nowrap">
++          <span className="text-t2 font-mono text-muted-foreground leading-tight mt-1 whitespace-nowrap">
+             {formatDecimal(magnitude(p.position), { digits: 0 })} 張
+             <span className="mx-1 text-border">·</span>
+             名目 {formatDecimal(p.notional, { prefix: "$" })}
+             <span className="mx-1 text-border">·</span>
+             <span
+-              className={cn(p.verified ? "text-emerald-400/80" : "text-amber-400/80")}
++              className={cn(p.verified ? "text-muted-foreground" : "text-warn")}
+               title={p.verified ? "部位已對帳" : "部位尚未對帳或對帳狀態未知"}
+             >
+               {p.verified ? "已對帳" : "未對帳"}
+@@ -105,13 +105,13 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+       </td>
+ 
+       {/* 2. 開倉均價與最新標記價 */}
+-      <td className="px-2 py-2.5 text-right font-mono">
++      <td className="px-2 py-2 text-right font-mono">
+         <div className="flex flex-col items-end">
+-          <span className="text-t3 font-medium text-foreground leading-tight">
++          <span className="num text-t4 text-foreground leading-tight">
+             {formatDecimal(p.average_entry, { prefix: "$" })}
+           </span>
+           <span
+-            className={cn("text-t1 leading-tight mt-0.5", p.mark === null ? "text-muted-foreground/70" : "text-muted-foreground")}
++            className={cn("num text-t2 leading-tight mt-0.5", p.mark === null ? "text-muted-foreground/70" : "text-muted-foreground")}
+             title={p.mark === null ? "本輪尚無標記價觀測" : "最新標記價"}
+           >
+             {formatDecimal(p.mark, { prefix: "$" })}
+@@ -120,9 +120,9 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+       </td>
+ 
+       {/* 3. 未實現損益 (金額；ROE 無保證金模型) */}
+-      <td className="px-2 py-2.5 text-right font-mono">
++      <td className="px-2 py-2 text-right font-mono">
+         <div className="flex flex-col items-end">
+-          <span className={cn("text-t4 font-bold leading-tight", toneOf(p.unrealized_pnl))}>
++          <span className={cn("num text-t4 leading-tight", toneOf(p.unrealized_pnl))}>
+             {formatDecimal(p.unrealized_pnl, { sign: true, prefix: "$" })}
+           </span>
+           <span className={NA_SUB_CLASS} title="local-sim 無保證金模型，無法計算 ROE">
+@@ -132,7 +132,7 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+       </td>
+ 
+       {/* 4. 資金費率 */}
+-      <td className="px-2 py-2.5 text-right hidden sm:table-cell font-mono">
++      <td className="px-2 py-2 text-right hidden sm:table-cell font-mono">
+         <NotApplicableCell
+           label="不適用"
+           reason="合成 funding=0"
+@@ -141,7 +141,7 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+       </td>
+ 
+       {/* 5. 強平安全墊 */}
+-      <td className="px-2 py-2.5 text-right hidden md:table-cell font-mono">
++      <td className="px-2 py-2 text-right hidden md:table-cell font-mono">
+         <NotApplicableCell
+           label="不適用"
+           reason="無保證金模型"
+@@ -150,7 +150,7 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+       </td>
+ 
+       {/* 6. 交易所強制停損 (P6) */}
+-      <td className="px-2 py-2.5 text-right font-mono">
++      <td className="px-2 py-2 text-right font-mono">
+         <NotApplicableCell
+           label="未啟用"
+           reason="P6 未配置"
+@@ -159,18 +159,18 @@ function PositionRowView({ p }: { p: PositionDTO }) {
+       </td>
+ 
+       {/* 7. 操作出口：v1 無平倉端點 */}
+-      <td className="py-2.5 pr-3 pl-2 text-right font-mono">
++      <td className="py-2 pr-3 pl-2 text-right font-mono">
+         <div className="flex flex-col items-end gap-0.5">
+           <button
+             type="button"
+             disabled
+             aria-disabled="true"
+-            className="px-2.5 py-0.5 rounded text-t2 font-mono border border-border/80 bg-background/40 text-muted-foreground cursor-not-allowed opacity-60"
++            className="h-6 px-2 rounded text-t2 border border-border bg-transparent text-muted-foreground cursor-not-allowed opacity-60 whitespace-nowrap"
+             title="未接線：v1 local-sim 尚無平倉端點"
+           >
+             平倉
+           </button>
+-          <span className="text-t1 text-muted-foreground/70 leading-tight">未接線</span>
++          <span className="text-t2 text-muted-foreground/70 leading-tight whitespace-nowrap">未接線</span>
+         </div>
+       </td>
+     </tr>
+@@ -192,7 +192,7 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+     <div className={cn("flex flex-col h-full w-full select-none overflow-hidden bg-surface/40", className)}>
+       {/* 1. 一體化 Header 與 Tab 切換 */}
+       {showHeader && (
+-        <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
++        <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border shrink-0 gap-2">
+           <CardHeaderTitle
+             cardId="positions"
+             title="持倉明細與交易所風控"
+@@ -203,9 +203,9 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+               type="button"
+               onClick={() => setTab("positions")}
+               className={cn(
+-                "px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
++                "px-2 py-0.5 text-t2 font-mono rounded transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0",
+                 tab === "positions"
+-                  ? "bg-secondary text-foreground font-semibold shadow-xs"
++                  ? "bg-secondary text-foreground shadow-xs"
+                   : "text-muted-foreground hover:text-foreground"
+               )}
+             >
+@@ -215,9 +215,9 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+               type="button"
+               onClick={() => setTab("orders")}
+               className={cn(
+-                "px-2 py-0.5 text-t2 font-mono rounded transition-colors inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0",
++                "px-2 py-0.5 text-t2 font-mono rounded transition-colors duration-150 inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0",
+                 tab === "orders"
+-                  ? "bg-secondary text-foreground font-semibold shadow-xs"
++                  ? "bg-secondary text-foreground shadow-xs"
+                   : "text-muted-foreground hover:text-foreground"
+               )}
+             >
+@@ -238,18 +238,18 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+             {/* ================= Tab 1: 持倉明細 ================= */}
+             {tab === "positions" && (
+               <table className="w-full text-left border-collapse table-auto min-w-[540px]">
+-                <thead className="border-b border-border/80 bg-background/40 text-t1 font-mono text-muted-foreground sticky top-0 z-10 backdrop-blur-sm">
++                <thead className="border-b border-border bg-surface text-t2 text-muted-foreground sticky top-0 z-10">
+                   <tr>
+-                    <th className="py-2.5 pl-3 pr-2 font-medium">合約 / 部位</th>
+-                    <th className="px-2 text-right font-medium">開倉 / 標記價</th>
+-                    <th className="px-2 text-right font-medium">未實現損益</th>
+-                    <th className="px-2 text-right font-medium hidden sm:table-cell">資金費率</th>
+-                    <th className="px-2 text-right font-medium hidden md:table-cell">強平安全墊</th>
+-                    <th className="px-2 text-right font-medium">交易所強制停損</th>
+-                    <th className="py-2.5 pr-3 pl-2 text-right font-medium">操作</th>
++                    <th className="h-8 pl-3 pr-2 font-normal">合約 / 部位</th>
++                    <th className="px-2 text-right font-normal">開倉 / 標記價</th>
++                    <th className="px-2 text-right font-normal">未實現損益</th>
++                    <th className="px-2 text-right font-normal hidden sm:table-cell">資金費率</th>
++                    <th className="px-2 text-right font-normal hidden md:table-cell">強平安全墊</th>
++                    <th className="px-2 text-right font-normal">交易所強制停損</th>
++                    <th className="pr-3 pl-2 text-right font-normal">操作</th>
+                   </tr>
+                 </thead>
+-                <tbody className="divide-y divide-border/40 text-xs">
++                <tbody className="divide-y divide-border text-xs">
+                   {positions.length === 0 ? (
+                     <tr>
+                       <td colSpan={7} className="py-8 text-center text-muted-foreground font-mono text-xs">
+@@ -276,19 +276,19 @@ export function ActivityPanel({ className, showHeader = true }: ActivityPanelPro
+         )}
+ 
+         {/* 底部摘要與模式說明條 */}
+-        <div className="flex items-center justify-between px-3 py-1.5 border-t border-border/80 bg-secondary/30 text-t2 font-mono text-muted-foreground shrink-0">
++        <div className="flex items-center justify-between px-3 h-8 border-t border-border text-t2 font-mono text-muted-foreground shrink-0">
+           <div className="flex items-center gap-3 whitespace-nowrap">
+-            <span>持倉筆數: <strong className="text-foreground">{positions.length}</strong></span>
+-            <span className="text-border">|</span>
++            <span>持倉筆數 <span className="text-foreground">{positions.length}</span></span>
++            <span className="text-muted-foreground/40">·</span>
+             <span title={summary ? `invariants.settlement = ${summary.invariants.settlement}` : "尚無 summary，無法得知保證金模式"}>
+-              保證金模式:{" "}
+-              <strong className={summary ? "text-emerald-400" : "text-muted-foreground"}>
++              保證金模式{" "}
++              <span className={summary ? "text-foreground" : "text-muted-foreground"}>
+                 {settlementLabel(summary?.invariants.settlement)}
+-              </strong>
++              </span>
+             </span>
+-            <span className="text-border">|</span>
++            <span className="text-muted-foreground/40">·</span>
+             <span title="v1 local-sim 無平倉端點">
+-              緊急處置: <strong className="text-muted-foreground">平倉出口 v1 未接線</strong>
++              緊急處置 <span className="text-muted-foreground">平倉出口未接線</span>
+             </span>
+           </div>
+         </div>
+diff --git a/src/components/catos/allocation-donut-card.tsx b/src/components/catos/allocation-donut-card.tsx
+index 19174f5..cbf659d 100644
+--- a/src/components/catos/allocation-donut-card.tsx
++++ b/src/components/catos/allocation-donut-card.tsx
+@@ -5,18 +5,20 @@ import { useCatStore } from "@/state/catStore";
+ import type { BotControlState, DecimalString, PositionDTO, RiskStatus } from "@/contracts";
+ import { formatDecimal, formatRatioPct, signOf, toPlotNumber } from "@/lib/format";
+ 
+-// 定案配色：低彩度、高質感的資料系列色
++// 配色：金色只給「持倉」這個重點；未用預算退成灰階，語意色沿用全域 up/down token
+ const COLORS = {
+-  position: "#e8b45e",  // 持倉 蜂蜜金
+-  budget: "#10b981",    // 未用預算 / 多頭 翡翠綠
+-  short: "#f43f5e",     // 空頭 / 虧損 玫瑰紅
+-  fee: "#71717a",       // 手續費 費用灰
+-  neutral: "#a1a1aa",   // 中性 鋅灰
+-  muted: "#27272a",     // 不適用 / 尚無觀測 啞光槽
++  position: "var(--gold)",                 // 持倉（唯一強調）
++  idle: "oklch(0.40 0.006 260)",           // 未用預算：灰階
++  budget: "var(--up)",                     // 多頭 / 正損益
++  short: "var(--down)",                    // 空頭 / 虧損
++  fee: "oklch(0.52 0.006 260)",            // 手續費
++  neutral: "oklch(0.66 0.006 260)",        // 中性
++  muted: "oklch(0.28 0.004 260)",          // 不適用 / 尚無觀測
+ };
+ 
+ // 策略實例依序循環的系列色（不綁定任何幣種）
+-const BOT_PALETTE = ["#e8b45e", "#7faee2", "#8b8df8", "#a1a1aa", "#f59e0b"];
++// 第一個實例帶金色，其餘依序退成灰階，讓一個系列領頭
++const BOT_PALETTE = ["var(--gold)", "oklch(0.72 0.006 260)", "oklch(0.58 0.006 260)", "oklch(0.47 0.006 260)", "oklch(0.38 0.006 260)"];
+ 
+ interface DonutItem {
+   key: string;
+@@ -76,12 +78,12 @@ const BOT_STATE_LABEL: Record<BotControlState, string> = {
+ };
+ 
+ const RISK_STATUS_CHIP: Record<RiskStatus, { label: string; className: string }> = {
+-  normal: { label: "正常", className: "bg-emerald-500/15 border-emerald-500/35 text-emerald-400" },
+-  soft_latch: { label: "軟鎖存", className: "bg-amber-500/15 border-amber-500/35 text-amber-400" },
+-  hard_latch: { label: "硬鎖存", className: "bg-rose-500/15 border-rose-500/35 text-rose-400" },
+-  missing: { label: "缺基準", className: "bg-zinc-500/15 border-zinc-500/35 text-zinc-400" },
++  normal: { label: "正常", className: "bg-up/10 border-up/25 text-up" },
++  soft_latch: { label: "軟鎖存", className: "bg-warn/10 border-warn/30 text-warn" },
++  hard_latch: { label: "硬鎖存", className: "bg-down/10 border-down/30 text-down" },
++  missing: { label: "缺基準", className: "bg-foreground/5 border-border text-muted-foreground" },
+ };
+-const NO_OBSERVATION_CHIP = { label: "尚無觀測", className: "bg-zinc-500/15 border-zinc-500/35 text-zinc-400" };
++const NO_OBSERVATION_CHIP = { label: "尚無觀測", className: "bg-foreground/5 border-border text-muted-foreground" };
+ 
+ const TEXT_UNAVAILABLE = "不適用";
+ const TEXT_NO_RISK = "尚無風控觀測";
+@@ -152,6 +154,8 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+   }, []);
+ 
+   const isNarrow = dimensions.width < 460;
++  // 標題列放得下完整分頁標籤的寬度；不足時用兩字簡稱，避免與焦點切換重疊
++  const isHeaderTight = dimensions.width < 760;
+   const isSuperNarrow = dimensions.width < 340;
+   const isShort = dimensions.height < 170;
+   const isCompact = isNarrow || isShort;
+@@ -204,7 +208,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+     amount: null,
+     amountStr: `預算 ${formatDecimal(exposureBudget, { prefix: "$" })}`,
+     pct_share: Math.max(0, 100 - notionalShare),
+-    color: COLORS.budget,
++    color: COLORS.idle,
+     badgeStr: `單幣 ${formatDecimal(symbolBudget, { prefix: "$" })}`,
+     compactBadge: "上限",
+   }), [exposureBudget, symbolBudget, notionalShare]);
+@@ -436,19 +440,19 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+     let hudValue = hudFocus === "leverage"
+       ? leverageText(effectiveLeverage)
+       : formatDecimal(notional, { prefix: "$" });
+-    let hudValueColor = "#f8fafc"; // 專業中性珍珠白，高對比無光暈
++    let hudValueColor = "var(--foreground)";
+     let hudSub = hudFocus === "leverage"
+       ? `上限 ${leverageLimitText} · 單幣 ${symbolShareText}`
+       : `總預算 ${formatDecimal(exposureBudget, { prefix: "$" })}`;
+     let progressPct = notionalShare;
+     let hudTag = hudFocus === "leverage" ? `${notionalShare.toFixed(0)}% 預算` : leverageText(effectiveLeverage);
+-    let progressColor = hudFocus === "money" ? "#e8b45e" : "#10b981";
++    let progressColor = COLORS.position;
+ 
+     if (viewMode === "delta") {
+       const dirSign = signOf(risk?.snapshot?.position ?? null);
+       hudTitle = "淨方向";
+       hudValue = dirSign === "positive" ? "多頭" : dirSign === "negative" ? "空頭" : "空倉";
+-      hudValueColor = dirSign === "positive" ? "#10b981" : dirSign === "negative" ? "#f43f5e" : "#a1a1aa";
++      hudValueColor = dirSign === "positive" ? COLORS.budget : dirSign === "negative" ? COLORS.short : COLORS.neutral;
+       hudSub = `名目 ${formatDecimal(notional, { prefix: "$" })}`;
+       progressPct = notionalShare;
+       hudTag = `${notionalShare.toFixed(0)}% 預算`;
+@@ -456,7 +460,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+     } else if (viewMode === "margin") {
+       hudTitle = "保證金佔用";
+       hudValue = TEXT_UNAVAILABLE;
+-      hudValueColor = "#a1a1aa";
++      hudValueColor = COLORS.neutral;
+       hudSub = "local-sim 無保證金模型";
+       progressPct = 0;
+       hudTag = "v1";
+@@ -467,7 +471,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+       const sign = signOf(pnl);
+       hudTitle = "風控期間損益";
+       hudValue = formatDecimal(pnl, { sign: true, prefix: "$" });
+-      hudValueColor = sign === "positive" ? "#10b981" : sign === "negative" ? "#f43f5e" : "#f8fafc";
++      hudValueColor = sign === "positive" ? COLORS.budget : sign === "negative" ? COLORS.short : "var(--foreground)";
+       hudSub = `${formatRatioPct(ratio)} · 權益 ${formatDecimal(summary?.equity ?? null, { prefix: "$" })}`;
+       // 幾何：虧損比例相對硬熔斷門檻的進度（僅虧損時有意義）
+       progressPct = sign === "negative" ? shareOf(ratio, limits?.hard_loss ?? null) : 0;
+@@ -480,7 +484,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+     if (hudUnavailable) {
+       hudTitle = viewMode === "pnl" ? "風控期間損益" : hudTitle;
+       hudValue = unavailableText;
+-      hudValueColor = "#a1a1aa";
++      hudValueColor = COLORS.neutral;
+       hudSub = unavailableSub;
+       progressPct = 0;
+       hudTag = "local-sim";
+@@ -509,7 +513,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+           </defs>
+ 
+           {/* 底槽導軌 (沉穩深岩底色，微距軌道) */}
+-          <circle cx={CX} cy={CY} r={R} fill="none" stroke="#161922" strokeWidth={STROKE_WIDTH} />
++          <circle cx={CX} cy={CY} r={R} fill="none" stroke="var(--surface-raised)" strokeWidth={STROKE_WIDTH} />
+ 
+           {currentItems.map((item, idx) => {
+             const fullArc = (item.pct_share / 100) * CIRCUMFERENCE;
+@@ -536,10 +540,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                 strokeLinecap="butt"
+                 opacity={sliceOpacity}
+                 transform={`rotate(-90 ${CX} ${CY})`}
+-                className="cursor-pointer transition-all duration-200"
+-                style={{
+-                  filter: isHovered ? `drop-shadow(0 0 6px ${item.color}80)` : undefined,
+-                }}
++                className="cursor-pointer transition-[opacity,stroke-width] duration-150"
+                 onMouseEnter={() => setHoveredIndex(idx)}
+                 onMouseLeave={() => setHoveredIndex(null)}
+               />
+@@ -555,7 +556,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                   x={CX}
+                   y={CY + 8}
+                   textAnchor="middle"
+-                  fill="#f8fafc"
++                  fill="var(--foreground)"
+                   fontSize={activeHoverItem.hidePct ? hudFontSize(activeHoverItem.amountStr, 26) : 26}
+                   fontWeight="600"
+                   className="hud-text"
+@@ -568,10 +569,9 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                     x={CX}
+                     y={CY - 16}
+                     textAnchor="middle"
+-                    fill="#94a3b8"
++                    fill="var(--muted-foreground)"
+                     fontSize="9"
+                     fontWeight="500"
+-                    letterSpacing="0.06em"
+                     className="hud-text"
+                   >
+                     {activeHoverItem.shortLabel}
+@@ -580,7 +580,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                     x={CX}
+                     y={CY + 8}
+                     textAnchor="middle"
+-                    fill="#f8fafc"
++                    fill="var(--foreground)"
+                     fontSize={hudFontSize(activeHoverItem.amountStr, 25)}
+                     fontWeight="600"
+                     className="hud-text"
+@@ -591,7 +591,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                     x={CX}
+                     y={CY + 25}
+                     textAnchor="middle"
+-                    fill="#64748b"
++                    fill="var(--muted-foreground)"
+                     fontSize="8.5"
+                     className="hud-text"
+                   >
+@@ -624,10 +624,9 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                     x={CX}
+                     y={CY - 16}
+                     textAnchor="middle"
+-                    fill="#94a3b8"
++                    fill="var(--muted-foreground)"
+                     fontSize="8.5"
+                     fontWeight="500"
+-                    letterSpacing="0.06em"
+                     className="hud-text"
+                   >
+                     {hudTitle} · {hudTag}
+@@ -653,7 +652,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                     width={56}
+                     height={3}
+                     rx={1.5}
+-                    fill="#27272a"
++                    fill="var(--surface-raised)"
+                   />
+                   <rect
+                     x={72}
+@@ -669,9 +668,8 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                     x={CX}
+                     y={CY + 26}
+                     textAnchor="middle"
+-                    fill="#64748b"
++                    fill="var(--muted-foreground)"
+                     fontSize={hudFontSize(hudSub, 8)}
+-                    letterSpacing="0.02em"
+                     className="hud-text"
+                   >
+                     {hudSub}
+@@ -689,7 +687,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+     <div ref={containerRef} className={cn("flex flex-col h-full w-full select-none overflow-hidden bg-surface/40 relative", className)}>
+       {/* 1. 卡片頂部 Header：左側標題、風控狀態晶片與焦點切換器，右側高對比維度分段切換鈕 */}
+       <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
+-        <div className="flex items-center gap-2 min-w-0">
++        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+           <CardHeaderTitle
+             cardId="allocation"
+             title="槓桿倍數與資產曝險"
+@@ -708,7 +706,6 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+ 
+           {/* 核心焦點切換鈕：金額主導 vs 槓桿倍數 */}
+           <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 text-t2 font-mono">
+-            <span className="text-amber-400 font-bold px-1 text-t1 sm:text-t1">焦點:</span>
+             <button
+               type="button"
+               onClick={() => setHudFocus("leverage")}
+@@ -751,13 +748,14 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                   setHoveredIndex(null);
+                 }}
+                 className={cn(
+-                  "px-1.5 sm:px-2 py-0.5 rounded transition-all cursor-pointer font-medium select-none text-t2 sm:text-t3",
++                  "px-2 py-0.5 rounded transition-colors duration-150 cursor-pointer select-none text-t2 whitespace-nowrap",
+                   isActive
+-                    ? "bg-secondary text-foreground font-semibold shadow-xs border border-white/[0.16]"
+-                    : "text-zinc-300 hover:text-white hover:bg-white/[0.08]"
++                    ? "bg-secondary text-foreground shadow-xs"
++                    : "text-muted-foreground hover:text-foreground"
+                 )}
++                title={tab.label}
+               >
+-                {isNarrow ? tab.shortLabel : tab.label}
++                {isHeaderTight ? tab.shortLabel : tab.label}
+               </button>
+             );
+           })}
+@@ -774,7 +772,7 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+           {/* 右側：精緻高密度金融行 (min-w-0 自適應彈性收縮，杜絕推擠左側 Donut) */}
+           <div className={cn(
+             "flex-1 min-w-0 max-w-[480px] h-full flex flex-col py-0.5 overflow-hidden",
+-            isCompact ? "justify-center gap-1" : "justify-between"
++            isCompact ? "justify-center gap-1" : "justify-center gap-2"
+           )}>
+             {currentItems.map((item, idx) => {
+               const isHovered = hoveredIndex === idx;
+@@ -791,41 +789,36 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                     onMouseEnter={() => setHoveredIndex(idx)}
+                     onMouseLeave={() => setHoveredIndex(null)}
+                     className={cn(
+-                      "group relative flex items-center justify-between px-2 py-1 rounded transition-all cursor-pointer border select-none overflow-hidden shrink-0 min-h-0",
+-                      isHovered
+-                        ? "bg-white/[0.09] border-primary/50 shadow-xs"
+-                        : "bg-surface-raised/40 hover:bg-white/[0.04] border-white/[0.06]"
++                      "group relative flex items-center justify-between px-2 py-1 rounded transition-colors duration-150 cursor-pointer select-none overflow-hidden shrink-0 min-h-0",
++                      isHovered ? "bg-foreground/[0.06]" : "bg-foreground/[0.02]"
+                     )}
+                   >
+                     {/* 背景填色進度條 (直觀長條感 100% 保留) */}
+                     <div
+-                      className="absolute left-0 top-0 bottom-0 pointer-events-none transition-all duration-300"
++                      className="absolute left-0 top-0 bottom-0 pointer-events-none"
+                       style={{
+                         width: `${Math.min(100, item.pct_share)}%`,
+                         backgroundColor: item.color,
+-                        opacity: isHovered ? 0.30 : 0.16,
++                        opacity: 0.12,
+                       }}
+                     />
+                     {/* 底緣 2px 聚光進度線 */}
+                     <div
+-                      className="absolute left-0 bottom-0 h-[2px] pointer-events-none transition-all duration-300"
++                      className="absolute left-0 bottom-0 h-0.5 pointer-events-none"
+                       style={{
+                         width: `${Math.min(100, item.pct_share)}%`,
+                         backgroundColor: item.color,
+-                        boxShadow: isHovered ? `0 0 6px ${item.color}` : undefined,
+                       }}
+                     />
+ 
+                     {/* 首行內容：左側標籤 + 徽章 */}
+                     <div className="relative z-10 flex items-center gap-1 sm:gap-1.5 min-w-0">
+-                      <span className="size-2 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: item.color }} />
+-                      <span className="font-bold text-foreground text-t3 tracking-tight truncate shrink-0">{displayLabel}</span>
++                      <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
++                      <span className="text-foreground text-t3 truncate shrink-0">{displayLabel}</span>
+                       {displayBadge && (
+                         <span className={cn(
+-                          "px-1 py-0.2 rounded border text-t1 font-mono shrink-0 leading-none",
+-                          item.isLoss
+-                            ? "bg-rose-500/15 border-rose-500/30 text-rose-400 font-semibold"
+-                            : "bg-white/[0.06] border-white/[0.10] text-zinc-300"
++                          "text-t2 font-mono min-w-0 truncate leading-none",
++                          item.isLoss ? "text-down" : "text-muted-foreground"
+                         )}>
+                           {displayBadge}
+                         </span>
+@@ -835,18 +828,18 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                     {/* 右側：金額與佔比 */}
+                     <div className="relative z-10 flex items-center gap-1.5 shrink-0 ml-1">
+                       <span className={cn(
+-                        "font-mono text-t3 font-medium tracking-tight",
+-                        item.isLoss ? "text-rose-400 font-semibold" : "text-foreground"
++                        "num text-t3",
++                        item.isLoss ? "text-down" : "text-foreground"
+                       )}>
+                         {item.amountStr}
+                       </span>
+                       {!item.hidePct && (
+-                        <span className="font-bold text-foreground text-t3 min-w-[34px] text-right font-mono">
++                        <span className="num text-muted-foreground text-t3 min-w-9 text-right">
+                           {item.pct_share.toFixed(1)}%
+                         </span>
+                       )}
+                       {isNearLimit && !isNarrow && (
+-                        <span className="px-1 py-0.2 rounded text-t1 font-bold bg-amber-500/20 text-amber-400 border border-amber-500/35 leading-none">
++                        <span className="px-1 rounded text-t1 bg-warn/10 text-warn border border-warn/30 leading-4">
+                           逼近50%
+                         </span>
+                       )}
+@@ -862,22 +855,18 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                   onMouseEnter={() => setHoveredIndex(idx)}
+                   onMouseLeave={() => setHoveredIndex(null)}
+                   className={cn(
+-                    "group flex flex-col justify-center px-2.5 py-1 sm:py-1.5 rounded-lg transition-all cursor-pointer border select-none min-h-0",
+-                    isHovered
+-                      ? "bg-white/[0.08] border-primary/45 shadow-xs"
+-                      : "bg-surface-raised/40 hover:bg-white/[0.04] border-white/[0.06]"
++                    "group flex flex-col justify-center px-3 py-2 rounded-md transition-colors duration-150 cursor-pointer select-none min-h-0",
++                    isHovered ? "bg-foreground/[0.06]" : "bg-foreground/[0.025]"
+                   )}
+                 >
+                   {/* 首行：標題、量化標籤、金額與佔比 */}
+-                  <div className="flex items-center justify-between gap-1.5 leading-none">
+-                    <div className="flex items-center gap-1.5 min-w-0">
+-                      <span className="size-2 sm:size-2.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: item.color }} />
+-                      <span className="font-bold text-foreground text-t3 sm:text-xs tracking-tight whitespace-nowrap shrink-0">{item.shortLabel}</span>
++                  <div className="flex items-center justify-between gap-3 leading-none">
++                    <div className="flex items-center gap-2 min-w-0">
++                      <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
++                      <span className="text-foreground text-xs whitespace-nowrap shrink-0">{item.shortLabel}</span>
+                       <span className={cn(
+-                        "px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded border text-t1 sm:text-t1 font-mono shrink-0 leading-none",
+-                        item.isLoss
+-                          ? "bg-rose-500/15 border-rose-500/30 text-rose-400 font-semibold"
+-                          : "bg-white/[0.06] border-white/[0.10] text-zinc-300"
++                        "text-t2 font-mono min-w-0 leading-none truncate",
++                        item.isLoss ? "text-down" : "text-muted-foreground"
+                       )}>
+                         {item.badgeStr}
+                       </span>
+@@ -885,19 +874,19 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+ 
+                     <div className="flex items-center gap-2 shrink-0">
+                       <span className={cn(
+-                        "font-mono text-t3 sm:text-xs font-medium tracking-tight",
+-                        item.isLoss ? "text-rose-400 font-semibold" : "text-foreground"
++                        "num text-xs",
++                        item.isLoss ? "text-down" : "text-foreground"
+                       )}>
+                         {item.amountStr}
+                       </span>
+                       {!item.hidePct && (
+-                        <span className="font-bold text-foreground text-t3 sm:text-xs min-w-[38px] text-right font-mono">
++                        <span className="num text-muted-foreground text-xs min-w-10 text-right">
+                           {item.pct_share.toFixed(1)}%
+                         </span>
+                       )}
+                       {/* 僅當逼近單幣上限時靜默提醒 */}
+                       {isNearLimit && (
+-                        <span className="px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded text-t1 sm:text-t1 font-bold bg-amber-500/20 text-amber-400 border border-amber-500/35 leading-none">
++                        <span className="px-1.5 rounded text-t2 bg-warn/10 text-warn border border-warn/30 leading-4">
+                           逼近50%
+                         </span>
+                       )}
+@@ -905,13 +894,12 @@ export function AllocationDonutCard({ className }: { className?: string }) {
+                   </div>
+ 
+                   {/* 次行：直觀長條圖 (微型圓角底槽與平滑填色) */}
+-                  <div className="w-full h-1 bg-white/[0.08] rounded-full overflow-hidden relative mt-1 sm:mt-1.5 shrink-0">
++                  <div className="w-full h-1 bg-foreground/[0.06] rounded-full overflow-hidden relative mt-2 shrink-0">
+                     <div
+-                      className="h-full rounded-full transition-all duration-300"
++                      className="h-full rounded-full"
+                       style={{
+                         width: `${Math.min(100, item.pct_share)}%`,
+                         backgroundColor: item.color,
+-                        boxShadow: isHovered ? `0 0 8px ${item.color}90` : undefined,
+                       }}
+                     />
+                   </div>
+diff --git a/src/components/catos/card-header-title.tsx b/src/components/catos/card-header-title.tsx
+index 52a3dcd..d5416c1 100644
+--- a/src/components/catos/card-header-title.tsx
++++ b/src/components/catos/card-header-title.tsx
+@@ -21,7 +21,7 @@ export function CardHeaderTitle({
+ }: CardHeaderTitleProps) {
+   return (
+     <div className={cn("flex items-center gap-1.5 py-0.5 min-w-0 shrink-0 select-none whitespace-nowrap", className)}>
+-      <span className="text-t4 font-semibold text-foreground tracking-tight select-none truncate whitespace-nowrap">
++      <span className="text-t4 font-medium text-foreground select-none truncate whitespace-nowrap">
+         {title}
+       </span>
+       {subtext}
+diff --git a/src/components/catos/layout-mode-toolbar.tsx b/src/components/catos/layout-mode-toolbar.tsx
+index cd4b768..ce41813 100644
+--- a/src/components/catos/layout-mode-toolbar.tsx
++++ b/src/components/catos/layout-mode-toolbar.tsx
+@@ -36,10 +36,10 @@ export function LayoutModeToolbar() {
+           type="button"
+           onClick={() => setIsHubOpen((prev) => !prev)}
+           className={cn(
+-            "size-7 rounded-[7px] transition-all grid place-items-center cursor-pointer border select-none",
++            "size-7 rounded-md transition-colors duration-150 grid place-items-center cursor-pointer border select-none outline-none focus-visible:ring-2 focus-visible:ring-ring",
+             isHubOpen
+-              ? "bg-primary text-primary-foreground border-primary shadow-[0_0_12px_rgba(232,180,94,0.35)]"
+-              : "bg-surface-raised/80 hover:bg-white/[0.08] text-muted-foreground hover:text-foreground border-border/80 hover:border-white/[0.16]"
++              ? "bg-primary text-primary-foreground border-primary"
++              : "bg-surface-raised text-muted-foreground hover:text-foreground border-border hover:bg-foreground/[0.08]"
+           )}
+           title={`控制中心 · 目前：${activeProfile?.shortName || activeProfile?.name || "預設排版"} (Alt+M / Alt+W)`}
+           aria-label="控制中心"
+diff --git a/src/components/catos/mode-selector.tsx b/src/components/catos/mode-selector.tsx
+index 696746a..9e124d6 100644
+--- a/src/components/catos/mode-selector.tsx
++++ b/src/components/catos/mode-selector.tsx
+@@ -103,10 +103,10 @@ export function ModeSelector({ className }: { className?: string }) {
+         type="button"
+         onClick={() => setIsOpen((prev) => !prev)}
+         className={cn(
+-          "relative size-7 rounded-[7px] transition-all grid place-items-center cursor-pointer border select-none",
++          "relative size-7 rounded-md transition-colors duration-150 grid place-items-center cursor-pointer border select-none outline-none focus-visible:ring-2 focus-visible:ring-ring",
+           isOpen
+-            ? "bg-primary/20 text-primary border-primary/50 shadow-[0_0_12px_rgba(232,180,94,0.35)]"
+-            : "bg-surface-raised/80 hover:bg-white/[0.08] border-border/80 hover:border-white/[0.16]",
++            ? "bg-secondary border-foreground/20"
++            : "bg-surface-raised hover:bg-foreground/[0.08] border-border",
+           activeModeConfig.textClass
+         )}
+         title={`執行環境：${activeModeConfig.label} (點擊切換)`}
+@@ -117,8 +117,7 @@ export function ModeSelector({ className }: { className?: string }) {
+         <span
+           className={cn(
+             "absolute bottom-1 right-1 size-1.5 rounded-full border border-background",
+-            activeModeConfig.dotClass,
+-            currentMode === "local" && "animate-pulse"
++            activeModeConfig.dotClass
+           )}
+         />
+       </button>
+@@ -127,11 +126,11 @@ export function ModeSelector({ className }: { className?: string }) {
+       {isOpen && (
+         <div
+           onClick={(e) => e.stopPropagation()}
+-          className="absolute right-0 top-8.5 z-50 w-[240px] rounded-xl bg-[#12141a]/95 backdrop-blur-2xl border border-white/[0.14] shadow-[0_16px_40px_rgba(0,0,0,0.85)] p-2 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150"
++          className="absolute right-0 top-9 z-50 w-[240px] rounded-xl bg-popover border border-border shadow-[0_16px_40px_rgba(0,0,0,0.6)] p-2 flex flex-col gap-1 animate-in fade-in slide-in-from-top-1 duration-150"
+         >
+-          <div className="px-2 py-1 border-b border-white/[0.08] flex items-center justify-between text-t2 font-mono text-muted-foreground/80">
+-            <span>交易執行環境 (Environment)</span>
+-            <span className="text-t1 text-primary/80">OKX SWAP</span>
++          <div className="px-2 py-1 border-b border-border flex items-center justify-between text-t2 font-mono text-muted-foreground">
++            <span>交易執行環境</span>
++            <span className="text-t1">OKX SWAP</span>
+           </div>
+ 
+           <div className="flex flex-col gap-1 pt-1">
+@@ -144,18 +143,18 @@ export function ModeSelector({ className }: { className?: string }) {
+                   type="button"
+                   onClick={() => handleSelect(m.key)}
+                   className={cn(
+-                    "flex items-start gap-2.5 px-2 py-2 rounded-lg text-left transition-all cursor-pointer border group",
++                    "flex items-start gap-2.5 px-2 py-2 rounded-lg text-left transition-colors duration-150 cursor-pointer border group",
+                     isSelected
+-                      ? `${m.badgeClass} shadow-xs font-semibold`
+-                      : "border-transparent hover:bg-white/[0.06] text-foreground"
++                      ? "bg-secondary border-border text-foreground"
++                      : "border-transparent hover:bg-foreground/[0.06] text-foreground"
+                   )}
+                 >
+                   <div
+                     className={cn(
+                       "size-6 rounded-md flex items-center justify-center shrink-0 border mt-0.5",
+                       isSelected
+-                        ? "bg-background/60 border-current"
+-                        : "bg-white/[0.04] border-white/[0.08] text-muted-foreground group-hover:text-foreground"
++                        ? cn("bg-background/60 border-border", m.textClass)
++                        : "bg-foreground/[0.04] border-border text-muted-foreground group-hover:text-foreground"
+                     )}
+                   >
+                     <Icon className="size-3.5" />
+@@ -163,8 +162,8 @@ export function ModeSelector({ className }: { className?: string }) {
+ 
+                   <div className="flex flex-col min-w-0 flex-1">
+                     <div className="flex items-center justify-between">
+-                      <span className="text-xs font-bold tracking-tight">{m.label}</span>
+-                      {isSelected && <Check className="size-3 text-current" />}
++                      <span className="text-xs font-medium">{m.label}</span>
++                      {isSelected && <Check className="size-3 text-primary" />}
+                     </div>
+                     <p className="text-t2 text-muted-foreground leading-tight font-sans mt-0.5 opacity-90">
+                       {m.desc}
+diff --git a/src/components/catos/pulse-beacon.tsx b/src/components/catos/pulse-beacon.tsx
+index 06b9374..f5edea5 100644
+--- a/src/components/catos/pulse-beacon.tsx
++++ b/src/components/catos/pulse-beacon.tsx
+@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
+ interface PulseBeaconProps {
+   /** 圓點尺寸（像素），預設 5px */
+   size?: number;
+-  /** 狀態顏色變體：up (翠綠在線), warn (琥珀警示), down (紅色故障), gold (黃金模式) */
++  /** 狀態顏色變體：up (在線), warn (警示), down (故障), gold (黃金模式) */
+   variant?: "up" | "warn" | "down" | "gold";
+   /** 是否具備切邊隔離環（預設 true） */
+   ring?: boolean;
+@@ -11,6 +11,10 @@ interface PulseBeaconProps {
+   title?: string;
+ }
+ 
++/**
++ * 狀態點：靜止的實心點，顏色即狀態。
++ * 不做漣漪與呼吸光暈，避免多個狀態點同時閃動搶走數據注意力。
++ */
+ export function PulseBeacon({
+   size = 5,
+   variant = "up",
+@@ -27,41 +31,16 @@ export function PulseBeacon({
+       ? "bg-down"
+       : "bg-gold";
+ 
+-  const colorPing =
+-    variant === "up"
+-      ? "bg-up/60"
+-      : variant === "warn"
+-      ? "bg-warn/60"
+-      : variant === "down"
+-      ? "bg-down/60"
+-      : "bg-gold/60";
+-
+-  const breatheClass =
+-    variant === "warn" || variant === "gold"
+-      ? "status-breathe-warn"
+-      : "status-breathe";
+-
+   return (
+     <span
+       style={{ width: `${size}px`, height: `${size}px` }}
+-      className={cn("relative inline-flex shrink-0 items-center justify-center pointer-events-none", className)}
++      className={cn(
++        "relative inline-flex shrink-0 rounded-full pointer-events-none",
++        colorBg,
++        ring && "ring-[1.5px] ring-sidebar",
++        className
++      )}
+       title={title}
+-    >
+-      {/* 外層緩慢擴散漣漪微波 */}
+-      <span
+-        style={{ width: `${size}px`, height: `${size}px` }}
+-        className={cn("absolute inline-flex rounded-full animate-ping duration-1000", colorPing)}
+-      />
+-      {/* 內層核心微晶片點 + 自然呼吸光暈 */}
+-      <span
+-        style={{ width: `${size}px`, height: `${size}px` }}
+-        className={cn(
+-          "relative inline-flex rounded-full",
+-          colorBg,
+-          ring && "ring-[1.5px] ring-sidebar",
+-          breatheClass
+-        )}
+-      />
+-    </span>
++    />
+   );
+ }
+diff --git a/src/components/catos/shell.tsx b/src/components/catos/shell.tsx
+index 9a095c4..edcf83a 100644
+--- a/src/components/catos/shell.tsx
++++ b/src/components/catos/shell.tsx
+@@ -33,43 +33,43 @@ const GROUPS: NavigationGroup[] = [
+   {
+     key: "overview",
+     titleZh: "系統總覽",
+-    titleEn: "OVERVIEW",
++    titleEn: "Overview",
+     titleMono: "OVERVIEW",
+     items: [
+-      { to: "/", name: "系統總覽", sub: "DASHBOARD", icon: LayoutDashboard },
++      { to: "/", name: "系統總覽", sub: "Dashboard", icon: LayoutDashboard },
+     ],
+   },
+   {
+     key: "strategy",
+     titleZh: "策略與研究",
+-    titleEn: "STRATEGY & RESEARCH",
++    titleEn: "Strategy & research",
+     titleMono: "STRATEGY",
+     items: [
+-      { to: "/strategies", name: "策略中心", sub: "STRATEGY HUB", icon: Activity },
+-      { to: "/backtest", name: "歷史回測", sub: "BACKTESTING", icon: FlaskConical },
+-      { to: "/optimization", name: "參數優化", sub: "OPTIMIZATION", icon: SlidersHorizontal },
+-      { to: "/validation", name: "滾動驗證", sub: "WALK-FORWARD", icon: Route },
+-      { to: "/review", name: "策略覆盤", sub: "STRATEGY REVIEW", icon: ScanLine },
++      { to: "/strategies", name: "策略中心", sub: "Strategy hub", icon: Activity },
++      { to: "/backtest", name: "歷史回測", sub: "Backtesting", icon: FlaskConical },
++      { to: "/optimization", name: "參數優化", sub: "Optimization", icon: SlidersHorizontal },
++      { to: "/validation", name: "滾動驗證", sub: "Walk-forward", icon: Route },
++      { to: "/review", name: "策略覆盤", sub: "Strategy review", icon: ScanLine },
+     ],
+   },
+   {
+     key: "execution",
+     titleZh: "執行與風控",
+-    titleEn: "EXECUTION & RISK",
++    titleEn: "Execution & risk",
+     titleMono: "EXECUTION",
+     items: [
+-      { to: "/bots", name: "實例監控", sub: "FLEET MONITOR", icon: Bot, hasPulse: true },
+-      { to: "/risk", name: "風控中心", sub: "RISK CONTROL", icon: ShieldCheck },
++      { to: "/bots", name: "實例監控", sub: "Fleet monitor", icon: Bot, hasPulse: true },
++      { to: "/risk", name: "風控中心", sub: "Risk control", icon: ShieldCheck },
+     ],
+   },
+   {
+     key: "system",
+     titleZh: "生態與系統",
+-    titleEn: "ECOSYSTEM & SYSTEM",
++    titleEn: "Ecosystem & system",
+     titleMono: "SYSTEM",
+     items: [
+-      { to: "/logs", name: "系統日誌", sub: "SYSTEM LOGS", icon: ScrollText },
+-      { to: "/settings", name: "系統設定", sub: "SETTINGS", icon: Settings2 },
++      { to: "/logs", name: "系統日誌", sub: "System logs", icon: ScrollText },
++      { to: "/settings", name: "系統設定", sub: "Settings", icon: Settings2 },
+     ],
+   },
+ ];
+@@ -193,8 +193,7 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+       <aside
+         style={{ width: collapsed ? 64 : sidebarWidth }}
+         className={cn(
+-          "fixed inset-y-0 left-0 z-30 flex flex-col border-r border-border bg-sidebar select-none",
+-          !isResizing && "transition-all duration-200"
++          "fixed inset-y-0 left-0 z-30 flex flex-col border-r border-border bg-sidebar select-none"
+         )}
+       >
+         {/* Resizable Sidebar Splitter Sash (VS Code / Bloomberg / TradingView Pro) */}
+@@ -212,7 +211,7 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+           <div
+             className={cn(
+               "resizer-line absolute inset-y-0 left-[4px] w-[2px] transition-colors pointer-events-none",
+-              isResizing ? "bg-primary shadow-[0_0_8px_var(--color-primary)]/60" : "bg-transparent group-hover:bg-primary/70"
++              isResizing ? "bg-primary" : "bg-transparent group-hover:bg-foreground/20"
+             )}
+           />
+         </div>
+@@ -221,20 +220,20 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+         <Link
+           to="/"
+           className={cn(
+-            "flex h-14 shrink-0 items-center transition-all",
+-            collapsed ? "justify-center px-0" : "gap-2.5 px-3.5"
++            "flex h-14 shrink-0 items-center",
++            collapsed ? "justify-center px-0" : "gap-2.5 px-4"
+           )}
+           title="CatOS Dashboard"
+         >
+-          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-[0_0_12px_var(--color-primary)]/40">
+-            <Cat className="size-5" strokeWidth={2} />
++          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
++            <Cat className="size-4" strokeWidth={1.75} />
+           </span>
+           {!collapsed && (
+             <div className="flex items-center justify-between flex-1 min-w-0">
+-              <span className="text-lg font-semibold tracking-tight">
++              <span className="text-base font-medium">
+                 catOS<span className="ml-0.5 text-primary">.</span>
+               </span>
+-              <span className="font-mono text-t2 text-muted-foreground/60" title="frontend package version">
++              <span className="num text-t2 text-muted-foreground" title="frontend package version">
+                 v{pkg.version}
+               </span>
+             </div>
+@@ -242,12 +241,12 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+         </Link>
+ 
+         {/* 導覽選單（單行高密度、支援方案 A/B/C 標題與微型 Badge） */}
+-        <nav aria-label="Main navigation" className="min-h-0 flex-1 space-y-2 overflow-y-auto overflow-x-hidden px-2 pb-2 pt-1">
++        <nav aria-label="Main navigation" className="min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-2 pb-2 pt-2">
+           {GROUPS.map((group) => (
+-            <div key={group.key} className="space-y-0.5">
+-              {!collapsed && (
+-                <p className="mb-1 mt-2.5 px-2.5 font-mono text-t1 font-semibold uppercase tracking-wider text-muted-foreground/60 truncate">
+-                  {group.titleMono}
++            <div key={group.key}>
++              {!collapsed && group.key !== "overview" && (
++                <p className="mb-1 px-3 text-t3 text-muted-foreground truncate">
++                  {language === "en" ? group.titleEn : group.titleZh}
+                 </p>
+               )}
+               <div className="space-y-0.5">
+@@ -257,34 +256,29 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+                     to={to}
+                     title={`${language === "en" ? sub : name} (${language === "en" ? name : sub})`}
+                     activeOptions={{ exact: to === "/" }}
+-                    activeProps={{ className: "bg-secondary text-foreground [&_svg]:text-primary font-medium shadow-xs" }}
++                    activeProps={{ className: "bg-secondary text-foreground [&_svg]:text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" }}
+                     inactiveProps={{ className: "text-muted-foreground hover:bg-secondary/60 hover:text-foreground" }}
+                     className={cn(
+-                      "relative transition-all",
++                      "relative transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                       collapsed
+-                        ? "flex size-10 items-center justify-center mx-auto rounded-md group my-1"
+-                        : "flex min-h-[46px] items-center gap-3 rounded-md px-3 py-1.5"
++                        ? "flex size-9 items-center justify-center mx-auto rounded-md my-0.5"
++                        : "flex h-8 items-center gap-2.5 rounded-md px-3"
+                     )}
+                   >
+-                    <span className="relative flex size-5 shrink-0 items-center justify-center">
+-                      <Icon className="size-4 shrink-0 transition-transform group-hover:scale-110" strokeWidth={1.8} />
++                    <span className="relative flex size-4 shrink-0 items-center justify-center">
++                      <Icon className="size-4 shrink-0" strokeWidth={1.5} />
+                       {hasPulse && (
+                         <PulseBeacon
+                           size={5}
+-                          className="absolute -top-[1.5px] -right-[1.5px]"
++                          className="absolute -top-0.5 -right-0.5"
+                           title="狀態正常運行中"
+                         />
+                       )}
+                     </span>
+                     {!collapsed && (
+-                      <div className="flex flex-col min-w-0 flex-1 leading-tight">
+-                        <span className="text-t4 font-medium text-foreground tracking-wide truncate">
+-                          {language === "en" ? sub : name}
+-                        </span>
+-                        <span className="text-t1 font-mono font-semibold text-muted-foreground uppercase tracking-wider truncate mt-0.5">
+-                          {language === "en" ? name : sub}
+-                        </span>
+-                      </div>
++                      <span className="min-w-0 flex-1 truncate text-xs">
++                        {language === "en" ? sub : name}
++                      </span>
+                     )}
+                   </Link>
+                 ))}
+@@ -301,10 +295,7 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+ 
+       <div
+         style={{ paddingLeft: collapsed ? 64 : sidebarWidth }}
+-        className={cn(
+-          "min-w-0",
+-          !isResizing && "transition-all duration-200"
+-        )}
++        className="min-w-0"
+       >
+         {/* Breathing Room Top Navigation Header (z-40 確保頂部彈窗高於工作區分割條 z-20) */}
+         <header className="sticky top-0 z-40 flex h-11 items-center justify-between border-b border-border bg-background/95 px-3 backdrop-blur lg:px-5 gap-2">
+@@ -322,8 +313,8 @@ export function AppShell({ children, dashboardTools }: { children: ReactNode; da
+ 
+             {/* Breadcrumbs: Dim Workspace / Bright Active Page */}
+             <div className="flex items-center gap-1.5 text-xs">
+-              <span className="hidden text-muted-foreground/75 sm:inline">{t("workspace_trail")}</span>
+-              <span className="hidden text-muted-foreground/40 sm:inline">/</span>
++              <span className="hidden text-muted-foreground sm:inline">{t("workspace_trail")}</span>
++              <span className="hidden text-muted-foreground/50 sm:inline">/</span>
+               <span className="font-medium text-foreground">{language === "en" ? (current?.sub ?? "Dashboard") : (current?.name ?? "系統總覽")}</span>
+             </div>
+           </div>
+diff --git a/src/components/catos/simulation-status-strip.tsx b/src/components/catos/simulation-status-strip.tsx
+index 93737cf..f8a898e 100644
+--- a/src/components/catos/simulation-status-strip.tsx
++++ b/src/components/catos/simulation-status-strip.tsx
+@@ -21,9 +21,9 @@ export function SimulationStatusStrip({ className }: { className?: string }) {
+   const [busy, setBusy] = useState(false);
+ 
+   const statusTone =
+-    connection.status === "ok" ? "text-emerald-400" :
++    connection.status === "ok" ? "text-muted-foreground" :
+     connection.status === "loading" || connection.status === "idle" ? "text-muted-foreground" :
+-    connection.status === "mode_not_open" ? "text-cyan-400" : "text-rose-400";
++    connection.status === "mode_not_open" ? "text-info" : "text-down";
+ 
+   const statusText =
+     connection.status === "ok" ? "已連線" :
+@@ -39,19 +39,19 @@ export function SimulationStatusStrip({ className }: { className?: string }) {
+   };
+ 
+   return (
+-    <div className={cn("flex items-center gap-2 text-t1 font-mono whitespace-nowrap min-w-0", className)}>
++    <div className={cn("flex items-center gap-2 text-t2 font-mono whitespace-nowrap min-w-0", className)}>
+       <span className={cn("flex items-center gap-1", statusTone)}>
+-        <span className={cn("size-1.5 rounded-full", connection.status === "ok" ? "bg-emerald-400" : connection.status === "mode_not_open" ? "bg-cyan-400" : connection.status === "loading" ? "bg-muted-foreground animate-pulse" : "bg-rose-400")} />
++        <span className={cn("size-1.5 rounded-full", connection.status === "ok" ? "bg-up" : connection.status === "mode_not_open" ? "bg-info" : connection.status === "loading" ? "bg-muted-foreground" : "bg-down")} />
+         {mode === "local" ? "本機模擬" : mode.toUpperCase()} · {statusText}
+       </span>
+       {service && (
+         <>
+-          <span className="text-border">|</span>
+-          <span className="text-muted-foreground">槽位 <strong className="text-foreground">{SLOT_LABEL[service.slot] ?? service.slot}</strong></span>
+-          <span className="text-border">|</span>
++          <span className="text-muted-foreground/40">·</span>
++          <span className="text-muted-foreground">槽位 <span className="text-foreground">{SLOT_LABEL[service.slot] ?? service.slot}</span></span>
++          <span className="text-muted-foreground/40">·</span>
+           <span className="text-muted-foreground" title={service.instance_id}>instance {shortId(service.instance_id)}</span>
+           {service.restart_required && (
+-            <span className="px-1.5 py-0.2 rounded border border-amber-500/40 bg-amber-500/10 text-amber-300 font-semibold"
++            <span className="px-1.5 py-0.2 rounded border border-amber-500/40 bg-amber-500/10 text-amber-300 "
+                   title={`loaded ${shortId(service.build_id)} ≠ current ${shortId(service.current_build_id)}`}>
+               來源已變更 · 需重啟服務
+             </span>
+diff --git a/src/components/catos/unified-incident-activity-card.tsx b/src/components/catos/unified-incident-activity-card.tsx
+index de77ce2..ef1ef87 100644
+--- a/src/components/catos/unified-incident-activity-card.tsx
++++ b/src/components/catos/unified-incident-activity-card.tsx
+@@ -35,7 +35,6 @@ const {
+   photonLength: PHOTON_LENGTH,
+   photonWidth: PHOTON_WIDTH,
+   photonBrightness: PHOTON_BRIGHTNESS,
+-  glowSpread: GLOW_SPREAD,
+   bloomIntensity: BLOOM_INTENSITY,
+   glassBlur: GLASS_BLUR,
+   cardShimmer: CARD_SHIMMER,
+@@ -207,63 +206,50 @@ function toRow(ev: EventDTO, instLabel: string): EventRow {
+   };
+ }
+ 
+-// 小圓點與標籤樣式：定案固化方案 C (macOS Sequoia 晶透黑曜石微膠囊風格)
++// 時間軸圓點與類型標籤：靜止實心點，語意色只給異常、風控與成交方向
++const BADGE_BASE = 'rounded border px-1.5 leading-4';
++
+ function getBadgeMeta(ev: EventDTO, side: Side) {
+   if (ev.level === 'ERROR') {
+     return {
+       label: 'ERROR',
+-      badgeClass: 'bg-rose-500/15 text-rose-200 border border-rose-500/30 rounded-full px-2 font-medium backdrop-blur-xs',
+-      coreClass: 'bg-[#f43f5e] shadow-[0_0_8px_rgba(244,63,94,0.55)] ring-1 ring-rose-400/40',
+-      sonarClass: 'bg-rose-500/25',
+-      bloomAnimation: 'crystal-optical-bloom-rose',
++      badgeClass: `${BADGE_BASE} bg-down/10 text-down border-down/30`,
++      coreClass: 'bg-down',
+     };
+   }
+   if (ev.level === 'WARN') {
+     return {
+       label: 'WARN',
+-      badgeClass: 'bg-amber-500/15 text-amber-200 border border-amber-500/30 rounded-full px-2 font-medium backdrop-blur-xs',
+-      coreClass: 'bg-[#f59e0b] shadow-[0_0_8px_rgba(245,158,11,0.55)] ring-1 ring-amber-400/40',
+-      sonarClass: 'bg-amber-500/25',
+-      bloomAnimation: 'crystal-optical-bloom-amber',
++      badgeClass: `${BADGE_BASE} bg-warn/10 text-warn border-warn/30`,
++      coreClass: 'bg-warn',
+     };
+   }
+   if (ev.category === 'ORDER') {
+-    const isShort = side === 'sell';
+     return {
+       label: '成交',
+-      badgeClass: isShort
+-        ? 'bg-rose-500/15 text-rose-200 border border-rose-500/25 rounded-full px-2 font-medium backdrop-blur-xs'
+-        : 'bg-emerald-500/15 text-emerald-200 border border-emerald-500/25 rounded-full px-2 font-medium backdrop-blur-xs',
+-      coreClass: isShort
+-        ? 'bg-[#f43f5e] shadow-[0_0_8px_rgba(244,63,94,0.45)] ring-1 ring-rose-400/30'
+-        : 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.45)] ring-1 ring-emerald-400/30',
+-      sonarClass: isShort ? 'bg-rose-500/20' : 'bg-emerald-500/20',
+-      bloomAnimation: isShort ? 'crystal-optical-bloom-rose' : 'crystal-optical-bloom-emerald',
++      badgeClass: `${BADGE_BASE} bg-foreground/5 text-foreground border-border`,
++      coreClass: side === 'sell' ? 'bg-down' : 'bg-up',
+     };
+   }
+-  if (ev.category === 'WORKER') {
++  if (ev.category === 'RISK') {
+     return {
+-      label: 'INFO',
+-      badgeClass: 'bg-white/[0.04] text-zinc-400 border border-white/[0.06] rounded-full px-2 font-medium backdrop-blur-xs',
+-      coreClass: 'bg-zinc-600/70 ring-1 ring-zinc-600/40',
+-      sonarClass: 'bg-zinc-600/15',
+-      bloomAnimation: 'crystal-optical-bloom-neutral',
++      label: '風控',
++      badgeClass: `${BADGE_BASE} bg-info/10 text-info border-info/25`,
++      coreClass: 'bg-info',
+     };
+   }
+-  // RISK / SYSTEM / SUPERVISOR
++  // WORKER / SYSTEM / SUPERVISOR
+   return {
+-    label: ev.category === 'RISK' ? '風控' : 'INFO',
+-    badgeClass: 'bg-sky-500/15 text-sky-300 border border-sky-500/30 rounded-full px-2 font-medium backdrop-blur-xs',
+-    coreClass: 'bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.5)] ring-1 ring-sky-400/40',
+-    sonarClass: 'bg-sky-500/20',
+-    bloomAnimation: 'crystal-optical-bloom-neutral',
++    label: 'INFO',
++    badgeClass: `${BADGE_BASE} text-muted-foreground border-border`,
++    coreClass: 'bg-muted-foreground/40',
+   };
+ }
+ 
+ function levelCapsuleClass(level: EventLevel): string {
+   return level === 'ERROR'
+-    ? 'bg-rose-500/15 border border-rose-500/30 text-rose-200'
+-    : 'bg-amber-500/15 border border-amber-500/30 text-amber-200 animate-pulse';
++    ? `${BADGE_BASE} bg-down/10 border-down/30 text-down`
++    : `${BADGE_BASE} bg-warn/10 border-warn/30 text-warn`;
+ }
+ 
+ interface UnifiedIncidentActivityCardProps {
+@@ -305,9 +291,6 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+   const isNarrow = dimensions.width < 500;
+   const isSuperNarrow = dimensions.width < 380;
+ 
+-  // 時序湧動：量測各節點真實 offsetTop 相對於底部的延遲 (秒)
+-  const [bottomUpDelays, setBottomUpDelays] = useState<Record<string, number>>({});
+-
+   // bot_id → inst_id，成交標題使用合約名稱
+   const instById = useMemo(() => {
+     const map = new Map<string, string>();
+@@ -352,26 +335,6 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+     return rows.filter((row) => currentTab.filterFn(row.event));
+   }, [rows, currentTab]);
+ 
+-  // 由下往上物理幾何計算：當前節點距離容器底部的真實像素距離比率
+-  useEffect(() => {
+-    if (!containerRef.current) return;
+-    const totalH = containerRef.current.scrollHeight;
+-    if (totalH <= 0) return;
+-
+-    const newDelays: Record<string, number> = {};
+-    filteredRows.forEach((row) => {
+-      const el = nodeRefs.current.get(row.key);
+-      if (el) {
+-        const nodeY = el.offsetTop + 8;
+-        // 由下往上：離底部的距離 = totalH - nodeY
+-        const distFromBottom = Math.max(0, totalH - nodeY);
+-        const ratio = Math.max(0, Math.min(1, distFromBottom / totalH));
+-        newDelays[row.key] = Number((ratio * DURATION_SEC).toFixed(3));
+-      }
+-    });
+-    setBottomUpDelays(newDelays);
+-  }, [filteredRows, expandedKey]);
+-
+   const toggleRow = (key: string) => {
+     setExpandedKey((prev) => (prev === key ? null : key));
+   };
+@@ -388,7 +351,7 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+   return (
+     <div ref={cardRef} className={cn('flex flex-col h-full w-full select-none overflow-hidden bg-surface/40 font-mono', className)}>
+       {/* 1. Header 區域：整合卡片標題 + 右上角統一微膠囊 (窄版自適應簡短標籤，杜絕標題截字) */}
+-      <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
++      <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border shrink-0 gap-2">
+         <CardHeaderTitle
+           cardId="activity_deck"
+           title="事件審計與成交流水"
+@@ -411,9 +374,9 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+               className={cn(
+                 'px-1.5 sm:px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0',
+                 category === tab.id
+-                  ? 'bg-secondary text-foreground font-semibold shadow-xs'
++                  ? 'bg-secondary text-foreground shadow-xs'
+                   : tab.isAlert
+-                  ? 'text-amber-300/90 hover:text-amber-200'
++                  ? 'text-warn hover:text-foreground'
+                   : 'text-muted-foreground hover:text-foreground'
+               )}
+             >
+@@ -440,40 +403,15 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+       >
+         {showEmpty ? (
+           <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-1">
+-            <Inbox className="size-6 text-zinc-500/80 mb-1" />
++            <Inbox className="size-5 text-muted-foreground mb-1" strokeWidth={1.5} />
+             <span className="text-t2">{emptyMessage}</span>
+           </div>
+         ) : (
+-          <div className="relative pl-3 space-y-2.5">
++          <div className="relative pl-3 space-y-1">
+             {/* 導軌系統：由下往上向上湧動 */}
+             <div className="absolute left-[20px] -translate-x-1/2 top-2 bottom-2 w-[20px] pointer-events-none z-0 overflow-hidden">
+               {/* 1. 底層 1px 磨砂暗色導軌線 */}
+-              <div className="absolute left-[10px] -translate-x-1/2 top-0 bottom-0 w-[1px] bg-white/[0.08]" />
+-
+-              {/* 2. 由下往上光子漫射流束 (純白光) */}
+-              <div
+-                className="absolute left-[2px] bottom-0 w-[20px]"
+-                style={{ display: 'none' }}
+-              >
+-                <div
+-                  className="hidden"
+-                  style={{
+-                    width: `${GLOW_SPREAD}px`,
+-                    height: `${Math.round(PHOTON_LENGTH * 1.25)}px`,
+-                    opacity: PHOTON_BRIGHTNESS / 100,
+-                    filter: `blur(${Math.max(2, Math.round(GLOW_SPREAD * 0.28))}px)`,
+-                  }}
+-                />
+-                <div
+-                  className="hidden"
+-                  style={{
+-                    width: `${PHOTON_WIDTH}px`,
+-                    height: `${PHOTON_LENGTH}px`,
+-                    opacity: 1,
+-                    boxShadow: `0 0 ${Math.round(8 * (BLOOM_INTENSITY / 100))}px ${Math.round(1 * (BLOOM_INTENSITY / 100))}px rgba(255, 255, 255, 0.7)`,
+-                  }}
+-                />
+-              </div>
++              <div className="absolute left-[10px] -translate-x-1/2 top-0 bottom-0 w-px bg-border" />
+             </div>
+ 
+             {filteredRows.map((row) => {
+@@ -484,8 +422,6 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+               const isError = ev.level === 'ERROR';
+               const detailFields = isExp ? buildDetailFields(ev) : null;
+ 
+-              // 取得該節點離底部的真實幾何延遲 (秒)
+-              const bottomDelay = bottomUpDelays[row.key] ?? 0;
+ 
+               return (
+                 <div
+@@ -498,54 +434,31 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                 >
+                   {/* 時間軸節點小圓點容器 */}
+                   <div className="relative mt-1 shrink-0 z-10 flex items-center justify-center size-4 pointer-events-none">
+-                    {/* 由下往上光子穿透之次表面柔霧微光環 */}
+-                    <span
+-                      className={cn(
+-                        'absolute inline-flex size-2 rounded-full pointer-events-none',
+-                        meta.sonarClass
+-                      )}
+-                      style={{
+-                        animation: `optical-halation-fade ${DURATION_SEC}s cubic-bezier(0.16, 1, 0.3, 1) infinite`,
+-                        animationDelay: `${bottomDelay}s`,
+-                      }}
+-                    />
+-
+-                    {/* 實心核心點：5px 寶石微核，光子經過時產生次表面 Bloom */}
+-                    <span
+-                      className={cn(
+-                        'relative inline-flex size-1.5 rounded-full transition-all duration-150',
+-                        meta.coreClass,
+-                        row.isAlert && 'crystal-breathe-subtle'
+-                      )}
+-                      style={{
+-                        animation: `${meta.bloomAnimation} ${DURATION_SEC}s cubic-bezier(0.16, 1, 0.3, 1) infinite`,
+-                        animationDelay: `${bottomDelay}s`,
+-                      }}
+-                    />
++                    <span className={cn('relative inline-flex size-1.5 rounded-full ring-2 ring-surface', meta.coreClass)} />
+                   </div>
+ 
+                   {/* 事件行容器：完全無框純淨數據流 (Zero-Waste) */}
+                   <div
+                     onClick={() => toggleRow(row.key)}
+                     className={cn(
+-                      'flex-1 min-w-0 transition-all duration-150 cursor-pointer p-2 rounded-md',
++                      'flex-1 min-w-0 transition-colors duration-150 cursor-pointer px-2 py-1.5 rounded-md',
+                       isExp
+-                        ? 'bg-white/[0.035]'
++                        ? 'bg-foreground/[0.04]'
+                         : isError
+-                        ? 'bg-rose-500/[0.02] hover:bg-rose-500/[0.04]'
++                        ? 'bg-down/[0.05] hover:bg-down/[0.08]'
+                         : isWarn
+-                        ? 'bg-amber-500/[0.02] hover:bg-amber-500/[0.04]'
+-                        : 'hover:bg-white/[0.025]'
++                        ? 'bg-warn/[0.05] hover:bg-warn/[0.08]'
++                        : 'hover:bg-foreground/[0.03]'
+                     )}
+                   >
+                     {/* 表頭一行：時間 + 標籤 + 買賣方向 + run + 標題 + 右側權益/等級 + 箭頭 */}
+                     <div className="flex items-center justify-between gap-2 text-t2">
+                       <div className="flex items-center gap-1.5 min-w-0">
+                         {/* 時間戳 (wall_time，Asia/Taipei) */}
+-                        <span className="text-zinc-500 text-t1 shrink-0 font-mono">{row.time}</span>
++                        <span className="num text-muted-foreground text-t2 shrink-0">{row.time}</span>
+ 
+                         {/* 類型 Badge */}
+-                        <span className={cn('px-1.5 py-0.2 rounded text-t1 shrink-0', meta.badgeClass)}>
++                        <span className={cn('text-t2 shrink-0', meta.badgeClass)}>
+                           {meta.label}
+                         </span>
+ 
+@@ -553,10 +466,8 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                         {row.side && (
+                           <span
+                             className={cn(
+-                              'px-1.5 py-0.2 rounded text-t1 font-mono shrink-0 font-semibold border',
+-                              row.side === 'buy'
+-                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+-                                : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
++                              'text-t2 shrink-0',
++                              row.side === 'buy' ? 'text-up' : 'text-down'
+                             )}
+                           >
+                             {row.side === 'buy' ? '買入' : '賣出'}
+@@ -564,15 +475,15 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                         )}
+ 
+                         {/* 關聯 run */}
+-                        <span className="text-zinc-500 text-t1 shrink-0 font-mono hidden sm:inline">
++                        <span className="text-muted-foreground/70 text-t2 shrink-0 font-mono hidden sm:inline">
+                           [{shortId(ev.run_id)}]
+                         </span>
+ 
+                         {/* 事件主標題 */}
+                         <span
+                           className={cn(
+-                            'truncate leading-tight tracking-tight text-t2',
+-                            row.isAlert ? 'text-zinc-100 font-medium' : 'text-zinc-300 font-normal'
++                            'truncate leading-tight text-t2',
++                            row.isAlert ? 'text-foreground' : 'text-foreground/80'
+                           )}
+                         >
+                           {row.title}
+@@ -582,18 +493,18 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                       {/* 右側：成交後權益 / 等級膠囊 / 展開箭頭 */}
+                       <div className="flex items-center gap-2 shrink-0">
+                         {row.rightText ? (
+-                          <span className="text-t2 font-mono tracking-tight text-zinc-300 hidden sm:inline">
++                          <span className="num text-t2 text-foreground/80 hidden sm:inline">
+                             {row.rightText}
+                           </span>
+                         ) : row.isAlert ? (
+-                          <span className={cn('text-t1 font-medium px-2 py-0.2 rounded-full backdrop-blur-xs', levelCapsuleClass(ev.level))}>
++                          <span className={cn('text-t2', levelCapsuleClass(ev.level))}>
+                             {ev.level}
+                           </span>
+                         ) : null}
+ 
+                         <button
+                           type="button"
+-                          className="text-zinc-500 group-hover:text-zinc-300 shrink-0 transition-transform duration-200"
++                          className="text-muted-foreground group-hover:text-foreground shrink-0 transition-colors duration-150"
+                           aria-label={isExp ? '收合' : '展開'}
+                         >
+                           {isExp ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+@@ -605,25 +516,25 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+                     {isExp && (
+                       <div
+                         onClick={(e) => e.stopPropagation()}
+-                        className="mt-2 pt-2 border-t border-white/[0.05] text-t1 space-y-2 text-zinc-300 snap-accordion-enter"
++                        className="mt-2 pt-2 border-t border-border text-t2 space-y-2 text-foreground/80"
+                       >
+                         {detailFields ? (
+-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2 rounded-md bg-secondary/40 border border-border/60 text-t1 font-mono">
++                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2 rounded bg-secondary/40 border border-border text-t2 font-mono">
+                             {detailFields.map((field) => (
+                               <div key={field.label} className="min-w-0">
+-                                <span className="text-muted-foreground block text-t1 uppercase tracking-wider">{field.label}</span>
+-                                <span className="font-semibold text-foreground break-all">{field.value}</span>
++                                <span className="text-muted-foreground block text-t2">{field.label}</span>
++                                <span className="text-foreground break-all">{field.value}</span>
+                               </div>
+                             ))}
+                           </div>
+                         ) : (
+-                          <pre className="text-t1 font-mono max-h-40 overflow-auto p-2 rounded-md bg-secondary/40 border border-border/60 text-zinc-300 whitespace-pre-wrap break-all custom-scrollbar">
++                          <pre className="text-t2 font-mono max-h-40 overflow-auto p-2 rounded bg-secondary/40 border border-border text-foreground/80 whitespace-pre-wrap break-all custom-scrollbar">
+                             {JSON.stringify(ev.payload, null, 1)}
+                           </pre>
+                         )}
+ 
+                         {/* 底部來源列 */}
+-                        <div className="flex items-center justify-between pt-1 border-t border-white/[0.04] text-t1 text-zinc-500">
++                        <div className="flex items-center justify-between pt-1 text-t2 text-muted-foreground">
+                           <span className="truncate">
+                             {`seq ${ev.seq} · ${row.syntheticLabel ? '合成時間 ' + row.syntheticLabel + ' · ' : ''}${ev.category}`}
+                           </span>
+@@ -640,7 +551,7 @@ export function UnifiedIncidentActivityCard({ className }: UnifiedIncidentActivi
+ 
+       {/* 3. 後端環形緩衝省略提示：據實回報，不隱藏 */}
+       {eventsOmitted > 0 && (
+-        <div className="shrink-0 px-3 py-1 border-t border-border/60 bg-secondary/30 text-t1 font-mono text-amber-300/90">
++        <div className="shrink-0 px-3 py-1 border-t border-border text-t2 font-mono text-warn">
+           後端環形緩衝已省略 {eventsOmitted} 筆
+         </div>
+       )}
+diff --git a/src/components/catos/v0-bot-table.tsx b/src/components/catos/v0-bot-table.tsx
+index 8224884..bf640d2 100644
+--- a/src/components/catos/v0-bot-table.tsx
++++ b/src/components/catos/v0-bot-table.tsx
+@@ -15,10 +15,10 @@ interface V0BotTableProps {
+ }
+ 
+ export const RISK_STATUS_META: Record<string, { label: string; className: string }> = {
+-  normal: { label: "正常", className: "bg-emerald-400/10 text-emerald-400 border-emerald-400/30" },
+-  soft_latch: { label: "軟鎖存", className: "bg-amber-400/10 text-amber-400 border-amber-400/30" },
+-  hard_latch: { label: "硬鎖存", className: "bg-rose-400/10 text-rose-400 border-rose-400/30" },
+-  missing: { label: "缺基準", className: "bg-zinc-400/10 text-zinc-300 border-zinc-400/30" },
++  normal: { label: "正常", className: "bg-up/10 text-up border-up/25" },
++  soft_latch: { label: "軟鎖存", className: "bg-warn/10 text-warn border-warn/30" },
++  hard_latch: { label: "硬鎖存", className: "bg-down/10 text-down border-down/30" },
++  missing: { label: "缺基準", className: "bg-foreground/5 text-muted-foreground border-border" },
+ };
+ 
+ export const BOT_STATE_LABEL: Record<string, string> = {
+@@ -106,7 +106,7 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+   return (
+     <div className={cn("flex flex-col h-full w-full select-none overflow-hidden bg-surface/40", className)}>
+       {showHeader && (
+-        <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border/80 shrink-0 gap-2">
++        <div className="flex items-center justify-between px-3 h-9 bg-secondary/50 border-b border-border shrink-0 gap-2">
+           <CardHeaderTitle cardId="bots" title="策略實例監控矩陣" />
+           <div className="flex items-center gap-0.5 bg-background/60 border border-border/60 rounded p-0.5 shrink-0 whitespace-nowrap flex-nowrap">
+             {[
+@@ -115,8 +115,8 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+               { id: "stopped", label: `停止(${bots.length - runningCount})` },
+             ].map((f) => (
+               <button key={f.id} type="button" onClick={() => setBotFilter(f.id as typeof botFilter)}
+-                className={cn("px-2 py-0.5 text-t2 font-mono rounded transition-colors cursor-pointer whitespace-nowrap shrink-0",
+-                  botFilter === f.id ? "bg-secondary text-foreground font-semibold shadow-xs" : "text-muted-foreground hover:text-foreground")}>
++                className={cn("px-2 py-0.5 text-t2 font-mono rounded transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0",
++                  botFilter === f.id ? "bg-secondary text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground")}>
+                 {f.label}
+               </button>
+             ))}
+@@ -126,17 +126,17 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+ 
+       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto min-w-0 max-w-full">
+         <table className="w-full text-left border-collapse table-auto min-w-[540px]">
+-          <thead className="border-b border-border/80 bg-background/40 text-t1 font-mono text-muted-foreground sticky top-0 z-10 backdrop-blur-sm">
++          <thead className="border-b border-border bg-surface text-t2 text-muted-foreground sticky top-0 z-10">
+             <tr>
+-              <th className="py-2.5 pl-3 pr-2 font-medium">實例 / 標的</th>
+-              <th className="px-2 font-medium">策略模型 / 曝險</th>
+-              <th className="px-2 text-right font-medium">風控期間損益</th>
+-              <th className="px-2 text-right font-medium hidden sm:table-cell">權益</th>
+-              <th className="px-2 font-medium hidden md:table-cell">風控狀態</th>
+-              <th className="py-2.5 pr-3 pl-2 text-right font-medium">走勢與操作</th>
++              <th className="h-8 pl-3 pr-2 font-normal">實例 / 標的</th>
++              <th className="px-2 font-normal">策略 / 曝險</th>
++              <th className="px-2 text-right font-normal">風控期間損益</th>
++              <th className="px-2 text-right font-normal hidden sm:table-cell">權益</th>
++              <th className="px-2 font-normal hidden md:table-cell">風控狀態</th>
++              <th className="pr-3 pl-2 text-right font-normal">走勢與操作</th>
+             </tr>
+           </thead>
+-          <tbody className="divide-y divide-border/40 text-xs">
++          <tbody className="divide-y divide-border text-xs">
+             {rows.length === 0 && (
+               <tr><td colSpan={6} className="py-8 text-center text-muted-foreground font-mono text-xs">{emptyText}</td></tr>
+             )}
+@@ -149,77 +149,81 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+               const busyKey = controls.busy;
+               return (
+                 <tr key={bot.bot_id} onClick={() => selectBot(bot.bot_id)}
+-                  className={cn("hover:bg-secondary/30 transition-all group cursor-pointer",
+-                    isSelected && "bg-secondary/40", !isActive && "opacity-80")}
++                  className={cn("hover:bg-foreground/[0.03] transition-colors duration-150 group cursor-pointer",
++                    isSelected && "bg-secondary/60 shadow-[inset_2px_0_0_var(--gold)]")}
+                   title="點擊選取此實例">
+-                  <td className="py-2.5 pl-3 pr-2">
++                  <td className="py-2 pl-3 pr-2">
+                     <div className="flex items-center gap-2">
+-                      <span className={cn("w-2 h-2 rounded-full shrink-0",
+-                        isActive ? "bg-emerald-400 shadow-[0_0_6px_var(--emerald-400)]"
+-                        : bot.state === "failed" || bot.state === "recovery_required" ? "bg-rose-400" : "bg-muted-foreground/50")} />
++                      <span className={cn("size-1.5 rounded-full shrink-0",
++                        isActive ? "bg-up"
++                        : bot.state === "failed" || bot.state === "recovery_required" ? "bg-down" : "bg-muted-foreground/40")} />
+                       <div className="flex flex-col min-w-0">
+-                        <span className="text-t4 font-bold text-foreground leading-tight group-hover:text-primary transition-colors whitespace-nowrap">
++                        <span className={cn("text-t4 font-medium leading-tight whitespace-nowrap", isActive ? "text-foreground" : "text-foreground/80")}>
+                           {bot.bot_id}
+                         </span>
+-                        <div className="flex items-center gap-1 text-t1 font-mono text-muted-foreground leading-tight">
+-                          <span className="text-primary font-semibold whitespace-nowrap">{bot.inst_id ?? "不適用"}</span>
++                        <div className="mt-0.5 flex items-center gap-1 text-t2 font-mono text-muted-foreground leading-tight whitespace-nowrap">
++                          <span>{bot.inst_id ?? "不適用"}</span>
+                           <span>{formatTimeframe(bot.timeframe_ms)}</span>
+-                          <span>· {BOT_STATE_LABEL[bot.state] ?? bot.state}</span>
++                          <span className={cn(bot.state === "failed" || bot.state === "recovery_required" ? "text-down" : undefined)}>· {BOT_STATE_LABEL[bot.state] ?? bot.state}</span>
+                         </div>
+                       </div>
+                     </div>
+                   </td>
+ 
+-                  <td className="px-2 py-2.5">
++                  <td className="px-2 py-2">
+                     <div className="flex flex-col gap-0.5">
+-                      <span className="text-t3 font-semibold text-foreground leading-tight">{bot.strategy_name}</span>
+-                      <span className="text-t1 font-mono text-muted-foreground leading-tight">
+-                        {botRisk
+-                          ? `名目 ${formatDecimal(botRisk.derived.notional, { prefix: "$" })} · 單幣上限 ${formatDecimal(botRisk.derived.symbol_budget, { prefix: "$" })}`
+-                          : "尚無風控觀測"}
+-                      </span>
++                      <span className="text-t3 text-foreground leading-tight">{bot.strategy_name}</span>
++                      {botRisk ? (
++                        <span className="text-t2 font-mono text-muted-foreground leading-tight whitespace-nowrap"
++                              title={`單幣上限 ${formatDecimal(botRisk.derived.symbol_budget, { prefix: "$" })}`}>
++                          名目 {formatDecimal(botRisk.derived.notional, { prefix: "$" })}
++                          <span className="text-muted-foreground/60"> / {formatDecimal(botRisk.derived.symbol_budget, { prefix: "$" })}</span>
++                        </span>
++                      ) : (
++                        <span className="text-t2 text-muted-foreground leading-tight whitespace-nowrap">尚無風控觀測</span>
++                      )}
+                     </div>
+                   </td>
+ 
+-                  <td className="px-2 py-2.5 text-right font-mono">
++                  <td className="px-2 py-2 text-right font-mono">
+                     <div className="flex flex-col items-end">
+-                      <span className={cn("text-t4 font-bold leading-tight", toneOf(botRisk?.derived.period_pnl))}>
++                      <span className={cn("num text-t4 leading-tight", toneOf(botRisk?.derived.period_pnl))}>
+                         {formatDecimal(botRisk?.derived.period_pnl, { sign: true, prefix: "$" })}
+                       </span>
+-                      <span className={cn("text-t1 leading-tight font-semibold", toneOf(botRisk?.derived.period_pnl_ratio))}>
++                      <span className={cn("num text-t2 leading-tight mt-0.5", toneOf(botRisk?.derived.period_pnl_ratio))}>
+                         {formatRatioPct(botRisk?.derived.period_pnl_ratio)}
+                       </span>
+                     </div>
+                   </td>
+ 
+-                  <td className="px-2 py-2.5 text-right font-mono hidden sm:table-cell">
++                  <td className="px-2 py-2 text-right font-mono hidden sm:table-cell">
+                     <div className="flex flex-col items-end">
+-                      <span className="text-t3 font-bold leading-tight text-foreground">
++                      <span className="num text-t4 leading-tight text-foreground">
+                         {formatDecimal(bot.equity, { prefix: "$" }, "未啟動")}
+                       </span>
+-                      <span className="text-t1 text-muted-foreground leading-tight">
++                      <span className="text-t2 text-muted-foreground leading-tight mt-0.5 whitespace-nowrap">
+                         {bot.account_source ? ACCOUNT_SOURCE_LABEL[bot.account_source] : "無帳戶觀測"}
+                       </span>
+                     </div>
+                   </td>
+ 
+-                  <td className="px-2 py-2.5 font-mono hidden md:table-cell">
++                  <td className="px-2 py-2 font-mono hidden md:table-cell">
+                     {statusMeta ? (
+                       <div className="flex items-center gap-1.5 leading-tight">
+-                        <span className={cn("px-1.5 py-0.2 rounded border text-t1 font-semibold whitespace-nowrap", statusMeta.className)}>
++                        <span className={cn("px-1.5 rounded border text-t2 leading-4 whitespace-nowrap", statusMeta.className)}>
+                           {statusMeta.label} (槓桿 {formatDecimal(botRisk?.derived.effective_leverage, { digits: 2 })}x)
+                         </span>
+                       </div>
+                     ) : (
+-                      <span className="text-t2 text-muted-foreground">尚無觀測</span>
++                      <span className="text-t2 text-muted-foreground whitespace-nowrap">尚無觀測</span>
+                     )}
+                   </td>
+ 
+-                  <td className="py-2.5 pr-3 pl-2 text-right">
++                  <td className="py-2 pr-3 pl-2 text-right">
+                     <div className="flex items-center justify-end gap-2">
+                       {spark.path ? (
+                         <svg width={56} height={16} className="overflow-visible shrink-0 hidden xl:block">
+-                          <path d={spark.path} fill="none" stroke={spark.isGain ? "var(--primary)" : "#f43f5e"}
++                          <path d={spark.path} fill="none" stroke={spark.isGain ? "var(--up)" : "var(--down)"} opacity={0.8}
+                                 strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+                         </svg>
+                       ) : null}
+@@ -227,23 +231,23 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+                         <button type="button" disabled={!controls.canStop || busyKey !== null}
+                           onClick={(e) => { e.stopPropagation(); void controls.stop(bot); }}
+                           title={controls.canStop ? "完成當前事件後停止此 run" : "目前不可停止"}
+-                          className="px-2 py-0.5 rounded text-t2 font-mono border border-border/80 bg-background/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
++                          className="h-6 px-2 rounded text-t2 border border-border bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+                           {busyKey === `stop:${bot.bot_id}` ? "送出中" : "暫停"}
+                         </button>
+                       ) : (
+                         <button type="button" disabled={!controls.canStart || busyKey !== null}
+                           onClick={(e) => { e.stopPropagation(); void controls.start(bot); }}
+                           title={controls.canStart ? "以固定模板啟動新 run (POST /bots/start)" : "槽位占用、來源漂移或非本機模式時不可啟動"}
+-                          className="px-2 py-0.5 rounded text-t2 font-mono border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
++                          className="h-6 px-2 rounded text-t2 border border-border bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+                           {busyKey === `start:${bot.bot_id}` ? "送出中" : "恢復"}
+                         </button>
+                       )}
+                       <button type="button"
+                         onClick={(e) => { e.stopPropagation(); selectBot(bot.bot_id); navigate("/bots"); }}
+                         title="開啟實例監控頁"
+-                        className="px-2 py-0.5 rounded text-t2 font-mono border border-primary/40 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all cursor-pointer flex items-center gap-0.5 whitespace-nowrap">
++                        className="h-6 pl-2 pr-1.5 rounded text-t2 border border-border bg-secondary text-foreground hover:bg-surface-raised hover:border-foreground/20 transition-colors duration-150 cursor-pointer flex items-center gap-1 whitespace-nowrap">
+                         <span>詳情</span>
+-                        <ArrowUpRight className="size-2.5" />
++                        <ArrowUpRight className="size-3 text-muted-foreground" strokeWidth={1.5} />
+                       </button>
+                     </div>
+                   </td>
+@@ -253,7 +257,7 @@ export function V0BotTable({ className, showHeader = true }: V0BotTableProps) {
+           </tbody>
+         </table>
+         {controls.error && (
+-          <div className="px-3 py-1.5 text-t1 font-mono text-rose-400 border-t border-border/60">命令失敗：{controls.error}</div>
++          <div className="px-3 py-1.5 text-t2 font-mono text-down border-t border-border">命令失敗：{controls.error}</div>
+         )}
+       </div>
+     </div>
+diff --git a/src/components/catos/workspace-grid.tsx b/src/components/catos/workspace-grid.tsx
+index 959d476..50aff31 100644
+--- a/src/components/catos/workspace-grid.tsx
++++ b/src/components/catos/workspace-grid.tsx
+@@ -36,22 +36,21 @@ function EmptyWorkspacePrompt() {
+   const { applyLayoutPreset, addNewCard } = useLayoutStore();
+ 
+   return (
+-    <div className="h-full w-full flex flex-col items-center justify-center p-6 select-none bg-surface/30 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
++    <div className="h-full w-full flex flex-col items-center justify-center p-6 select-none animate-in fade-in slide-in-from-bottom-2 duration-300">
+       <div className="max-w-[820px] w-full flex flex-col items-center text-center gap-5">
+         {/* 微型狀態徽章 */}
+-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-t3 font-mono shadow-xs">
+-          <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+-          工作區目前已清空 · 自由自訂模式
++        <div className="text-t3 font-mono text-muted-foreground">
++          工作區已清空
+         </div>
+ 
+         {/* 標題與說明 */}
+         <div className="flex flex-col gap-1.5">
+-          <h2 className="text-xl font-bold text-foreground tracking-tight flex items-center justify-center gap-2">
+-            <LayoutGrid className="size-5 text-primary" />
+-            自訂您的 CatOS 量化戰情面板
++          <h2 className="text-lg font-medium text-foreground flex items-center justify-center gap-2">
++            <LayoutGrid className="size-4 text-muted-foreground" strokeWidth={1.5} />
++            選擇工作台排版
+           </h2>
+           <p className="text-xs text-muted-foreground leading-relaxed max-w-lg">
+-            您已關閉所有卡片。可直接點選下方推薦的量化戰情排版立即就位，或透過快捷按鈕單點加入所需卡片：
++            套用一組推薦排版，或從下方逐張加入卡片。
+           </p>
+         </div>
+ 
+@@ -62,20 +61,20 @@ function EmptyWorkspacePrompt() {
+               key={preset.id}
+               type="button"
+               onClick={() => applyLayoutPreset(preset.id)}
+-              className="flex flex-col items-start p-3 rounded-lg border border-border/80 bg-surface/90 hover:border-primary/60 hover:bg-secondary/50 text-left transition-all group cursor-pointer shadow-xs"
++              className="flex flex-col items-start p-3 rounded-lg border border-border bg-surface hover:border-foreground/20 hover:bg-secondary/50 text-left transition-colors duration-150 group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
+             >
+               <div className="flex items-center justify-between w-full mb-1.5">
+-                <span className="text-t4 font-bold text-foreground group-hover:text-primary transition-colors">
++                <span className="text-t4 font-medium text-foreground">
+                   {preset.shortName}
+                 </span>
+-                <span className="text-t1 font-mono px-1.5 py-0.2 rounded bg-primary/15 text-primary border border-primary/30 font-semibold">
++                <span className="text-t2 font-mono text-muted-foreground">
+                   {preset.cardCount} 卡
+                 </span>
+               </div>
+               <p className="text-t2 text-muted-foreground leading-tight line-clamp-2">
+                 {preset.desc}
+               </p>
+-              <span className="mt-3 text-t2 font-mono text-primary font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
++              <span className="mt-3 text-t2 text-muted-foreground group-hover:text-primary flex items-center gap-1 transition-colors duration-150">
+                 套用排版 <ArrowRight className="size-3" />
+               </span>
+             </button>
+@@ -83,10 +82,10 @@ function EmptyWorkspacePrompt() {
+         </div>
+ 
+         {/* 快捷單卡加入區 */}
+-        <div className="flex flex-col items-center gap-2 mt-2 w-full pt-4 border-t border-border/60">
+-          <span className="text-t2 font-mono text-muted-foreground flex items-center gap-1.5">
+-            <Layers className="size-3.5 text-primary/70" />
+-            或由零開始自由單點組裝卡片：
++        <div className="flex flex-col items-center gap-2 mt-2 w-full pt-4 border-t border-border">
++          <span className="text-t3 text-muted-foreground flex items-center gap-1.5">
++            <Layers className="size-3.5" strokeWidth={1.5} />
++            逐張加入
+           </span>
+           <div className="flex flex-wrap items-center justify-center gap-1.5 max-w-2xl">
+             {ALL_CARDS.map((card) => (
+@@ -94,9 +93,9 @@ function EmptyWorkspacePrompt() {
+                 key={card.id}
+                 type="button"
+                 onClick={() => addNewCard(card.id)}
+-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-t3 font-mono font-medium border border-border/70 bg-secondary/60 hover:bg-primary/15 hover:border-primary/50 hover:text-primary text-foreground transition-all cursor-pointer shadow-2xs"
++                className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-t3 border border-border bg-secondary/60 hover:bg-secondary hover:border-foreground/20 text-foreground transition-colors duration-150 cursor-pointer"
+               >
+-                <Plus className="size-3 text-primary" />
++                <Plus className="size-3 text-muted-foreground" />
+                 <span>{card.nameZh}</span>
+               </button>
+             ))}
+diff --git a/src/lib/format.ts b/src/lib/format.ts
+index b8640ee..97ec411 100644
+--- a/src/lib/format.ts
++++ b/src/lib/format.ts
+@@ -143,8 +143,8 @@ export function signOf(value: DecimalString | null | undefined): Sign | null {
+ /** Tailwind tone for a signed Decimal string. */
+ export function toneOf(value: DecimalString | null | undefined): string {
+   const sign = signOf(value);
+-  if (sign === 'positive') return 'text-emerald-400 font-semibold';
+-  if (sign === 'negative') return 'text-rose-400 font-semibold';
++  if (sign === 'positive') return 'text-up';
++  if (sign === 'negative') return 'text-down';
+   return 'text-muted-foreground';
+ }
+ 
+diff --git a/src/lib/layout-tree/tree-node-renderer.tsx b/src/lib/layout-tree/tree-node-renderer.tsx
+index ef8c651..a155fb1 100644
+--- a/src/lib/layout-tree/tree-node-renderer.tsx
++++ b/src/lib/layout-tree/tree-node-renderer.tsx
+@@ -116,14 +116,12 @@ function LeafCardPane({
+           data-leaf-id={leaf.id}
+           data-card-id={leaf.cardId}
+           className={cn(
+-            "relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-surface/90 backdrop-blur-md ring-2 ring-primary/80 shadow-[0_0_30px_rgba(232,180,94,0.3)] animate-in zoom-in-95 duration-150 group/card",
++            "relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-surface ring-1 ring-primary/60 animate-in fade-in duration-150 group/card",
+             seamStyle === "seamless" && "rounded-none",
+             seamStyle === "compact" && "rounded-md border border-primary/75",
+             seamStyle === "floating" && "rounded-xl border border-primary/80"
+           )}
+         >
+-          {/* 頂部極細緻的微光狀態線（呼吸光暈，指示正在就位） */}
+-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse z-20 pointer-events-none" />
+           <div className="flex-1 min-h-0 flex flex-col overflow-hidden [&_.panel]:border-0 [&_.panel]:rounded-none [&_.panel]:bg-transparent [&_.panel]:backdrop-blur-none [&_.panel]:shadow-none">
+             {renderCard(leaf.cardId)}
+           </div>
+@@ -139,13 +137,13 @@ function LeafCardPane({
+           data-leaf-id={leaf.id}
+           data-card-id={leaf.cardId}
+           className={cn(
+-            "relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-primary/[0.08] border-2 border-dashed border-primary/70 backdrop-blur-sm animate-in zoom-in-95 duration-150 items-center justify-center select-none",
++            "relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-primary/[0.06] border border-dashed border-primary/60 animate-in fade-in duration-150 items-center justify-center select-none",
+             seamStyle === "seamless" && "rounded-none",
+             seamStyle === "compact" && "rounded-md",
+             seamStyle === "floating" && "rounded-xl"
+           )}
+         >
+-          <div className="size-2 rounded-full bg-primary/70 animate-ping" />
++          <div className="size-2 rounded-full bg-primary/70" />
+         </div>
+       );
+     }
+@@ -211,13 +209,13 @@ function LeafCardPane({
+       onDragStart={(e) => e.preventDefault()}
+       onPointerDown={handlePointerDown}
+       className={cn(
+-        "relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-surface/90 backdrop-blur-md group/card select-none",
++        "relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-surface group/card select-none",
+         seamStyle === "seamless" && "rounded-none border-0 shadow-none",
+-        seamStyle === "compact" && "rounded-md border border-border/75 shadow-xs",
+-        seamStyle === "floating" && "rounded-xl border border-border/80 shadow-xs",
+-        !isResizing && "transition-all duration-200",
++        seamStyle === "compact" && "rounded-md border border-border",
++        seamStyle === "floating" && "rounded-xl border border-border",
++        !isResizing && "transition-[opacity,border-color] duration-200",
+         isResizing && "pointer-events-none select-none",
+-        isDraggingThis && "opacity-35 border-2 border-dashed border-primary/70 ring-1 ring-primary/30"
++        isDraggingThis && "opacity-40 border border-dashed border-primary/60"
+       )}
+     >
+       <div className="flex-1 min-h-0 flex flex-col overflow-hidden [&_.panel]:border-0 [&_.panel]:rounded-none [&_.panel]:bg-transparent [&_.panel]:backdrop-blur-none [&_.panel]:shadow-none">
+diff --git a/src/lib/layout-tree/tree-splitter.tsx b/src/lib/layout-tree/tree-splitter.tsx
+index 780b9ad..e1a033e 100644
+--- a/src/lib/layout-tree/tree-splitter.tsx
++++ b/src/lib/layout-tree/tree-splitter.tsx
+@@ -112,22 +112,22 @@ export function TreeSplitter({
+       {/* 分割線本體 (Bloomberg AIM 5px 微隙：平時內斂 1px 暗線，hover 浮現金色鐳射導軌) */}
+       <div
+         className={cn(
+-          "transition-all duration-150 pointer-events-none",
++          "transition-colors duration-150 pointer-events-none",
+           isRow ? "h-full w-[1px]" : "w-full h-[1px]",
+           seamStyle === "compact" && (
+             isDragging
+-              ? "bg-primary shadow-[0_0_10px_var(--primary)] w-[1.5px] h-[1.5px]"
+-              : "bg-border/30 group-hover:bg-primary/90 group-hover:shadow-[0_0_8px_var(--primary)]"
++              ? "bg-primary w-[1.5px] h-[1.5px]"
++              : "bg-border/30 group-hover:bg-primary/90"
+           ),
+           seamStyle === "seamless" && (
+             isDragging
+-              ? "bg-primary shadow-[0_0_10px_var(--primary)] w-[1.5px] h-[1.5px]"
+-              : "bg-border/75 group-hover:bg-primary group-hover:shadow-[0_0_8px_var(--primary)]"
++              ? "bg-primary w-[1.5px] h-[1.5px]"
++              : "bg-border/75 group-hover:bg-primary"
+           ),
+           seamStyle === "floating" && (
+             isDragging
+-              ? "bg-primary shadow-[0_0_10px_var(--primary)]"
+-              : "bg-transparent group-hover:bg-primary/80 group-hover:shadow-[0_0_6px_var(--primary)]"
++              ? "bg-primary"
++              : "bg-transparent group-hover:bg-primary/80"
+           )
+         )}
+       />
+diff --git a/src/styles/globals.css b/src/styles/globals.css
+index 8180f7d..d6018da 100644
+--- a/src/styles/globals.css
++++ b/src/styles/globals.css
+@@ -120,8 +120,8 @@
+   --destructive: oklch(0.64 0.2 22);
+   --destructive-foreground: oklch(0.97 0.005 90);
+ 
+-  --border: oklch(0.42 0.009 260 / 38%);
+-  --input: oklch(0.42 0.009 260 / 60%);
++  --border: oklch(0.94 0.004 260 / 10%);
++  --input: oklch(0.94 0.004 260 / 14%);
+   --ring: oklch(0.78 0.15 75 / 55%);
+ 
+   --sidebar: oklch(0.18 0.004 260);
+@@ -206,48 +206,24 @@ body, aside, nav, header {
+   font-family: var(--font-mono);
+   font-size: 0.625rem;
+   letter-spacing: 0;
+-  text-transform: uppercase;
+   color: var(--color-muted-foreground);
+ }
+ 
+-@keyframes live-beacon {
+-  0%,
+-  100% {
+-    transform: scale(1);
+-    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.65), 0 0 4px rgba(52, 211, 153, 0.85);
+-    opacity: 0.95;
+-  }
+-  50% {
+-    transform: scale(1.08);
+-    box-shadow: 0 0 0 3px rgba(52, 211, 153, 0), 0 0 7px rgba(52, 211, 153, 1);
+-    opacity: 1;
+-  }
+-}
+-
+-@keyframes live-beacon-warn {
+-  0%,
+-  100% {
+-    transform: scale(1);
+-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.65), 0 0 4px rgba(245, 158, 11, 0.85);
+-    opacity: 0.95;
+-  }
+-  50% {
+-    transform: scale(1.08);
+-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0), 0 0 7px rgba(245, 158, 11, 1);
+-    opacity: 1;
+-  }
+-}
+-
++/*
++ * Status dots stay still. A dot's colour already says it is live; looping
++ * glows on every row competed with the data (see docs/dashboard-unslop.md).
++ * The utilities are kept so existing call sites keep compiling.
++ */
+ @utility status-breathe {
+-  animation: live-beacon 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
++  animation: none;
+ }
+ 
+ @utility status-breathe-warn {
+-  animation: live-beacon-warn 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
++  animation: none;
+ }
+ 
+ @utility pulse-dot {
+-  animation: live-beacon 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
++  animation: none;
+ }
+ 
+ @keyframes cat-flash-up {
+@@ -311,5 +287,5 @@ body, aside, nav, header {
+   border-radius: 4px;
+ }
+ .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+-  background: rgba(232, 180, 94, 0.45);
++  background: rgba(255, 255, 255, 0.24);
+ }
