@@ -1,6 +1,6 @@
 ---
 name: omnikit-weekly
-description: 產生使用者自己的 OmniKit 個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率，以及成本（新裝工具的開頭成本、背景用量、對話開頭的大小）；也依這台裝了什麼、用了什麼給建議，分成裝、拿掉、用內建的就好三類（名冊沒有答案的槽位會從官方目錄找名冊外的候選），另外看規則檔（CLAUDE.md、AGENTS.md）每段對話花多少、哪些規則可以拿掉。也在使用者同意後，把去識別的使用統計匯出成檔案回報給維護者（回流）。使用者說「OmniKit 本週週報」「本週週報」「我的週報」「OmniKit 給我建議」「我該裝什麼」「哪些可以拿掉」「規則檔瘦身」「匯出回流」「回報我的使用情況」時使用；不管訪談時有沒有選評估新工具都有。Generates the user's personal weekly OmniKit report and install, remove, or use-built-in advice.
+description: 產生使用者自己的 OmniKit 個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率，以及成本（新裝工具的開頭成本、背景用量、對話開頭的大小）；也依這台裝了什麼、用了什麼給建議，分成裝、換、拿掉、用內建的就好四類（換是 14 天試用，可以一句話換回）（名冊沒有答案的槽位會從官方目錄找名冊外的候選），另外看規則檔（CLAUDE.md、AGENTS.md）每段對話花多少、哪些規則可以拿掉。也在使用者同意後，把去識別的使用統計匯出成檔案回報給維護者（回流）。使用者說「OmniKit 本週週報」「本週週報」「我的週報」「OmniKit 給我建議」「我該裝什麼」「哪些可以拿掉」「規則檔瘦身」「套用這個替換」「換回」「匯出回流」「回報我的使用情況」時使用；不管訪談時有沒有選評估新工具都有。Generates the user's personal weekly OmniKit report and install, remove, or use-built-in advice.
 ---
 
 # OmniKit 個人週報
@@ -45,7 +45,7 @@ uv run scripts/report.py
    第一行會連網（GitHub 與官方 MCP Registry），送出去的只有槽位的關鍵字；結果存在這台，7 天內不重抓。連不上就跳過，第二行照樣能跑。
 
    輸出是 JSON。`active` 是 false 就照 `skip` 的原因回報，不出建議。Antigravity 目前不出建議。
-2. 在 `candidates` 裡挑：`install` 是裝，`remove` 是拿掉，`native` 是用內建的就好，`rules` 是規則檔瘦身（見下面第 3 點）。
+2. 在 `candidates` 裡挑：`install` 是裝，`replace` 是換（這台同一件事裝的是別的工具，名冊建議另一個），`remove` 是拿掉，`native` 是用內建的就好，`rules` 是規則檔瘦身（見下面第 3 點）。
    - 只能挑候選裡有的 `id`。你知道名冊外更好的工具，照下面第 3 點交給腳本檢查過才能挑。
    - `outside` 是 true 的 `install` 候選是名冊外的（`id` 開頭是 `pool:`）：來自官方目錄、官方 MCP Registry 或上網找到的，沒有實測過，比對只看字面，雜訊很多。要從嚴：
      - 先看 `description` 是不是真的在做這個槽位的事，不是就不挑。
@@ -93,10 +93,40 @@ uv run scripts/report.py
 6. 照各節講給使用者聽，問要做哪幾項。使用者同意的才做，用輸出裡寫的指令：
    - 裝：照「同意後執行」在終端機跑（Claude Code 是 `claude plugin install`，Codex 是 `codex plugin add`）。對話裡的 `/plugin install` 只會開面板。裝好提醒開新的對話。
    - 名冊外的：講明沒有實測過、也沒有做安全掃描，請使用者先看來源再決定。指令是照目錄登記的資料組的，OmniKit 沒有跑過；沒有指令的照來源的說明裝。
+   - 換：照下面「換與換回」那一節做，不要直接跑建議裡的指令。
    - 拿掉：是刪除，一項一項問。有「先停用」的先建議停用。要刪資料夾時把路徑講清楚；寫了別的 agent「也在讀這一份」的，提醒會一起影響。
    - 用內建的就好：不用動手。同一件事另外裝的工具要不要留，由使用者決定。
    - 規則檔瘦身：先講每段對話的成本，再講挑出來的規則。改之前把那個檔備份一份，照輸出寫的檔案與行號拿掉那一條；有「注意」的照做（OmniKit 的 profile 改完要跑 `uv run engine/scripts/profiles.py`）。安全底線不能動。
 7. 使用者說「先這樣」「先留著」就停，不追問。
+
+## 換與換回
+
+建議裡的「換」，或使用者說「套用這個替換」時做。每一步都等使用者同意；這一節的腳本不安裝、不移除，指令由你在終端機跑。
+
+1. 預覽，把輸出原樣講給使用者聽，問「照這樣換嗎？」：
+
+   ```
+   uv run scripts/report.py swap start <replace 候選的 id> --agent <claude 或 codex>
+   ```
+
+2. 同意後記下來。這一步會用 agent 自己的清單拍一張替換前的快照，再印出要跑的指令：
+
+   ```
+   uv run scripts/report.py swap start <replace 候選的 id> --agent <claude 或 codex> --write
+   ```
+
+3. 照輸出的順序在終端機跑指令（先裝新的；Claude Code 的 plugin 再停用舊的）。沒有指令的照輸出寫的來源裝。舊的不要移除：試用期間要留著，換回才有東西可以打開。
+4. 確認，沒通過就照訊息補做再確認：
+
+   ```
+   uv run scripts/report.py swap check <輸出的替換 id>
+   ```
+
+   通過才算開始試用。提醒開新的對話才會載入。
+5. 試用中或到期（建議的 `notes` 會提醒）：
+   - 使用者說「換回」：`swap revert <id>`，照輸出跑指令，再 `swap check <id>`。輸出「已經換回」才算數；它只比對這次動到的兩個工具，另外列出的變動不要動。
+   - 使用者說要留下新的：`swap keep <id>`。舊的要不要拿掉由使用者決定，拿掉是刪除，一項一項問。
+   - `uv run scripts/report.py swap list` 看所有替換與剩幾天。
 
 ## 回流：把使用情況回報給維護者
 

@@ -350,6 +350,17 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 profile 選了領域的話，只對那些領域的槽位出建議；沒選過就對照全部模組。這台沒裝、或 30 天內沒有對話紀錄的 agent 不出建議；Antigravity 目前不出建議。設計與業界做法的比較見 [docs/proposals/2026-11-11-diagnose-advice.md](docs/proposals/2026-11-11-diagnose-advice.md)。
 
+### 換與換回
+
+建議裡多一類「換」：同一件事這台裝的是 A，名冊的答案（或寫明 `replaces` 的卡）建議 B。說「套用這個替換」，`engine/scripts/swap.py` 會：
+
+1. 預覽要跑的指令、試用到哪天（14 天）、怎麼換回；同意後才記下來，同時用 agent 自己的清單（`claude plugin list`、`codex plugin list`、`codex mcp list` 與 skill 資料夾）拍一張替換前的快照。
+2. agent 照指令先裝 B；Claude Code 的 plugin 再停用 A（可以再打開）。沒有停用指令的，A 先留著，試用期間兩個都在。
+3. `swap check` 確認 B 出現在 agent 自己的清單、A 照計畫停用或還在，才算開始試用。
+4. 說「換回」：移除 B、打開 A，再 `swap check` 比對這次動到的兩個跟替換前一樣才算換回；換回後 30 天內不再建議 B。說要留下 B，A 拿不拿由你決定。
+
+紀錄在 `%LOCALAPPDATA%\omnikit\swaps.json`，只有工具名稱與狀態；MCP 只讀名稱與有沒有啟用，不讀參數。
+
 ### 回流：把使用情況回報給維護者
 
 說「匯出回流」（`omnikit-weekly`）。OmniKit 不會自己送出任何東西：同意之後，`engine/scripts/feedback.py` 在這台產生一個檔，由你自己放到試點約定的共用位置。

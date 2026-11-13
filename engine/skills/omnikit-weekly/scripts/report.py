@@ -14,6 +14,8 @@
   uv run scripts/report.py advise --picks <檔> [--no-save]              驗證挑選，寫出建議
   uv run scripts/report.py pool find                                    名冊沒有答案的槽位，找名冊外的候選（會連網）
   uv run scripts/report.py pool add --slot <id> --file <檔>             記下 agent 上網找到的候選
+  uv run scripts/report.py swap list | start <候選 id> --agent <a> [--write] | check | revert | keep <id>
+                                                                        換：14 天試用、換回與比對
   uv run scripts/report.py feedback status | consent yes|no             回流：看狀態、同意或撤回
   uv run scripts/report.py feedback export [--write]                    回流：預覽去識別的使用統計；--write 才寫檔
   uv run scripts/report.py feedback import <檔或資料夾>... [--write]     維護者：彙整收到的回流檔
@@ -53,6 +55,9 @@ def main():
     if sys.argv[1:2] == ["pool"]:
         import pool
         return pool.main(sys.argv[2:])
+    if sys.argv[1:2] == ["swap"]:
+        import swap
+        return swap.main(sys.argv[2:])
     if sys.argv[1:2] == ["feedback"]:
         import feedback
         return feedback.main(sys.argv[2:])

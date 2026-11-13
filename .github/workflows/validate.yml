@@ -63,6 +63,7 @@ jobs:
       # 規則檔瘦身：照對話紀錄實際載入的規則檔算大小，拆成一條一條，安全底線不會變成候選
       - run: uv run engine/scripts/rules.py --selftest
       - run: uv run engine/scripts/pool.py --selftest
+      - run: uv run engine/scripts/swap.py --selftest
       - run: uv run engine/scripts/advise.py --selftest
       - run: uv run engine/scripts/feedback.py --selftest
       # 自我迭代第 1 階段：訊號只連本機來源、金鑰只放標頭、讀到上次的位置就停；判斷要有理由、名冊層要有目標；

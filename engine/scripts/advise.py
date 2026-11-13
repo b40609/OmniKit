@@ -41,7 +41,7 @@ import socket
 import sys
 import tempfile
 import time
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -51,13 +51,14 @@ import pool  # noqa: E402
 import profiles  # noqa: E402
 import rules  # noqa: E402
 import scan  # noqa: E402
+import swap  # noqa: E402
 import usage  # noqa: E402
 import validate  # noqa: E402
 
 AGENTS = {"claude": "claude-code", "codex": "codex"}  # 名冊與答案用的名稱 → 使用統計用的名稱
 LABELS = {"claude": "Claude Code", "codex": "Codex"}
-KINDS = ("install", "remove", "native", "rules")
-TITLES = {"install": "裝", "remove": "拿掉", "native": "用內建的就好", "rules": "規則檔瘦身"}
+KINDS = ("install", "replace", "remove", "native", "rules")
+TITLES = {"install": "裝", "replace": "換", "remove": "拿掉", "native": "用內建的就好", "rules": "規則檔瘦身"}
 STATUS = {"default": "預設", "trial": "試用", "pending": "待評估", "rejected": "拒絕", "retired": "退役"}
 # 掃得到有沒有裝的種類；獨立程式、線上服務、命令列工具、程式庫、裝在專案裡的集合與規則包掃不到
 DETECTABLE = {"skill", "plugin", "mcp"}
@@ -163,6 +164,67 @@ def how_remove(item, agent):
     return {"remove_path": f"{item['where']}/{name}"}
 
 
+def how_replace(item, card, agent, cfg, added):
+    """同意後怎麼換：先裝新的；舊的能停用就停用（可以再打開），不能就先留著，試用期間兩個都在。
+    換回：移除新的、把舊的打開。試用結束留下新的：舊的照「拿掉」的方式，由使用者決定。"""
+    inst, old = how_install(card, agent, cfg, added), how_remove(item, agent)
+    apply, revert, notes = list(inst["commands"]), [], [inst["note"]]
+    if old.get("disable"):
+        apply.append(old["disable"])
+    else:
+        notes.append(f"舊的 {item['name']} 先留著不動（{LABELS[agent]} 沒有停用這類工具的指令）：試用期間兩個都在，結束時再決定拿掉哪一個")
+    revert_note = None
+    if inst["commands"]:
+        name = inst["commands"][-1].split()[-1]
+        revert.append(f"claude plugin uninstall {name}" if agent == "claude" else f"codex plugin remove {name}")
+    else:
+        revert_note = f"新的不是用 plugin 裝的：照 {card.get('url') or '它的官方說明'} 移除"
+    if old.get("disable"):
+        revert.append(old["disable"].replace(" disable ", " enable ", 1))
+    return {"apply": apply, "disable_old": bool(old.get("disable")), "revert": revert, "finish": old,
+            "note": "；".join(notes), **({"revert_note": revert_note} if revert_note else {})}
+
+
+def replace_candidates(slots, answers, third, pairs, have, agent, cfg, added, quiet, today):
+    """換：槽位在這個 agent 的答案是裝某張卡（或名冊有卡寫明 replaces），而這台裝的是同一個槽位的另一張卡。
+    回傳（候選, 被換掉而不用另外列「裝」的卡 id）。quiet 是換回不到 30 天的 {(槽位, 卡)}，這段期間不再推。"""
+    out, taken = [], set()
+    for s in slots:
+        a = answers[s["id"]]
+        targets = []
+        if a.get("verdict") == "tool" and a.get("tool") in third and supports(third[a["tool"]], agent):
+            targets.append((third[a["tool"]], None, {"code": "answer", "text": a.get("reason"), "evidence": a.get("evidence"),
+                                                     "decided_at": a.get("decided_at")}))
+        elif a.get("verdict", "unknown") == "unknown":
+            for card in third.values():
+                old_id = card.get("replaces")
+                if (old_id in third and card["status"] in ("default", "trial") and supports(card, agent)
+                        and s["id"] in card["slots"] and s["id"] in third[old_id]["slots"]):
+                    targets.append((card, old_id, {"code": "replaces", "text": card.get("reason"), "decided_at": card.get("decided_at"),
+                                                   "trial_until": card.get("trial_until"),
+                                                   "caveat": f"名冊的{STATUS[card['status']]}，卡片寫明取代 {third[old_id]['name']}"}))
+        for new, only, basis in targets:
+            if new["id"] in have or (s["id"], new["id"]) in quiet:
+                continue
+            for i, c in pairs:
+                if not c or i.get("ours") or c["id"] == new["id"] or s["id"] not in c["slots"] or (only and c["id"] != only):
+                    continue
+                cid = f"replace:{s['id']}:{c['id']}:{new['id']}"
+                if any(x["id"] == cid for x in out):
+                    continue
+                taken.add(new["id"])
+                out.append({
+                    "id": cid, "slot": s["id"], "slot_name": s["name"], "module": s["module"], "old": brief(i, c),
+                    "new": {"tool": new["id"], "name": new["name"], "kind": new.get("kind"), "status": new["status"],
+                            "plugin_name": (new.get("plugin") or {}).get("name"), "url": new.get("url"),
+                            "detectable": new.get("kind") in DETECTABLE},
+                    "basis": {k: v for k, v in basis.items() if v},
+                    "also": sorted(x for x in c["slots"] if x != s["id"]),
+                    "trial_until": (today + timedelta(days=swap.TRIAL_DAYS)).isoformat(),
+                    "how": how_replace(i, new, agent, cfg, added)})
+    return out, taken
+
+
 def rule_candidates(loaded, startup):
     """規則檔的事實與候選。loaded 是 rules.inspect 的結果；startup 是這個 agent 這 7 天對話開頭的大小（可以是 None）。
     安全底線已經在 rules.py 排除；剩下的每一條都是候選，腳本只附上標得出來的訊號，是不是該拿掉由 agent 判斷。"""
@@ -185,7 +247,7 @@ def rule_candidates(loaded, startup):
 
 
 def diagnose(roster, used, costs, found, edition="colleague", added=None, today=None, notes=(), loaded_rules=None,
-             pooled=None, markets=None):
+             pooled=None, markets=None, swaps=None):
     """純計算：名冊、使用統計（usage.collect 的結果，可以多帶 MCP）、成本（cost.measure 的結果或 None）→ 事實與候選。"""
     cfg, tools, added = roster.get("config") or {}, roster["tools"], added or {}
     third = {k: v for k, v in tools.items() if v.get("kind") != "native"}
@@ -254,6 +316,23 @@ def diagnose(roster, used, costs, found, edition="colleague", added=None, today=
                 offer(card, undecided[0], {"code": f"roster-{card['status']}", "text": card.get("reason"),
                                            "decided_at": card.get("decided_at"), "trial_until": card.get("trial_until"),
                                            "caveat": f"名冊的{STATUS[card['status']]}，還沒有分 agent 的實測"})
+
+        # 換：同一個槽位這台裝的是別張卡。換掉的那張不再另外列在「裝」；換回不到 30 天的不再推
+        day = today or date.today()
+        quiet = swap.recent(swaps, agent, day)
+        entry["candidates"]["replace"], swapping = replace_candidates(slots, answers, third, pairs, have, agent, cfg,
+                                                                      added.get(agent), quiet, day)
+        entry["candidates"]["install"] = [c for c in entry["candidates"]["install"]
+                                          if c["tool"] not in swapping and (c["slot"], c["tool"]) not in quiet]
+        if quiet:
+            out["notes"].append(f"{LABELS[agent]}：{len(quiet)} 個工具換回不到 {swap.QUIET_DAYS} 天，這段期間不再建議")
+        entry["trials"] = swap.trials(swaps, agent, day)
+        for t in entry["trials"]:
+            if t["expired"]:
+                out["notes"].append(f"{LABELS[agent]}：{t['new']}（換掉 {t['old']}）試用到 {t['trial_until']} 已經過期：問使用者要留新的"
+                                    f"（swap keep {t['id']}）還是換回（swap revert {t['id']}）")
+            elif t["state"] != "trial":
+                out["notes"].append(f"{LABELS[agent]}：替換 {t['id']} 還沒確認（{swap.STATES[t['state']]}）：跑 swap check {t['id']}")
 
         # 名冊外的候選（候選池）
         taken = {pool.norm(i["name"].split("@")[0]) for i, _ in pairs}
@@ -380,7 +459,7 @@ def collect(home, data, state, days=30, now=None, plugin_details=cost.details):
         notes.append(f"規則檔讀不到（{e}）：這次沒有規則檔瘦身")
     return diagnose(roster, used, costs, found, edition=editions.resolve(state, data.parent)[0], added=added,
                     today=date.fromtimestamp(now), notes=notes, loaded_rules=loaded,
-                    pooled=pool.load(state / "pool" / "slots.json", None), markets=markets_added(home))
+                    pooled=pool.load(state / "pool" / "slots.json", None), markets=markets_added(home), swaps=swap.load(state))
 
 
 # ---------- 驗證挑選、寫出建議 ----------
@@ -428,6 +507,9 @@ def basis_text(basis):
         return f"{basis['caveat']}。名冊記的內建功能：{text if len(text) <= BRIEF else text[:BRIEF] + '…'}"
     if code == "pool":
         return f"{basis['caveat']}。{text}"
+    if code == "replaces":
+        until = f"，試用到 {basis['trial_until']}" if basis.get("trial_until") else ""
+        return f"{basis['caveat']}{until}。名冊記的理由：{text}"
     return text
 
 
@@ -470,6 +552,25 @@ def remove_lines(cand, reason):
     return lines
 
 
+def replace_lines(cand, reason):
+    how, old, new = cand["how"], cand["old"], cand["new"]
+    lines = [f"- **{old['name']} → {new['name']}**（{cand['slot_name']}）", f"  - 理由：{reason}",
+             f"  - 依據：{basis_text(cand['basis'])}", f"  - 這台現在用的：{old['name']}（{old['kind']}，{usage_text(old)}）"]
+    if how["apply"]:
+        lines.append("  - 同意後執行：" + "，再 ".join(f"`{c}`" for c in how["apply"]) + f"。試用 {swap.TRIAL_DAYS} 天到 {cand['trial_until']}")
+    else:
+        lines.append(f"  - 怎麼換：照 {new.get('url') or '新工具的官方說明'} 裝；試用 {swap.TRIAL_DAYS} 天到 {cand['trial_until']}")
+    lines.append(f"  - 注意：{how['note']}")
+    back = "，再 ".join(f"`{c}`" for c in how["revert"])
+    lines.append("  - 想換回：" + (back if back else "") + (f"（{how['revert_note']}）" if how.get("revert_note") else "")
+                 + "；說「換回」就照這個做，並比對跟替換前一樣")
+    if cand["also"]:
+        lines.append(f"  - 注意：舊的還管 {'、'.join(cand['also'])}，停用會一起影響")
+    if not new["detectable"]:
+        lines.append("  - 注意：新的這類工具掃不到有沒有裝，裝好之後沒辦法自動確認")
+    return lines
+
+
 def native_lines(cand, reason):
     lines = [f"- **{cand['slot_name']}**", f"  - 理由：{reason}", f"  - 依據：{basis_text(cand['basis'])}"]
     if cand["installed_here"]:
@@ -501,7 +602,8 @@ def rules_summary(summary):
             *(f"注意：{w}。" for w in summary.get("warnings", [])), ""]
 
 
-SECTION = {"install": install_lines, "remove": remove_lines, "native": native_lines, "rules": rules_lines}
+SECTION = {"install": install_lines, "replace": replace_lines, "remove": remove_lines, "native": native_lines,
+           "rules": rules_lines}
 
 
 def render(facts, agent, chosen):
@@ -526,6 +628,8 @@ def render(facts, agent, chosen):
             lines.append("- 名冊外的候選沒有實測過，也沒有做安全掃描：裝之前先看一眼來源；用過之後覺得好，再評估要不要收進名冊。")
         if kind == "rules" and chosen[kind]:
             lines.append("- 拿掉規則沒有逐條實測過：拿掉之後用幾天，覺得少了什麼再加回來。")
+        if kind == "replace" and chosen[kind]:
+            lines.append(f"- 換的時候會先記下替換前的工具清單；換回後比對這次動到的工具，跟替換前一樣才算換回（swap.py）。")
     lines += ["", "## 沒有列進建議的", ""]
     left = [f"{TITLES[k]} {len(entry['candidates'][k]) - len(chosen[k])} 個" for k in KINDS
             if len(entry["candidates"][k]) > len(chosen[k])]
@@ -643,6 +747,68 @@ def selftest():
     check("裝：marketplace 已經加過就只剩安裝那一行", cand(diagnose(roster, used, costs, both, added={"claude": True})["agents"]["claude"],
           "install:fe")["how"]["commands"] == ["claude plugin install fe-plugin@mk"])
     check("裝：獨立程式掃不到有沒有裝，標出來", not cand(claude, "install:desk")["detectable"] and cand(claude, "install:fe")["detectable"])
+
+    # 換
+    swapped_roster = {**roster, "tools": {**roster["tools"], **{c["id"]: c for c in [
+        card("old-browser", "plugin", "pending", ["browser"]),
+        card("old-fe", "plugin", "pending", ["frontend", "review"]),
+        card("fe2", "plugin", "default", ["frontend"], replaces="old-fe", plugin={"name": "fe2", "claude": source, "codex": source}),
+        card("other-fe", "skill", "pending", ["frontend"]), card("kit-fe", "skill", "pending", ["frontend"]),
+        card("kit-br", "skill", "pending", ["browser"]),
+        card("br2", "plugin", "default", ["browser"], replaces="old-browser")]}}}
+    swapped_used = {**bare, "items": bare["items"] + [
+        item("plugin", "old-browser@m", "~/.codex/plugins", ["codex"], "used", convs=3),
+        item("plugin", "old-fe@x", "~/.claude/plugins", ["claude-code"], "used", convs=2),
+        item("skill", "other-fe", "~/.claude/skills", ["claude-code"], "used", convs=1),
+        item("skill", "kit-fe", "~/.claude/skills", ["claude-code"], "used", convs=1, ours=True),
+        item("skill", "kit-br", "~/.agents/skills", ["codex"], "used", convs=1, ours=True),
+        item("plugin", "old-browser@c", "~/.claude/plugins", ["claude-code"], "used", convs=1)]}
+    sw = diagnose(swapped_roster, swapped_used, costs, both, today=today)
+    sc, sx = sw["agents"]["claude"], sw["agents"]["codex"]
+    by_answer = cand(sx, "replace:browser:old-browser:devtools")
+    check("換：槽位的答案是裝某張卡、這台裝的是同一個槽位的另一張，列成「換」，不再另外列「裝」",
+          ids(sx, "replace") == ["replace:browser:old-browser:devtools"] and "install:devtools" not in ids(sx, "install")
+          and by_answer["basis"]["code"] == "answer" and by_answer["old"]["name"] == "old-browser@m"
+          and by_answer["trial_until"] == "2026-11-25")
+    check("換：舊的沒有停用的指令就先留著；新的沒有 plugin 來源，換回照官方說明",
+          by_answer["how"]["apply"] == [] and not by_answer["how"]["disable_old"] and "先留著" in by_answer["how"]["note"]
+          and by_answer["how"]["revert"] == [] and "https://example.com/devtools" in by_answer["how"]["revert_note"])
+    by_card = cand(sc, "replace:frontend:old-fe:fe2")
+    check("換：答案還不知道時，看名冊有沒有卡寫明取代這台裝的那張",
+          ids(sc, "replace") == ["replace:frontend:old-fe:fe2"] and by_card["basis"]["code"] == "replaces"
+          and "取代 old-fe" in by_card["basis"]["caveat"] and by_card["also"] == ["review"] and "install:fe2" not in ids(sc, "install")
+          and "install:fe" in ids(sc, "install"))
+    check("換：Claude Code 先裝新的、再停用舊的；換回是移除新的、打開舊的",
+          by_card["how"]["apply"] == ["claude plugin marketplace add owner/kit", "claude plugin install fe2@mk", "claude plugin disable old-fe@x"]
+          and by_card["how"]["revert"] == ["claude plugin uninstall fe2@mk", "claude plugin enable old-fe@x"] and by_card["how"]["disable_old"]
+          and by_card["how"]["finish"]["remove"] == "claude plugin uninstall old-fe@x")
+    check("換：內建就夠的槽位、這台已經裝了新的，都不列", "replace" not in " ".join(ids(sc, "install"))
+          and not any(c.startswith("replace:browser") for c in ids(sc, "replace"))
+          and ids(diagnose(swapped_roster, {**swapped_used, "items": swapped_used["items"] + [
+              item("plugin", "fe2@mk", "~/.claude/plugins", ["claude-code"], "new", days=2)]}, costs, both, today=today)["agents"]["claude"],
+              "replace") == [])
+    reverted = [{"id": "frontend-20261105", "agent": "claude", "slot": "frontend", "state": "reverted", "reverted": "2026-11-05",
+                 "old": {"name": "old-fe@x"}, "new": {"tool": "fe2", "name": "fe2"}}]
+    quiet = diagnose(swapped_roster, swapped_used, costs, both, today=today, swaps=reverted)
+    check("換回不到 30 天：不再推「換」也不推「裝」，備註講明", ids(quiet["agents"]["claude"], "replace") == []
+          and "install:fe2" not in ids(quiet["agents"]["claude"], "install") and any("換回不到 30 天" in n for n in quiet["notes"])
+          and ids(diagnose(swapped_roster, swapped_used, costs, both, today=date(2026, 12, 6), swaps=reverted)["agents"]["claude"],
+                  "replace") == ["replace:frontend:old-fe:fe2"])
+    running = [{"id": "frontend-20261020", "agent": "claude", "slot": "frontend", "slot_name": "前端", "state": "trial",
+                "trial_until": "2026-11-03", "old": {"name": "old-fe@x"}, "new": {"tool": "fe2", "name": "fe2"}},
+               {"id": "review-20261110", "agent": "claude", "slot": "review", "state": "started", "trial_until": "2026-11-24",
+                "old": {"name": "a"}, "new": {"tool": "b", "name": "b"}}]
+    ran = diagnose(swapped_roster, swapped_used, costs, both, today=today, swaps=running)
+    check("試用中的列在事實裡；過期的、還沒確認的在備註提醒要做什麼",
+          [t["id"] for t in ran["agents"]["claude"]["trials"]] == ["frontend-20261020", "review-20261110"]
+          and ran["agents"]["claude"]["trials"][0]["expired"] and ran["agents"]["codex"]["trials"] == []
+          and any("swap keep frontend-20261020" in n and "swap revert frontend-20261020" in n for n in ran["notes"])
+          and any("swap check review-20261110" in n for n in ran["notes"]))
+    errors, agent, chosen = check_picks(sw, {"agent": "claude", "picks": [{"id": "replace:frontend:old-fe:fe2", "reason": "名冊寫明取代舊的"}]})
+    text = "\n".join(render(sw, agent, chosen))
+    check("換：挑得到，寫出來有現在用的、同意後的指令、試用到哪天、怎麼換回",
+          not errors and "## 換（1 項）" in text and "**old-fe@x → fe2**" in text and "試用 14 天到 2026-11-25" in text
+          and "`claude plugin enable old-fe@x`" in text and "說「換回」" in text and "舊的還管 review" in text)
 
     check("拿掉：30 天沒用到、成本高又沒在用、名冊上是拒絕，各自帶依據",
           ids(claude, "remove")[:3] == ["remove:skill:old@~/.claude/skills", "remove:skill:fresh@~/.claude/skills",
