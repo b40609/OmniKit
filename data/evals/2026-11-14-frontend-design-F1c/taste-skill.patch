@@ -1,0 +1,402 @@
+diff --git a/yomi-probe/index.html b/yomi-probe/index.html
+index 1a1a717..1346c2a 100644
+--- a/yomi-probe/index.html
++++ b/yomi-probe/index.html
+@@ -1,33 +1,371 @@
+ <!doctype html>
+ <html lang="zh-Hant">
+ <head>
+-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
++<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+ <title>LinePort</title>
+ <meta name="lineport-device" content="__LINE_DEVICE__">
++<meta name="color-scheme" content="light dark">
+ <style nonce="__NONCE__">
+-:root{--green:#06c755;--ink:#17251e;--muted:#68756e;--line:#e4ebe6;--wash:#f5f8f6;--dark:#078739}*{box-sizing:border-box}body{margin:0;background:var(--wash);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",sans-serif}button,input,select{font:inherit}button{cursor:pointer;border:1px solid var(--line);background:white;color:var(--ink);border-radius:9px;padding:10px 16px;font-weight:600;transition:background .15s}button:hover{background:#edf5ef}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--green);color:#073019;border-color:var(--green)}.primary:hover{background:#05b94e}.danger{color:#a33232}.quiet{padding:7px 12px;font-size:12px}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #8ddfae;outline-offset:3px}header{background:white;border-bottom:1px solid var(--line)}.top{max-width:1140px;margin:auto;padding:19px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{display:flex;align-items:center;gap:12px;font-size:17px;font-weight:700;letter-spacing:-.4px}.mark{display:grid;place-items:center;width:35px;height:35px;background:var(--green);border-radius:11px;color:#06331b;font-size:23px}.badge{display:inline-flex;align-items:center;gap:7px;font-size:12px;border:1px solid var(--line);border-radius:30px;padding:5px 10px;white-space:nowrap}.dot{width:7px;height:7px;border-radius:50%;background:#aab7af}.badge.live .dot{background:var(--green)}main{max-width:1140px;margin:0 auto;padding:32px 28px 20px}.intro{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:24px}h1{font-size:27px;letter-spacing:-.7px;line-height:1.3;margin:0 0 6px}h2{font-size:16px;margin:0}p{margin:6px 0}.muted{color:var(--muted)}.layout{display:grid;grid-template-columns:330px 1fr;gap:22px;align-items:start}.card{background:white;border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:0 3px 14px #14352003}.card+.card{margin-top:18px}.heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:20px}.step{display:inline-grid;place-items:center;width:23px;height:23px;border-radius:7px;background:#e8f8ee;color:var(--dark);font-size:12px;margin-right:8px}label{display:block;font-size:12px;font-weight:600;margin-bottom:7px}input,select{width:100%;border:1px solid #d7e2da;border-radius:9px;padding:11px 12px;background:white;color:var(--ink);min-width:0}input[type=checkbox]{width:auto;padding:0}input::placeholder{color:#99a69f}.field{margin-bottom:16px}.actions{display:flex;gap:9px;flex-wrap:wrap}.stack{display:grid;gap:10px}.stack button{width:100%}.auth-state{font-size:12px;margin-top:15px;color:var(--dark);overflow-wrap:anywhere}#pin{font-size:30px;font-weight:700;letter-spacing:7px;color:var(--dark);margin-top:7px;overflow-wrap:anywhere}details{border-top:1px solid var(--line);margin-top:19px;padding-top:14px;font-size:12px;color:var(--muted)}summary{cursor:pointer;color:var(--ink)}details p{margin-top:10px}#groupCount{font-size:12px;margin-top:10px}.route{display:grid;grid-template-columns:1fr 28px 1fr;gap:10px;align-items:center}.route-arrow{text-align:center;color:var(--green);font-size:24px}.route .field{margin:0}.route-info{margin:17px 0;font-size:12px;color:var(--muted);overflow-wrap:anywhere}.metrics{display:grid;grid-template-columns:repeat(3,1fr);margin:22px -24px -24px;padding:18px 24px;border-top:1px solid var(--line);background:#fbfdfb;border-radius:0 0 16px 16px;gap:14px}.metric strong{display:block;font-size:24px;font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums}.metric span{font-size:11px;color:var(--muted)}.preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.preview-tools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.preview-tools button{font-size:12px;padding:7px 11px}#stats{font-size:11px;color:var(--muted);margin-bottom:12px}#messages{max-height:430px;overflow:auto;padding-right:5px}.empty{text-align:center;padding:36px 15px;color:var(--muted);font-size:12px}.empty span{display:block;font-size:24px;color:#b8cbc0;margin-bottom:8px}.message{margin-bottom:12px}.message small{display:block;font-size:10px;color:var(--muted);margin:0 0 5px 3px}.message pre{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere;background:#f0f7f2;border-radius:3px 12px 12px 12px;margin:0;padding:11px 14px}.notice{margin:0 0 20px;padding:12px 16px;border:1px solid #ebceca;border-radius:10px;background:#fff5f3;color:#9b3b2d;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}.notice:empty{display:none}footer{display:flex;justify-content:space-between;gap:15px;margin-top:24px;padding-top:16px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}a{color:var(--dark);text-decoration:none}a:hover{text-decoration:underline}@media(max-width:850px){.layout{grid-template-columns:1fr}.intro .muted:last-child{display:none}.stack{grid-template-columns:1fr 1fr}.route{grid-template-columns:1fr 28px 1fr}}@media(max-width:480px){main{padding:24px 16px}.top{padding:16px}.brand{font-size:15px}.badge{font-size:11px}.card{padding:20px}.route{grid-template-columns:1fr}.route-arrow{font-size:18px;line-height:1}.stack{grid-template-columns:1fr}.metrics{margin:20px -20px -20px;padding:16px 20px}.metric strong{font-size:22px}.preview-head{align-items:start}.intro h1{font-size:24px}footer{flex-direction:column;gap:4px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+-textarea{font:inherit;width:100%;border:1px solid #d7e2da;border-radius:9px;padding:11px 12px;resize:vertical}.spaced{margin-top:16px}.rule-actions{margin:16px 0}.rule-row{border:1px solid var(--line);border-radius:10px;padding:12px}.route-status{border-top:1px solid var(--line);padding-top:10px;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}#routeStatuses{margin-top:18px}
+-</style>
+-<style nonce="__NONCE__">
+-.account-intro{grid-column:1/-1}[hidden]{display:none!important}body{background:#f3f5f7;color:#202e37}.top,main{max-width:1200px}.intro{margin-bottom:18px}.layout{display:block}.workspace-nav{display:flex;gap:6px;padding:6px;background:#e8edf0;border-radius:12px;margin-bottom:24px}.workspace-nav button{flex:1;border:0;background:transparent;color:#596974}.workspace-nav button[aria-current=page]{background:white;color:#08783b;box-shadow:0 2px 8px #20303c12}.workspace-panel{display:grid;gap:20px}.workspace-panel>.card{margin:0}.card{border-radius:14px;box-shadow:none}.account-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.workspace-panel h2{font-size:19px}.workspace-panel .heading{margin-bottom:18px}.workspace-panel .metrics{margin:20px 0 0;border-radius:12px;border:1px solid var(--line)}.rule-row{padding:18px;background:#fafcfc}#rules{grid-template-columns:1fr;margin-top:14px}#rules button{width:auto}.rule-row strong{font-size:16px}.rule-row p{margin:10px 0;color:var(--muted)}.rule-row .actions{margin-top:14px}.editor-steps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}.editor-steps span{padding:6px 12px;border-radius:20px;background:#eef2f4;color:#6a7780;font-size:13px}.editor-steps [aria-current=step]{background:#dcf6e6;color:#086e37;font-weight:700}.editor-stage{min-height:180px}.editor-stage>details:first-child{border:0;margin-top:0;padding-top:0}.editor-stage>details:first-child>summary{display:none}.editor-stage details{font-size:14px}.wizard-actions{display:flex;justify-content:space-between;gap:12px;margin-top:24px;border-top:1px solid var(--line);padding-top:18px}.endpoint-picker{max-height:300px;overflow:auto;display:grid;gap:8px;margin-top:10px}.endpoint-picker label{display:flex;align-items:center;gap:10px;padding:12px;background:#f6f8fa;border:1px solid #e1e8eb;border-radius:9px;font-size:14px;margin:0;overflow-wrap:anywhere}.endpoint-picker input{flex:0 0 18px;width:18px;height:18px;padding:0;margin:0}.endpoint-picker .endpoint-name{min-width:0;flex:1}.endpoint-avatar{position:relative;display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border-radius:50%;background:#e2ece6;color:#326147;font-size:12px;overflow:hidden}.endpoint-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.endpoint-picker input:checked~.endpoint-name{color:#08783b;font-weight:600}#recentSenders{border:1px solid var(--line);border-radius:10px;margin:12px 0;padding:14px}#recentSenders>div{padding:10px 0;border-bottom:1px solid var(--line)}#recentSenders label{font-size:14px}#recentSenders input[type=text]{font-size:12px;padding:7px 10px;margin-top:5px}#draftSummary{background:#f4faf6;border:1px solid #cfe5d7;border-radius:12px;padding:18px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.9}.workspace-panel .route-status{background:#f7f9fa;padding:14px;border-radius:10px;border:1px solid var(--line)}.overview-help{color:var(--muted);margin-top:12px}.editor-message{color:#8b4c0b;background:#fff7e8;padding:10px 14px;border-radius:8px}.editor-message:empty{display:none}.workspace-panel button:focus-visible{outline:3px solid #69c894}.workspace-panel .route{display:block}.workspace-panel .route-arrow{display:none}@media(max-width:700px){.account-grid{grid-template-columns:1fr}.workspace-nav{gap:2px}.workspace-nav button{padding:10px 4px;font-size:12px}main{padding:22px 16px}.editor-steps span{font-size:12px;padding:5px 8px}.card{padding:18px}.intro h1{font-size:24px}.intro{flex-wrap:wrap}.intro .muted:last-child{display:block}}
+-</style>
++/* LinePort console: one system. Tokens, then base, shell, components, panels, motion. */
++:root{
++  --bg:#f3f2ee;--surface:#fff;--well:#f8f7f4;--ink:#1b1f1c;--ink-2:#3b423e;--muted:#5f6762;--faint:#8b928d;
++  --line:rgba(27,31,28,.12);--line-2:rgba(27,31,28,.22);
++  --brand:#06c755;--action:#0a7d3e;--action-hover:#086a34;--action-soft:#e4f3e9;--action-ink:#075c2e;
++  --attn-bg:#fdf4e4;--attn-line:#efd6a6;--attn-ink:#71460a;--danger:#b3261e;
++  --r-sm:6px;--r-md:10px;--r-lg:14px;
++  --s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:24px;--s-6:32px;--s-7:48px;
++  --ctl:44px;--side:256px;
++  --ease:cubic-bezier(.2,.8,.2,1);--m-in:150ms;--m-out:120ms;--m-press:90ms;
++  --font:"Segoe UI Variable Text","Segoe UI","Microsoft JhengHei UI","Microsoft JhengHei","PingFang TC","Noto Sans TC","Hiragino Sans",sans-serif;
++  --mono:"Cascadia Mono","Cascadia Code",Consolas,"SF Mono",ui-monospace,monospace;
++  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%235f6762' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
++  color-scheme:light;
++}
++@media (prefers-color-scheme:dark){:root{
++  --bg:#131614;--surface:#1b1f1c;--well:#161a17;--ink:#e9ece9;--ink-2:#c9cfcb;--muted:#9aa29d;--faint:#6f7772;
++  --line:rgba(233,236,233,.11);--line-2:rgba(233,236,233,.22);
++  --action:#2bb866;--action-hover:#3fca78;--action-soft:#16301f;--action-ink:#7fdca4;
++  --attn-bg:#2a2214;--attn-line:#5a4520;--attn-ink:#f0cf94;--danger:#ff8a80;
++  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%239aa29d' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
++  color-scheme:dark;
++}}
+ 
+-<style nonce="__NONCE__">
+-#accountsNext,#newRule,#rulesNext,#start{background:#dcf6e6;color:#086e37;border-color:#a7d9b9}#accountsNext:hover,#newRule:hover,#rulesNext:hover,#start:hover{background:#ccefd9}.rule-create{display:block;margin:16px 0}.picker-kinds{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.picker-kinds [aria-pressed=true]{background:#dcf6e6;color:#086e37;border-color:#a7d9b9}.source-chooser,.source-card{border:1px solid var(--line);border-radius:12px;padding:18px;margin:14px 0;background:#fafcfc}.source-card h3,.source-chooser h3{margin:0 0 10px;font-size:16px;overflow-wrap:anywhere}.source-card>.actions{margin:12px 0}.source-card #senderField{border-top:1px solid var(--line);padding-top:16px;margin:16px 0 0}.selected-list{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}.selected-chip{white-space:normal;text-align:left;overflow-wrap:anywhere;max-width:100%}#senderModeHelp{margin:10px 0}#senderSearch{margin-bottom:12px}.rule-description{white-space:pre-wrap;overflow-wrap:anywhere}#sourceCards>section>button{margin-top:10px}#sourceControls select,#destinationControls select{max-width:240px}#recentSenders{max-height:340px;overflow:auto}@media(max-width:480px){.source-chooser,.source-card{padding:14px}.wizard-actions{flex-wrap:wrap}.selected-chip{font-size:12px}}
+-</style>
+-<style nonce="__NONCE__">
+-.destination-choice{min-width:0;max-width:100%;flex:1 1 240px}.destination-choice label{margin-top:10px}.destination-choice select{max-width:100%}.destination-choice p{overflow-wrap:anywhere}
++/* Base */
++*{box-sizing:border-box}html,body{margin:0}[hidden]{display:none!important}
++body{min-height:100vh;background:var(--bg);color:var(--ink);font:15px/1.65 var(--font);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
++h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.01em;line-height:1.3;color:var(--ink)}
++h1{font-size:26px;letter-spacing:-.02em}h2{font-size:18px}h3{font-size:16px}
++p{margin:var(--s-2) 0}strong{font-weight:600}
++.muted{color:var(--muted)}
++ul{margin:var(--s-2) 0;padding-left:1.25em}li{margin:var(--s-1) 0}
++a{color:var(--action-ink);text-decoration:none;background:linear-gradient(currentColor,currentColor) 0 100%/0 1px no-repeat;transition:background-size var(--m-out) var(--ease)}
++a:hover{background-size:100% 1px;transition-duration:var(--m-in)}
++:focus-visible{outline:2px solid var(--action);outline-offset:2px}
++::selection{background:var(--action-soft);color:var(--ink)}
++
++/* Controls */
++button,input,select,textarea{font:inherit;color:inherit}
++button{display:inline-flex;align-items:center;justify-content:center;gap:var(--s-2);min-height:var(--ctl);padding:0 var(--s-4);border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);font-size:14px;font-weight:500;line-height:1.3;text-align:center;cursor:pointer;
++  transition:background-color var(--m-out) var(--ease),border-color var(--m-out) var(--ease),color var(--m-out) var(--ease),transform var(--m-out) var(--ease)}
++button:hover:not(:disabled){background:var(--well);border-color:var(--faint);transition-duration:var(--m-in)}
++@media (hover:hover) and (pointer:fine){button:hover:not(:disabled){transform:translateY(-1px)}}
++button:active:not(:disabled){transform:translateY(1px) scale(.985);transition-duration:var(--m-press)}
++button:disabled{cursor:not-allowed;color:var(--faint);background:transparent;border-color:var(--line);transform:none}
++.primary,#saveRule,#wizardNext{background:var(--action);border-color:var(--action);color:#fff}
++.primary:hover:not(:disabled),#saveRule:hover:not(:disabled),#wizardNext:hover:not(:disabled){background:var(--action-hover);border-color:var(--action-hover)}
++@media (prefers-color-scheme:dark){.primary,#saveRule,#wizardNext{color:#07210f}}
++.primary:disabled,#saveRule:disabled,#wizardNext:disabled{background:var(--well);border-color:var(--line);color:var(--faint)}
++.quiet{min-height:36px;padding:0 var(--s-3);font-size:13px}
++.danger{color:var(--danger)}
++.danger:hover:not(:disabled){border-color:var(--danger)}
++
++label{display:block;margin:0 0 6px;font-size:13px;font-weight:500;color:var(--ink-2)}
++input,select,textarea{display:block;width:100%;min-width:0;min-height:var(--ctl);padding:10px 12px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);font-size:15px;
++  transition:border-color 140ms var(--ease),box-shadow 140ms var(--ease)}
++textarea{min-height:88px;line-height:1.6;resize:vertical}
++select{appearance:none;padding-right:36px;background:var(--surface) var(--chev) right 12px center/12px no-repeat}
++select[multiple],select[size]{padding-right:12px;background-image:none}
++input:hover:not(:disabled),select:hover:not(:disabled),textarea:hover:not(:disabled){border-color:var(--faint)}
++input:focus,select:focus,textarea:focus{outline:none;border-color:var(--action);box-shadow:0 0 0 3px color-mix(in srgb,var(--action) 22%,transparent)}
++input:disabled,select:disabled,textarea:disabled{background:var(--well);color:var(--muted);cursor:not-allowed}
++input::placeholder,textarea::placeholder{color:var(--faint)}
++input[type=checkbox],input[type=radio]{display:inline-block;flex:0 0 18px;width:18px;height:18px;min-height:0;margin:0;padding:0;accent-color:var(--action);box-shadow:none}
++input[type=file]{padding:8px;font-size:14px}
++input[type=file]::file-selector-button{margin-right:var(--s-3);min-height:30px;padding:0 var(--s-3);border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--well);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
++label:has(>input[type=checkbox]),label:has(>input[type=radio]){display:flex;align-items:center;gap:10px;min-height:var(--ctl);margin:0;font-size:15px;font-weight:400;color:var(--ink);cursor:pointer}
++fieldset{min-width:0;margin:0;border:0;padding:0}
++legend{padding:0;font-size:13px;font-weight:500;color:var(--ink-2)}
++.field{margin-bottom:var(--s-4)}
++.field-note{display:block;margin-top:6px;font-size:13px}
++:is(input,select,textarea,p,ul,small)+label:not(:has(>input)){margin-top:var(--s-4)}
++:is(input,select,textarea)+label:has(>input){margin-top:var(--s-2)}
++:is(input,select,textarea,label,p,small,fieldset,details)+button{margin-top:var(--s-3)}
++.actions{display:flex;flex-wrap:wrap;gap:var(--s-2)}
++:is(details,.rule-row,.source-card)>button+button{margin-left:var(--s-2)}
++.stack{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2);margin-top:var(--s-3)}
++.stack:has(>button:only-child),.stack:has(>button+button[hidden]),.stack:has(>button[hidden]+button){grid-template-columns:1fr}
++.spaced{margin-top:var(--s-4)}
++
++/* Disclosure */
++details{margin-top:var(--s-4);border-top:1px solid var(--line);padding-top:var(--s-3)}
++summary{display:flex;align-items:center;gap:var(--s-2);min-height:36px;list-style:none;cursor:pointer;font-size:14px;font-weight:500;color:var(--ink);border-radius:var(--r-sm)}
++summary::-webkit-details-marker{display:none}
++summary::after{content:"";flex:0 0 12px;height:12px;margin-left:auto;background:var(--chev) center/12px no-repeat;transition:transform 160ms var(--ease)}
++details[open]>summary::after{transform:rotate(180deg)}
++summary:hover{color:var(--action-ink)}
++details>:not(summary){font-size:14px}
++details p{color:var(--muted)}
++
++/* Shell: sidebar on desktop, top bar on phones and tablets */
++.shell{position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--line)}
++.top{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:var(--s-3) var(--s-4)}
++.brand{display:flex;align-items:center;gap:var(--s-3);min-width:0}
++.mark{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border-radius:var(--r-md);background:var(--brand);color:#05331a}
++.mark svg{width:20px;height:20px}
++.brand-name{display:block;font-size:17px;font-weight:600;letter-spacing:-.01em;line-height:1.2}
++.brand-sub{display:block;font-size:13px;color:var(--muted);line-height:1.3}
++.badge{display:inline-flex;align-items:center;gap:var(--s-2);min-height:28px;padding:0 10px;border:1px solid var(--line-2);border-radius:999px;background:var(--surface);font-size:13px;font-weight:500;color:var(--ink-2);white-space:nowrap}
++.dot{position:relative;flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:var(--faint)}
++.badge.live{border-color:color-mix(in srgb,var(--brand) 45%,transparent);color:var(--action-ink)}
++.badge.live .dot{background:var(--brand)}
++.badge.live .dot::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--brand);animation:live 2.4s cubic-bezier(.22,1,.36,1) infinite}
++@keyframes live{0%{transform:scale(1);opacity:.7}70%,100%{transform:scale(2.6);opacity:0}}
++
++.workspace-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-1);padding:0 var(--s-3) var(--s-3)}
++.workspace-nav button{flex-direction:column;gap:2px;min-height:52px;padding:6px 4px;border:0;border-radius:var(--r-md);background:transparent;color:var(--muted);font-size:13px;font-weight:500}
++.workspace-nav button:hover:not(:disabled){background:var(--well);color:var(--ink)}
++.workspace-nav button[aria-current=page]{background:var(--action-soft);color:var(--action-ink)}
++.nav-num{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--line-2);font-size:12px;font-variant-numeric:tabular-nums;line-height:1}
++.nav-num svg{width:14px;height:14px}
++.workspace-nav [aria-current=page] .nav-num{background:var(--action);border-color:var(--action);color:#fff}
++@media (prefers-color-scheme:dark){.workspace-nav [aria-current=page] .nav-num{color:#07210f}}
++.nav-hint{display:none}
++.side-meta{display:none}
++
++main{width:100%;max-width:1160px;margin:0 auto;padding:var(--s-5) var(--s-4) var(--s-6)}
++
++@media (min-width:1080px){
++  body{display:grid;grid-template-columns:var(--side) minmax(0,1fr);align-items:start}
++  .shell{height:100vh;display:flex;flex-direction:column;border-bottom:0;border-right:1px solid var(--line)}
++  .top{flex-direction:column;align-items:flex-start;gap:var(--s-4);padding:var(--s-5) var(--s-5) var(--s-4)}
++  .workspace-nav{grid-template-columns:1fr;gap:2px;padding:var(--s-2) var(--s-3)}
++  .workspace-nav button{flex-direction:row;justify-content:flex-start;gap:var(--s-3);min-height:48px;padding:0 var(--s-3);font-size:15px;text-align:left}
++  .nav-text{display:flex;flex-direction:column;line-height:1.3}
++  .nav-hint{display:block;font-size:13px;font-weight:400;color:var(--faint)}
++  .workspace-nav [aria-current=page] .nav-hint{color:inherit;opacity:.8}
++  .side-meta{display:block;margin:auto 0 0;padding:var(--s-4) var(--s-5) var(--s-5);font-size:13px;color:var(--faint);border-top:1px solid var(--line)}
++  main{padding:var(--s-6) var(--s-7) var(--s-7)}
++}
++
++/* Page head and status strip */
++.intro{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--s-4);margin-bottom:var(--s-4)}
++.intro p{margin:var(--s-1) 0 0}
++.status-strip{display:grid;grid-template-columns:1fr 1fr;margin-bottom:var(--s-4);border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);overflow:hidden}
++.status-strip>div{min-width:0;padding:var(--s-3) var(--s-4)}
++.status-strip>div+div{border-left:1px solid var(--line)}
++.strip-label{display:block;font-size:13px;font-weight:500;color:var(--muted)}
++.status-strip p{margin:2px 0 0;color:var(--ink);overflow-wrap:anywhere}
++#onboarding{font-weight:500}
++
++.notice{display:flex;gap:var(--s-3);margin:0 0 var(--s-4);padding:var(--s-3) var(--s-4);border:1px solid var(--attn-line);border-radius:var(--r-md);background:var(--attn-bg);color:var(--attn-ink);font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
++.notice::before{content:"!";display:grid;place-items:center;flex:0 0 20px;height:20px;margin-top:1px;border-radius:50%;background:var(--attn-ink);color:var(--attn-bg);font-size:13px;font-weight:700;line-height:1}
++.notice:empty{display:none}
++
++/* Cards */
++.card{min-width:0;padding:var(--s-5);border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface)}
++.heading{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);margin-bottom:var(--s-3)}
++.heading h2{display:flex;align-items:center}
++.card>h2+p{margin-top:var(--s-1)}
++.card>details:only-child{margin:0;border:0;padding:0}
++.card>details:only-child>summary{min-height:var(--ctl);font-size:16px;font-weight:600}
++.card>details:only-child[open]>summary{margin-bottom:var(--s-3)}
++
++/* Panels */
++.workspace-panel{display:grid;gap:var(--s-4);animation:panel-in 180ms var(--ease)}
++@keyframes panel-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
++.layout:not(:has(.card)){display:none}
++.layout{display:grid;gap:var(--s-4);margin-top:var(--s-4)}
++.layout>aside,.layout>div{display:grid;gap:var(--s-4);align-content:start}
++
++/* Step intro cards: words left, next action right */
++.account-intro,#ruleListCard{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--s-5);align-items:start}
++.account-intro>*,#ruleListCard>*{grid-column:1/-1}
++.account-intro>h2,.account-intro>p:not(#accountsNextHelp),#ruleListCard>h2,#ruleListCard>p.muted:first-of-type{grid-column:1}
++#accountsNext,#newRule{grid-column:2;grid-row:1/span 2;align-self:center;margin:0}
++#accountsNextHelp{margin:var(--s-2) 0 0;font-size:14px}
++.account-intro>p{margin-bottom:0}
++
++/* Accounts */
++.account-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
++.account-intro{grid-column:1/-1}
++.auth-state{margin-top:var(--s-4);padding:10px var(--s-3);border-radius:var(--r-sm);background:var(--well);color:var(--ink-2);font-size:14px;overflow-wrap:anywhere}
++#pin{margin-top:var(--s-2);font:600 32px/1.2 var(--mono);letter-spacing:.3em;color:var(--action-ink);overflow-wrap:anywhere}
++#pin:empty{display:none}
++#qrImage{display:block;width:min(280px,100%);height:auto;margin:var(--s-4) auto 0;padding:var(--s-3);border:1px solid var(--line);border-radius:var(--r-md);background:#fff}
++#qrHelp{font-size:14px;color:var(--muted)}
++#groupCount{margin-top:var(--s-3);font-size:14px;font-variant-numeric:tabular-nums}
++#telegramStatus,#discordStatus{display:inline-flex;margin:0 0 var(--s-3);padding:2px 10px;border-radius:999px;background:var(--well);font-size:13px;color:var(--ink-2)}
++
++/* Rules list */
++#ruleListCard>p:not(.muted):not(.editor-message){margin:var(--s-4) 0 0;padding:var(--s-3) var(--s-4) 0;border-top:1px solid var(--line);color:var(--muted);font-size:14px}
++#ruleListCard>.actions{margin:var(--s-3) 0 var(--s-2)}
++#ruleSaved:empty{display:none}
++#ruleListCard>label[for=ruleSearch]{margin-top:var(--s-4)}
++#rules{display:grid;grid-template-columns:1fr;gap:var(--s-3);margin-top:var(--s-3)}
++#rules>p.muted{margin:0;padding:var(--s-5);border:1px dashed var(--line-2);border-radius:var(--r-md);text-align:center}
++.rule-row{padding:var(--s-4);border:1px solid var(--line);border-radius:var(--r-md);background:var(--well)}
++.rule-row>strong{display:block;font-size:16px;overflow-wrap:anywhere}
++.rule-row>p{margin:var(--s-2) 0 0;color:var(--muted);font-size:14px;line-height:1.7}
++.rule-row>.actions{margin-top:var(--s-3)}
++.rule-row>button{margin:var(--s-3) var(--s-2) 0 0}
++.rule-description{white-space:pre-wrap;overflow-wrap:anywhere}
++.editor-message{margin:var(--s-3) 0 0;padding:10px var(--s-3);border-radius:var(--r-sm);background:var(--attn-bg);color:var(--attn-ink);font-size:14px}
++.editor-message:empty{display:none}
++
++/* Rule editor */
++@media (min-width:1280px){#panelRules:has(>#ruleListCard+.card:not([hidden])){grid-template-columns:minmax(300px,380px) minmax(0,1fr);align-items:start}}
++#editorTitle{font-size:20px;scroll-margin-top:var(--s-5)}
++.editor-steps{counter-reset:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-2);margin:var(--s-4) 0 var(--s-5)}
++.editor-steps span{position:relative;padding:var(--s-3) 0 0;border-top:3px solid var(--line);color:var(--muted);font-size:13px;font-weight:500;line-height:1.35}
++.editor-steps [aria-current=step]{border-top-color:var(--action);color:var(--action-ink)}
++.editor-steps span:has(~[aria-current=step]){border-top-color:color-mix(in srgb,var(--action) 40%,transparent);color:var(--ink-2)}
++.route{display:grid;grid-template-columns:1fr 28px 1fr;gap:var(--s-3);align-items:center}
++.route-arrow{text-align:center;color:var(--muted)}
++.route .field{margin:0}
++.workspace-panel .route{display:block}.workspace-panel .route-arrow{display:none}
++.editor-stage{min-height:180px}
++.editor-stage>details:first-child{border:0;margin-top:0;padding-top:0}
++.editor-stage>details:first-child>summary{display:none}
++.editor-stage>details>summary{font-size:16px;font-weight:600}
++.editor-stage details details{margin-top:var(--s-4)}
++.wizard-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-5);padding-top:var(--s-4);border-top:1px solid var(--line)}
++#cancelEdit{margin-right:auto}
++.rule-actions{margin:var(--s-4) 0 0}
++#selectionHelp,#coverageHelp,#destinationCount{font-size:14px;color:var(--muted)}
++.route-info{font-size:14px;color:var(--muted);overflow-wrap:anywhere}
++
++.source-chooser,.source-card{margin:var(--s-3) 0;padding:var(--s-4);border:1px solid var(--line);border-radius:var(--r-md);background:var(--well)}
++.source-chooser{border-color:color-mix(in srgb,var(--action) 35%,var(--line))}
++.source-card h3,.source-chooser h3{margin:0 0 var(--s-3);font-size:16px;overflow-wrap:anywhere}
++.source-card>.muted{margin:0;font-size:13px}
++.source-card>.actions{margin:var(--s-3) 0 0}
++.source-card>button{margin-top:var(--s-3)}
++.source-card #senderField{margin:var(--s-4) 0 0;padding-top:var(--s-4);border-top:1px solid var(--line)}
++#sourceControls,#destinationControls{display:grid;grid-template-columns:minmax(120px,200px) minmax(0,1fr);column-gap:var(--s-3);align-items:end}
++#sourceControls>label,#destinationControls>label{grid-row:1;margin:0 0 6px}
++#sourceControls>select,#destinationControls>select{grid-row:2;grid-column:1}
++#sourceControls>label[for$=Search],#destinationControls>label[for$=Search]{grid-column:2}
++#sourceControls>input,#destinationControls>input{grid-row:2;grid-column:2}
++.picker-kinds{grid-column:1/-1;grid-row:3;display:flex;flex-wrap:wrap;gap:var(--s-2);margin:var(--s-3) 0 0}
++.picker-kinds button{min-height:32px;border-radius:999px;padding:0 var(--s-3)}
++.picker-kinds [aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
++.endpoint-picker{grid-column:1/-1;grid-row:4;display:grid;gap:6px;max-height:320px;overflow:auto;margin-top:var(--s-3);padding:2px}
++.endpoint-picker label{display:flex;align-items:center;gap:var(--s-3);min-height:52px;margin:0;padding:var(--s-2) var(--s-3);border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);font-size:15px;font-weight:400;color:var(--ink);overflow-wrap:anywhere;cursor:pointer;transition:border-color var(--m-out) var(--ease),background-color var(--m-out) var(--ease)}
++.endpoint-picker label:hover{border-color:var(--faint);transition-duration:var(--m-in)}
++.endpoint-picker label:has(input:checked){border-color:var(--action);background:var(--action-soft)}
++.endpoint-picker label:has(input:disabled){cursor:not-allowed;opacity:.6}
++.endpoint-picker input{flex:0 0 18px}
++.endpoint-picker .endpoint-name{min-width:0;flex:1}
++.endpoint-picker input:checked~.endpoint-name{color:var(--action-ink);font-weight:500}
++.endpoint-picker>p{margin:0;padding:var(--s-4);text-align:center;font-size:14px}
++.endpoint-avatar{position:relative;display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border-radius:50%;background:var(--well);border:1px solid var(--line);color:var(--muted);font-size:12px;overflow:hidden}
++.endpoint-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
++#addSource{margin-top:var(--s-2)}
++#cancelSourceChoice{margin-top:var(--s-3)}
++
++.selected-list{display:flex;flex-wrap:wrap;gap:var(--s-2);margin:var(--s-2) 0 var(--s-4)}
++.selected-list:empty{display:none}
++.selected-chip{max-width:100%;min-height:32px;border-radius:999px;background:var(--action-soft);border-color:transparent;color:var(--action-ink);white-space:normal;text-align:left;overflow-wrap:anywhere}
++.selected-chip:hover:not(:disabled){background:var(--action-soft);border-color:var(--action)}
++.destination-choice{min-width:0;max-width:100%;flex:1 1 240px}
++.destination-choice label{margin-top:var(--s-3)}
++.destination-choice select{max-width:100%}
++.destination-choice p{margin:6px 0 0;font-size:13px;overflow-wrap:anywhere}
++#senderModeHelp{margin:var(--s-2) 0;font-size:14px}
++#senderHelp{font-size:14px;color:var(--muted)}
++#senderSearch{margin-bottom:var(--s-3)}
++#recentSenders{max-height:340px;overflow:auto;margin:var(--s-3) 0;padding:var(--s-2) var(--s-4);border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface)}
++#recentSenders legend{float:left;width:100%;padding:var(--s-2) 0;font-size:13px}
++#recentSenders>div{clear:both;padding:var(--s-2) 0;border-top:1px solid var(--line)}
++#recentSenders label{font-size:15px}
++#recentSenders input[type=text]{min-height:36px;margin-top:2px;padding:6px 10px;font-size:14px}
++#draftSummary{padding:var(--s-4);border:1px solid var(--line);border-radius:var(--r-md);background:var(--well);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.9;font-size:14px}
++
++/* Overview */
++#overviewCard{display:flex;flex-direction:column}
++#overviewCard>*{order:3}
++#overviewCard>.heading,#overviewHint{order:0}
++#overviewCard>.metrics{order:1}
++#overviewCard>.heading h2{font-size:20px}
++#overviewHint{margin:0;color:var(--muted)}
++#overviewRules{align-self:flex-start;margin-top:var(--s-3)}
++.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-3);margin:var(--s-4) 0}
++.metric{padding:var(--s-4);border:1px solid var(--line);border-radius:var(--r-md);background:var(--well)}
++.metric strong{display:block;font-size:30px;font-weight:600;line-height:1.15;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
++.metric span{display:block;margin-top:var(--s-1);font-size:13px;color:var(--muted)}
++#overviewCard>.actions{gap:var(--s-2)}
++#start,#stop{min-width:132px}
++#startHelp{margin:var(--s-2) 0 0;font-size:14px}
++#readInfo,#routeInfo{margin:var(--s-2) 0 0}
++#readInfo{margin-top:var(--s-4);padding-top:var(--s-4);border-top:1px solid var(--line)}
++#routeStatuses{display:grid;gap:var(--s-2);margin-top:var(--s-4)}
++#routeStatuses:empty{display:none}
++#routeStatuses .notice{margin:0}
++.route-status{margin:0;padding:var(--s-3) var(--s-4);border:1px solid var(--line);border-radius:var(--r-md);background:var(--well);font:inherit;font-size:14px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
++.route-status:empty{display:none}
++#reviewItems{display:grid;gap:var(--s-3);margin-top:var(--s-3)}
++#reviewItems .rule-row>p{color:var(--ink-2)}
++#reviewItems .route-status{margin-top:var(--s-2);background:var(--surface)}
++
++/* Settings: preview, backup */
++.preview-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);margin:var(--s-4) 0 var(--s-3)}
++.preview-tools{display:flex;flex-wrap:wrap;gap:var(--s-2);margin:var(--s-3) 0}
++.preview-tools button{margin:0}
++#stats{margin-bottom:var(--s-3);font-size:13px;color:var(--muted)}
++#messages{max-height:440px;overflow:auto;padding:var(--s-3);border:1px solid var(--line);border-radius:var(--r-md);background:var(--well)}
++.empty{padding:var(--s-6) var(--s-4);text-align:center;color:var(--muted);font-size:14px}
++.empty span{display:block;margin-bottom:var(--s-2);font-size:24px;color:var(--faint)}
++.message{margin-bottom:var(--s-3)}
++.message small{display:block;margin:0 0 4px 4px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
++.message pre{margin:0;padding:10px 14px;border:1px solid var(--line);border-radius:4px var(--r-lg) var(--r-lg) var(--r-lg);background:var(--surface);font:inherit;white-space:pre-wrap;overflow-wrap:anywhere}
++#storageInfo:empty,#restoreSummary:empty,#autostartInfo:empty{display:none}
++#storageInfo,#restoreSummary{padding:10px var(--s-3);border-radius:var(--r-sm);background:var(--well);color:var(--ink-2)}
++#panelSettings details>.actions button{margin:0}
++
++footer{display:flex;justify-content:space-between;gap:var(--s-4);margin-top:var(--s-6);padding-top:var(--s-4);border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
++
++/* Tablet and phone */
++@media (max-width:860px){
++  .account-grid{grid-template-columns:1fr}
++  .intro{flex-direction:column;align-items:flex-start}
++}
++@media (max-width:640px){
++  body{font-size:15px}
++  h1{font-size:22px}
++  main{padding:var(--s-4) var(--s-4) var(--s-6)}
++  .top{padding:10px var(--s-4)}
++  .mark{flex-basis:32px;width:32px;height:32px}
++  .brand-sub{display:none}
++  .workspace-nav{padding:0 var(--s-2) var(--s-2)}
++  .card{padding:var(--s-4)}
++  input,select,textarea{font-size:16px}
++  .status-strip{grid-template-columns:1fr}
++  .status-strip>div+div{border-left:0;border-top:1px solid var(--line)}
++  .account-intro,#ruleListCard{grid-template-columns:1fr}
++  #accountsNext,#newRule{grid-column:1;grid-row:auto;margin-top:var(--s-3);width:100%}
++  .stack{grid-template-columns:1fr}
++  .metrics{gap:var(--s-2)}
++  .metric{padding:var(--s-3)}
++  .metric strong{font-size:24px}
++  .metric span{font-size:13px}
++  #sourceControls,#destinationControls{grid-template-columns:1fr}
++  #sourceControls>*,#destinationControls>*{grid-column:1!important;grid-row:auto!important}
++  #sourceControls>label[for$=Search],#destinationControls>label[for$=Search]{margin-top:var(--s-3)}
++  .editor-steps span{font-size:13px}
++  .wizard-actions button{flex:1 1 auto}
++  #cancelEdit{flex-basis:100%;margin-right:0;order:3}
++  #overviewCard>.actions button{flex:1 1 0}
++  .preview-head{align-items:flex-start}
++  footer{flex-direction:column;gap:var(--s-1)}
++}
++
++@media (prefers-reduced-motion:reduce){
++  *,*::before,*::after{animation:none!important;transition-property:color,background-color,border-color,opacity!important}
++  button:hover,button:active{transform:none!important}
++}
+ </style>
+ </head>
+ <body>
+-<header><div class="top"><div class="brand"><span class="mark" aria-hidden="true">⇄</span>LinePort</div><span id="connection" class="badge"><span class="dot"></span><span id="connectionText">LINE 尚未連結</span></span></div></header>
++<header class="shell">
++<div class="top"><div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h12.5M12.5 3.5 16 7l-3.5 3.5M17 13H4.5M7.5 9.5 4 13l3.5 3.5"/></svg></span><span><span class="brand-name">LinePort</span><span class="brand-sub">LINE 訊息轉發控制台</span></span></div><span id="connection" class="badge"><span class="dot"></span><span id="connectionText">LINE 尚未連結</span></span></div>
++<nav class="workspace-nav" aria-label="設定與轉送步驟"><button id="navAccounts" aria-current="page"><span class="nav-num" aria-hidden="true">1</span><span class="nav-text">連結帳號<span class="nav-hint">LINE、Telegram、Discord</span></span></button><button id="navRules"><span class="nav-num" aria-hidden="true">2</span><span class="nav-text">設定規則<span class="nav-hint">來源、目的與條件</span></span></button><button id="navOverview"><span class="nav-num" aria-hidden="true">3</span><span class="nav-text">啟動與狀態<span class="nav-hint">開始、停止與路線</span></span></button><button id="navSettings"><span class="nav-num" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7"/><circle cx="11" cy="4.5" r="1.5"/><circle cx="5" cy="11.5" r="1.5"/></svg></span><span class="nav-text">設定與診斷<span class="nav-hint">備份、預覽與自動啟動</span></span></button></nav>
++<p class="side-meta">v1.0.0 · LINE · Telegram<br>本機執行 · 非官方 LINE 工具</p>
++</header>
+ <main>
+-<div class="intro"><div><h1>讓訊息，自動到位。</h1><p class="muted">連結平台 → 選來源與目的 → 開始轉送。</p></div><span class="muted">v1.0.0 · LINE · Telegram</span></div>
+-<p id="onboarding" class="route-info" role="status">先連結需要的平台；只使用 Telegram 不必登入 LINE。</p>
++<div class="intro"><div><h1>LINE 訊息轉發控制台</h1><p class="muted">連結平台 → 選來源與目的 → 開始轉送。</p></div></div>
++<div class="status-strip"><div><span class="strip-label">下一步</span><p id="onboarding" role="status">先連結需要的平台；只使用 Telegram 不必登入 LINE。</p></div><div><span class="strip-label">轉送</span><p id="workflowStatus" role="status">正在確認轉送狀態…</p></div></div>
+ <div id="notice" class="notice" role="alert"></div>
+ <div id="relayNotice" class="notice" role="alert"></div>
+-<p id="workflowStatus" class="overview-help" role="status">正在確認轉送狀態…</p>
+-<nav class="workspace-nav" aria-label="設定與轉送步驟"><button id="navAccounts" aria-current="page">1. 連結帳號</button><button id="navRules">2. 設定規則</button><button id="navOverview">3. 啟動與狀態</button><button id="navSettings">設定與診斷</button></nav>
+ <div id="workspace">
+ <section id="panelOverview" class="workspace-panel" aria-label="啟動與狀態" hidden><div id="overviewCard" class="card"><div class="heading"><h2>啟動與轉送狀態</h2></div><p id="overviewHint" class="overview-help" role="status"></p><button id="overviewRules" class="quiet">返回設定規則</button></div></section>
+ <section id="panelRules" class="workspace-panel" aria-label="設定規則" hidden><div id="ruleListCard" class="card"><h2>設定轉送規則</h2><p class="muted">先新增規則，選擇訊息從哪裡來、要送到哪裡。</p><button id="newRule" class="primary rule-create">＋ 新增規則</button><p>保存規則後，按下方「下一步：啟動轉送」，再確認開始。規則啟用不代表正在轉送。</p><p id="ruleSaved" role="status" class="overview-help"></p><div class="actions"><button id="rulesAccounts">返回連結帳號</button><button id="rulesNext" class="primary">下一步：啟動轉送</button></div><p id="editorLock" class="editor-message" role="status"></p></div></section>
+@@ -60,7 +398,7 @@ textarea{font:inherit;width:100%;border:1px solid #d7e2da;border-radius:9px;padd
+ <div class="route"><div class="field"><label for="source">來源（可多選）</label><select id="source" multiple size="6" aria-describedby="selectionHelp"></select></div><span class="route-arrow" aria-hidden="true">→</span><div class="field"><label for="destination">目的（可多選）</label><select id="destination" multiple size="6" aria-describedby="selectionHelp"></select></div></div>
+ <p id="selectionHelp" class="muted">按住 Ctrl 可多選；每個來源都會轉到所有選取的目的。</p>
+ <p id="coverageHelp" class="route-info" aria-live="polite">選取來源與目的；如需不同的發訊者或內容條件，可分別建立規則。</p>
+-<details><summary>進階設定：指定發訊者、內容與時段</summary><div id="senderField" class="field spaced"><label for="senderSource">選擇要限制發訊者的來源</label><select id="senderSource"></select><label for="senderMode">接收誰的訊息？</label><select id="senderMode"><option value="all">所有發訊者</option><option value="specific">指定成員</option></select><p id="senderModeHelp" class="muted"></p><div id="senderChoices" hidden><div id="senderSelection" class="selected-list" aria-label="已指定成員"></div><label for="senderSearch">搜尋成員</label><input id="senderSearch" type="search" placeholder="輸入成員名稱或本機別名"><button id="loadSenders" class="quiet">重新整理人員</button><fieldset id="recentSenders" aria-label="可選發訊者"><legend>勾選要轉送的人員</legend></fieldset><button id="addSenders" class="quiet">加入選取人員</button><label for="senderIds">指定成員固定 ID（每行一個；指定模式不可留空）</label><textarea id="senderIds" rows="3"></textarea></div><p id="senderHelp">每個來源分別設定。使用固定 ID；改名不影響。LINE 優先列已加入成員；Telegram 只列最近發訊者。勾選後保存規則即可生效；未指定人員代表所有人。</p></div><div class="field"><label for="includeWords">包含關鍵字才轉送（每行一個，留空全選；支援「A + B」複合條件或「/Regex/」）</label><textarea id="includeWords" rows="3"></textarea></div><div class="field"><label for="excludeWords">排除關鍵字（每行一個）</label><textarea id="excludeWords" rows="3"></textarea></div><div class="field"><label for="prefix">訊息前綴／格式模版（選填）</label><input id="prefix" maxlength="200" placeholder="例如 [{source} / {sender}] 或 [工作] "><small class="muted" style="display:block;margin-top:4px">支援插值變數：{source}（來源名稱）、{sender}（發訊者／別名）、{time}（時間）、{date}（日期）</small></div><div class="field"><label><input id="scheduleEnabled" type="checkbox"> 啟用台北時段</label><label for="scheduleDays">星期（0 日、1 一、2 二、3 三、4 四、5 五、6 六；逗號分隔）</label><input id="scheduleDays" value="1,2,3,4,5"><label for="scheduleStart">開始</label><input id="scheduleStart" type="time" value="09:00"><label for="scheduleEnd">結束（不含結束時刻）</label><input id="scheduleEnd" type="time" value="15:00"><label for="scheduleOutside">時段外</label><select id="scheduleOutside"><option value="hold">保留待送，時段內接續</option><option value="skip">略過，留下略過紀錄</option></select><p>跨午夜以開始日計算。略過依訊息時間；保留依實際發送時刻。修改規則只影響新入列訊息，已待送內容不重新篩選。</p><label><input id="mediaEnabled" type="checkbox"> 圖片／檔案（Telegram 來源 → Telegram；圖片另可送 LINE）</label><p>預設關閉；圖片最多 10 MB、檔案最多 50 MB（十進位）、說明含前綴最多 1,024 字元。LINE 只收 JPEG／PNG 圖片；圖片先送、說明另送。LINE 檔案保留待送並暫停該配對。任何發送結果不明都不自動重送，請核對圖片及說明。LINE 圖片不支援回覆關聯。無法確認大小或格式時暫停該路線。模擬可檢查圖片／檔案大小、說明、指定人員與時段；不讀取真實附件。</p><label><input id="repliesEnabled" type="checkbox"> 保留回覆關聯（預設關閉）</label><p>只引用同一路線已確認送達的原訊息；原訊息被篩除或人工處理時，改送一般訊息。LINE 引用失敗會暫停，不自動重送。</p><button id="messageTemplate" class="quiet">填入訊息關鍵字範例</button></div></details>
++<details><summary>進階設定：指定發訊者、內容與時段</summary><div id="senderField" class="field spaced"><label for="senderSource">選擇要限制發訊者的來源</label><select id="senderSource"></select><label for="senderMode">接收誰的訊息？</label><select id="senderMode"><option value="all">所有發訊者</option><option value="specific">指定成員</option></select><p id="senderModeHelp" class="muted"></p><div id="senderChoices" hidden><div id="senderSelection" class="selected-list" aria-label="已指定成員"></div><label for="senderSearch">搜尋成員</label><input id="senderSearch" type="search" placeholder="輸入成員名稱或本機別名"><button id="loadSenders" class="quiet">重新整理人員</button><fieldset id="recentSenders" aria-label="可選發訊者"><legend>勾選要轉送的人員</legend></fieldset><button id="addSenders" class="quiet">加入選取人員</button><label for="senderIds">指定成員固定 ID（每行一個；指定模式不可留空）</label><textarea id="senderIds" rows="3"></textarea></div><p id="senderHelp">每個來源分別設定。使用固定 ID；改名不影響。LINE 優先列已加入成員；Telegram 只列最近發訊者。勾選後保存規則即可生效；未指定人員代表所有人。</p></div><div class="field"><label for="includeWords">包含關鍵字才轉送（每行一個，留空全選；支援「A + B」複合條件或「/Regex/」）</label><textarea id="includeWords" rows="3"></textarea></div><div class="field"><label for="excludeWords">排除關鍵字（每行一個）</label><textarea id="excludeWords" rows="3"></textarea></div><div class="field"><label for="prefix">訊息前綴／格式模版（選填）</label><input id="prefix" maxlength="200" placeholder="例如 [{source} / {sender}] 或 [工作] "><small class="muted field-note">支援插值變數：{source}（來源名稱）、{sender}（發訊者／別名）、{time}（時間）、{date}（日期）</small></div><div class="field"><label><input id="scheduleEnabled" type="checkbox"> 啟用台北時段</label><label for="scheduleDays">星期（0 日、1 一、2 二、3 三、4 四、5 五、6 六；逗號分隔）</label><input id="scheduleDays" value="1,2,3,4,5"><label for="scheduleStart">開始</label><input id="scheduleStart" type="time" value="09:00"><label for="scheduleEnd">結束（不含結束時刻）</label><input id="scheduleEnd" type="time" value="15:00"><label for="scheduleOutside">時段外</label><select id="scheduleOutside"><option value="hold">保留待送，時段內接續</option><option value="skip">略過，留下略過紀錄</option></select><p>跨午夜以開始日計算。略過依訊息時間；保留依實際發送時刻。修改規則只影響新入列訊息，已待送內容不重新篩選。</p><label><input id="mediaEnabled" type="checkbox"> 圖片／檔案（Telegram 來源 → Telegram；圖片另可送 LINE）</label><p>預設關閉；圖片最多 10 MB、檔案最多 50 MB（十進位）、說明含前綴最多 1,024 字元。LINE 只收 JPEG／PNG 圖片；圖片先送、說明另送。LINE 檔案保留待送並暫停該配對。任何發送結果不明都不自動重送，請核對圖片及說明。LINE 圖片不支援回覆關聯。無法確認大小或格式時暫停該路線。模擬可檢查圖片／檔案大小、說明、指定人員與時段；不讀取真實附件。</p><label><input id="repliesEnabled" type="checkbox"> 保留回覆關聯（預設關閉）</label><p>只引用同一路線已確認送達的原訊息；原訊息被篩除或人工處理時，改送一般訊息。LINE 引用失敗會暫停，不自動重送。</p><button id="messageTemplate" class="quiet">填入訊息關鍵字範例</button></div></details>
+ <details><summary>模擬目前編輯的規則（不發訊）</summary><p>先選來源與目的，再輸入範例。每個來源的指定人員分別驗證。可模擬文字、圖片及檔案，不驗證實際平台送達。</p><label for="sampleSource">模擬來源</label><select id="sampleSource"></select><label for="sampleKind">訊息類型</label><select id="sampleKind"><option value="text">文字</option><option value="photo">Telegram 圖片</option><option value="document">Telegram 檔案</option></select><div id="sampleMediaSize" hidden><label for="sampleSize">附件大小（MB，十進位）</label><input id="sampleSize" type="number" min="0" step="0.1" value="1"></div><label><input id="sampleProtected" type="checkbox"> 平台標示受保護內容</label><label><input id="sampleReply" type="checkbox"> 這是回覆訊息</label><label for="sampleSender">模擬發訊者 ID（有指定人員時必填）</label><input id="sampleSender" maxlength="100"><label for="sampleTime">模擬時間（台北時區）</label><input id="sampleTime" type="datetime-local"><label for="sampleText">模擬文字／附件說明</label><textarea id="sampleText" rows="3" maxlength="10000"></textarea><button id="simulate">顯示轉送結果</button><pre id="simulation" class="route-status" aria-live="polite"></pre></details>
+ <div class="actions rule-actions"><button id="saveRule">新增並保存規則</button><button id="cancelEdit" hidden>取消編輯</button></div>
+ <label for="ruleSearch">搜尋規則</label><input id="ruleSearch" type="search" placeholder="名稱、聊天室或關鍵字"><div id="rules" class="stack" aria-live="polite"></div>

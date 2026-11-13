@@ -9,8 +9,10 @@ signals:
   keywords: [寫程式, 前端, 後端, 重構, debug, API]
 maps_to: [development, testing, deployment, Developer Tools, engineering]
 slots:
+  # 2026-11-14 拆成兩個槽位：工具與應用介面、網頁。三輪實測（data/evals/2026-11-1[34]-frontend-design-F1*.md）
+  # 看到 taste-skill 擅長做成有質感的形象頁，用在功能導向的介面上反而犧牲效率；一個槽位只能有一個預設，所以依用途分開
   - id: frontend-design
-    name: 前端設計
+    name: 前端設計：工具與應用介面
     focus: active
     scenarios:
       - id: F1
@@ -20,6 +22,14 @@ slots:
       - id: F3
         text: 偶爾需要照原版重建一個現成的網站或畫面，版面、樣式與行為要盡量接近原版。
     search: [frontend design skill, ui design agent, design system]
+
+  - id: web-pages
+    name: 前端設計：網頁與形象頁
+    focus: active
+    scenarios:
+      - id: WP1
+        text: 做公司官網、產品介紹頁或活動頁，第一眼要有質感，像業界的高品質網頁，不是一般 AI 產生的樣子。
+    search: [landing page design skill, website design agent, marketing site]
 
   - id: code-understanding
     name: 程式碼理解與搜尋

@@ -1,0 +1,31 @@
+{
+ "arm": "frontend-design",
+ "model": "claude-opus-5-5",
+ "secs": 376,
+ "status": "completed",
+ "thread": "mcp:77c1a5c7-3a4b-443c-9be0-99ba60644d44",
+ "quota_before": {
+  "session": 65,
+  "week": 38
+ },
+ "quota_after": {
+  "session": 69,
+  "week": 38
+ },
+ "changed": [
+  "yomi-probe/index.html"
+ ],
+ "outside_allowed": [],
+ "tests_before": {
+  "exit": 0,
+  "tests": 308,
+  "pass": 308,
+  "fail": 0
+ },
+ "tests_after": {
+  "exit": 0,
+  "tests": 308,
+  "pass": 308,
+  "fail": 0
+ }
+}

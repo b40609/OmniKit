@@ -14,8 +14,8 @@
         "path": "plugins/frontend-design",
         "sha": "a2e251d9b97b909bf728b3e84fc8d17e6aba0063"
       },
-      "description": "frontend-design：OmniKit「前端設計」槽位的預設。",
-      "category": "前端設計",
+      "description": "frontend-design：OmniKit「前端設計：工具與應用介面」槽位的預設。",
+      "category": "前端設計：工具與應用介面",
       "homepage": "https://github.com/anthropics/skills/tree/main/skills/frontend-design"
     },
     {

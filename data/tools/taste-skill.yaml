@@ -1,10 +1,13 @@
 id: taste-skill
 name: taste-skill（leonxlnx）
 slots:
-- frontend-design
-status: pending
+- web-pages
+status: trial
 url: https://github.com/leonxlnx/taste-skill
 sources:
 - 自我迭代訊號
-notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:f20d9b5a7ee8）：前端設計槽位的名冊外候選，dc108580f194 的實務回饋也說它有效。名冊外，還沒評估。
+decided_at: '2026-11-14'
+trial_until: '2026-11-28'
+reason: 三輪工具介面實測的盲選裡兩輪勝出、一輪居中，但做出來偏向形象頁，用在功能導向的介面上會犧牲效率；依使用者的分工改放網頁槽位試用。網頁本身沒有實測過，是依它的說明與實測裡的風格推論。
+notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:f20d9b5a7ee8）。實測：CatOS 依方向打磨，使用者在三組裡選它（2026-11-13-frontend-design-F1.md）；OmniKit 看板，使用者評最漂亮、像業界高質感網頁，但做成每段一整屏的行銷頁（F1b）；LinePort 控制台，灰階評「好看有質感」、配色居中，Gemini 質感與實用都排第一（F1c）。說明寫明以公司官網、形象頁為主，需要 Node 22 以上與 Chrome。MIT。
 added: '2026-11-13'

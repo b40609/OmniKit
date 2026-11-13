@@ -1,0 +1,381 @@
+diff --git a/yomi-probe/index.html b/yomi-probe/index.html
+index 1a1a717..8cb85c9 100644
+--- a/yomi-probe/index.html
++++ b/yomi-probe/index.html
+@@ -4,30 +4,329 @@
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>LinePort</title>
+ <meta name="lineport-device" content="__LINE_DEVICE__">
++<meta name="color-scheme" content="light dark">
+ <style nonce="__NONCE__">
+-:root{--green:#06c755;--ink:#17251e;--muted:#68756e;--line:#e4ebe6;--wash:#f5f8f6;--dark:#078739}*{box-sizing:border-box}body{margin:0;background:var(--wash);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",sans-serif}button,input,select{font:inherit}button{cursor:pointer;border:1px solid var(--line);background:white;color:var(--ink);border-radius:9px;padding:10px 16px;font-weight:600;transition:background .15s}button:hover{background:#edf5ef}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--green);color:#073019;border-color:var(--green)}.primary:hover{background:#05b94e}.danger{color:#a33232}.quiet{padding:7px 12px;font-size:12px}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #8ddfae;outline-offset:3px}header{background:white;border-bottom:1px solid var(--line)}.top{max-width:1140px;margin:auto;padding:19px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{display:flex;align-items:center;gap:12px;font-size:17px;font-weight:700;letter-spacing:-.4px}.mark{display:grid;place-items:center;width:35px;height:35px;background:var(--green);border-radius:11px;color:#06331b;font-size:23px}.badge{display:inline-flex;align-items:center;gap:7px;font-size:12px;border:1px solid var(--line);border-radius:30px;padding:5px 10px;white-space:nowrap}.dot{width:7px;height:7px;border-radius:50%;background:#aab7af}.badge.live .dot{background:var(--green)}main{max-width:1140px;margin:0 auto;padding:32px 28px 20px}.intro{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:24px}h1{font-size:27px;letter-spacing:-.7px;line-height:1.3;margin:0 0 6px}h2{font-size:16px;margin:0}p{margin:6px 0}.muted{color:var(--muted)}.layout{display:grid;grid-template-columns:330px 1fr;gap:22px;align-items:start}.card{background:white;border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:0 3px 14px #14352003}.card+.card{margin-top:18px}.heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:20px}.step{display:inline-grid;place-items:center;width:23px;height:23px;border-radius:7px;background:#e8f8ee;color:var(--dark);font-size:12px;margin-right:8px}label{display:block;font-size:12px;font-weight:600;margin-bottom:7px}input,select{width:100%;border:1px solid #d7e2da;border-radius:9px;padding:11px 12px;background:white;color:var(--ink);min-width:0}input[type=checkbox]{width:auto;padding:0}input::placeholder{color:#99a69f}.field{margin-bottom:16px}.actions{display:flex;gap:9px;flex-wrap:wrap}.stack{display:grid;gap:10px}.stack button{width:100%}.auth-state{font-size:12px;margin-top:15px;color:var(--dark);overflow-wrap:anywhere}#pin{font-size:30px;font-weight:700;letter-spacing:7px;color:var(--dark);margin-top:7px;overflow-wrap:anywhere}details{border-top:1px solid var(--line);margin-top:19px;padding-top:14px;font-size:12px;color:var(--muted)}summary{cursor:pointer;color:var(--ink)}details p{margin-top:10px}#groupCount{font-size:12px;margin-top:10px}.route{display:grid;grid-template-columns:1fr 28px 1fr;gap:10px;align-items:center}.route-arrow{text-align:center;color:var(--green);font-size:24px}.route .field{margin:0}.route-info{margin:17px 0;font-size:12px;color:var(--muted);overflow-wrap:anywhere}.metrics{display:grid;grid-template-columns:repeat(3,1fr);margin:22px -24px -24px;padding:18px 24px;border-top:1px solid var(--line);background:#fbfdfb;border-radius:0 0 16px 16px;gap:14px}.metric strong{display:block;font-size:24px;font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums}.metric span{font-size:11px;color:var(--muted)}.preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.preview-tools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.preview-tools button{font-size:12px;padding:7px 11px}#stats{font-size:11px;color:var(--muted);margin-bottom:12px}#messages{max-height:430px;overflow:auto;padding-right:5px}.empty{text-align:center;padding:36px 15px;color:var(--muted);font-size:12px}.empty span{display:block;font-size:24px;color:#b8cbc0;margin-bottom:8px}.message{margin-bottom:12px}.message small{display:block;font-size:10px;color:var(--muted);margin:0 0 5px 3px}.message pre{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere;background:#f0f7f2;border-radius:3px 12px 12px 12px;margin:0;padding:11px 14px}.notice{margin:0 0 20px;padding:12px 16px;border:1px solid #ebceca;border-radius:10px;background:#fff5f3;color:#9b3b2d;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}.notice:empty{display:none}footer{display:flex;justify-content:space-between;gap:15px;margin-top:24px;padding-top:16px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}a{color:var(--dark);text-decoration:none}a:hover{text-decoration:underline}@media(max-width:850px){.layout{grid-template-columns:1fr}.intro .muted:last-child{display:none}.stack{grid-template-columns:1fr 1fr}.route{grid-template-columns:1fr 28px 1fr}}@media(max-width:480px){main{padding:24px 16px}.top{padding:16px}.brand{font-size:15px}.badge{font-size:11px}.card{padding:20px}.route{grid-template-columns:1fr}.route-arrow{font-size:18px;line-height:1}.stack{grid-template-columns:1fr}.metrics{margin:20px -20px -20px;padding:16px 20px}.metric strong{font-size:22px}.preview-head{align-items:start}.intro h1{font-size:24px}footer{flex-direction:column;gap:4px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+-textarea{font:inherit;width:100%;border:1px solid #d7e2da;border-radius:9px;padding:11px 12px;resize:vertical}.spaced{margin-top:16px}.rule-actions{margin:16px 0}.rule-row{border:1px solid var(--line);border-radius:10px;padding:12px}.route-status{border-top:1px solid var(--line);padding-top:10px;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}#routeStatuses{margin-top:18px}
+-</style>
+-<style nonce="__NONCE__">
+-.account-intro{grid-column:1/-1}[hidden]{display:none!important}body{background:#f3f5f7;color:#202e37}.top,main{max-width:1200px}.intro{margin-bottom:18px}.layout{display:block}.workspace-nav{display:flex;gap:6px;padding:6px;background:#e8edf0;border-radius:12px;margin-bottom:24px}.workspace-nav button{flex:1;border:0;background:transparent;color:#596974}.workspace-nav button[aria-current=page]{background:white;color:#08783b;box-shadow:0 2px 8px #20303c12}.workspace-panel{display:grid;gap:20px}.workspace-panel>.card{margin:0}.card{border-radius:14px;box-shadow:none}.account-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.workspace-panel h2{font-size:19px}.workspace-panel .heading{margin-bottom:18px}.workspace-panel .metrics{margin:20px 0 0;border-radius:12px;border:1px solid var(--line)}.rule-row{padding:18px;background:#fafcfc}#rules{grid-template-columns:1fr;margin-top:14px}#rules button{width:auto}.rule-row strong{font-size:16px}.rule-row p{margin:10px 0;color:var(--muted)}.rule-row .actions{margin-top:14px}.editor-steps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}.editor-steps span{padding:6px 12px;border-radius:20px;background:#eef2f4;color:#6a7780;font-size:13px}.editor-steps [aria-current=step]{background:#dcf6e6;color:#086e37;font-weight:700}.editor-stage{min-height:180px}.editor-stage>details:first-child{border:0;margin-top:0;padding-top:0}.editor-stage>details:first-child>summary{display:none}.editor-stage details{font-size:14px}.wizard-actions{display:flex;justify-content:space-between;gap:12px;margin-top:24px;border-top:1px solid var(--line);padding-top:18px}.endpoint-picker{max-height:300px;overflow:auto;display:grid;gap:8px;margin-top:10px}.endpoint-picker label{display:flex;align-items:center;gap:10px;padding:12px;background:#f6f8fa;border:1px solid #e1e8eb;border-radius:9px;font-size:14px;margin:0;overflow-wrap:anywhere}.endpoint-picker input{flex:0 0 18px;width:18px;height:18px;padding:0;margin:0}.endpoint-picker .endpoint-name{min-width:0;flex:1}.endpoint-avatar{position:relative;display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border-radius:50%;background:#e2ece6;color:#326147;font-size:12px;overflow:hidden}.endpoint-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.endpoint-picker input:checked~.endpoint-name{color:#08783b;font-weight:600}#recentSenders{border:1px solid var(--line);border-radius:10px;margin:12px 0;padding:14px}#recentSenders>div{padding:10px 0;border-bottom:1px solid var(--line)}#recentSenders label{font-size:14px}#recentSenders input[type=text]{font-size:12px;padding:7px 10px;margin-top:5px}#draftSummary{background:#f4faf6;border:1px solid #cfe5d7;border-radius:12px;padding:18px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.9}.workspace-panel .route-status{background:#f7f9fa;padding:14px;border-radius:10px;border:1px solid var(--line)}.overview-help{color:var(--muted);margin-top:12px}.editor-message{color:#8b4c0b;background:#fff7e8;padding:10px 14px;border-radius:8px}.editor-message:empty{display:none}.workspace-panel button:focus-visible{outline:3px solid #69c894}.workspace-panel .route{display:block}.workspace-panel .route-arrow{display:none}@media(max-width:700px){.account-grid{grid-template-columns:1fr}.workspace-nav{gap:2px}.workspace-nav button{padding:10px 4px;font-size:12px}main{padding:22px 16px}.editor-steps span{font-size:12px;padding:5px 8px}.card{padding:18px}.intro h1{font-size:24px}.intro{flex-wrap:wrap}.intro .muted:last-child{display:block}}
+-</style>
++/* LinePort console — route board. Tokens first; everything below reads from them. */
++:root{
++  --bg:#e8ece9;--panel:#fff;--inset:#f3f6f4;--ink:#15232b;--muted:#5b6b72;--faint:#8a999f;--line:#d5ddda;--line-strong:#b9c6c2;
++  --board:#1d323d;--board-2:#264150;--board-ink:#dce7e4;--board-muted:#93aab0;
++  --go:#08803f;--go-ink:#07743a;--go-on:#fff;--go-wash:#dcf2e4;--lamp:#2fd27a;
++  --hold:#9a5c00;--hold-wash:#fff1d6;--stop:#b1352a;--stop-wash:#fcebe8;
++  --field:#fff;--field-line:#c7d2ce;--focus:#2f8fd8;
++  --sans:"Microsoft JhengHei UI","Microsoft JhengHei","PingFang TC","Noto Sans TC","Noto Sans CJK TC",-apple-system,"Segoe UI",sans-serif;
++  --sign:Bahnschrift,"DIN Alternate","DIN 2014","Roboto Condensed","Arial Narrow",var(--sans);
++  --r-s:6px;--r-m:10px;--r-l:14px;
++}
++@media (prefers-color-scheme:dark){:root{
++  --bg:#0e181d;--panel:#152229;--inset:#1a2a32;--ink:#e2ebe7;--muted:#97a8ac;--faint:#6f8287;--line:#26363f;--line-strong:#36505b;
++  --board:#0a1317;--board-2:#16262e;--board-ink:#dce7e4;--board-muted:#7f979d;
++  --go:#2bbf6c;--go-ink:#5fd496;--go-on:#05200f;--go-wash:#143528;--lamp:#3be088;
++  --hold:#e5a948;--hold-wash:#35270f;--stop:#f08171;--stop-wash:#3a1d1a;
++  --field:#101c22;--field-line:#33474f;--focus:#6cb6f0;
++}}
++*{box-sizing:border-box}
++[hidden]{display:none!important}
++html{-webkit-text-size-adjust:100%}
++body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 var(--sans);font-feature-settings:"palt" 0}
++a{color:var(--go-ink);text-underline-offset:3px}
++p{margin:6px 0}
++h1,h2,h3{margin:0;line-height:1.35;letter-spacing:0}
++h2{font-size:18px;font-weight:700}
++h3{font-size:16px}
++.muted{color:var(--muted)}
++ul{padding-left:1.3em}
+ 
+-<style nonce="__NONCE__">
+-#accountsNext,#newRule,#rulesNext,#start{background:#dcf6e6;color:#086e37;border-color:#a7d9b9}#accountsNext:hover,#newRule:hover,#rulesNext:hover,#start:hover{background:#ccefd9}.rule-create{display:block;margin:16px 0}.picker-kinds{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.picker-kinds [aria-pressed=true]{background:#dcf6e6;color:#086e37;border-color:#a7d9b9}.source-chooser,.source-card{border:1px solid var(--line);border-radius:12px;padding:18px;margin:14px 0;background:#fafcfc}.source-card h3,.source-chooser h3{margin:0 0 10px;font-size:16px;overflow-wrap:anywhere}.source-card>.actions{margin:12px 0}.source-card #senderField{border-top:1px solid var(--line);padding-top:16px;margin:16px 0 0}.selected-list{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}.selected-chip{white-space:normal;text-align:left;overflow-wrap:anywhere;max-width:100%}#senderModeHelp{margin:10px 0}#senderSearch{margin-bottom:12px}.rule-description{white-space:pre-wrap;overflow-wrap:anywhere}#sourceCards>section>button{margin-top:10px}#sourceControls select,#destinationControls select{max-width:240px}#recentSenders{max-height:340px;overflow:auto}@media(max-width:480px){.source-chooser,.source-card{padding:14px}.wizard-actions{flex-wrap:wrap}.selected-chip{font-size:12px}}
+-</style>
+-<style nonce="__NONCE__">
+-.destination-choice{min-width:0;max-width:100%;flex:1 1 240px}.destination-choice label{margin-top:10px}.destination-choice select{max-width:100%}.destination-choice p{overflow-wrap:anywhere}
++/* Controls */
++button,input,select,textarea{font:inherit;color:inherit}
++button{cursor:pointer;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink);border-radius:var(--r-s);padding:9px 15px;font-weight:600;line-height:1.4;transition:background-color .12s,border-color .12s}
++button:hover{background:var(--inset);border-color:var(--muted)}
++button:disabled{opacity:.42;cursor:not-allowed}
++button:disabled:hover{background:var(--panel);border-color:var(--line-strong)}
++.primary,#accountsNext,#rulesNext,#newRule,#start{background:var(--go);border-color:var(--go);color:var(--go-on)}
++.primary:hover,#accountsNext:hover,#rulesNext:hover,#newRule:hover,#start:hover{background:var(--go-ink);border-color:var(--go-ink)}
++.primary:disabled:hover,#accountsNext:disabled:hover,#rulesNext:disabled:hover,#newRule:disabled:hover,#start:disabled:hover{background:var(--go);border-color:var(--go)}
++.danger{color:var(--stop)}
++.danger:not(:disabled):hover{background:var(--stop-wash);border-color:var(--stop)}
++.quiet{padding:6px 11px;font-size:13px;font-weight:600}
++:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
++label{display:block;font-size:13px;font-weight:600;margin:0 0 6px;color:var(--ink)}
++input,select,textarea{width:100%;min-width:0;border:1px solid var(--field-line);border-radius:var(--r-s);padding:9px 11px;background:var(--field)}
++textarea{resize:vertical;line-height:1.55}
++input:hover,select:hover,textarea:hover{border-color:var(--muted)}
++input[type=checkbox],input[type=radio]{width:auto;padding:0;accent-color:var(--go);margin:0 8px 0 0;vertical-align:-2px}
++input[type=file]{padding:7px;background:var(--inset)}
++input::placeholder,textarea::placeholder{color:var(--faint)}
++select[multiple]{padding:4px}
++fieldset{margin:0;min-width:0}
++legend{font-size:13px;font-weight:600;padding:0 6px}
++label:has(>input[type=checkbox]){display:flex;align-items:flex-start;gap:2px;font-weight:500;font-size:14px;margin:10px 0}
++label:has(>input[type=checkbox])>input{margin-top:4px;flex:none}
++.field{margin-bottom:16px}
++.field>label+input,.field>label+select,.field>label+textarea{margin-bottom:0}
++.field input+label,.field select+label,.field p+label{margin-top:14px}
++.hint{display:block;margin-top:6px;font-size:13px}
++.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
++.stack{display:grid;gap:8px;margin-top:10px}
++.spaced{margin-top:16px}
++
++/* Route board header */
++.board{background:var(--board);color:var(--board-ink)}
++.board-inner{max-width:1180px;margin:0 auto;padding:18px 28px 0}
++.board-top{display:flex;align-items:center;justify-content:space-between;gap:16px}
++.brand{display:flex;align-items:center;gap:11px;margin:0;font:600 22px/1 var(--sign);letter-spacing:.2px;color:#fff}
++.brand svg{flex:none}
++.badge{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;border-radius:999px;padding:5px 12px 5px 10px;white-space:nowrap;border:1px solid var(--line-strong);background:var(--panel)}
++.dot{width:9px;height:9px;border-radius:50%;background:var(--faint);flex:none}
++.badge.live .dot{background:var(--lamp);box-shadow:0 0 0 3px color-mix(in srgb,var(--lamp) 28%,transparent)}
++.board .badge{background:var(--board-2);border-color:#ffffff1f;color:var(--board-ink)}
++.board .badge .dot{background:#5d7680}
++.board .badge.live .dot{background:var(--lamp)}
++.workspace-nav{position:relative;display:flex;align-items:flex-start;gap:0;margin:18px 0 0;padding:0}
++.workspace-nav button{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;flex:0 1 150px;border:0;border-radius:var(--r-s) var(--r-s) 0 0;background:transparent;color:var(--board-muted);padding:4px 10px 14px;font-weight:600;font-size:14px}
++.workspace-nav button:hover{background:#ffffff0d;color:#fff}
++.workspace-nav .stop{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:2px solid #5d7680;background:var(--board);font:600 15px/1 var(--sign);color:var(--board-muted);position:relative;z-index:1}
++.workspace-nav .track-step::after{content:"";position:absolute;top:19px;left:calc(50% + 15px);width:calc(100% - 30px);height:2px;background:#5d7680}
++.workspace-nav button[aria-current=page]{color:#fff;background:var(--bg);color:var(--ink)}
++.workspace-nav button[aria-current=page] .stop{border-color:var(--go);background:var(--go);color:var(--go-on)}
++.workspace-nav #navSettings{margin-left:auto;flex:0 0 auto;flex-direction:row;align-self:flex-end;padding:9px 14px 12px}
++.workspace-nav #navSettings .gear{width:16px;height:16px;flex:none}
++.board-status{margin:0;font-size:13px;color:var(--board-muted);flex:1;text-align:right;min-width:0}
++#navOverview::after{display:none}
++
++/* Page */
++main{max-width:1180px;margin:0 auto;padding:22px 28px 28px}
++.route-info{font-size:13px;color:var(--muted);overflow-wrap:anywhere;margin:12px 0}
++#onboarding{margin:0 0 16px;font-size:14px;color:var(--ink)}
++.notice{margin:0 0 16px;padding:11px 14px 11px 16px;border:1px solid color-mix(in srgb,var(--stop) 35%,transparent);border-left:4px solid var(--stop);border-radius:var(--r-s);background:var(--stop-wash);color:var(--stop);font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
++.notice:empty{display:none}
++.layout:empty,.layout>aside:empty,.layout>div:empty{display:none}
++.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-l);padding:22px 24px;min-width:0}
++.heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
++.overview-help{color:var(--muted);margin:10px 0}
++.editor-message{color:var(--hold);background:var(--hold-wash);padding:9px 13px;border-radius:var(--r-s);font-size:14px}
++.editor-message:empty{display:none}
++details{border-top:1px solid var(--line);margin-top:18px;padding-top:12px;font-size:14px;color:var(--muted)}
++details p{margin:8px 0}
++summary{cursor:pointer;color:var(--ink);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px;padding:2px 0}
++summary::-webkit-details-marker{display:none}
++summary::before{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex:none;margin:0 3px}
++details[open]>summary::before{transform:rotate(45deg) translate(-2px,-1px)}
++details[open]>summary{margin-bottom:8px}
++details label,details input,details select,details textarea{color:var(--ink)}
++.workspace-panel{display:grid;gap:18px}
++.workspace-panel>.card{margin:0}
++
++/* Accounts */
++.account-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
++.account-intro{grid-column:1/-1;display:grid;grid-template-columns:1fr auto;gap:4px 24px;align-items:center;background:var(--inset)}
++.account-intro h2,.account-intro p{grid-column:1}
++.account-intro #accountsNext{grid-column:2;grid-row:1/span 2}
++.account-intro #accountsNextHelp{grid-column:1/-1;font-size:13px}
++#qrImage{display:block;margin:16px auto 0;border-radius:var(--r-m);background:#fff;padding:8px;max-width:100%;height:auto}
++.auth-state{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin-top:14px;overflow-wrap:anywhere}
++.auth-state::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
++#pin{font:600 34px/1.2 var(--sign);letter-spacing:8px;color:var(--go-ink);margin-top:6px;overflow-wrap:anywhere}
++#pin:empty{display:none}
++#groupCount{margin-top:10px;font-size:14px}
++#telegramStatus,#discordStatus{font-weight:600}
++
++/* Rules list */
++#ruleListCard>h2{font-size:20px}
++.rule-create{margin:16px 0 10px;padding:11px 18px}
++#ruleListCard>.actions{margin-top:14px}
++#ruleSaved:empty{display:none}
++#ruleListCard label[for=ruleSearch]{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
++#rules{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
++#rules button{width:auto}
++.rule-row{position:relative;border:1px solid var(--line);border-radius:var(--r-m);padding:14px 16px 14px 20px;background:var(--panel)}
++.rule-row::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:4px;border-radius:0 3px 3px 0;background:var(--line-strong)}
++.rule-row.is-on::before{background:var(--go)}
++.rule-row strong{font-size:16px;display:block}
++.rule-row p{margin:8px 0;color:var(--muted);font-size:14px}
++.rule-row .actions{margin-top:10px}
++.rule-row>button{margin:6px 8px 0 0}
++.rule-description{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7}
++
++/* Rule editor */
++#editorTitle{font-size:20px}
++.editor-steps{display:flex;gap:0;flex-wrap:wrap;margin:14px 0 22px;border:1px solid var(--line);border-radius:var(--r-m);overflow:hidden;width:fit-content;max-width:100%}
++.editor-steps span{padding:7px 14px;font-size:13px;color:var(--muted);background:var(--inset);border-right:1px solid var(--line)}
++.editor-steps span:last-child{border-right:0}
++.editor-steps [aria-current=step]{background:var(--go-wash);color:var(--go-ink);font-weight:700}
++.editor-stage{min-height:160px}
++.editor-stage>details:first-child{border:0;margin-top:0;padding-top:0}
++.editor-stage>details:first-child>summary{display:none}
++.editor-stage details{font-size:14px}
++.wizard-actions{display:flex;justify-content:space-between;gap:10px;margin-top:22px;border-top:1px solid var(--line);padding-top:16px}
++#wizardNext{margin-left:auto;background:var(--go);border-color:var(--go);color:var(--go-on)}
++#wizardNext:hover{background:var(--go-ink)}
++.route{display:grid;grid-template-columns:1fr 28px 1fr;gap:10px;align-items:center}
++.route .field{margin:0}
++.route-arrow{text-align:center;color:var(--go);font-size:22px}
++.workspace-panel .route{display:block}
++.workspace-panel .route-arrow{display:none}
++.source-chooser,.source-card{border:1px solid var(--line);border-radius:var(--r-m);padding:16px 18px;margin:12px 0;background:var(--inset)}
++.source-chooser{border-style:dashed;border-color:var(--line-strong)}
++.source-card{background:var(--panel);border-left:4px solid var(--go)}
++.source-card h3,.source-chooser h3{margin:0 0 8px;overflow-wrap:anywhere}
++.source-card>p{font-size:13px}
++.source-card>.actions{margin:10px 0}
++.source-card #senderField{border-top:1px solid var(--line);padding-top:14px;margin:14px 0 0}
++#addSource{margin-top:4px}
++#sourceChooser>button{margin-top:10px}
++#sourceControls,#destinationControls{display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:6px 12px;align-items:end;margin-top:6px}
++#sourceControls>label,#destinationControls>label{margin:0}
++#sourceControls>label[for=sourcePlatform],#destinationControls>label[for=destinationPlatform]{grid-column:1;grid-row:1}
++#sourcePlatform,#destinationPlatform{grid-column:1;grid-row:2}
++#sourceControls>label[for=sourceSearch],#destinationControls>label[for=destinationSearch]{grid-column:2;grid-row:1}
++#sourceSearch,#destinationSearch{grid-column:2;grid-row:2}
++#sourceKinds,#destinationKinds,#sourcePicker,#destinationPicker{grid-column:1/-1}
++.picker-kinds{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px}
++.picker-kinds button{border-radius:999px}
++.picker-kinds [aria-pressed=true]{background:var(--go-wash);color:var(--go-ink);border-color:var(--go)}
++.endpoint-picker{max-height:310px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px;margin-top:4px;padding:2px}
++.endpoint-picker>p{grid-column:1/-1}
++.endpoint-picker label{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-m);font-size:14px;font-weight:500;margin:0;overflow-wrap:anywhere;cursor:pointer}
++.endpoint-picker label:hover{border-color:var(--muted)}
++.endpoint-picker label:has(input:checked){border-color:var(--go);background:var(--go-wash)}
++.endpoint-picker label:has(input:disabled){cursor:not-allowed;opacity:.6}
++.endpoint-picker input{flex:0 0 17px;width:17px;height:17px;padding:0;margin:0}
++.endpoint-picker .endpoint-name{min-width:0;flex:1}
++.endpoint-picker input:checked~.endpoint-name{color:var(--go-ink);font-weight:700}
++.endpoint-avatar{position:relative;display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:var(--inset);border:1px solid var(--line);color:var(--muted);font-size:11px;overflow:hidden}
++.endpoint-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
++#destinationCount{font-weight:600;margin:8px 0 0}
++.selected-list{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
++.selected-list:empty{display:none}
++.selected-chip{white-space:normal;text-align:left;overflow-wrap:anywhere;max-width:100%;border-radius:999px;background:var(--go-wash);border-color:var(--go);color:var(--go-ink)}
++.selected-chip:hover{background:var(--stop-wash);border-color:var(--stop);color:var(--stop)}
++.destination-choice{min-width:0;max-width:100%;flex:1 1 240px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
++.destination-choice label{margin-top:8px;width:100%}
++.destination-choice select{max-width:100%;margin-top:4px}
++.destination-choice p{overflow-wrap:anywhere;font-size:13px}
++#senderModeHelp{margin:8px 0}
++#senderSearch{margin-bottom:10px}
++#senderChoices>label{margin-top:12px}
++#loadSenders{margin-bottom:4px}
++#recentSenders{border:1px solid var(--line);border-radius:var(--r-m);margin:10px 0;padding:6px 14px 10px;max-height:340px;overflow:auto;background:var(--panel)}
++#recentSenders>div{padding:10px 0;border-bottom:1px solid var(--line)}
++#recentSenders>div:last-child{border-bottom:0}
++#recentSenders label{font-size:14px;font-weight:500;margin:0}
++#recentSenders input[type=text]{font-size:13px;padding:6px 9px;margin-top:6px}
++#senderHelp{font-size:13px;color:var(--muted)}
++#draftSummary{background:var(--inset);border:1px solid var(--line);border-left:4px solid var(--go);border-radius:var(--r-m);padding:16px 18px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.9;font-size:14px}
++.rule-actions{margin:16px 0 0}
++#saveRule{background:var(--go);border-color:var(--go);color:var(--go-on)}
++#saveRule:hover{background:var(--go-ink)}
++#cancelEdit{color:var(--muted)}
++#simulation:empty{display:none}
++
++/* Status board */
++#overviewCard{display:flex;flex-direction:column}
++#overviewCard>.heading{order:0;margin-bottom:4px}
++#overviewCard>.heading h2{font-size:20px}
++#overviewHint{order:1;margin-top:0}
++#overviewCard>.metrics{order:2}
++#overviewCard>.actions{order:3;margin-top:18px}
++#startHelp{order:4;font-size:14px}
++.card>details:first-child{border-top:0;margin-top:0;padding-top:0}
++#routeStatuses{order:5}
++#routeInfo{order:6}
++#readInfo{order:7}
++#overviewCard>details{order:8}
++#overviewRules{order:4;align-self:flex-start;margin-top:4px}
++#relayBadge{font-size:14px;padding:6px 14px 6px 11px}
++#relayBadge .dot{width:10px;height:10px}
++#start,#stop{padding:12px 24px;font-size:16px;min-width:140px}
++.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:16px 0 0;border:1px solid var(--line);border-radius:var(--r-m);overflow:hidden;background:var(--line);gap:1px}
++.metric{background:var(--inset);padding:14px 18px}
++.metric strong{display:block;font:600 32px/1.15 var(--sign);font-variant-numeric:tabular-nums;color:var(--ink)}
++.metric span{font-size:13px;color:var(--muted)}
++.metric:last-child strong{color:var(--ink)}
++#routeStatuses{display:grid;gap:8px;margin-top:16px}
++#routeStatuses:empty{display:none}
++.route-status{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink);margin:0}
++#routeStatuses .route-status,#platformChecks:not(:empty),#simulation:not(:empty),#reviewItems .route-status{background:var(--inset);padding:12px 14px 12px 16px;border-radius:var(--r-m);border:1px solid var(--line);border-left:4px solid var(--line-strong);line-height:1.75}
++#routeStatuses .phase-running{border-left-color:var(--go)}
++#routeStatuses .phase-starting{border-left-color:var(--hold)}
++#routeStatuses .phase-blocked,#routeStatuses .phase-failed{border-left-color:var(--stop)}
++#routeStatuses .notice{margin:0}
++#platformChecks:empty{display:none}
++#reviewItems{display:grid;gap:10px;margin-top:10px}
++#reviewItems .rule-row button{margin:8px 8px 0 0}
++
++/* Settings */
++#panelSettings .card{padding:6px 24px 18px}
++#panelSettings .card>details:first-child{border-top:0;margin-top:0;padding-top:12px}
++#panelSettings .card>details:first-child>summary{font-size:16px;padding:6px 0}
++#panelSettings .actions{margin:8px 0}
++#panelSettings details details{margin-top:16px}
++#checkStorage,#archiveStorage{margin:4px 8px 4px 0}
++#restoreSettings{margin:8px 0}
++.preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0}
++.preview-head h2{font-size:16px}
++.preview-tools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
++#stats{font-size:13px;color:var(--muted);margin-bottom:10px}
++#messages{max-height:430px;overflow:auto;padding:12px;border-radius:var(--r-m);background:var(--inset)}
++.empty{text-align:center;padding:30px 15px;color:var(--muted);font-size:13px}
++.empty span{display:block;font-size:22px;margin-bottom:6px}
++.message{margin-bottom:12px}
++.message small{display:block;font-size:12px;color:var(--muted);margin:0 0 4px 4px}
++.message pre{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--panel);border:1px solid var(--line);border-radius:4px 14px 14px 14px;margin:0;padding:10px 14px;color:var(--ink);max-width:60ch}
++
++footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 16px;margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
++footer a{color:var(--muted)}
++
++@media (max-width:860px){
++  .account-grid{grid-template-columns:1fr}
++  .board-top{flex-wrap:wrap;row-gap:10px}
++  .board-status{order:3;flex-basis:100%;text-align:left}
++}
++@media (max-width:640px){
++  body{font-size:15px}
++  .board-inner{padding:14px 16px 0}
++  .brand{font-size:19px}
++  .board .badge{font-size:12px;padding:4px 10px 4px 8px}
++  .board-status{font-size:12px}
++  .workspace-nav{margin-top:12px}
++  .workspace-nav button{flex:1 1 0;font-size:12px;padding:4px 2px 11px;gap:5px}
++  .workspace-nav .stop{width:26px;height:26px;font-size:13px}
++  .workspace-nav .track-step::after{top:17px;left:calc(50% + 13px);width:calc(100% - 26px)}
++  .workspace-nav #navSettings{flex:1 1 0;flex-direction:column;align-self:auto;padding:4px 2px 11px;gap:5px}
++  .workspace-nav #navSettings .gear{width:26px;height:26px;padding:4px}
++  main{padding:16px 16px 24px}
++  .card{padding:18px 16px;border-radius:var(--r-m)}
++  #panelSettings .card{padding:4px 16px 14px}
++  .account-intro{grid-template-columns:1fr}
++  .account-intro #accountsNext{grid-column:1;grid-row:auto;margin-top:8px}
++  .editor-steps{width:100%}
++  .editor-steps span{flex:1 1 0;padding:6px 6px;font-size:12px;text-align:center}
++  #sourceControls,#destinationControls{display:block}
++  #sourceControls>label,#destinationControls>label{margin:10px 0 6px}
++  .endpoint-picker{grid-template-columns:1fr}
++  .source-chooser,.source-card{padding:14px}
++  .wizard-actions{flex-wrap:wrap}
++  .metric{padding:12px}
++  .metric strong{font-size:26px}
++  #start,#stop{flex:1 1 0;min-width:0}
++  .route{grid-template-columns:1fr}
++  .preview-head{flex-wrap:wrap}
++  footer{flex-direction:column}
++}
++@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+ </style>
+ </head>
+ <body>
+-<header><div class="top"><div class="brand"><span class="mark" aria-hidden="true">⇄</span>LinePort</div><span id="connection" class="badge"><span class="dot"></span><span id="connectionText">LINE 尚未連結</span></span></div></header>
++<header class="board">
++<div class="board-inner">
++<div class="board-top"><h1 class="brand"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="1" y="1" width="28" height="28" rx="8" fill="none" stroke="#5d7680" stroke-width="2"/><circle cx="9" cy="10" r="3" fill="#3be088"/><circle cx="21" cy="20" r="3" fill="#fff"/><path d="M9 13v2a5 5 0 0 0 5 5h4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>LinePort</h1><p id="workflowStatus" class="board-status" role="status">正在確認轉送狀態…</p><span id="connection" class="badge"><span class="dot"></span><span id="connectionText">LINE 尚未連結</span></span></div>
++<nav class="workspace-nav" aria-label="設定與轉送步驟"><button id="navAccounts" class="track-step" aria-current="page"><span class="stop" aria-hidden="true">1</span><span>連結帳號</span></button><button id="navRules" class="track-step"><span class="stop" aria-hidden="true">2</span><span>設定規則</span></button><button id="navOverview" class="track-step"><span class="stop" aria-hidden="true">3</span><span>啟動與狀態</span></button><button id="navSettings"><svg class="gear" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>設定與診斷</span></button></nav>
++</div>
++</header>
+ <main>
+-<div class="intro"><div><h1>讓訊息，自動到位。</h1><p class="muted">連結平台 → 選來源與目的 → 開始轉送。</p></div><span class="muted">v1.0.0 · LINE · Telegram</span></div>
+ <p id="onboarding" class="route-info" role="status">先連結需要的平台；只使用 Telegram 不必登入 LINE。</p>
+ <div id="notice" class="notice" role="alert"></div>
+ <div id="relayNotice" class="notice" role="alert"></div>
+-<p id="workflowStatus" class="overview-help" role="status">正在確認轉送狀態…</p>
+-<nav class="workspace-nav" aria-label="設定與轉送步驟"><button id="navAccounts" aria-current="page">1. 連結帳號</button><button id="navRules">2. 設定規則</button><button id="navOverview">3. 啟動與狀態</button><button id="navSettings">設定與診斷</button></nav>
+ <div id="workspace">
+ <section id="panelOverview" class="workspace-panel" aria-label="啟動與狀態" hidden><div id="overviewCard" class="card"><div class="heading"><h2>啟動與轉送狀態</h2></div><p id="overviewHint" class="overview-help" role="status"></p><button id="overviewRules" class="quiet">返回設定規則</button></div></section>
+ <section id="panelRules" class="workspace-panel" aria-label="設定規則" hidden><div id="ruleListCard" class="card"><h2>設定轉送規則</h2><p class="muted">先新增規則，選擇訊息從哪裡來、要送到哪裡。</p><button id="newRule" class="primary rule-create">＋ 新增規則</button><p>保存規則後，按下方「下一步：啟動轉送」，再確認開始。規則啟用不代表正在轉送。</p><p id="ruleSaved" role="status" class="overview-help"></p><div class="actions"><button id="rulesAccounts">返回連結帳號</button><button id="rulesNext" class="primary">下一步：啟動轉送</button></div><p id="editorLock" class="editor-message" role="status"></p></div></section>
+@@ -60,7 +359,7 @@ textarea{font:inherit;width:100%;border:1px solid #d7e2da;border-radius:9px;padd
+ <div class="route"><div class="field"><label for="source">來源（可多選）</label><select id="source" multiple size="6" aria-describedby="selectionHelp"></select></div><span class="route-arrow" aria-hidden="true">→</span><div class="field"><label for="destination">目的（可多選）</label><select id="destination" multiple size="6" aria-describedby="selectionHelp"></select></div></div>
+ <p id="selectionHelp" class="muted">按住 Ctrl 可多選；每個來源都會轉到所有選取的目的。</p>
+ <p id="coverageHelp" class="route-info" aria-live="polite">選取來源與目的；如需不同的發訊者或內容條件，可分別建立規則。</p>
+-<details><summary>進階設定：指定發訊者、內容與時段</summary><div id="senderField" class="field spaced"><label for="senderSource">選擇要限制發訊者的來源</label><select id="senderSource"></select><label for="senderMode">接收誰的訊息？</label><select id="senderMode"><option value="all">所有發訊者</option><option value="specific">指定成員</option></select><p id="senderModeHelp" class="muted"></p><div id="senderChoices" hidden><div id="senderSelection" class="selected-list" aria-label="已指定成員"></div><label for="senderSearch">搜尋成員</label><input id="senderSearch" type="search" placeholder="輸入成員名稱或本機別名"><button id="loadSenders" class="quiet">重新整理人員</button><fieldset id="recentSenders" aria-label="可選發訊者"><legend>勾選要轉送的人員</legend></fieldset><button id="addSenders" class="quiet">加入選取人員</button><label for="senderIds">指定成員固定 ID（每行一個；指定模式不可留空）</label><textarea id="senderIds" rows="3"></textarea></div><p id="senderHelp">每個來源分別設定。使用固定 ID；改名不影響。LINE 優先列已加入成員；Telegram 只列最近發訊者。勾選後保存規則即可生效；未指定人員代表所有人。</p></div><div class="field"><label for="includeWords">包含關鍵字才轉送（每行一個，留空全選；支援「A + B」複合條件或「/Regex/」）</label><textarea id="includeWords" rows="3"></textarea></div><div class="field"><label for="excludeWords">排除關鍵字（每行一個）</label><textarea id="excludeWords" rows="3"></textarea></div><div class="field"><label for="prefix">訊息前綴／格式模版（選填）</label><input id="prefix" maxlength="200" placeholder="例如 [{source} / {sender}] 或 [工作] "><small class="muted" style="display:block;margin-top:4px">支援插值變數：{source}（來源名稱）、{sender}（發訊者／別名）、{time}（時間）、{date}（日期）</small></div><div class="field"><label><input id="scheduleEnabled" type="checkbox"> 啟用台北時段</label><label for="scheduleDays">星期（0 日、1 一、2 二、3 三、4 四、5 五、6 六；逗號分隔）</label><input id="scheduleDays" value="1,2,3,4,5"><label for="scheduleStart">開始</label><input id="scheduleStart" type="time" value="09:00"><label for="scheduleEnd">結束（不含結束時刻）</label><input id="scheduleEnd" type="time" value="15:00"><label for="scheduleOutside">時段外</label><select id="scheduleOutside"><option value="hold">保留待送，時段內接續</option><option value="skip">略過，留下略過紀錄</option></select><p>跨午夜以開始日計算。略過依訊息時間；保留依實際發送時刻。修改規則只影響新入列訊息，已待送內容不重新篩選。</p><label><input id="mediaEnabled" type="checkbox"> 圖片／檔案（Telegram 來源 → Telegram；圖片另可送 LINE）</label><p>預設關閉；圖片最多 10 MB、檔案最多 50 MB（十進位）、說明含前綴最多 1,024 字元。LINE 只收 JPEG／PNG 圖片；圖片先送、說明另送。LINE 檔案保留待送並暫停該配對。任何發送結果不明都不自動重送，請核對圖片及說明。LINE 圖片不支援回覆關聯。無法確認大小或格式時暫停該路線。模擬可檢查圖片／檔案大小、說明、指定人員與時段；不讀取真實附件。</p><label><input id="repliesEnabled" type="checkbox"> 保留回覆關聯（預設關閉）</label><p>只引用同一路線已確認送達的原訊息；原訊息被篩除或人工處理時，改送一般訊息。LINE 引用失敗會暫停，不自動重送。</p><button id="messageTemplate" class="quiet">填入訊息關鍵字範例</button></div></details>
++<details><summary>進階設定：指定發訊者、內容與時段</summary><div id="senderField" class="field spaced"><label for="senderSource">選擇要限制發訊者的來源</label><select id="senderSource"></select><label for="senderMode">接收誰的訊息？</label><select id="senderMode"><option value="all">所有發訊者</option><option value="specific">指定成員</option></select><p id="senderModeHelp" class="muted"></p><div id="senderChoices" hidden><div id="senderSelection" class="selected-list" aria-label="已指定成員"></div><label for="senderSearch">搜尋成員</label><input id="senderSearch" type="search" placeholder="輸入成員名稱或本機別名"><button id="loadSenders" class="quiet">重新整理人員</button><fieldset id="recentSenders" aria-label="可選發訊者"><legend>勾選要轉送的人員</legend></fieldset><button id="addSenders" class="quiet">加入選取人員</button><label for="senderIds">指定成員固定 ID（每行一個；指定模式不可留空）</label><textarea id="senderIds" rows="3"></textarea></div><p id="senderHelp">每個來源分別設定。使用固定 ID；改名不影響。LINE 優先列已加入成員；Telegram 只列最近發訊者。勾選後保存規則即可生效；未指定人員代表所有人。</p></div><div class="field"><label for="includeWords">包含關鍵字才轉送（每行一個，留空全選；支援「A + B」複合條件或「/Regex/」）</label><textarea id="includeWords" rows="3"></textarea></div><div class="field"><label for="excludeWords">排除關鍵字（每行一個）</label><textarea id="excludeWords" rows="3"></textarea></div><div class="field"><label for="prefix">訊息前綴／格式模版（選填）</label><input id="prefix" maxlength="200" placeholder="例如 [{source} / {sender}] 或 [工作] "><small class="muted hint">支援插值變數：{source}（來源名稱）、{sender}（發訊者／別名）、{time}（時間）、{date}（日期）</small></div><div class="field"><label><input id="scheduleEnabled" type="checkbox"> 啟用台北時段</label><label for="scheduleDays">星期（0 日、1 一、2 二、3 三、4 四、5 五、6 六；逗號分隔）</label><input id="scheduleDays" value="1,2,3,4,5"><label for="scheduleStart">開始</label><input id="scheduleStart" type="time" value="09:00"><label for="scheduleEnd">結束（不含結束時刻）</label><input id="scheduleEnd" type="time" value="15:00"><label for="scheduleOutside">時段外</label><select id="scheduleOutside"><option value="hold">保留待送，時段內接續</option><option value="skip">略過，留下略過紀錄</option></select><p>跨午夜以開始日計算。略過依訊息時間；保留依實際發送時刻。修改規則只影響新入列訊息，已待送內容不重新篩選。</p><label><input id="mediaEnabled" type="checkbox"> 圖片／檔案（Telegram 來源 → Telegram；圖片另可送 LINE）</label><p>預設關閉；圖片最多 10 MB、檔案最多 50 MB（十進位）、說明含前綴最多 1,024 字元。LINE 只收 JPEG／PNG 圖片；圖片先送、說明另送。LINE 檔案保留待送並暫停該配對。任何發送結果不明都不自動重送，請核對圖片及說明。LINE 圖片不支援回覆關聯。無法確認大小或格式時暫停該路線。模擬可檢查圖片／檔案大小、說明、指定人員與時段；不讀取真實附件。</p><label><input id="repliesEnabled" type="checkbox"> 保留回覆關聯（預設關閉）</label><p>只引用同一路線已確認送達的原訊息；原訊息被篩除或人工處理時，改送一般訊息。LINE 引用失敗會暫停，不自動重送。</p><button id="messageTemplate" class="quiet">填入訊息關鍵字範例</button></div></details>
+ <details><summary>模擬目前編輯的規則（不發訊）</summary><p>先選來源與目的，再輸入範例。每個來源的指定人員分別驗證。可模擬文字、圖片及檔案，不驗證實際平台送達。</p><label for="sampleSource">模擬來源</label><select id="sampleSource"></select><label for="sampleKind">訊息類型</label><select id="sampleKind"><option value="text">文字</option><option value="photo">Telegram 圖片</option><option value="document">Telegram 檔案</option></select><div id="sampleMediaSize" hidden><label for="sampleSize">附件大小（MB，十進位）</label><input id="sampleSize" type="number" min="0" step="0.1" value="1"></div><label><input id="sampleProtected" type="checkbox"> 平台標示受保護內容</label><label><input id="sampleReply" type="checkbox"> 這是回覆訊息</label><label for="sampleSender">模擬發訊者 ID（有指定人員時必填）</label><input id="sampleSender" maxlength="100"><label for="sampleTime">模擬時間（台北時區）</label><input id="sampleTime" type="datetime-local"><label for="sampleText">模擬文字／附件說明</label><textarea id="sampleText" rows="3" maxlength="10000"></textarea><button id="simulate">顯示轉送結果</button><pre id="simulation" class="route-status" aria-live="polite"></pre></details>
+ <div class="actions rule-actions"><button id="saveRule">新增並保存規則</button><button id="cancelEdit" hidden>取消編輯</button></div>
+ <label for="ruleSearch">搜尋規則</label><input id="ruleSearch" type="search" placeholder="名稱、聊天室或關鍵字"><div id="rules" class="stack" aria-live="polite"></div>
+@@ -76,7 +375,7 @@ textarea{font:inherit;width:100%;border:1px solid #d7e2da;border-radius:9px;padd
+ <section class="card"><details><summary>設定備份、還原與安全診斷</summary><p>設定備份不含登入與 Bot Token，但包含聊天室 ID、名稱、關鍵字及前綴，請私下保存。還原僅替換規則，不還原去重／待送進度；原設定會先另存本機。</p><div class="actions"><button id="backupSettings">下載設定備份</button><button id="diagnostics">下載安全診斷</button></div><p>安全診斷只有版本、狀態與計數，不含憑證、訊息、聊天室 ID／名稱及錯誤全文。</p><details><summary>容量監控與私人封存</summary><button id="checkStorage">查看容量</button><button id="archiveStorage">停止後建立私人封存</button><p id="storageInfo" aria-live="polite"></p><p>封存包含訊息、聊天室與去重／待送證據，不能分享；不含登入憑證，不能替代完整私人備份。保留原檔，不會釋放空間。此版本不自動刪除紀錄。</p></details><label for="restoreFile">選擇設定備份 JSON（最大 128 KiB）</label><input id="restoreFile" type="file" accept=".json,application/json"><p id="restoreSummary" aria-live="polite"></p><button id="restoreSettings" disabled>確認還原規則</button><p>更新：執行新版安裝程式，再由桌面 LinePort 捷徑啟動；免安裝版則全部解壓到新資料夾並雙擊 LinePort.exe。會自動切換可辨識的舊服務；更新後確認規則並按「開始轉送」。本版新增登入自動啟動，可在上方「開機自動啟動」個別開關。本次新文字雙目的收件已驗收；完整重啟與長期運作仍待驗證。</p><a href="https://github.com/b40609/LinePort/releases/tag/v1.0.0" target="_blank" rel="noreferrer">v1.0.0 下載、更新說明與 SHA-256 ↗</a></details></section>
+ </div>
+ </div>
+-<footer><span>本機執行 · 非官方 LINE 工具 · 有帳號限制風險</span><a href="https://github.com/b40609/LinePort#readme" target="_blank" rel="noreferrer">使用文件 ↗</a></footer>
++<footer><span>LinePort v1.0.0 · LINE · Telegram</span><span>在這台電腦上執行。非官方 LINE 工具，使用帳號可能受到 LINE 限制。</span><a href="https://github.com/b40609/LinePort#readme" target="_blank" rel="noreferrer">使用文件 ↗</a></footer>
+ </main>
+ <script nonce="__NONCE__">
+ const token='__TOKEN__';
+@@ -299,11 +598,11 @@ function populate(){for(const id of ['source','destination','group']){const sele
+ function addEndpoints(rows){const merged=new Map(endpoints.map(endpoint=>[key(endpoint),endpoint]));for(const endpoint of rows){merged.set(key(endpoint),{...merged.get(key(endpoint)),...endpoint});if(endpoint.platform==='telegram'&&endpoint.threadId!==undefined){const baseKey=endpoint.platform+':'+endpoint.id;if(!merged.has(baseKey))merged.set(baseKey,{platform:'telegram',id:endpoint.id,name:endpoint.name.split(' / ')[0],kind:'group'});}}endpoints=[...merged.values()];populate();}
+ function resetEditor(){editorDirty=false;$('recentSenders').replaceChildren();editingId='';senderAllowlist={};senderAliases={};senderModes={};senderSource='';sourcePickerOpen=true;sourceReplacing='';for(const filter of Object.values(pickerFilters))Object.assign(filter,{platform:'line',kind:'group',search:''});$('senderIds').value='';$('scheduleEnabled').checked=false;$('mediaEnabled').checked=false;$('repliesEnabled').checked=false;for(const id of ['ruleName','includeWords','excludeWords','prefix'])$(id).value='';for(const id of ['source','destination'])for(const option of $(id).options)option.selected=false;$('saveRule').textContent='新增並保存規則';$('cancelEdit').hidden=true;populateSenderSources();controls();if(workspaceReady){$('editorTitle').closest('.card').hidden=true;renderEndpointPickers();}}
+ function senderSummary(rule){return rule.sources.map(source=>{const ids=rule.senderAllowlist?.[key(source)]||[];const names=ids.map(id=>rule.senderAliases?.[key(source)]?.[id]).filter(Boolean);return source.name+'：'+(ids.length?(names.length===ids.length?'只轉指定：'+names.join('、'):'只轉指定 '+ids.length+' 人'):'所有人');}).join('；');}
+-function renderRules(){const container=$('rules');container.replaceChildren();if(!config.rules.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='尚無規則，請按上方「新增規則」開始設定。';container.append(empty);}for(const rule of config.rules){if($('ruleSearch').value&&!JSON.stringify([rule.name,rule.sources,rule.destinations,rule.include,rule.exclude]).toLocaleLowerCase().includes($('ruleSearch').value.toLocaleLowerCase()))continue;const row=document.createElement('div');row.className='rule-row';const title=document.createElement('strong');title.textContent=rule.name+(rule.enabled?' · 已啟用規則':' · 已暫停規則');const description=document.createElement('p');description.className='rule-description';description.textContent='來源：'+rule.sources.map(endpoint=>endpoint.name).join('、')+'\n發訊者：'+senderSummary(rule)+'\n目的：'+rule.destinations.map(endpoint=>endpointLabel(endpoint)).join('、')+'\n條件：'+(rule.include.length?'包含任一：'+rule.include.join('、'):'所有文字')+(rule.exclude.length?' · 排除：'+rule.exclude.join('、'):'')+(rule.prefix?' · 前綴：'+rule.prefix:'')+(rule.schedule?' · 時段外'+(rule.schedule.outside==='hold'?'保留':'略過'):'')+(rule.media?' · 圖片／檔案':'')+(rule.replies?' · 保留回覆關聯':'');const actions=document.createElement('div');actions.className='actions';const edit=document.createElement('button');edit.textContent='編輯';edit.className='quiet';edit.onclick=()=>{if(!canDiscardEditor())return;editorDirty=false;editingId=rule.id;addEndpoints([...rule.sources,...rule.destinations]);$('ruleName').value=rule.name;$('includeWords').value=rule.include.join('\n');$('excludeWords').value=rule.exclude.join('\n');$('prefix').value=rule.prefix;for(const [id,rows] of [['source',rule.sources],['destination',rule.destinations]])for(const option of $(id).options)option.selected=rows.some(endpoint=>key(endpoint)===option.value);loadEditorOptions(rule);$('saveRule').textContent='保存變更';$('cancelEdit').hidden=false;if(workspaceReady){$('editorTitle').closest('.card').hidden=false;showPanel('Rules');showEditorStep(0);renderEndpointPickers();$('editorTitle').scrollIntoView({block:'start',behavior:'smooth'});}controls();};const toggle=document.createElement('button');toggle.textContent=rule.enabled?'暫停規則':'啟用規則';toggle.className='quiet';toggle.onclick=()=>act(()=>saveConfig(config.rules.map(value=>value.id===rule.id?{...value,enabled:!value.enabled}:value)));const copy=document.createElement('button');copy.textContent='複製為暫停規則';copy.className='quiet';copy.onclick=()=>act(()=>saveConfig([...config.rules,{...structuredClone(rule),id:crypto.randomUUID(),name:rule.name+'（複本）',enabled:false}]));const remove=document.createElement('button');remove.textContent='刪除規則';remove.className='quiet danger';remove.onclick=()=>act(()=>deleteRule(rule.id));actions.append(edit,toggle,copy,remove);row.append(title,description,actions);container.append(row);}if(config.rules.length&&!container.children.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='找不到符合的規則，請更換關鍵字或清除搜尋。';container.append(empty);}controls();}
++function renderRules(){const container=$('rules');container.replaceChildren();if(!config.rules.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='尚無規則，請按上方「新增規則」開始設定。';container.append(empty);}for(const rule of config.rules){if($('ruleSearch').value&&!JSON.stringify([rule.name,rule.sources,rule.destinations,rule.include,rule.exclude]).toLocaleLowerCase().includes($('ruleSearch').value.toLocaleLowerCase()))continue;const row=document.createElement('div');row.className='rule-row'+(rule.enabled?' is-on':'');const title=document.createElement('strong');title.textContent=rule.name+(rule.enabled?' · 已啟用規則':' · 已暫停規則');const description=document.createElement('p');description.className='rule-description';description.textContent='來源：'+rule.sources.map(endpoint=>endpoint.name).join('、')+'\n發訊者：'+senderSummary(rule)+'\n目的：'+rule.destinations.map(endpoint=>endpointLabel(endpoint)).join('、')+'\n條件：'+(rule.include.length?'包含任一：'+rule.include.join('、'):'所有文字')+(rule.exclude.length?' · 排除：'+rule.exclude.join('、'):'')+(rule.prefix?' · 前綴：'+rule.prefix:'')+(rule.schedule?' · 時段外'+(rule.schedule.outside==='hold'?'保留':'略過'):'')+(rule.media?' · 圖片／檔案':'')+(rule.replies?' · 保留回覆關聯':'');const actions=document.createElement('div');actions.className='actions';const edit=document.createElement('button');edit.textContent='編輯';edit.className='quiet';edit.onclick=()=>{if(!canDiscardEditor())return;editorDirty=false;editingId=rule.id;addEndpoints([...rule.sources,...rule.destinations]);$('ruleName').value=rule.name;$('includeWords').value=rule.include.join('\n');$('excludeWords').value=rule.exclude.join('\n');$('prefix').value=rule.prefix;for(const [id,rows] of [['source',rule.sources],['destination',rule.destinations]])for(const option of $(id).options)option.selected=rows.some(endpoint=>key(endpoint)===option.value);loadEditorOptions(rule);$('saveRule').textContent='保存變更';$('cancelEdit').hidden=false;if(workspaceReady){$('editorTitle').closest('.card').hidden=false;showPanel('Rules');showEditorStep(0);renderEndpointPickers();$('editorTitle').scrollIntoView({block:'start',behavior:'smooth'});}controls();};const toggle=document.createElement('button');toggle.textContent=rule.enabled?'暫停規則':'啟用規則';toggle.className='quiet';toggle.onclick=()=>act(()=>saveConfig(config.rules.map(value=>value.id===rule.id?{...value,enabled:!value.enabled}:value)));const copy=document.createElement('button');copy.textContent='複製為暫停規則';copy.className='quiet';copy.onclick=()=>act(()=>saveConfig([...config.rules,{...structuredClone(rule),id:crypto.randomUUID(),name:rule.name+'（複本）',enabled:false}]));const remove=document.createElement('button');remove.textContent='刪除規則';remove.className='quiet danger';remove.onclick=()=>act(()=>deleteRule(rule.id));actions.append(edit,toggle,copy,remove);row.append(title,description,actions);container.append(row);}if(config.rules.length&&!container.children.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='找不到符合的規則，請更換關鍵字或清除搜尋。';container.append(empty);}controls();}
+ async function deleteRule(id){const rule=config.rules.find(value=>value.id===id);if(!rule)return;if(!confirm('確定刪除規則「'+rule.name+'」？刪除後無法復原。'))return;await saveConfig(config.rules.filter(value=>value.id!==id));if(editingId===id)resetEditor();$('notice').textContent='規則已刪除。';}
+ async function saveConfig(rules){const result=await api('rules',{version:1,rules,revision});config=result.config;revision=result.revision;renderRules();}
+ async function loadRules(){const result=await api('rules');config=result.config;revision=result.revision;addEndpoints([...config.rules.flatMap(rule=>[...rule.sources,...rule.destinations]),...(result.telegramTopics||[])]);$('telegramStatus').textContent=result.telegramConfigured?'Bot 已設定':'尚未連結';$('telegramProtect').checked=result.telegramProtected===true;$('discordStatus').textContent=result.discordConfigured?'Bot 已設定':'尚未連結';$('discordProtect').checked=result.discordProtected===true;if(result.autostart){autostart=result.autostart;$('autostartService').checked=autostart.service===true;$('autostartRelay').checked=autostart.relay===true;$('autostartInfo').textContent=autostartSummary(autostart);}else{autostartSupported=false;$('autostartService').disabled=true;$('autostartRelay').disabled=true;$('autostartInfo').textContent='此環境不支援開機自動啟動。';}renderRules();settingsLoaded=true;if(!navigationChosen)showPanel(initialPanel(lastState,relayState,config.rules,endpoints));controls();}
+-function renderRouteStatuses(relay){const container=$('routeStatuses');container.replaceChildren();for(const source of relay.sources||[]){if(source.warning){const paragraph=document.createElement('p');paragraph.className='notice';paragraph.textContent=source.name+'：'+source.warning;container.append(paragraph);}}for(const route of relay.routes||[]){const paragraph=document.createElement('p');paragraph.className='route-status';const stages={platform:'平台連結',route_identity:'路線身分核對',destination_e2ee:'目的聊天室加密準備',destination_prepare:'目的聊天室準備',baseline:'來源首次讀取',journal:'本機紀錄讀寫'};const phases={running:route.retryAt>Date.now()?'等待平台':'運作中',blocked:'需要處理 · 發送結果不明',failed:'需要處理',starting:'等待平台'};paragraph.textContent=route.name+'：'+route.source.name+' → '+route.destination.name+(route.destination.threadId!==undefined?'（話題 #'+route.destination.threadId+'）':'')+(route.lineProtection==='transport'?'（Bot 相容文字：傳輸加密，無端對端加密）':route.lineProtection==='e2ee'?'（端對端加密）':'')+' · '+(phases[route.phase]||route.phase)+' · 平台已接受 '+route.forwarded+' · 待送 '+route.pending+' · 不明 '+route.uncertain+' · 錯誤 '+route.errors+' · 略過 '+route.skipped+(route.retryAt>Date.now()?' · 約 '+Math.ceil((route.retryAt-Date.now())/1000)+' 秒後重試':'')+(route.lastRead?'\n本輪掃描 '+route.lastRead.received+' 則 · 已處理 '+route.lastRead.processed+' · 新候選 '+route.lastRead.eligible+' · 符合條件 '+route.lastRead.matched+' · 條件排除 '+route.lastRead.filtered+(route.lastRead.filtered?'（請核對指定人員、關鍵字與排程；已排除訊息不會自動重算）':''):'')+(route.phase==='failed'&&stages[route.stage]?'\n失敗階段：'+stages[route.stage]+'（'+route.stage+'）':'')+(route.warning?'\n'+route.warning:'')+(route.replyNotice?'\n'+route.replyNotice:'');container.append(paragraph);}}
++function renderRouteStatuses(relay){const container=$('routeStatuses');container.replaceChildren();for(const source of relay.sources||[]){if(source.warning){const paragraph=document.createElement('p');paragraph.className='notice';paragraph.textContent=source.name+'：'+source.warning;container.append(paragraph);}}for(const route of relay.routes||[]){const paragraph=document.createElement('p');paragraph.className='route-status phase-'+(route.phase==='running'&&route.retryAt>Date.now()?'starting':route.phase);const stages={platform:'平台連結',route_identity:'路線身分核對',destination_e2ee:'目的聊天室加密準備',destination_prepare:'目的聊天室準備',baseline:'來源首次讀取',journal:'本機紀錄讀寫'};const phases={running:route.retryAt>Date.now()?'等待平台':'運作中',blocked:'需要處理 · 發送結果不明',failed:'需要處理',starting:'等待平台'};paragraph.textContent=route.name+'：'+route.source.name+' → '+route.destination.name+(route.destination.threadId!==undefined?'（話題 #'+route.destination.threadId+'）':'')+(route.lineProtection==='transport'?'（Bot 相容文字：傳輸加密，無端對端加密）':route.lineProtection==='e2ee'?'（端對端加密）':'')+' · '+(phases[route.phase]||route.phase)+' · 平台已接受 '+route.forwarded+' · 待送 '+route.pending+' · 不明 '+route.uncertain+' · 錯誤 '+route.errors+' · 略過 '+route.skipped+(route.retryAt>Date.now()?' · 約 '+Math.ceil((route.retryAt-Date.now())/1000)+' 秒後重試':'')+(route.lastRead?'\n本輪掃描 '+route.lastRead.received+' 則 · 已處理 '+route.lastRead.processed+' · 新候選 '+route.lastRead.eligible+' · 符合條件 '+route.lastRead.matched+' · 條件排除 '+route.lastRead.filtered+(route.lastRead.filtered?'（請核對指定人員、關鍵字與排程；已排除訊息不會自動重算）':''):'')+(route.phase==='failed'&&stages[route.stage]?'\n失敗階段：'+stages[route.stage]+'（'+route.stage+'）':'')+(route.warning?'\n'+route.warning:'')+(route.replyNotice?'\n'+route.replyNotice:'');container.append(paragraph);}}
+ function render(){const id=$('group').value;const rows=[...collected.values()].filter(m=>m.groupId===id).sort((a,b)=>b.time-a.time);$('messages').replaceChildren();if(!rows.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='尚無預覽訊息';$('messages').append(empty);}for(const m of rows){const article=document.createElement('article');article.className='message';const stamp=document.createElement('small');stamp.textContent=m.time?new Date(m.time).toLocaleString('zh-TW'):'時間未知';const text=document.createElement('pre');text.textContent=m.text||(m.decryptFailed?'[文字解密失敗]':'[非文字訊息]');article.append(stamp,text);$('messages').append(article);}controls();}
+ async function read(){if(reading)return;const id=$('group').value;if(!id)throw new Error('請先選擇群組');reading=true;controls();try{const result=await api('messages',{id});for(const m of result.messages){const key=id+'|'+(m.id||JSON.stringify([m.time,m.sender,m.text,m.type]));collected.set(key,{...m,groupId:id,groupName:result.group});}while(collected.size>5000){collected.delete(collected.keys().next().value);$('notice').textContent='預覽已達 5,000 則，較舊內容已移除；請匯出需要保存的訊息。';}render();$('stats').textContent=new Date(result.checkedAt).toLocaleTimeString('zh-TW')+' 更新 · '+result.messages.length+' 則 · '+result.messages.filter(m=>m.text).length+' 則文字';}finally{reading=false;controls();}}
+ async function loop(){try{if(!pending&&!lastState.busy)await read();}catch(e){$('notice').textContent=e.message;stopPreview();}if(polling)pollTimer=setTimeout(loop,10000);}

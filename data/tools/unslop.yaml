@@ -2,9 +2,12 @@ id: unslop
 name: unslop（heydamir）
 slots:
 - frontend-design
-status: pending
+status: trial
 url: https://github.com/heydamir/unslop
 sources:
 - 自我迭代訊號
-notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:3c5fcdbfe765）：支援 Claude Code、Codex、Antigravity 三個 agent 的去 AI 感 skill，前端設計槽位的名冊外候選。名冊外，還沒評估。
+decided_at: '2026-11-14'
+trial_until: '2026-11-28'
+reason: 工具介面照三輪實測的規則判定：LinePort 那一輪灰階版面三組難分，配色使用者把它跟原版並列第一；OmniKit 看板那一輪使用者認為它長期使用最實用。現任 frontend-design 三輪都沒被選上，維持預設到試用結束。
+notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:3c5fcdbfe765）。支援 Claude Code、Codex、Antigravity。實測：CatOS 依方向打磨時三組最後（2026-11-13-frontend-design-F1.md）；OmniKit 看板使用者排第二、評為最實用（F1b）；LinePort 控制台使用者評細節最完整、配色第一，但那一輪灰階網址給錯，使用者看到的是彩色版（F1c）。Gemini 評審三輪都沒把它排第一，跟使用者不一致。授權 CC-BY-4.0。
 added: '2026-11-13'
