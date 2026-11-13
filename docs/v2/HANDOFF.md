@@ -55,6 +55,10 @@ OmniKit v2 做給同事：裝完 → 可選的環境掃描與專案掃描 → �
    6. ~~第 2 層排程~~：`schedule.py` 產生提案（`data/funnel/layer2-schedule.json`），週報列得出來；重題槽位要維護者決定（見下方）。
 5. **同時開發** v2.0 其他需求。分組見 PRD §6.1。
 6. **調整 `4a4fc38` 的行為**：另一個 session 已推上「不評估就不裝 omnikit-eval」。PRD 的 FR-37 要求個人週報跟訪談第 5 題脫鉤。
+7. **2026-11-13 從近期收錄內容得出的三個小調整**（不改大方向；依據是 Lance Martin〈Your Old Prompts Are Making Claude Worse〉與 Felix Rieseberg 訪談的**二手整理**，沒有讀到原片，細節待驗證；「成本降 90%」是 Anthropic 內部測試結果，不能當通用數字）：
+   - **a 重評觸發加上「換模型」**：影片說提示型 skill 的半衰期約 10 週（待驗證）。證據卡目前只靠日期過期（`engine/skills/omnikit-eval/contracts/evidence.schema.json:65`，90 天）；純提示型的卡可以多加「模型升級就標為待重評」。
+   - **b 實測文字對齊兩兩比較**：`README.md:376` 寫「實測並評分」，但研究已選兩兩比較、不同家族評審、兩種順序都評（`docs/v2/research/eval.md:395`）。**待查**：`engine/skills/omnikit-eval` 的實際評分程式有沒有用到絕對分數（0 到 100）；有就改成是非題或兩兩比較，沒有就只改 README 用字。
+   - **c 瘦身的前後比較驗收（選用）**：`docs/proposals/2026-11-11-diagnose-advice.md:167` 承認沒有研究直接測過「刪掉使用者自己寫的規則」。做法：在副本上改、前後各跑一次、兩兩比較驗收；只用在通用型規則，紅線與偏好類不測。等試點驗證「瘦身有用」時再做（`docs/reviews/2026-11-10-project-review.md:13`）。
 
 ## 階段 0a 的成果（2026-11-05）
 
