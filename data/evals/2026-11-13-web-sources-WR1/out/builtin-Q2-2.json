@@ -1,0 +1,49 @@
+{
+ "arm": "builtin",
+ "q": "Q2",
+ "n": 2,
+ "model": "claude-sonnet-5-5",
+ "seconds": 31,
+ "exit": 0,
+ "error": null,
+ "mcp": [],
+ "tools": {
+  "WebFetch": 4
+ },
+ "usage": {
+  "input_tokens": 6,
+  "cache_creation_input_tokens": 5767,
+  "cache_read_input_tokens": 11740,
+  "output_tokens": 2263,
+  "output_tokens_details": {
+   "thinking_tokens": 120
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 5767,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1562,
+    "cache_read_input_tokens": 5428,
+    "cache_creation_input_tokens": 2146,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2146
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "answer": "**結論：** 我查到的官方文件裡，沒有專門用來檢查（lint／驗證）或自動精簡 AGENTS.md 的功能。文件只提供間接的做法，包括大小上限、驗證載入結果的方法，以及除錯指令。\n\n兩頁文件的網址都從 `developers.openai.com` 被 308 轉址到 `learn.chatgpt.com`。內容是用 WebFetch 讀取後由小模型摘要的，引文我沒有逐字對照過原頁。\n\n## 1. 沒有 lint／驗證／精簡功能\n\n- AGENTS.md 指南頁沒有描述 lint、validate 或 shorten 功能，也沒有 `/init` 的說明。\n- 頁面裡的「summarize」只是驗證用的提示詞，不是內建的摘要功能。\n- 來源：[AGENTS.md 指南](https://learn.chatgpt.com/docs/agent-configuration/agents-md)（原網址 `developers.openai.com/codex/guides/agents-md`）。\n- 這是依頁面內容做的「查無記載」判斷。我沒有搜尋整個 repo 或所有文件，所以不排除其他頁面有提到。\n\n## 2. 與「精簡」相關的記載：大小上限\n\n- 章節是 \"How Codex discovers guidance\"。\n- 合併後的總大小受 `project_doc_max_bytes` 限制，預設 32 KiB，達到上限就不再加入檔案。\n- 文件建議的做法是調高上限，或把指令拆到巢狀目錄。\n- 也就是說，文件給的是「拆分」，不是「自動精簡」。\n- 來源：[AGENTS.md 指南](https://learn.chatgpt.com/docs/agent-configuration/agents-md)\n\n## 3. 與「檢查」相關的記載\n\n- **驗證載入結果：** 章節是 \"Verify your setup\"。做法是讓 Codex 摘要它目前讀到的指令，再檢視 TUI 或 session 日誌。這是手動驗證，不是 lint。\n- **疑難排解：** 章節是 \"Troubleshoot discovery issues\"。內容涵蓋檔案沒載入、override 錯誤、fallback 檔名被忽略、被截斷，以及 `CODEX_HOME` 混淆。\n- **除錯指令：** 在 CLI 指令參考頁，`codex debug prompt-input`（標示為 Experimental）會把模型看得到的 prompt 以 JSON 輸出。頁面說明：\"Use this when debugging instruction discovery, session context, or prompt construction.\"\n- **環境診斷：** `codex doctor`（Stable）產生診斷報告，涵蓋 \"local installation, config, auth, runtime, Git, terminal, app-server, and thread inventory issues\"。這是環境診斷，不是檢查 AGENTS.md 內容。\n- **設定檔檢查：** `--strict-config` 只檢查 `config.toml` 的未知欄位，不檢查 AGENTS.md。\n- 來源：[CLI 指令參考](https://learn.chatgpt.com/docs/developer-commands?surface=cli)（原網址 `developers.openai.com/codex/cli/slash-commands`）\n\n## 4. `/init`：待驗證\n\n- 指令參考頁只在指令清單中列出 `/init`，原文是 \"available from the app composer, including `/feedback`, `/goal`, `/init`, `/mcp`, `/plan`, `/review`, and `/status`\"。\n- 該頁沒有說明 `/init` 做什麼。所以它是否會產生或精簡 AGENTS.md，我標為**待驗證**。\n- 該頁共約 14.4 萬字元，我只讀了前 10 萬字元，後段可能有更多說明。\n- 另外，AGENTS.md 指南頁指向另一份 [設定參考中的 project-instructions-discovery 段落](https://developers.openai.com/codex/config-file/config-advanced#project-instructions-discovery)。我沒有讀過那一頁。\n\n## 使用的連結\n\n- https://learn.chatgpt.com/docs/agent-configuration/agents-md\n- https://learn.chatgpt.com/docs/developer-commands?surface=cli\n- https://developers.openai.com/codex/config-file/config-advanced#project-instructions-discovery（只引用，未讀取）",
+ "stderr": ""
+}

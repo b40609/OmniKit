@@ -1,0 +1,50 @@
+{
+ "arm": "builtin",
+ "q": "Q2",
+ "n": 1,
+ "model": "claude-sonnet-5-5",
+ "seconds": 36,
+ "exit": 0,
+ "error": null,
+ "mcp": [],
+ "tools": {
+  "WebFetch": 5,
+  "WebSearch": 1
+ },
+ "usage": {
+  "input_tokens": 8,
+  "cache_creation_input_tokens": 7347,
+  "cache_read_input_tokens": 20923,
+  "output_tokens": 2514,
+  "output_tokens_details": {
+   "thinking_tokens": 103
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7347,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1490,
+    "cache_read_input_tokens": 7772,
+    "cache_creation_input_tokens": 1382,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1382
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "answer": "## 結論\n\n**官方文件裡沒有記載專門「檢查（lint／validate）」或「精簡（condense／trim）」AGENTS.md 的功能。** 官方只有「產生骨架」、「手動驗證有沒有載入」和「大小上限」這三項相關機制。\n\n### 1. 沒有 lint、validate 或精簡功能\n- AGENTS.md 指南：[Custom instructions with AGENTS.md](https://developers.openai.com/codex/guides/agents-md)。這個網址會 308 轉址到 [learn.chatgpt.com 版本](https://learn.chatgpt.com/docs/agent-configuration/agents-md)。\n- 我讀過該頁的 `.md` 版本，頁面沒有提到任何檢查或精簡工具。\n- 頁面只建議把格式與 lint 交給 CI，原文是「reserve formatting and lint checks for CI」。\n- 我是用摘要工具讀頁面，沒有逐字比對全文，所以「全頁沒有」這個結論的強度有限。\n- 斜線指令頁：[Slash commands](https://developers.openai.com/codex/cli/slash-commands)，轉址後是 [developer-commands](https://learn.chatgpt.com/docs/developer-commands.md?surface=cli)。\n- 這一頁沒有任何針對 AGENTS.md 的 lint 或 validate 指令。\n- `codex execpolicy check` 檢查的是 execpolicy 規則檔，不是 AGENTS.md。\n\n### 2. 官方相關機制\n- **產生骨架：`/init`**\n  - 位置：斜線指令頁，Built-in slash commands 表格。\n  - 原文：「Generate an `AGENTS.md` scaffold in the current directory.」\n  - 它只負責建立，不負責檢查或精簡既有檔案。\n- **驗證有沒有被載入（手動）**\n  - 位置：AGENTS.md 指南的驗證段落。\n  - 原文：提示詞為「Summarize the current instructions.」，預期結果是「Codex should echo guidance from global and project files in precedence order.」\n  - 也可用 `codex --cd subdir` 搭配「Show which instruction files are active.」確認巢狀覆蓋。\n  - 這是請模型複述，不是靜態檢查。\n- **大小上限（隱性的精簡壓力）**\n  - 位置：AGENTS.md 指南的 size limit 段落。\n  - 原文：「stops adding files once the combined size reaches the limit defined by `project_doc_max_bytes`」，預設 32 KiB。\n  - 原文建議：「Raise the limit or split instructions across nested directories when you hit the cap.」\n  - 超過上限時會直接停止載入後面的檔案，沒有任何工具協助你縮短內容。\n- **`/compact` 與 `/recap`**\n  - 它們精簡的是對話紀錄，不是 AGENTS.md。\n  - `/compact` 的原文是「Summarize the visible chat to free tokens.」\n\n### 3. 待驗證\n- **openai/codex GitHub repo：** 我沒有查原始碼，無法確認有沒有未寫進文件的原生 lint 子命令，所以這一點列為待驗證。\n- **第三方工具：** 搜尋結果出現 agnix 和 agentlint-codex 這類第三方 lint 工具。我只看到搜尋摘要，沒有讀它們的官方頁面，也不是 OpenAI 官方產品，內容都待驗證。\n- **轉址網域：** 文件實際內容在 `learn.chatgpt.com`。這是 developers.openai.com 回傳的轉址，我沒有另外確認該網域的歸屬。\n\n## 使用到的連結\n- https://developers.openai.com/codex/guides/agents-md\n- https://learn.chatgpt.com/docs/agent-configuration/agents-md\n- https://developers.openai.com/codex/cli/slash-commands\n- https://learn.chatgpt.com/docs/developer-commands.md?surface=cli\n- 第三方（僅作線索，待驗證）：https://codex.danielvaughan.com/2026/04/13/agnix-linting-codex-cli-agent-configurations/ 、https://docs.rs/crate/agentlint-codex/0.3.0/source/src/lib.rs",
+ "stderr": ""
+}

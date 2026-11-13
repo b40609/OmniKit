@@ -2,10 +2,11 @@ id: firecrawl
 name: Firecrawl
 kind: service
 slots:
-- product-research
+- web-sources
 status: pending
 url: https://github.com/firecrawl/firecrawl
 sources:
 - RIA:C048
-notes: 付費搜尋 API。
+- 自我迭代訊號
+notes: 雲端網頁搜尋與抓取 API，有 MCP 與 CLI。官方 MCP 有免金鑰的託管端點 https://mcp.firecrawl.dev/v2/mcp，只開 scrape、search、parse 三個工具、有速率限制；其他工具要 API 金鑰（firecrawl-mcp-server README，2026-11-13 讀）。原本掛的 product-research 槽位已經不在名冊，2026-11-13 改到 web-sources（第 1 層建議的 WR1）。主程式 AGPL-3.0。第 2 層試跑（2026-11-13，data/evals/2026-11-13-web-sources-WR1.md）：免金鑰 MCP 接上了，但 6 次執行只被叫用 1 次，模型都用內建的 WebSearch、WebFetch；判定「沒用到」，維持待評估。要再測得改用內建做不到的題目（要渲染 JavaScript、整站抓取）。
 added: '2026-11-04'

@@ -1,0 +1,57 @@
+{
+ "arm": "firecrawl",
+ "q": "Q1",
+ "n": 1,
+ "model": "claude-sonnet-5-5",
+ "seconds": 50,
+ "exit": 0,
+ "error": null,
+ "mcp": [
+  {
+   "name": "firecrawl",
+   "status": "connected",
+   "source": "dynamic"
+  }
+ ],
+ "tools": {
+  "WebFetch": 9,
+  "WebSearch": 1,
+  "Grep": 1
+ },
+ "usage": {
+  "input_tokens": 12,
+  "cache_creation_input_tokens": 46573,
+  "cache_read_input_tokens": 143333,
+  "output_tokens": 3615,
+  "output_tokens_details": {
+   "thinking_tokens": 120
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 46573,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1791,
+    "cache_read_input_tokens": 55141,
+    "cache_creation_input_tokens": 1096,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1096
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "answer": "**結論：有。** `/doctor` 的檢查範圍包含 `CLAUDE.md`，另外有 `/doctor prompt-audit` 子指令專門審查指令檔。以下都出自官方文件（code.claude.com）。\n\n## 1. `/doctor` 有檢查 CLAUDE.md\n\n- 指令總表（[Commands](https://code.claude.com/docs/en/commands)，章節 \"All commands\"，`/doctor` 那一列）寫道：「Run a setup checkup that diagnoses installation, settings, extension, and `CLAUDE.md` problems and proposes fixes that Claude applies after you confirm.」\n- 該列也說明別名是 `/checkup`，且它是 Skill（bundled skill）。\n\n## 2. 檢查哪些項目\n\n出處：[Skills](https://code.claude.com/docs/en/skills)，章節 \"Check your setup with `/doctor`\"。其中 **`CLAUDE.md` files** 這一項的原文是：「local `CLAUDE.md` files that duplicate checked-in ones, checked-in `CLAUDE.md` content Claude could derive from the codebase, and the always-loaded guidance that remains, which Claude offers to migrate into skills and nested `CLAUDE.md` files that load on demand」\n\n換成條列：\n1. **本機 `CLAUDE.md` 與已 check-in 的重複**。\n2. **已 check-in 的 `CLAUDE.md` 中，Claude 可從程式碼庫自行推得的內容。**\n   - [Memory](https://code.claude.com/docs/en/memory)，章節 \"My CLAUDE.md is too large\" 說明，它會提出刪減建議。\n   - 刪掉的是 directory layouts、dependency lists、architecture overviews 這類內容。\n   - 保留的是 pitfalls、rationale、以及與工具預設不同的慣例。\n3. **剩餘的 always-loaded 指引。** Claude 會提議把它們搬進 skills 或按需載入的巢狀 `CLAUDE.md`。\n4. 所有修改都先回報、經你確認才套用（同一章節：「Claude reports its findings first and asks for confirmation before changing anything」）。\n\n`/doctor` 的其他檢查範圍（同一章節）：\n- 安裝健康度\n- 擴充功能（未使用的 skills、MCP、plugins 與慢速 hooks）\n- 權限\n- 用量（需 v2.1.305 以上）\n\n[Debug your configuration](https://code.claude.com/docs/en/debug-your-config)，章節 \"See what loaded into context\" 的表格也列出：「checked-in `CLAUDE.md` content Claude can derive from the codebase, with proposed fixes」。\n\n## 3. 相關但不同的功能\n\n- **`/doctor prompt-audit [path]`**\n  - 依 [Skills](https://code.claude.com/docs/en/skills) 同一章節，它會檢查 `CLAUDE.md`、skills 與其他設定，找出過時或互相衝突的指令。\n  - 它取代一般的 checkup，不是附加執行。\n  - 需要 v2.1.283 以上。\n- **`claude doctor`（終端機版，非 slash command）**：唯讀的安裝與設定診斷，不啟動 session（[Debug your configuration](https://code.claude.com/docs/en/debug-your-config)，章節 \"Check resolved settings\"）。這份文件只說它找無效的 settings 檔，沒有說它檢查 `CLAUDE.md`。\n- **檔案過大警告不是 `/doctor` 做的。**\n  - [Memory](https://code.claude.com/docs/en/memory)，章節 \"My CLAUDE.md is too large\" 寫道：「If one of your instruction files is over the recommended length, you see a warning at startup and when you run `/status`.」\n  - 超過建議長度的檔案，警告出現在啟動時與 `/status`。\n  - 同章節把「超過 200 行會消耗更多 context」列為建議。\n\n## 待驗證\n\n- 搜尋結果裡有部落格說「`/doctor` 在 CLAUDE.md 超過 40,000 字元時警告」。官方文件中的 40,000 字元是「按需載入的子目錄 CLAUDE.md／rules 檔」的單檔上限（200K context window 時），且文件沒有把它歸給 `/doctor`。這個說法我當作**待驗證**，不採用。\n- `prompt-audit` 的具體檢查細節在 Memory 頁的 \"Audit your instruction files\" 章節。我沒有成功讀到該節全文，所以只引用了 skills 頁的概述。\n\n## 使用到的連結\n- https://code.claude.com/docs/en/commands\n- https://code.claude.com/docs/en/skills\n- https://code.claude.com/docs/en/memory\n- https://code.claude.com/docs/en/debug-your-config\n\nSources:\n- [Commands](https://code.claude.com/docs/en/commands)\n- [Skills](https://code.claude.com/docs/en/skills)\n- [Memory](https://code.claude.com/docs/en/memory)\n- [Debug your configuration](https://code.claude.com/docs/en/debug-your-config)",
+ "stderr": ""
+}

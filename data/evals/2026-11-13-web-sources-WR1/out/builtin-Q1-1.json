@@ -1,0 +1,51 @@
+{
+ "arm": "builtin",
+ "q": "Q1",
+ "n": 1,
+ "model": "claude-sonnet-5-5",
+ "seconds": 51,
+ "exit": 0,
+ "error": null,
+ "mcp": [],
+ "tools": {
+  "WebFetch": 4,
+  "WebSearch": 2,
+  "Bash": 1
+ },
+ "usage": {
+  "input_tokens": 10,
+  "cache_creation_input_tokens": 17134,
+  "cache_read_input_tokens": 32755,
+  "output_tokens": 2909,
+  "output_tokens_details": {
+   "thinking_tokens": 224
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 17134,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1774,
+    "cache_read_input_tokens": 10257,
+    "cache_creation_input_tokens": 8684,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 8684
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "answer": "**結論：有。** `/doctor` 的檢查範圍包含 CLAUDE.md，另外還有一個專門審查指令檔的子指令 `/doctor prompt-audit`。以下兩項都是官方文件有寫的內容。\n\n## 1. `/doctor` 對 CLAUDE.md 的檢查項目\n\n官方 Skills 文件的「Bundled skills › Check your setup with `/doctor`」一節寫道：\n\n> 「Run `/doctor` at the Claude Code prompt for a setup checkup that diagnoses issues and can fix them. Claude reports its findings first and asks for confirmation before changing anything.」\n\n在該節的 **`CLAUDE.md` files** 項目下，檢查內容是：\n\n> 「local `CLAUDE.md` files that duplicate checked-in ones, checked-in `CLAUDE.md` content Claude could derive from the codebase, and the always-loaded guidance that remains, which Claude offers to migrate into skills and nested `CLAUDE.md` files that load on demand」\n\n整理成三點：\n1. **重複**：本機的 CLAUDE.md 與已提交到版本庫的 CLAUDE.md 內容重複。\n2. **可推導內容**：已提交的 CLAUDE.md 裡，有些內容 Claude 可以直接從程式碼推導出來。\n3. **常駐指引的遷移**：剩下那些每次都會載入的指引，Claude 會提議遷移到 skills，或遷移到按需載入的巢狀 CLAUDE.md。\n\n出處：[Skills 文件](https://code.claude.com/docs/en/skills)。\n\n「Debug your configuration」一文的指令表也有 `/doctor` 那一列，說它涵蓋「checked-in `CLAUDE.md` content Claude can derive from the codebase, with proposed fixes」。出處：[Debug your configuration › See what loaded into context](https://code.claude.com/docs/en/debug-your-config)。\n\n`/doctor` 的其他檢查區塊不是針對 CLAUDE.md，包括安裝健康度、擴充功能（skills、MCP、plugins、hooks）、權限和用量。\n\n## 2. `/doctor prompt-audit`：審查指令檔本身\n\nSkills 文件同一節寫道：\n\n> 「To audit your instructions rather than your setup, run `/doctor prompt-audit`… Claude checks your `CLAUDE.md` files, skills, and other configuration for outdated or conflicting instructions instead of running the checkup. The `prompt-audit` subcommand requires Claude Code v2.1.283 or later.」\n\n- 檢查項目是**過時**或**互相衝突**的指令。\n- 它**取代**一般的 setup 檢查，兩者不會同時執行。\n- 版本需求是 v2.1.283 以上。\n\n## 3. 終端機版 `claude doctor`\n\nDebug your configuration 的「Check resolved settings」一節說：\n\n> 「run `claude doctor` from your terminal. It prints read-only installation and settings diagnostics without starting a session.」\n\n文件把它描述為唯讀的安裝與設定診斷，沒有提到 CLAUDE.md。互動式 `/doctor` 才是會提出修正並先徵求同意的完整檢查。\n\n## 待驗證\n\n- **字元或行數門檻**：第三方文章提到「CLAUDE.md 超過 40,000 字元會警告」，也有文章列出「18,432 tokens (recommended: <10,000)」的輸出。我沒有在官方文件找到這些數字，所以**待驗證**。這些數字也不見得是 `/doctor` 輸出的，有些來源說是狀態列警告。\n- **`prompt-audit` 的細節**：官方連到 [memory 文件的 Audit your instruction files](https://code.claude.com/docs/en/memory#audit-your-instruction-files) 一節。我沒有讀到該節全文，具體審查規則**待驗證**。\n- **`/checkup` 別名**：有 GitHub issue 說 v2.1.205 起 `/checkup` 是 `/doctor` 的別名，但指令總表尚未收錄。這只有 issue 的說法，我沒有在官方文件確認，所以**待驗證**。\n- **版本差異**：官方文件的行為會隨版本改變，實際輸出請以你安裝的版本為準。\n\n## 使用到的連結\n- [Extend Claude with skills（Bundled skills › Check your setup with /doctor）](https://code.claude.com/docs/en/skills)\n- [Debug your configuration](https://code.claude.com/docs/en/debug-your-config)\n- [How Claude remembers your project（只讀到開頭，未讀到 audit 一節）](https://code.claude.com/docs/en/memory)\n- [Commands 指令總表（只確認抓取成功，未取得 /doctor 原文）](https://code.claude.com/docs/en/commands)\n- [GitHub issue #75889（/checkup 別名，待驗證）](https://github.com/anthropics/claude-code/issues/75889)",
+ "stderr": ""
+}

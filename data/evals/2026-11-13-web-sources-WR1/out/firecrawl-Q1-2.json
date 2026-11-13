@@ -1,0 +1,59 @@
+{
+ "arm": "firecrawl",
+ "q": "Q1",
+ "n": 2,
+ "model": "claude-sonnet-5-5",
+ "seconds": 45,
+ "exit": 0,
+ "error": null,
+ "mcp": [
+  {
+   "name": "firecrawl",
+   "status": "connected",
+   "source": "dynamic"
+  }
+ ],
+ "tools": {
+  "WebFetch": 3,
+  "WebSearch": 1,
+  "mcp__firecrawl__firecrawl_scrape": 1,
+  "Grep": 1,
+  "Bash": 1
+ },
+ "usage": {
+  "input_tokens": 14,
+  "cache_creation_input_tokens": 19417,
+  "cache_read_input_tokens": 112918,
+  "output_tokens": 3290,
+  "output_tokens_details": {
+   "thinking_tokens": 334
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 19417,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1730,
+    "cache_read_input_tokens": 19410,
+    "cache_creation_input_tokens": 9671,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 9671
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "answer": "## 結論\n\n**有。** 官方文件明確指出 `/doctor` 會檢查 `CLAUDE.md`。但它做的主要是「內容整理與瘦身建議」。「檔案過大」的啟動警告是另一個機制，不是 `/doctor` 產生的。\n\n### 1. `/doctor` 檢查 CLAUDE.md 的項目\n\n- **一般說明**：`/doctor` 是「setup checkup」。[Commands 文件](https://code.claude.com/docs/en/slash-commands)中的原文是：\"Run `/doctor` at the Claude Code prompt for a setup checkup that diagnoses issues and can fix them. Claude reports its findings first and asks for confirmation before changing anything.\"\n- **CLAUDE.md 項目**：同一頁 `/doctor` 的檢查範圍中有一條 \"`CLAUDE.md` files\"，原文是：\"local `CLAUDE.md` files that duplicate checked-in ones, checked-in `CLAUDE.md` content Claude could derive from the codebase, and the always-loaded guidance that remains, which Claude offers to migrate into skills and nested `CLAUDE.md` files that load on demand\"。拆成三項：\n  1. 本機的 `CLAUDE.md` 與已提交（checked-in）的內容重複。\n  2. 已提交的 `CLAUDE.md` 中，Claude 可從程式碼自行推得的內容。\n  3. 剩下的「每次都載入」的指引，Claude 會提議遷移到 skills 或按需載入的巢狀 `CLAUDE.md`。\n- **瘦身原則**：[Memory 文件](https://code.claude.com/docs/en/memory)的「My CLAUDE.md is too large」一節寫道：\"The `/doctor` checkup proposes trims for a checked-in CLAUDE.md: it cuts content Claude can derive from the codebase, such as directory layouts, dependency lists, and architecture overviews, and keeps pitfalls, rationale, and conventions that differ from tool defaults.\"\n- **其他檢查範圍**（非 CLAUDE.md）：安裝健康、擴充功能（skills、MCP、plugins、hooks）、權限、用量。\n- **修改前會先確認**：Claude 先回報發現，經你確認才會修改。\n\n### 2. 相關但不同的指令與機制\n\n- **`/doctor prompt-audit`**：Commands 文件說它會 \"checks your `CLAUDE.md` files, skills, and other configuration for outdated or conflicting instructions instead of running the checkup\"，檢查過時或互相衝突的指示。需要 v2.1.283 以上。\n- **檔案過大警告**：Memory 文件同一節說，指示檔超過建議長度時，\"you see a warning at startup and when you run `/status`\"。另外，各檔案都沒超標但合計超過上限時，也會有警告。這裡寫的是啟動時和 `/status`，並沒有說是 `/doctor`。該節也說明 CLAUDE.md 的 \"Files over 200 lines consume more context and may reduce adherence\"。\n- **`claude doctor`（終端機）**：Commands 文件說它提供唯讀的安裝診斷，不需啟動 session。我沒讀到它是否檢查 CLAUDE.md，所以這點待驗證。\n\n### 3. 待驗證\n\n- **「/doctor 在 CLAUDE.md 超過 40,000 字元時警告」**：一些部落格和 GitHub issue 這樣說，但我沒有找到官方文件支持。官方 Memory 文件裡的 40,000 字元（200K context window）是「子目錄 CLAUDE.md 與 rules 檔按需載入時的單檔上限」，超過時 Claude 只收到檔案開頭。這是載入上限，不是 `/doctor` 的檢查項目。\n- **目前的警告字樣與門檻**：搜尋結果引用的 \"Large CLAUDE.md will impact performance (… > 40.0k)\" 只來自第三方 issue，我不確定它與目前版本是否一致。\n- **Commands 文件末段**：該頁約有 19,000 字元我沒讀到（WebFetch 只讀了前 100,000 字元），所以 `/doctor` 的敘述可能還有遺漏。\n\n## 使用的連結\n\n- https://code.claude.com/docs/en/slash-commands（`/doctor` 與 `/doctor prompt-audit` 的說明）\n- https://code.claude.com/docs/en/memory（章節：\"Troubleshoot memory issues\" → \"My CLAUDE.md is too large\"、\"Claude ignores the end of my subdirectory CLAUDE.md\"）\n- 第三方，僅供「待驗證」項目參考：https://claudeissues.com/issue/56406-make-the-40-000-char-claude-md-warning-threshold-configurable-or-scale-with-cont 、https://claudeissues.com/issue/22364-claude-md-size-warning-shows-incorrect-character-count-44k-reported-vs-17k-actua",
+ "stderr": ""
+}

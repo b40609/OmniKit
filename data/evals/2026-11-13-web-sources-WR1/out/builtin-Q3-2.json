@@ -1,0 +1,50 @@
+{
+ "arm": "builtin",
+ "q": "Q3",
+ "n": 2,
+ "model": "claude-sonnet-5-5",
+ "seconds": 36,
+ "exit": 0,
+ "error": null,
+ "mcp": [],
+ "tools": {
+  "WebSearch": 1,
+  "WebFetch": 3
+ },
+ "usage": {
+  "input_tokens": 6,
+  "cache_creation_input_tokens": 6598,
+  "cache_read_input_tokens": 13485,
+  "output_tokens": 2180,
+  "output_tokens_details": {
+   "thinking_tokens": 88
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 6598,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1589,
+    "cache_read_input_tokens": 7173,
+    "cache_creation_input_tokens": 1232,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1232
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "answer": "## 結論\n\n### 1. 為什麼預設不會觸發 CI\ngh-aw 建立 PR 時用的是 Actions 預設的 `GITHUB_TOKEN`。用這個 token 建立的 PR 不會觸發 CI。\n\n- gh-aw 官方文件「Triggering CI」寫道：「pull requests created using the default `GITHUB_TOKEN` in GitHub Actions **do not trigger CI workflow runs**.」\n- 同頁也說：「This is a GitHub Actions feature to prevent event cascades.」\n- 這是 GitHub Actions 為避免事件連鎖觸發而設的行為，不是 gh-aw 的 bug。\n- 我沒能在 GitHub 官方 Actions 文件裡取得「`GITHUB_TOKEN` 觸發的事件不會建立新 workflow run」的原文。我抓取的 `automatic-token-authentication` 頁面查不到這句。這個上游機制的原文出處標為**待驗證**。上面兩句是 gh-aw 文件對它的轉述。\n\n### 2. 官方建議的處理方式\n以下皆出自同一頁「Triggering CI」。\n\n1. **最簡單：設定 repository secret `GH_AW_CI_TRIGGER_TOKEN`，內容放 PAT。**\n   - 開頭 Note 寫道：「The easiest way to fix this problem is to set a secret `GH_AW_CI_TRIGGER_TOKEN` with a Personal Access Token (PAT)」。\n   - 不需要改 workflow 設定（章節「Using a magic secret」）。\n2. **在 safe-outputs 指定 PAT。**\n   - 章節：「Authorizing Triggering CI on PRs Created by Agentic Workflows」>「Using a Personal Access Token (PAT)」。\n   - 在 `safe-outputs.create-pull-request` 或 `push-to-pull-request-branch` 設定 `github-token-for-extra-empty-commit`，值填你的 PAT secret。\n   - 原文：「When configured, the token will be used to push an extra empty commit to the PR branch after PR creation.」\n   - 也就是 PR 建好後，由 PAT 多推一個空 commit，藉此觸發 push 與 pull_request 事件。\n3. **改用 GitHub App。**\n   - 章節：「Using a GitHub App」。\n   - 設定 `github-token-for-extra-empty-commit: app`。\n4. **完整 token 覆寫（替代方案）。**\n   - 章節：「Alternative: Full Token Override」。\n   - 在 `create-pull-request` 設定 `github-token`，例如 `${{ secrets.CI_USER_PAT }}`。\n   - 原文：「This changes the author of the PR to the user or app associated with the token, and triggers CI directly.」\n   - 這個做法授予的權限比空 commit 方式更廣。\n5. **關閉空 commit（不是解法）。**\n   - 章節：「Disabling the extra empty commit」。\n   - 設定 `github-token-for-extra-empty-commit: none` 會跳過空 commit，只適用於你用其他方式觸發 CI 的情況。\n\n### 補充與限制\n- 「建議用最小權限的 token」是我根據第 4 點「權限比較廣」所做的推論，頁面中沒有明確的最小權限建議，這點標為**待驗證**。\n- 搜尋結果裡有第三方文章使用不同的 secret 名稱（`GH_AW_GITHUB_TOKEN`）。官方頁面寫的是 `GH_AW_CI_TRIGGER_TOKEN`，請以官方為準。\n- 引文來自抓取工具對頁面的摘錄，不是我逐字比對原始 HTML。要引用到正式文件前，建議再核對一次原頁。\n\n## 使用到的連結\n- [gh-aw：Triggering CI（官方文件）](https://github.github.com/gh-aw/reference/triggering-ci)\n- [gh-aw：Safe Outputs 參考（官方文件，只用來找到上面那頁）](https://github.github.com/gh-aw/reference/safe-outputs/)\n- [GitHub Docs：Automatic token authentication（未能取得對應原文）](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication)",
+ "stderr": ""
+}

@@ -1,0 +1,112 @@
+{
+ "pairs": [
+  {
+   "pair": "P1",
+   "winner": "A",
+   "reason": "兩者引文都可在官方文件核對到且都有標註待驗證，但 A 實際讀完並驗證了全部 4 份官方文件（含 `commands` 的 `/checkup` 別名與 `memory` 的瘦身細則），B 則因未取得 `commands` 與 `memory` 相關段落而遺漏既有官方事實。",
+   "A": {
+    "links": 4,
+    "primary": 4,
+    "verified": 4,
+    "unverified_claims_marked": true
+   },
+   "B": {
+    "links": 5,
+    "primary": 5,
+    "verified": 3,
+    "unverified_claims_marked": true
+   }
+  },
+  {
+   "pair": "P2",
+   "winner": "A",
+   "reason": "A 從官方 `slash-commands`（即 Skills 頁）與 `memory` 完整核對出 `/doctor` 檢查 `CLAUDE.md` 的三類項目、瘦身原則與 `/doctor prompt-audit`；B 僅看 `debug-your-config` 與 `troubleshooting.md` 而遺漏多項檢查並誤判範圍有限。",
+   "A": {
+    "links": 4,
+    "primary": 2,
+    "verified": 2,
+    "unverified_claims_marked": true
+   },
+   "B": {
+    "links": 2,
+    "primary": 2,
+    "verified": 2,
+    "unverified_claims_marked": true
+   }
+  },
+  {
+   "pair": "P3",
+   "winner": "tie",
+   "reason": "兩者皆正確判斷官方文件無專用 lint 或自動精簡功能，所有官方引文與位置都能在開啟連結後逐一找到，且未查到的範圍都有清楚標示「待驗證」，整體證據品質與結論相當。",
+   "A": {
+    "links": 3,
+    "primary": 3,
+    "verified": 3,
+    "unverified_claims_marked": true
+   },
+   "B": {
+    "links": 6,
+    "primary": 4,
+    "verified": 4,
+    "unverified_claims_marked": true
+   }
+  },
+  {
+   "pair": "P4",
+   "winner": "A",
+   "reason": "兩者均遵守四項原則並準確驗證主結論，但 A 讀到 `developer-commands` 中 `/init` 的說明並確認它只建立 `AGENTS.md` 骨架，B 因截斷漏讀該段而將 `/init` 功能留為待驗證。",
+   "A": {
+    "links": 5,
+    "primary": 5,
+    "verified": 2,
+    "unverified_claims_marked": true
+   },
+   "B": {
+    "links": 3,
+    "primary": 3,
+    "verified": 2,
+    "unverified_claims_marked": true
+   }
+  },
+  {
+   "pair": "P5",
+   "winner": "B",
+   "reason": "B 除了核對 `gh-aw` 官方 `triggering-ci` 原文並涵蓋兩種 safe outputs 與排錯建議外，也實際找到並驗證了 GitHub Actions 官方 `github_token` 規則原文；A 則將上游規則與 safe outputs 適用範圍都留為待驗證。",
+   "A": {
+    "links": 2,
+    "primary": 2,
+    "verified": 2,
+    "unverified_claims_marked": true
+   },
+   "B": {
+    "links": 5,
+    "primary": 3,
+    "verified": 2,
+    "unverified_claims_marked": true
+   }
+  },
+  {
+   "pair": "P6",
+   "winner": "A",
+   "reason": "兩者都正確核對 `gh-aw` 的 `Triggering CI` 官方文件並標示未確認項目，但 A 額外找到並驗證了 GitHub Docs `triggering-a-workflow` 的一手原文，B 則查錯 GitHub Docs 頁面（`automatic-token-authentication`）而無法驗證上游機制。",
+   "A": {
+    "links": 2,
+    "primary": 2,
+    "verified": 2,
+    "unverified_claims_marked": true
+   },
+   "B": {
+    "links": 3,
+    "primary": 3,
+    "verified": 1,
+    "unverified_claims_marked": true
+   }
+  }
+ ],
+ "judge": {
+  "provider": "antigravity",
+  "model": "gemini-4-hydrogen",
+  "items": 91,
+  "order": "2"
+ }
+}

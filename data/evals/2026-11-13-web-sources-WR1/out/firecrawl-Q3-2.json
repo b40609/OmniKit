@@ -1,0 +1,56 @@
+{
+ "arm": "firecrawl",
+ "q": "Q3",
+ "n": 2,
+ "model": "claude-sonnet-5-5",
+ "seconds": 33,
+ "exit": 0,
+ "error": null,
+ "mcp": [
+  {
+   "name": "firecrawl",
+   "status": "connected",
+   "source": "dynamic"
+  }
+ ],
+ "tools": {
+  "WebSearch": 1,
+  "WebFetch": 3
+ },
+ "usage": {
+  "input_tokens": 8,
+  "cache_creation_input_tokens": 6908,
+  "cache_read_input_tokens": 54900,
+  "output_tokens": 1754,
+  "output_tokens_details": {
+   "thinking_tokens": 51
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 6908,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1155,
+    "cache_read_input_tokens": 16254,
+    "cache_creation_input_tokens": 318,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 318
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "answer": "## 結論\n\n### 1. 為什麼預設不會觸發 CI\ngh-aw 的 `create-pull-request`、`push-to-pull-request-branch` 這兩個 safe output，預設是用 Actions 的 `GITHUB_TOKEN` 建立或推送。GitHub Actions 的設計是：用 `GITHUB_TOKEN` 觸發的事件不會產生新的 workflow run，目的是避免事件連鎖觸發。\n\n- gh-aw 官方文件〈Triggering CI〉原文：「By default, pull requests created using the default `GITHUB_TOKEN` in GitHub Actions do not trigger CI workflow runs.」文件並說這是「a GitHub Actions feature to prevent event cascades」。 [gh-aw Triggering CI](https://github.github.com/gh-aw/reference/triggering-ci/)\n- GitHub 官方文件，章節「Triggering a workflow from a workflow」：「events triggered by the `GITHUB_TOKEN` will not create a new workflow run」。例外是 `workflow_dispatch` 與 `repository_dispatch`。 [GitHub Docs: Triggering a workflow](https://docs.github.com/en/actions/using-workflows/triggering-a-workflow)\n\n### 2. 官方建議的處理方式\n來源是〈Triggering CI〉文件頂端的 Note，以及章節「Authorizing Triggering CI on PRs Created by Agentic Workflows」。\n\n- **最簡單的做法**：設定 repository secret `GH_AW_CI_TRIGGER_TOKEN`，內容是具 Contents read and write 權限的 PAT（見 Note 與「Using a magic secret」小節）。gh-aw 認得這個名稱，workflow 裡不用另外引用。\n- **PAT**（「Using a Personal Access Token (PAT)」）：把 fine-grained PAT 存成 secret，在 workflow 以 `github-token-for-extra-empty-commit` 引用。PR 建好後，gh-aw 會用該 token 推一個空 commit，因此 CI 會啟動。\n- **GitHub App**（「Using a GitHub App」）：設定 `github-token-for-extra-empty-commit: app`。\n- **停用空 commit**（「Disabling the extra empty commit」）：設定 `github-token-for-extra-empty-commit: none`。適用於 CI 已經用別的方式觸發的情況。\n- **替代方案**（「Alternative: Full Token Override」）：在 safe output 設定 `github-token`，可直接觸發 CI。但 PR 作者會變成該 token 的擁有者，權限也比空 commit 方案多。\n\n### 待驗證\n- 空 commit 為什麼能觸發 CI，我的理解是：用非 `GITHUB_TOKEN` 的憑證推送，會產生一般的 push／pull_request 事件。官方頁面沒有寫出這句機制說明，這是我的推論，待驗證。\n- 我沒有逐字核對 `GH_AW_CI_TRIGGER_TOKEN` 所需的完整權限清單，這部分是取自摘要，建議再對照原文。\n\n## 使用的連結\n- https://github.github.com/gh-aw/reference/triggering-ci/\n- https://docs.github.com/en/actions/using-workflows/triggering-a-workflow",
+ "stderr": ""
+}

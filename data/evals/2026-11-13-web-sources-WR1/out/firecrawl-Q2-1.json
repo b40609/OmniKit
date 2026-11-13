@@ -1,0 +1,56 @@
+{
+ "arm": "firecrawl",
+ "q": "Q2",
+ "n": 1,
+ "model": "claude-sonnet-5-5",
+ "seconds": 53,
+ "exit": 0,
+ "error": null,
+ "mcp": [
+  {
+   "name": "firecrawl",
+   "status": "connected",
+   "source": "dynamic"
+  }
+ ],
+ "tools": {
+  "WebFetch": 5,
+  "WebSearch": 1
+ },
+ "usage": {
+  "input_tokens": 10,
+  "cache_creation_input_tokens": 8399,
+  "cache_read_input_tokens": 72452,
+  "output_tokens": 2393,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 8399,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1504,
+    "cache_read_input_tokens": 17449,
+    "cache_creation_input_tokens": 614,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 614
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "answer": "**結論：** 我沒有查到 Codex 官方文件記載「專門檢查（lint／驗證）或自動精簡 AGENTS.md」的功能。官方文件只有幾項相關但不等同的功能，下面分開列。\n\n## 1. 檢查或精簡 AGENTS.md 的專用功能：查無（待驗證）\n- 官方 AGENTS.md 指南（原網址 developers.openai.com/codex/guides/agents-md 已 308 轉址）的章節有：How Codex discovers guidance、Create global guidance、Layer project instructions、Add code review rules、Customize fallback filenames、Verify your setup、Troubleshoot discovery issues。\n- 我讀到的內容裡，沒有任何 lint、validate、shorten 或 condense 的功能。\n- 我不能斷言「完全不存在」。我用的是摘要型抓取，不是逐字讀完整頁，也沒查 repo 的 changelog 和 release notes。\n\n## 2. 有記載的相關功能（都不是精簡）\n- **大小上限與截斷：**\n  - 「How Codex discovers guidance」寫道：「stops adding files once the combined size reaches the limit defined by `project_doc_max_bytes`」。預設是 32 KiB。\n  - 「Customize fallback filenames」的範例把 `project_doc_max_bytes` 設為 65536。\n  - 「Troubleshoot discovery issues」的「Instructions truncated」建議：「Raise `project_doc_max_bytes` or split large files across nested directories」。這是官方建議的處理方式：調高上限，或拆成巢狀目錄下的多個檔案。它不會替你精簡內容。\n- **確認有沒有載入：**\n  - 「Verify your setup」寫道：「Codex should echo guidance from global and project files in precedence order.」\n  - 同一節也寫道：「To audit which instruction files Codex loaded, opt into a plaintext TUI log」。這能稽核載入了哪些檔案，但不會檢查內容品質。\n  - 「Troubleshoot discovery issues」寫道：「Nothing loads」時，確認 `codex status` 顯示的工作區根目錄是否正確。\n- **`/init`：**\n  - 官方 slash commands 頁的「Generate `AGENTS.md` with `/init`」一節寫道：「Generate an `AGENTS.md` scaffold in the current directory.」\n  - 它是產生骨架，不是檢查或精簡。\n- **`/status`、`/debug-config`：**\n  - `/status`（「Inspect the session with `/status`」）：「Display session configuration and token usage.」\n  - `/debug-config`（「Inspect config layers with `/debug-config`」）：「Print config layer and requirements diagnostics.」\n  - 兩者只診斷設定和 session，不分析 AGENTS.md 內容。\n- **`/compact`：**\n  - 「Keep transcripts lean with `/compact`」寫道：「Summarize the visible chat to free tokens.」\n  - 它壓縮的是對話記錄，不是 AGENTS.md。\n- **`codex debug prompt-input`：**\n  - 這是 CLI 指令（不是 slash command），出自「Command overview / Command details」。\n  - 原文是：「Use this when debugging instruction discovery, session context, or prompt construction.」\n  - 它可用來查看指令探索與 prompt 的組成，是目前最接近「檢查」的官方功能，但仍然不是 linter。我只看到這一句，用法細節待驗證。\n\n## 3. 未驗證的部分\n- IDE 擴充的文件我沒有另外查。上述 CLI 功能是否在 IDE 中完全相同，待驗證。\n- 第三方網站（如 cheatsheets.zip、codex.danielvaughan.com）的說法我沒有採用。\n\n## 使用到的連結\n- AGENTS.md 指南（官方）：https://learn.chatgpt.com/docs/agent-configuration/agents-md（原 https://developers.openai.com/codex/guides/agents-md 轉址至此）\n- Slash commands（官方）：https://learn.chatgpt.com/docs/cli/slash-commands/（原 https://developers.openai.com/codex/cli/slash-commands）\n- 開發者指令頁（官方）：https://learn.chatgpt.com/docs/developer-commands?surface=cli",
+ "stderr": ""
+}

@@ -1,0 +1,112 @@
+{
+ "pairs": [
+  {
+   "pair": "P1",
+   "winner": "B",
+   "reason": "兩者皆遵守四項規則且無未標示臆測，但 B 的 4 個官方一手連結引用皆可核對到原文（含 commands 的 /checkup 別名與 memory 的刪減細項、啟動警告區分），A 則未成功自 commands 與 memory 取得對應內容。",
+   "A": {
+    "links": 5,
+    "primary": 5,
+    "verified": 4,
+    "unverified_claims_marked": true
+   },
+   "B": {
+    "links": 4,
+    "primary": 4,
+    "verified": 4,
+    "unverified_claims_marked": true
+   }
+  },
+  {
+   "pair": "P2",
+   "winner": "B",
+   "reason": "A 僅查到 debug-your-config 摘要，漏掉重複本機檔、遷移建議與 /doctor prompt-audit 而得出「範圍有限」的片面結論；B 的兩個官方一手連結完整驗證全部檢查項目與相關機制，兩個無法連線的第三方連結僅標作「待驗證」線索而未寫成事實。",
+   "A": {
+    "links": 2,
+    "primary": 2,
+    "verified": 2,
+    "unverified_claims_marked": true
+   },
+   "B": {
+    "links": 4,
+    "primary": 2,
+    "verified": 2,
+    "unverified_claims_marked": true
+   }
+  },
+  {
+   "pair": "P3",
+   "winner": "B",
+   "reason": "B 全部 3 個連結皆為可核對的一手官方文件、不附第三方連結，且補充了 codex debug prompt-input 與 TUI 日誌稽核，並明確將 IDE 擴充文件差異標為待驗證；A 另附 2 個第三方線索連結且未說明 IDE 文件缺口。",
+   "A": {
+    "links": 6,
+    "primary": 4,
+    "verified": 6,
+    "unverified_claims_marked": true
+   },
+   "B": {
+    "links": 3,
+    "primary": 3,
+    "verified": 3,
+    "unverified_claims_marked": true
+   }
+  },
+  {
+   "pair": "P4",
+   "winner": "B",
+   "reason": "B 直接在 developer-commands?surface=cli 核對到 /init 產生骨架的原文並查證 best-practices 摘要；A 因截斷漏看 /init 說明而錯標為待驗證，且未逐字核對導致 codex doctor 引文略有出入（issue 與 health 差異）。",
+   "A": {
+    "links": 3,
+    "primary": 3,
+    "verified": 2,
+    "unverified_claims_marked": true
+   },
+   "B": {
+    "links": 5,
+    "primary": 5,
+    "verified": 3,
+    "unverified_claims_marked": true
+   }
+  },
+  {
+   "pair": "P5",
+   "winner": "A",
+   "reason": "A 實際找到並核對到 GitHub 官方 github_token 原文，且正確涵蓋 create-pull-request 與 push-to-pull-request-branch；B 附了同頁鏡像連結、漏看 triggering-ci 原文已寫兩種 safe output，且未能取得 GitHub Actions 一手原文而標為待驗證（唯 A 另附的兩個第三方待驗證連結中 devops.com 回傳 403）。",
+   "A": {
+    "links": 5,
+    "primary": 3,
+    "verified": 3,
+    "unverified_claims_marked": true
+   },
+   "B": {
+    "links": 2,
+    "primary": 2,
+    "verified": 2,
+    "unverified_claims_marked": true
+   }
+  },
+  {
+   "pair": "P6",
+   "winner": "B",
+   "reason": "B 成功找到並核對 GitHub 官方 triggering-a-workflow 一手出處，2 個官方連結引用皆可查得，A 則找錯頁面（automatic-token-authentication）導致上游規則只能標待驗證；不過 B 漏列該頁關於 pull_request 需手動核准執行的第二項例外。",
+   "A": {
+    "links": 3,
+    "primary": 3,
+    "verified": 1,
+    "unverified_claims_marked": true
+   },
+   "B": {
+    "links": 2,
+    "primary": 2,
+    "verified": 2,
+    "unverified_claims_marked": true
+   }
+  }
+ ],
+ "judge": {
+  "provider": "antigravity",
+  "model": "gemini-4-hydrogen",
+  "items": 120,
+  "order": "1"
+ }
+}
