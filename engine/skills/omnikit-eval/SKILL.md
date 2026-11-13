@@ -59,6 +59,14 @@ uv run scripts/layer0.py <GitHub 網址或 owner/repo> [--scan]
    | Retire | 現任退役 | 現任 `retired` |
    | Merge | 把新工具的長處併進現任 | 例如只取它的一個 skill |
 
+**用工具跑（客觀題）：** `scripts/layer2.py`。決策規則寫好之後，在 `data/evals/<名稱>/spec.yaml` 寫題目、各組設定（現任或內建當基準，加上挑戰者的 MCP 與工具、`watch` 寫叫用哪些工具才算用到它）與評審，然後：
+
+1. `uv run scripts/layer2.py run data/evals/<名稱>`：`claude -p` 非互動執行，每組 × 每題 × 3 次。在使用者資料夾外的中性目錄跑，不載入使用者的規則、hook、plugin；`--tools` 只開這組的內建工具，`--disallowedTools` 擋掉檔案與指令類工具。
+2. `uv run scripts/layer2.py judge data/evals/<名稱>`：兩兩比較，去掉組別與工具名稱，A、B 兩種順序分給兩個評審。現任自己跟自己比的組會混在裡面，當雜訊基準。評審預設走 T3 子對話（Gemini 4 Hydrogen，T3 側邊欄看得到），`--via agy` 改用 `agy -p`。
+3. `uv run scripts/layer2.py verdict data/evals/<名稱> --write`：兩種順序一致才算一勝。挑戰者要被叫用過半、淨勝率大於雜訊率、核對得到的比例不比現任低，才算勝出；結果寫 `result.json`（`contracts/layer2-result.schema.json`）。
+
+雜訊基準的由來：2026-11-13 試跑（`data/evals/2026-11-13-web-sources-WR1.md`），挑戰者的工具 6 次只被叫用 1 次，評審卻判它 4 勝 1 負，表示同一個設定每次跑出來的差異就足以分出勝負。牽涉品味的題目在 spec 寫 `judge.user: true`，評審結果只當建議，最後由使用者盲選。
+
 每週的深度評估上限在 `data/omnikit.yaml` 的 `eval.weekly_deep_limit`，超過就排到下週。第 2 層可以交給 RIA 或第二輪的非互動代跑：輸入 `contracts/layer2-request.schema.json`，輸出 `contracts/layer2-result.schema.json`。代跑時只能改 OmniKit 的 `data/`，不能 push。
 
 ## 批次評估漏斗（維護者）

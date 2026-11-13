@@ -1,0 +1,45 @@
+# 2026-11-13 第 2 層試跑，由試跑腳本補成 layer2.py 的格式。runs 2、沒有雜訊組（那時還沒有這個設計）。
+slot: web-sources
+scenario: WR1
+eval_doc: data/evals/2026-11-13-web-sources-WR1.md
+model: claude-sonnet-5-5
+runs: 2
+task: '請回答下面的問題，規則：
+
+  - 找一手來源（官方文件、官方 repo、法規、論文），每個結論都附連結，並寫出原文的位置（章節標題）或一句原文。
+
+  - 查不到一手來源的，標「待驗證」，不要寫成事實。
+
+  - 回答用繁體中文，最後列出所有用到的連結。
+
+
+  問題：{question}'
+questions:
+  Q1: Claude Code 的 /doctor 指令有沒有檢查規則檔（CLAUDE.md）的功能？如果有，它檢查哪些項目？
+  Q2: OpenAI Codex（CLI 或 IDE 擴充）的官方文件，有沒有記載檢查或精簡 AGENTS.md 的功能？
+  Q3: GitHub Agentic Workflows（gh-aw）建立的 pull request 為什麼預設不會觸發 CI？官方建議怎麼處理？
+arms:
+- id: builtin
+  role: incumbent
+  tools:
+  - WebSearch
+  - WebFetch
+- id: firecrawl
+  role: challenger
+  tool: firecrawl
+  tools:
+  - WebSearch
+  - WebFetch
+  - mcp__firecrawl__firecrawl_scrape
+  - mcp__firecrawl__firecrawl_search
+  - mcp__firecrawl__firecrawl_parse
+  mcp:
+    firecrawl:
+      type: http
+      url: https://mcp.firecrawl.dev/v2/mcp
+  watch:
+  - mcp__firecrawl__
+judge:
+  via: t3
+  provider: antigravity
+  model: gemini-4-hydrogen

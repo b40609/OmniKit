@@ -1,36 +1,89 @@
 {
- "P1": {
-  "q": "Q1",
-  "n": 1
- },
- "P2": {
-  "q": "Q1",
-  "n": 2
- },
- "P3": {
-  "q": "Q2",
-  "n": 1
- },
- "P4": {
-  "q": "Q2",
-  "n": 2
- },
- "P5": {
-  "q": "Q3",
-  "n": 1
- },
- "P6": {
-  "q": "Q3",
-  "n": 2
- },
- "order": {
-  "1": {
-   "A": "builtin",
-   "B": "firecrawl"
+ "pairs": [
+  {
+   "q": "Q1",
+   "kind": "challenge",
+   "challenger": "firecrawl",
+   "first": [
+    "builtin",
+    1
+   ],
+   "second": [
+    "firecrawl",
+    1
+   ],
+   "pair": "P1"
   },
-  "2": {
-   "A": "firecrawl",
-   "B": "builtin"
+  {
+   "q": "Q1",
+   "kind": "challenge",
+   "challenger": "firecrawl",
+   "first": [
+    "builtin",
+    2
+   ],
+   "second": [
+    "firecrawl",
+    2
+   ],
+   "pair": "P2"
+  },
+  {
+   "q": "Q2",
+   "kind": "challenge",
+   "challenger": "firecrawl",
+   "first": [
+    "builtin",
+    1
+   ],
+   "second": [
+    "firecrawl",
+    1
+   ],
+   "pair": "P3"
+  },
+  {
+   "q": "Q2",
+   "kind": "challenge",
+   "challenger": "firecrawl",
+   "first": [
+    "builtin",
+    2
+   ],
+   "second": [
+    "firecrawl",
+    2
+   ],
+   "pair": "P4"
+  },
+  {
+   "q": "Q3",
+   "kind": "challenge",
+   "challenger": "firecrawl",
+   "first": [
+    "builtin",
+    1
+   ],
+   "second": [
+    "firecrawl",
+    1
+   ],
+   "pair": "P5"
+  },
+  {
+   "q": "Q3",
+   "kind": "challenge",
+   "challenger": "firecrawl",
+   "first": [
+    "builtin",
+    2
+   ],
+   "second": [
+    "firecrawl",
+    2
+   ],
+   "pair": "P6"
   }
- }
+ ],
+ "note": "2026-11-13 試跑沒有雜訊組；由舊格式的對照表轉成 layer2.py 的格式"
 }

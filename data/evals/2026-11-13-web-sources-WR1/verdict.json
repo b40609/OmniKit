@@ -1,0 +1,54 @@
+{
+ "slot": "web-sources",
+ "eval_doc": "data/evals/2026-11-13-web-sources-WR1.md",
+ "unverified": [],
+ "arms": {
+  "firecrawl": {
+   "tool": "firecrawl",
+   "pairs": 6,
+   "wins": 4,
+   "losses": 1,
+   "ties": 1,
+   "net": 0.5,
+   "invoked": 0.16666666666666666,
+   "verified": 0.775,
+   "verified_incumbent": 0.6666666666666666,
+   "tokens": {
+    "firecrawl": 553547,
+    "builtin": 210200
+   },
+   "outcome": "unused",
+   "reasons": [
+    "只有 1／6 次執行叫用了它，不到一半：沒用到",
+    "沒有量到雜訊基準，不判勝出"
+   ]
+  }
+ },
+ "noise": {
+  "pairs": 0,
+  "decisive": 0,
+  "rate": null
+ },
+ "order_disagreement": {
+  "pairs": 6,
+  "inconsistent": 1
+ },
+ "result": {
+  "slot": "web-sources",
+  "verdict": "Keep",
+  "winner": "builtin",
+  "scores": [
+   {
+    "id": "firecrawl",
+    "score": 0.5,
+    "notes": "只有 1／6 次執行叫用了它，不到一半：沒用到；沒有量到雜訊基準，不判勝出"
+   }
+  ],
+  "eval_doc": "data/evals/2026-11-13-web-sources-WR1.md",
+  "decided_by": "rule",
+  "unverified": [
+   "firecrawl：只有 1／6 次執行叫用了它，不到一半：沒用到、沒有量到雜訊基準，不判勝出",
+   "沒有雜訊基準（現任自己比自己）"
+  ]
+ }
+}

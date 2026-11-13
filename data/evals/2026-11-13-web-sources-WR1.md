@@ -85,6 +85,15 @@ firecrawl 組幾乎沒用到它的工具，輸入 token 卻多了約 1.6 倍。�
 - PowerShell 把 `t3` 的輸出用系統編碼存檔，中文變成亂碼；改用 `t3 thread show --json` 加 UTF-8 重讀才解決。
 - 沒有檢查評審的 worktree 有沒有被改動（評審被要求唯讀，worktree 也跟這個 repo 分開）。
 
+### 改成正式工具之後重算（2026-11-13）
+
+試跑腳本改寫成 `engine/skills/omnikit-eval/scripts/layer2.py` 之後，把這次的資料補成它的格式（`spec.yaml`、`key.json`）重算，結果在 `result.json` 與 `verdict.json`：Keep，firecrawl 叫用率 17%（沒用到），而且這次沒有雜訊組，本來就不能判勝出。數字跟上面手算的一致（4 勝 1 負 1 平、核對得到 78% 比 67%）。輸入 token 合計：firecrawl 組約 55 萬、內建組約 21 萬。
+
+改寫時順便實測到兩件事，已經寫進 `layer2.py`：
+
+- WebSearch、WebFetch 在 Claude Code 2.1.323 是延遲載入的工具，要用 `--tools` 點名才拿得到；只給 `--tools` 又擋不住 Bash、Grep。所以兩個都要帶。
+- 在使用者資料夾底下執行，Claude 會往上找到使用者的 CLAUDE.md（`_cheap.py` 的說明）；試跑時就是在使用者的暫存資料夾裡跑，可能讀到了。正式工具改在使用者資料夾外的中性目錄跑。
+
 ## 下一步
 
 - firecrawl 維持 `pending`。要再測的話，題目要改成內建工具做不到的（例如要渲染 JavaScript 的頁面、要一次抓整站），否則模型不會去用它。

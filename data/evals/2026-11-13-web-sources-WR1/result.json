@@ -1,0 +1,18 @@
+{
+ "slot": "web-sources",
+ "verdict": "Keep",
+ "winner": "builtin",
+ "scores": [
+  {
+   "id": "firecrawl",
+   "score": 0.5,
+   "notes": "只有 1／6 次執行叫用了它，不到一半：沒用到；沒有量到雜訊基準，不判勝出"
+  }
+ ],
+ "eval_doc": "data/evals/2026-11-13-web-sources-WR1.md",
+ "decided_by": "rule",
+ "unverified": [
+  "firecrawl：只有 1／6 次執行叫用了它，不到一半：沒用到、沒有量到雜訊基準，不判勝出",
+  "沒有雜訊基準（現任自己比自己）"
+ ]
+}
