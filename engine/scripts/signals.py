@@ -35,7 +35,7 @@ OmniKeep 沒在跑、金鑰沒設或不對，這個來源就標「略過」，�
   uv run engine/scripts/signals.py init                             寫出預設的 sources.yaml（已經有就不動）
   uv run engine/scripts/signals.py sources                         來源設定與狀態（不印金鑰）
   uv run engine/scripts/signals.py collect [--write]                收集；預覽不寫檔
-  uv run engine/scripts/signals.py pending                          還沒判斷的訊號（JSON，給 agent 讀）
+  uv run engine/scripts/signals.py pending [--days N]               還沒判斷的訊號（JSON，給 agent 讀）
   uv run engine/scripts/signals.py judge --file <JSON> [--write]    交判斷；預覽不寫檔
   uv run engine/scripts/signals.py mark <訊號 id> useful|not        標有沒有用
   uv run engine/scripts/signals.py status                           記錄了多久、有用的比例、能不能打開
@@ -78,8 +78,9 @@ ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 KEYWORDS = (
     "claude code", "claude.md", "codex", "agents.md", "antigravity", "gemini cli", "coding agent", "agentic",
     "mcp", "skill", "plugin", "subagent", "hook", "prompt", "提示詞", "context engineering", "agent 工具",
-    "代理", "llm eval", "評測", "新模型", "model release",
+    "ai 代理", "代理人", "llm eval", "新模型", "model release",
 )
+# 「代理」單獨一詞不收：2026-11-13 第一次實跑，538 筆裡有 216 筆只靠它留下，多半是網路代理、遙測代理這類不相關的
 
 
 def state_dir(base=None):
@@ -184,18 +185,26 @@ def load_sources(base):
 
 # ---------- OmniKeep ----------
 
+def unquote(value):
+    """從 .env 複製過來的值常帶著引號（KEY='...' 或 KEY="..."）：頭尾成對的引號與空白去掉。"""
+    value = (value or "").strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+        value = value[1:-1].strip()
+    return value
+
+
 def env_key(name, env=None):
     """讀金鑰的環境變數。Windows 剛用 SetEnvironmentVariable 設在使用者層的，已經開著的程式看不到，
     所以這個行程沒有時再讀使用者層（HKCU\\Environment）。只讀這一個名稱，值不印、不存。"""
     if env is not None:
-        return env.get(name, "")
+        return unquote(env.get(name, ""))
     value = os.environ.get(name, "")
     if value or sys.platform != "win32":
-        return value
+        return unquote(value)
     try:
         import winreg
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as k:
-            return str(winreg.QueryValueEx(k, name)[0] or "")
+            return unquote(str(winreg.QueryValueEx(k, name)[0] or ""))
     except OSError:
         return ""
 
@@ -386,9 +395,23 @@ def judged(base):
     return out
 
 
-def pending(base):
+def pending(base, days=None, today=None):
+    """還沒判斷的訊號。來源的關鍵字改過的話照現在的關鍵字重新篩：不再命中的不列，matched 換成現在命中的。
+    days：只列這麼多天內收錄的。"""
     done = judged(base)
-    return [s for sid, s in all_signals(base).items() if sid not in done]
+    kws = {s["id"]: s["keywords"] for s in load_sources(base)[0]}
+    since = (today or now()) - timedelta(days=days) if days else None
+    out = []
+    for sid, s in all_signals(base).items():
+        if sid in done or (since and parse_time(s["date"]) < since):
+            continue
+        if s["source"] in kws:
+            hit = matches(s, kws[s["source"]])
+            if not hit:
+                continue
+            s = {**s, "matched": hit}
+        out.append(s)
+    return out
 
 
 def check_judgments(base, doc):
@@ -485,6 +508,9 @@ def selftest():
         check("init：已經有設定就不覆蓋", init(base) is None and "使用者改過" in made.read_text(encoding="utf-8"))
         check("金鑰：有給 env 就只看 env，不讀這台的環境變數", env_key("OMNIKIT_SELFTEST_NOPE", {}) == ""
               and env_key("X", {"X": "v"}) == "v")
+        check("金鑰：從 .env 複製來的頭尾引號與空白去掉，不成對的不動",
+              env_key("X", {"X": " 'abc' "}) == "abc" and env_key("X", {"X": '"abc"'}) == "abc"
+              and env_key("X", {"X": "'abc"}) == "'abc")
 
         (base / "sources.yaml").write_text(yaml.safe_dump({"sources": [
             {"id": "omnikeep", "type": "omnikeep"},
@@ -574,6 +600,13 @@ def selftest():
         check("判斷：名冊層要寫目標；沒有的訊號、重複、類別不對、沒理由都擋下", len(ok) == 1 and len(bad) == 5)
         append_jsonl(base / "judgments.jsonl", ok)
         check("記下判斷後，待判斷少一筆", [s["id"] for s in pending(base)] == ["omnikeep:a3"])
+        cfg = base / "sources.yaml"
+        saved = cfg.read_text(encoding="utf-8")
+        cfg.write_text(yaml.safe_dump({"sources": [{"id": "omnikeep", "type": "omnikeep", "keywords": ["claude code"]}]}),
+                       encoding="utf-8")
+        check("關鍵字改了：待判斷照現在的關鍵字重新篩", pending(base) == [])
+        cfg.write_text(saved, encoding="utf-8")
+        check("days：只列這麼多天內的", pending(base, days=1) and not pending(base, days=1, today=now() + timedelta(days=3)))
 
         st = status(base)
         check("剛開始：不能打開，列出還差什麼", not st["ready"] and len(st["missing"]) == 2 and st["judged"]["roster"] == 1)
@@ -626,7 +659,8 @@ def main(argv=None, base=None):
     sub.add_parser("sources")
     p = sub.add_parser("collect")
     p.add_argument("--write", action="store_true")
-    sub.add_parser("pending")
+    p = sub.add_parser("pending")
+    p.add_argument("--days", type=int, help="只列這麼多天內收錄的")
     p = sub.add_parser("judge")
     p.add_argument("--file", required=True)
     p.add_argument("--write", action="store_true")
@@ -661,7 +695,7 @@ def main(argv=None, base=None):
         print(f"\n已寫入 {path}" if path else "\n（預覽，沒有寫檔；加 --write 才寫）", file=sys.stderr)
         return 0
     if args.cmd == "pending":
-        print(json.dumps(pending(base), ensure_ascii=False, indent=2))
+        print(json.dumps(pending(base, days=args.days), ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "judge":
         try:
