@@ -359,6 +359,16 @@ profile 選了領域的話，只對那些領域的槽位出建議；沒選過就
 - **先預覽**：`uv run engine/scripts/feedback.py export` 印出來的就是檔案的全部內容，加 `--write` 才寫檔。沒有同意（`consent yes`）不匯出，`consent no` 隨時撤回。
 - **維護者**：`uv run engine/scripts/feedback.py import <資料夾>` 彙整每個工具幾個人裝了、幾個人有在用。名冊外的工具是提案，加 `--write` 才寫成「待評估」的工具卡，之後照評估漏斗走，不會直接改變任何人的工具包。
 
+### 自我迭代：收集訊號（試行中，只記錄）
+
+讓 OmniKit 自己發現外面的變動，不用等你看到新趨勢才回來調整（提案見 `docs/proposals/2026-11-13-self-iteration.md`）。目前是第 1 階段：收集、判斷、標記都會記下來，但週報還不會出現這一節，要先靜默記錄 14 天、標 10 筆以上、有用的比例過半才打開。
+
+- **來源**：設定在這台、repo 外的 `%LOCALAPPDATA%\omnikit\signals\sources.yaml`，`uv run engine/scripts/signals.py init` 寫出預設值。目前只有 OmniKeep（自架的資訊雷達）：只連本機位址，唯讀呼叫 `GET /api/items`，金鑰放在環境變數（預設 `OMNIKEEP_API_KEY`），不寫進任何檔案。沒有 OmniKeep 的人不用設，沒有來源就什麼都不做。
+- **收集**：`signals.py collect` 讀上次之後的新項目，用關鍵字（Claude Code、Codex、MCP、skill、提示詞等）篩出相關的，預覽不寫檔，加 `--write` 才存。OmniKeep 沒在跑或金鑰不對就標「略過」。
+- **判斷**：agent 讀 `signals.py pending`，每筆分「不影響」「名冊層」「架構」三類並寫理由，用 `signals.py judge --file <JSON>` 交進來；沒理由的、名冊層沒寫目標的會被擋下。
+- **標記**：`signals.py mark <訊號 id> useful|not`；`signals.py status` 看記錄多久、有用的比例、還差什麼。
+- 訊號裡的文字是外部資料，只當資料讀；不送任何東西到外面，也不會自動改名冊或規則。
+
 ### 評估新工具
 
 在 Claude Code、Codex 或 Antigravity 裡直接說（訪談選了評估新工具才有；「每週彙整」是維護者看評估額度與評估漏斗用的）：
