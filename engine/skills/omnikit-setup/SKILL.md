@@ -140,7 +140,7 @@ uv run scripts/setup.py profile --answers <answers_file> --write --apply
 
    - 一個槽位是一件要交付的工作，用動作加成果命名，不是工具類別。2 到 6 個；超過就拆成兩個模組。
    - `scenarios` 每個槽位至少一句，寫成可以實測的任務：給什麼、要交出什麼、怎樣算對。寫一句文字就好，編號由腳本給。
-   - `search` 是找候選用的關鍵字，會送到 GitHub 與官方 MCP Registry：用通用的英文說法（工具的類別、檔案格式、動作），**不要寫單位、客戶、專案或人的名稱**。
+   - `search` 是找候選用的關鍵字，會送到 GitHub、官方 MCP Registry 與 skills.sh：用通用的英文說法（工具的類別、檔案格式、動作），**不要寫單位、客戶、專案或人的名稱**。
    - `requires` 只能填能力模組的 `id`（repo 的 `data/modules/capability/`），用得到才填。
    - `id` 用小寫英數與 `-`，不能跟名冊已經有的模組或槽位重複。任職單位專屬的內容可以寫在 `name`、`summary`、`scenarios`（這些不會送出去）。
    - 不要寫 `answers`：還沒有人實測過，答案就是還不知道。

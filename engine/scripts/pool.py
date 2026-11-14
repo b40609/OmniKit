@@ -13,9 +13,13 @@
   沒有才上網抓。openai/skills 的 README 寫明已經停止維護，所以不接。
 - 官方 MCP Registry。三萬筆以上、沒有品質訊號、搜尋只比對名稱，所以不整包匯入：用槽位的關鍵字查，
   只留有 GitHub repo 的，再用 GitHub 現況篩。
+- skills.sh（Vercel 的 skill 目錄）。用官方 CLI `npx skills find` 打的同一個搜尋端點（/api/search，不用 token；
+  正式的 /api/v1 要 Vercel OIDC token，同事拿不到）。回應只有名稱、來源 repo 與安裝數，沒有說明；
+  安裝數是 CLI 自報的遙測、可以灌（實測有 fork 的安裝數比原作還高），只顯示、不拿來排序。
+  一樣只留有 GitHub repo 的，用 GitHub 現況篩；同一個 skill 被複製到好幾個 repo 時只留星數最高的那份。
 另外，agent 自己上網找到的工具用 add 交進來，過同一套檢查後記在同一個檔，標「名冊外，剛查到」。
 
-會連網：GitHub（raw 與 API）、registry.modelcontextprotocol.io。送出去的只有槽位的關鍵字（名冊裡公開的字），
+會連網：GitHub（raw 與 API）、registry.modelcontextprotocol.io、skills.sh。送出去的只有槽位的關鍵字（名冊裡公開的字），
 不送專案名稱、不送這台的任何內容。抓回來的文字只當資料存，不執行。結果存在
 %LOCALAPPDATA%\\omnikit\\pool\\，advise.py 只讀那裡的檔，自己不連網。
 
@@ -24,7 +28,7 @@
 每一筆都是名冊外、沒有實測過的，依據只有外部訊號（官方目錄收錄、分類、GitHub 現況）。
 
 用法：
-  uv run engine/scripts/pool.py find [--slot id,id] [--refresh] [--no-registry]   找候選，存檔並印出 JSON
+  uv run engine/scripts/pool.py find [--slot id,id] [--refresh] [--no-registry] [--no-skills]   找候選，存檔並印出 JSON
   uv run engine/scripts/pool.py add --slot <id> --file <JSON 檔>                  記下 agent 上網找到的
   uv run engine/scripts/pool.py --selftest
 """
@@ -56,6 +60,12 @@ OPENAI_RAW = "https://raw.githubusercontent.com/openai/plugins/main"
 OPENAI_LISTS = (".agents/plugins/marketplace.json", ".agents/plugins/api_marketplace.json")
 REGISTRY = "https://registry.modelcontextprotocol.io/v0/servers"
 OFFICIAL_META = "io.modelcontextprotocol.registry/official"
+SKILLS_SEARCH = "https://skills.sh/api/search"
+SKILLS_LIMIT = 20    # skills.sh 每個關鍵字要幾筆
+FEW_INSTALLS = 100   # find-skills 自己的說法：不到 100 次安裝要小心
+SKILLS_GAP = 3      # skills.sh 兩次查詢之間至少隔幾秒（依 IP 限速，實測見做法文件）
+SKILLS_BUDGET = 180  # 被限速時最多等幾秒，超過就停，查過的有存、下次接著查
+SKILLS_NOTE ="skills CLI 預設會送匿名遙測（含 skill 名稱）；不想送就先設環境變數 DO_NOT_TRACK=1"
 
 FRESH_DAYS = 7       # 目錄、Registry 的查詢結果、GitHub 現況，這麼多天內不重抓
 KEEP_WEB_DAYS = 30   # agent 上網找到的，留這麼多天
@@ -68,9 +78,10 @@ CLIP = 300
 STOP = {"mcp", "skill", "skills", "plugin", "plugins", "agent", "agents", "claude", "codex", "tool", "tools", "server",
         "servers", "ai", "for", "the", "and", "with", "code", "llm", "cli"}
 FLAGS = {"no-license": "沒有標授權", "stale": "超過一年沒更新", "cooling": f"建立不到 {COOLING_DAYS} 天",
-         "few-stars": f"星數不到 {FEW_STARS}", "unknown": "GitHub 現況查不到"}
+         "few-stars": f"星數不到 {FEW_STARS}", "unknown": "GitHub 現況查不到",
+         "few-installs": f"skills.sh 安裝數不到 {FEW_INSTALLS}"}
 SOURCES = {"anthropic": "Anthropic 官方 plugin 目錄", "openai": "OpenAI 官方 plugin 目錄",
-           "registry": "官方 MCP Registry", "web": "agent 上網找到的"}
+           "registry": "官方 MCP Registry", "skills": "skills.sh", "web": "agent 上網找到的"}
 CAVEAT = "名冊外，沒有實測過；依據只有外部訊號"
 
 
@@ -299,20 +310,31 @@ def open_slots(roster, edition="colleague"):
 
 def roster_index(roster):
     """名冊裡已經有的：repo 或名稱 → 卡片。用來排除，別裝的附上名冊記的理由。"""
-    by_repo, by_name = {}, {}
+    by_repo, by_name, by_path, whole = {}, {}, {}, {}
     for card in roster["tools"].values():
         repo = repo_of(card.get("url"))
         if repo:
             by_repo[repo] = card
+            sub = re.search(r"github\.com[/:][\w.-]+/[\w.-]+/(?:tree|blob)/[^/]+/(.+)", card.get("url") or "")
+            if sub:
+                by_path[f"{repo}#{norm(sub.group(1).rstrip('/').split('/')[-1])}"] = card
+            else:
+                whole[repo] = card
         for key in (card["id"], card.get("name")):
             if norm(key):
                 by_name[norm(key)] = card
-    return by_repo, by_name
+    return by_repo, by_name, by_path, whole
 
 
 def in_roster(entry, index):
-    by_repo, by_name = index
-    card = by_repo.get(entry.get("repo")) or by_name.get(norm(entry.get("name"))) or by_name.get(norm(entry["id"].split(":", 1)[-1]))
+    by_repo, by_name, by_path, whole = index
+    if entry.get("skill"):
+        # skills.sh 的一個 repo 常常放好幾個 skill：卡片指到 repo 裡某個 skill 的，只擋同一個 skill
+        repo = entry.get("repo")
+        card = by_path.get(f"{repo}#{norm(entry['skill'])}") or whole.get(repo)
+    else:
+        card = by_repo.get(entry.get("repo"))
+    card = card or by_name.get(norm(entry.get("name"))) or by_name.get(norm(entry["id"].split(":", 1)[-1]))
     if not card:
         return None
     if card.get("status") in ("rejected", "retired"):
@@ -496,10 +518,144 @@ def search_registry(state, keyword, fetch, today):
     return entries
 
 
+# ---------- skills.sh ----------
+
+def skills_term(keyword):
+    """送給 skills.sh 的字：去掉 skill、mcp 這類通用字（它的搜尋要每個字都中），不到 2 個字元就不查。"""
+    term = " ".join(t for t in re.findall(r"[a-z0-9]+", keyword.lower()) if t not in STOP)
+    return term if len(term) >= 2 else None
+
+
+def parse_skills(doc):
+    """skills.sh 的搜尋結果 → 條目。來源不是 GitHub 的 owner/repo（別的網站、自架的）沒有訊號可以查，不收。"""
+    out = []
+    for s in (doc or {}).get("skills") or []:
+        if not isinstance(s, dict):
+            continue
+        source, skill = str(s.get("source") or ""), str(s.get("skillId") or s.get("name") or "")
+        # 這兩個字會組進安裝指令，只收安全的字元
+        if not re.fullmatch(r"[A-Za-z0-9-]+/[\w.-]+", source) or not re.fullmatch(r"[\w.-]+", skill):
+            continue
+        installs = s.get("installs") if isinstance(s.get("installs"), int) else None
+        command = f"npx skills add {source} --skill {skill} -g -a"
+        out.append({
+            "id": f"skills:{source.lower()}/{skill}", "source": "skills", "name": str(s.get("name") or skill),
+            "description": "", "category": None, "kind": "skill", "skill": skill, "installs": installs,
+            "url": f"https://skills.sh/{source}/{skill}", "repo": source.lower(), "agents": ["claude", "codex"],
+            "install": {"claude": {"command": f"{command} claude-code", "note": SKILLS_NOTE},
+                        "codex": {"command": f"{command} codex", "note": SKILLS_NOTE}}})
+    return out
+
+
+def skills_open(url):
+    """打 skills.sh 一次：回（狀態碼, 文字, Retry-After 秒數）。連不上回（0, None, None）。"""
+    req = urllib.request.Request(url, headers={"User-Agent": "omnikit-pool", "Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.status, resp.read().decode("utf-8", "replace"), None
+    except urllib.error.HTTPError as e:
+        try:
+            wait = int(e.headers.get("Retry-After") or 0)
+        except ValueError:
+            wait = 0
+        return e.code, None, wait
+    except (urllib.error.URLError, TimeoutError, OSError):
+        return 0, None, None
+
+
+class Paced:
+    """skills.sh 依 IP 限速（條款：合理使用受鼓勵，繞過限速不行）：每次至少隔 gap 秒；
+    遇到 429 照 Retry-After 等一次再試；等的總時間超過 budget 秒就停，這次剩下的都不查（limited）。"""
+
+    def __init__(self, gap=SKILLS_GAP, budget=SKILLS_BUDGET, opener=skills_open, sleep=time.sleep, clock=time.monotonic):
+        self.gap, self.budget, self.opener, self.sleep, self.clock = gap, budget, opener, sleep, clock
+        self.last, self.waited, self.limited, self.calls = None, 0.0, False, 0
+
+    def _pause(self, seconds):
+        if seconds > 0:
+            self.sleep(seconds)
+            self.waited += seconds
+
+    def __call__(self, url):
+        if self.limited:
+            return None
+        for _ in range(2):
+            if self.last is not None:
+                self._pause(self.gap - (self.clock() - self.last))
+            self.calls += 1
+            code, text, wait = self.opener(url)
+            self.last = self.clock()
+            if code == 200:
+                return text
+            if code != 429:
+                return None
+            wait = min(max(wait or 0, self.gap), 60)
+            if self.waited + wait > self.budget:
+                break
+            self._pause(wait)
+        self.limited = True
+        return None
+
+
+def search_skills(state, keyword, fetch, today):
+    """用槽位的一組關鍵字查 skills.sh，結果存 7 天。回傳條目；連不上回 None。"""
+    term = skills_term(keyword)
+    if not term:
+        return []
+    path = state / "pool" / "skills" / f"{re.sub(r'[^a-z0-9]+', '-', term)}.json"
+    cached = load(path, {})
+    if fresh(cached.get("fetched"), today):
+        return cached.get("entries") or []
+    try:
+        doc = json.loads(fetch(f"{SKILLS_SEARCH}?{urllib.parse.urlencode({'q': term, 'limit': SKILLS_LIMIT})}") or "")
+    except ValueError:
+        return None
+    if not isinstance(doc, dict) or not isinstance(doc.get("skills"), list):
+        return None
+    entries = parse_skills(doc)
+    dump(path, {"fetched": today.isoformat(), "term": term, "entries": entries})
+    return entries
+
+
+def name_score(entry, keywords):
+    """skills.sh 沒有說明可以比，只比名稱：一組關鍵字中幾個字算幾分，全中再加分；一個字都沒中的不算。
+    它的語意搜尋會回不相干的（查 browser automation 回 twitter-automation），所以這裡還是要在本機比。"""
+    name = set(tokens(entry.get("name")) + tokens(entry.get("skill")))
+    total, matched = 0, []
+    for kw in keywords:
+        parts = set(tokens(kw))
+        hit = parts & name
+        if hit:
+            total += 2 * len(hit) + (2 if hit == parts else 0)
+            matched.append(kw)
+    return total, matched
+
+
+def pick_skills(entries, health, keywords, today, limit):
+    """skills.sh 的候選：名稱要中、GitHub 現況查得到；同一個 skill 被複製到好幾個 repo、或同一個 repo 有好幾個中的，
+    都只留星數最高的那份。排序跟 Registry 一樣先看比對分數、再看星數；安裝數可以灌，只標出來、不排序。
+    回傳（留下的, 拿掉的）。"""
+    scored = [{**e, "score": s, "matched": m} for e in entries for s, m in [name_score(e, keywords)] if s]
+    kept, dropped = judge(scored, health, today)
+    kept = [e for e in kept if "unknown" not in e["flags"]]
+    for e in kept:
+        if e.get("installs") is not None and e["installs"] < FEW_INSTALLS:
+            e["flags"] = e["flags"] + ["few-installs"]
+    kept.sort(key=lambda e: ("few-stars" in e["flags"], -e["score"], -(e["github"]["stars"] or 0), e["id"]))
+    out, names, repos = [], set(), set()
+    for e in kept:
+        if norm(e["skill"]) in names or e["repo"] in repos:
+            continue
+        names.add(norm(e["skill"]))
+        repos.add(e["repo"])
+        out.append(e)
+    return out[:limit], dropped
+
+
 # ---------- 找候選 ----------
 
-def find(roster, catalog, state, client, fetch=http, today=None, only=None, registry=True, edition="colleague"):
-    """對要找的槽位，從兩家官方目錄與 Registry 找候選，過檢查，存到 state/pool/slots.json。"""
+def find(roster, catalog, state, client, fetch=http, today=None, only=None, registry=True, edition="colleague", skills=True):
+    """對要找的槽位，從兩家官方目錄、Registry 與 skills.sh 找候選，過檢查，存到 state/pool/slots.json。"""
     today = today or date.today()
     index, health = roster_index(roster), Health(state, client, today)
     path = state / "pool" / "slots.json"
@@ -509,7 +665,8 @@ def find(roster, catalog, state, client, fetch=http, today=None, only=None, regi
         known = {s["id"]: s for s in roster["slots"]}
         slots = [{"slot": i, "slot_name": known[i]["name"], "module": known[i]["module"],
                   "keywords": list(known[i].get("search") or []), "agents": ["claude", "codex"]} for i in only if i in known]
-    result, unreachable = {}, []
+    result, unreachable, skills_down = {}, [], []
+    skills_fetch = Paced() if fetch is http else fetch
     for slot in slots:
         excluded, picked = [], []
 
@@ -548,10 +705,26 @@ def find(roster, catalog, state, client, fetch=http, today=None, only=None, regi
             kept.sort(key=lambda e: ("few-stars" in e["flags"], -e["score"], -(e["github"]["stars"] or 0)))
             picked += kept[:PER_SOURCE]
             excluded += dropped
-        web = [e for e in (saved.get(slot["slot"]) or {}).get("candidates") or []
+        if skills:
+            found, failed = {}, False
+            for kw in slot["keywords"]:
+                got = search_skills(state, kw, skills_fetch, today)
+                if got is None:
+                    failed = True
+                for e in got or []:
+                    found.setdefault(e["id"], e)
+            if failed:
+                skills_down.append(slot["slot_name"])
+            # 先在本機比名稱、留前幾個，才去查 GitHub 現況（沒登入時每小時只有 60 次）
+            matched = sorted((e for e in admit(found.values()) if name_score(e, slot["keywords"])[0]),
+                             key=lambda e: -name_score(e, slot["keywords"])[0])[:SHORTLIST]
+            kept, dropped = pick_skills(matched, health.get([e["repo"] for e in matched]), slot["keywords"], today, PER_SOURCE)
+            picked += kept
+            excluded += dropped
+        web =[e for e in (saved.get(slot["slot"]) or {}).get("candidates") or []
                if e.get("source") == "web" and fresh(e.get("found"), today, KEEP_WEB_DAYS)]
         result[slot["slot"]] = {**{k: slot[k] for k in ("slot_name", "module", "keywords", "agents")},
-                                "searched": today.isoformat(), "registry": registry,
+                                "searched": today.isoformat(), "registry": registry, "skills": skills,
                                 "candidates": picked + web, "excluded": excluded}
     for slot_id, old in saved.items():
         if slot_id in result:
@@ -564,6 +737,10 @@ def find(roster, catalog, state, client, fetch=http, today=None, only=None, regi
         if web:
             result[slot_id] = {**old, "candidates": web}
     notes = [f"官方 MCP Registry 連不上，這 {len(unreachable)} 個槽位這次沒有那邊的候選：{'、'.join(unreachable)}"] if unreachable else []
+    if skills_down:
+        why = ("skills.sh 限速，這次沒查完；查過的存了 7 天，再跑一次 find 會接著查" if getattr(skills_fetch, "limited", False)
+               else "skills.sh 連不上")
+        notes.append(f"{why}，這 {len(skills_down)} 個槽位這次沒有（或沒有全部）那邊的候選：{'、'.join(skills_down)}")
     doc = {"generated": today.isoformat(), "sources": catalog.get("sources") or {}, "github": getattr(client, "mode", None),
            "notes": notes, "slots": result}
     dump(path, doc)
@@ -620,7 +797,9 @@ def summary(doc):
         slots[slot_id] = {"slot_name": s["slot_name"], "keywords": s["keywords"], "agents": s["agents"], "searched": s.get("searched"),
                           "candidates": [{"id": e["id"], "name": e["name"], "source": SOURCES[e["source"]], "agents": e["agents"],
                                           "description": e["description"], "url": e["url"], "github": e.get("github"),
-                                          "flags": [FLAGS[f] for f in e.get("flags") or []]} for e in s["candidates"]],
+                                          "flags": [FLAGS[f] for f in e.get("flags") or []],
+                                          **({"installs": e["installs"], "installs_note": "skills.sh 的安裝數是 CLI 自報、可以灌，只當參考"}
+                                             if e.get("source") == "skills" else {})} for e in s["candidates"]],
                           "excluded": s["excluded"]}
     return {"generated": doc["generated"], "sources": doc.get("sources"), "github": doc.get("github"),
             "notes": doc.get("notes") or [], "caveat": CAVEAT, "slots": slots,
@@ -689,9 +868,11 @@ def selftest():
                 return json.dumps(manifests[name]) if name in manifests else None
             if url.startswith(REGISTRY):
                 return json.dumps(registry_pages.get(urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["search"][0], {"servers": []}))
+            if url.startswith(SKILLS_SEARCH + "?"):
+                return json.dumps(skills_pages.get(urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["q"][0], {"skills": []}))
             return None
 
-        registry_pages = {}
+        registry_pages, skills_pages = {}, {}
         state = tmp / "state"
         cat = refresh(home, state, web, today)
         ids = [e["id"] for e in cat["entries"]]
@@ -843,13 +1024,123 @@ def selftest():
         off = find(roster, cat, tmp / "state3", client, web, today, registry=False)
         check("--no-registry：不查 Registry", all(not e["id"].startswith("registry:") for e in off["slots"]["open"]["candidates"]))
         down = find(roster, cat, tmp / "state4", client, lambda url: None, today)
-        check("Registry 連不上：照實寫，官方目錄的候選照樣給",
-              "連不上" in down["notes"][0] and len(down["notes"]) == 1 and [e["id"] for e in down["slots"]["open"]["candidates"]] == cands["open"][:2])
+        check("Registry 與 skills.sh 連不上：各自照實寫，官方目錄的候選照樣給",
+              "Registry 連不上" in down["notes"][0] and "skills.sh 連不上" in down["notes"][1] and len(down["notes"]) == 2
+              and [e["id"] for e in down["slots"]["open"]["candidates"]] == cands["open"][:2])
         forced = find(roster, cat, tmp / "state5", client, web, today, only=["native", "nope"])
         check("--slot：指定的槽位不管有沒有答案都找", sorted(forced["slots"]) == ["native"] and forced["slots"]["native"]["candidates"])
         before = find(roster, cat, tmp / "state6", client, web, today)["slots"]["open"]
         one = find(roster, cat, tmp / "state6", client, web, today + timedelta(days=1), only=["native"])["slots"]
         check("--slot：其他槽位上次的結果原樣留著", one["open"] == before and one["native"]["searched"] == (today + timedelta(days=1)).isoformat())
+
+        # skills.sh
+        def sk(source, skill, installs):
+            return {"id": f"{source}/{skill}", "source": source, "skillId": skill, "name": skill, "installs": installs}
+
+        skills_pages["browser automation"] = {"skills": [
+            sk("vercel-labs/agent-browser", "agent-browser", 1444476), sk("why/superpowers", "twitter-automation", 1679637),
+            sk("why/superpowers", "agent-browser", 318448), sk("inference/skills", "agent-browser", 12),
+            sk("open.feishu.cn", "lark-doc", 902162), sk("anthropics/skills", "browser-kit", 500),
+            sk("anthropics/skills", "browser-tester", 50), sk("anthropics/skills", "browser-runner", 999999),
+            sk("s/dead", "browser-old", 900), sk("s/gone", "browser-lost", 900), sk("x/bad", "browser-bad", 900),
+            sk("z/misc", "slack-gif", 99999), sk("tiny/repo", "browser-automation", 5000), sk("z/misc", "browser; rm -rf ~", 5), {"source": "q/r"}, "不是物件"]}
+        skills_pages["playwright"] = {"skills": [sk("vercel-labs/agent-browser", "agent-browser", 1444476), sk("pw/kit", "playwright-kit", 80)]}
+        repos.update({"vercel-labs/agent-browser": node(stars=20000), "why/superpowers": node(stars=5), "inference/skills": node(stars=300),
+                      "anthropics/skills": node(stars=50000), "pw/kit": node(stars=70), "z/misc": node(stars=900), "tiny/repo": node(stars=3)})
+        roster["tools"]["kit"] = card("kit", "pending", [], url="https://github.com/anthropics/skills/tree/main/skills/browser-kit")
+        parsed = {e["id"]: e for e in parse_skills(skills_pages["browser automation"])}
+        check("skills.sh：只收 GitHub 的 owner/repo，指令會用到的字有怪字元的不收",
+              "skills:open.feishu.cn/lark-doc" not in parsed and len(parsed) == 12
+              and not any(";" in e["id"] for e in parsed.values()))
+        ab = parsed["skills:vercel-labs/agent-browser/agent-browser"]
+        check("skills.sh：兩個 agent 都給，指令裝到使用者層、分別指定 agent，附上遙測的提醒",
+              ab["agents"] == ["claude", "codex"] and ab["repo"] == "vercel-labs/agent-browser" and ab["kind"] == "skill"
+              and ab["install"]["claude"]["command"] == "npx skills add vercel-labs/agent-browser --skill agent-browser -g -a claude-code"
+              and ab["install"]["codex"]["command"] == "npx skills add vercel-labs/agent-browser --skill agent-browser -g -a codex"
+              and ab["install"]["codex"]["note"] == SKILLS_NOTE and ab["url"] == "https://skills.sh/vercel-labs/agent-browser/agent-browser")
+        check("skills.sh：送的字去掉通用字，太短的不查", skills_term("docx skill") == "docx" and skills_term("playwright mcp") == "playwright"
+              and skills_term("speech to text") == "speech to text" and skills_term("mcp server") is None and skills_term("a skill") is None)
+        check("skills.sh：只比名稱，一組關鍵字中幾個字算幾分、全中加分，一個都沒中不算",
+              name_score(ab, kws) == (2, ["browser automation"]) and name_score(parsed["skills:z/misc/slack-gif"], kws) == (0, [])
+              and name_score({"name": "Browser Automation", "skill": "x"}, kws) == (6, ["browser automation"]))
+        idx = roster_index(roster)
+        check("名冊比對：卡片指到 repo 裡某個 skill 的，只擋同一個 skill；整個 repo 的卡照舊整個擋",
+              in_roster(parsed["skills:anthropics/skills/browser-kit"], idx)["tool"] == "kit"
+              and in_roster(parsed["skills:anthropics/skills/browser-tester"], idx) is None
+              and in_roster(parsed["skills:x/bad/browser-bad"], idx)["code"] == "roster-no"
+              and in_roster({"id": "registry:a/b", "name": "", "repo": "anthropics/skills"}, idx)["tool"] == "kit")
+        asked.clear()
+        sdoc = find(roster, cat, tmp / "state7", client, web, today, registry=False)
+        mine = [e for e in sdoc["slots"]["open"]["candidates"] if e["source"] == "skills"]
+        check("skills.sh 找候選：先看比對分數、再看星數；同一個 skill 的複製品與同一個 repo 只留一份；安裝數再高也不影響順序",
+              [e["id"] for e in mine] == ["skills:pw/kit/playwright-kit", "skills:anthropics/skills/browser-runner",
+                                          "skills:vercel-labs/agent-browser/agent-browser"])
+        wide = [e for e in parsed.values() if name_score(e, kws)[0]]
+        picked_wide, _ = pick_skills(wide, fetch_health(client, [e["repo"] for e in wide]), kws, today, 10)
+        check("skills.sh 挑選：同名的複製品只留星數最高的、同一個 repo 只留一個；星數不到門檻的比對分數再高也排後面",
+              [e["id"] for e in picked_wide] == ["skills:anthropics/skills/browser-kit", "skills:vercel-labs/agent-browser/agent-browser",
+                                                 "skills:tiny/repo/browser-automation", "skills:why/superpowers/twitter-automation"])
+        check("skills.sh 找候選：安裝數不到門檻的標出來、照實帶安裝數",
+              mine[0]["flags"] == ["few-installs"] and mine[0]["installs"] == 80 and mine[2]["flags"] == [])
+        sout = {x["id"]: x["code"] for x in sdoc["slots"]["open"]["excluded"]}
+        check("skills.sh 找候選：名冊有的、名冊拒絕的、封存的寫原因；GitHub 查不到的不列",
+              sout.get("skills:anthropics/skills/browser-kit") == "in-roster" and sout.get("skills:x/bad/browser-bad") == "roster-no"
+              and sout.get("skills:s/dead/browser-old") == "archived"
+              and not [e for e in sdoc["slots"]["open"]["candidates"] if e["id"] == "skills:s/gone/browser-lost"])
+        sent = [urllib.parse.parse_qs(urllib.parse.urlparse(u).query) for u in asked if u.startswith(SKILLS_SEARCH)]
+        check("skills.sh：送出去的只有槽位關鍵字與筆數",
+              sorted(q["q"][0] for q in sent) == ["browser automation", "playwright"]
+              and all(set(q) == {"q", "limit"} and q["limit"] == [str(SKILLS_LIMIT)] for q in sent))
+        asked.clear()
+        find(roster, cat, tmp / "state7", client, web, today + timedelta(days=6), registry=False)
+        check("skills.sh：7 天內再找用存下來的，不再連網", not [u for u in asked if u.startswith(SKILLS_SEARCH)])
+        asked.clear()
+        noskills = find(roster, cat, tmp / "state8", client, web, today, registry=False, skills=False)
+        check("--no-skills：不查 skills.sh", all(e["source"] != "skills" for e in noskills["slots"]["open"]["candidates"])
+              and not [u for u in asked if u.startswith(SKILLS_SEARCH)])
+        odd = find(roster, cat, tmp / "state9", client, lambda url: "{\"error\": 1}" if url.startswith(SKILLS_SEARCH) else web(url),
+                   today, registry=False)
+        check("skills.sh 回的格式不對：當連不上，照實寫", any("skills.sh 連不上" in n for n in odd["notes"]))
+        sbrief = summary(sdoc)["slots"]["open"]["candidates"]
+        check("精簡版：skills.sh 的候選帶安裝數與「可以灌」的提醒，其他來源不帶",
+              [c for c in sbrief if c["source"] == "skills.sh"][0]["installs"] == 80
+              and "可以灌" in [c for c in sbrief if c["source"] == "skills.sh"][0]["installs_note"]
+              and "installs" not in sbrief[0])
+        # 限速
+        class Clock:
+            def __init__(self):
+                self.now, self.slept = 0.0, []
+
+            def sleep(self, s):
+                self.slept.append(round(s, 2))
+                self.now += s
+
+        def opener_of(codes):
+            seq = list(codes)
+
+            def opener(url):
+                code = seq.pop(0) if seq else 200
+                return (code, '{"skills": []}', None) if code == 200 else (code, None, 7 if code == 429 else None)
+            return opener
+
+        clk = Clock()
+        paced = Paced(gap=3, budget=20, opener=opener_of([200, 200, 429, 200, 404]), sleep=clk.sleep, clock=lambda: clk.now)
+        got = [paced("u") for _ in range(4)]
+        check("限速：每次至少隔 gap 秒；429 照 Retry-After 等一次再試；其他錯誤不重試",
+              got[:3] == ['{"skills": []}'] * 3 and got[3] is None and clk.slept == [3, 3, 7, 3] and paced.calls == 5
+              and not paced.limited)
+        clk = Clock()
+        paced = Paced(gap=3, budget=10, opener=opener_of([429, 429, 429]), sleep=clk.sleep, clock=lambda: clk.now)
+        check("限速：等的總時間超過上限就停，這次剩下的都不查", paced("u") is None and paced.limited
+              and paced("v") is None and paced.calls == 2 and sum(clk.slept) <= 10)
+        clk = Clock()
+        slow = Paced(gap=3, budget=0, opener=lambda url: (429, None, 60), sleep=clk.sleep, clock=lambda: clk.now)
+        lim = find(roster, cat, tmp / "state10", client, slow, today, registry=False)
+        check("限速停下來：照實寫限速、下次接著查，不寫成連不上",
+              any("限速" in n and "接著查" in n for n in lim["notes"]) and not any("連不上" in n for n in lim["notes"])
+              and slow.calls == 1)
+        del roster["tools"]["kit"]
+        skills_pages.clear()
 
         # agent 上網找到的
         ok, no = add_found(roster, state, client, "open", [
@@ -887,12 +1178,13 @@ def selftest():
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="OmniKit 候選池：名冊沒有答案的槽位，從官方目錄與 MCP Registry 找候選")
+    parser = argparse.ArgumentParser(description="OmniKit 候選池：名冊沒有答案的槽位，從官方目錄、MCP Registry 與 skills.sh 找候選")
     parser.add_argument("command", nargs="?", choices=["find", "add"])
     parser.add_argument("--slot", help="find：只找這幾個槽位（逗號分隔），不管有沒有答案；add：要記到哪個槽位")
     parser.add_argument("--file", type=Path, help="add：agent 上網找到的（JSON 陣列，每筆有 name、url、description、kind、agents）")
     parser.add_argument("--refresh", action="store_true", help="find：不管上次什麼時候抓的，重抓兩家官方目錄")
     parser.add_argument("--no-registry", action="store_true", help="find：不查官方 MCP Registry")
+    parser.add_argument("--no-skills", action="store_true", help="find：不查 skills.sh")
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args(argv)
     if args.selftest:
@@ -920,7 +1212,7 @@ def main(argv=None):
         return 0 if accepted or not refused else 1
     catalog = refresh(Path.home(), profiles.STATE, force=args.refresh)
     only = [s.strip() for s in args.slot.split(",") if s.strip()] if args.slot else None
-    doc = find(roster, catalog, profiles.STATE, client, only=only, registry=not args.no_registry,
+    doc = find(roster, catalog, profiles.STATE, client, only=only, registry=not args.no_registry, skills=not args.no_skills,
                edition=editions.resolve(profiles.STATE, profiles.DATA.parent)[0])
     print(json.dumps(summary(doc), ensure_ascii=False, indent=2))
     return 0

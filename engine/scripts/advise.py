@@ -104,8 +104,10 @@ def how_install(card, agent, cfg, added):
 
 def signal_text(e):
     """名冊外候選的外部訊號：哪個來源、GitHub 現況、要注意的旗標。"""
-    how = {"web": "（剛查到）", "registry": " 登記（不審核）"}.get(e["source"], "收錄")
+    how = {"web": "（剛查到）", "registry": " 登記（不審核）", "skills": " 收錄（不審核）"}.get(e["source"], "收錄")
     parts = [pool.SOURCES[e["source"]] + how]
+    if e["source"] == "skills" and e.get("installs") is not None:
+        parts.append(f"安裝數 {e['installs']}（CLI 自報、可以灌，只當參考）")
     hub = e.get("github")
     if hub:
         parts.append(f"GitHub {hub.get('stars')} 星、最近更新 {hub.get('pushed') or '不明'}、授權 {hub.get('license') or '沒有標'}")
@@ -123,7 +125,8 @@ def how_pool(e, agent, markets):
         return {"commands": [], "note": (e.get("install_note") or "照來源的說明安裝") + f"：{e['url']}"}
     commands = [how["add"]] if how.get("add") and how.get("marketplace") not in (markets or set()) else []
     return {"commands": commands + [how["command"]],
-            "note": "指令是照目錄登記的資料組出來的，OmniKit 沒有實際執行過；裝好之後開新的對話才會載入。"}
+            "note": "指令是照目錄登記的資料組出來的，OmniKit 沒有實際執行過；裝好之後開新的對話才會載入。"
+                    + (f"{how['note']}。" if how.get("note") else "")}
 
 
 def pool_candidates(roster, edition, agent, pooled, taken, markets, today):
@@ -962,6 +965,14 @@ def selftest():
           and "沒有實際執行過" in c1["how"]["note"] and c3["how"]["commands"] == ["codex plugin add clip@openai-curated"]
           and c2["how"] == {"commands": [], "note": "要先設定金鑰：https://example.com/io.x/oldie"}
           and cand(added_already["agents"]["claude"], "pool:video:anthropic:cutter")["how"]["commands"] == [official["command"]])
+    sk = {"source": "skills", "installs": 80, "repo": "pw/kit", "url": "https://skills.sh/pw/kit/k", "flags": ["few-installs"],
+          "github": {"stars": 70, "pushed": "2026-11-01", "license": "MIT"},
+          "install": {"codex": {"command": "npx skills add pw/kit --skill k -g -a codex", "note": pool.SKILLS_NOTE}}}
+    check("名冊外的候選（skills.sh）：依據寫安裝數並說明可以灌；指令附上遙測的提醒",
+          signal_text(sk) == "skills.sh 收錄（不審核）；安裝數 80（CLI 自報、可以灌，只當參考）；GitHub 70 星、最近更新 2026-11-01、授權 MIT；"
+                             "注意：skills.sh 安裝數不到 100"
+          and how_pool(sk, "codex", set())["commands"] == ["npx skills add pw/kit --skill k -g -a codex"]
+          and how_pool(sk, "codex", set())["note"].endswith("DO_NOT_TRACK=1。"))
     check("還沒有答案的槽位都列出來：找過沒有、有幾個候選、關鍵字（給 agent 上網找用）",
           [(o["slot"], o["searched"], o["candidates"]) for o in oc["open_slots"]] == [("video", "2026-11-10", 2), ("subs", None, 0)]
           and oc["open_slots"][1]["keywords"] == ["subtitle"] and any("其中 1 個還沒找過名冊外的候選" in n for n in out["notes"]))

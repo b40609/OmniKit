@@ -235,8 +235,61 @@ Claude Code 那一邊的內容判斷官方已經有，不重做。OmniKit 補四
 
 - 沒有跑 `batch0.py` 的完整健康指標，也沒有做安全掃描（`layer0.py` 的掃描器）。
 - 使用者採用之後寫回成名冊的候選卡：還沒做，現在只記在本機。
-- skills.sh、aitmpl 這些有安裝數的來源：還沒接。
+- aitmpl 這類有下載數的來源：還沒接。skills.sh 2026-11-14 接上，見下一節。
 - Antigravity 不出建議。
+
+## skills.sh 來源（2026-11-14 加上）
+
+把 skills.sh（Vercel 的 skill 目錄）當成候選池的第四個來源。程式還是 `engine/scripts/pool.py`，`find` 預設會查，`--no-skills` 可以關掉。
+
+### 入口查到的實情
+
+都是 2026-11-14 實際查到的。
+
+| 入口 | 實情 | 結論 |
+|---|---|---|
+| robots.txt | `Disallow: /api/`，另外擋 `/search`、`/internal/`；sitemap 允許 | 確認報告 8.4 節的說法 |
+| 正式 API `/api/v1/skills/search` | 有文件，600 次／分鐘。不帶 token 回 401，要的是 Vercel OIDC token：文件寫明是給「部署在 Vercel 上的 app」用的，在專案設定開 OIDC Federation 後由執行環境提供，不是可以申請的 API key | 同事的電腦拿不到，不用。報告寫的「要 Vercel token」對，但更窄：是 OIDC token |
+| `/api/search` | 官方 CLI（`vercel-labs/skills` 1.8.1 的 `src/find.ts`）`npx skills find` 打的就是這個，不用 token；回名稱、來源 repo、安裝數，沒有說明。單一字用模糊比對、多個字用語意搜尋 | 用這個（使用者 2026-11-14 選定） |
+| 使用條款（`/terms`） | 公開 API 依 IP 限速；「合理使用，包括把結果快取在自己這邊」受鼓勵、不限制；繞過限速的爬取會被封 IP | 每次至少隔 3 秒、遇到 429 照 `Retry-After` 等、結果存 7 天 |
+| `npx skills find` | 同一個端點，但 CLI 預設送遙測（`skills.sh/tele/t`），要設 `DO_NOT_TRACK` 才關；輸出是給人看的文字 | 不用 CLI 查；建議裝的時候才用 CLI，並附上關遙測的說法 |
+
+限速實測：同一個 IP 連打 30 次，22 次 200、8 次 429，`Retry-After: 60`。等一分鐘後每 1 到 2 秒打一次：前 30 次都是 200，第 31 次（第 59 秒）429，之後又恢復，看起來是每分鐘約 30 次的滑動窗。官方沒有公開數字，這是推論。所以每次隔 3 秒（每分鐘 20 次）。
+
+### 別人怎麼做
+
+- **官方 CLI 與 find-skills**：排序全在伺服器，CLI 不重排；find-skills 的說明要 agent 先看安裝數（1K 以上優先、100 以下要小心），再看是不是官方來源、repo 星數。
+- **OmniKit 自己的研究**（`docs/v2/research/eval.md`）：skills.sh 的安裝數來自 CLI 匿名遙測，是沒有驗證的 GET，可以偽造；建議只當弱參考、依 repo 去重。
+- **這次實測印證**：查 `browser automation`，前幾名裡有好幾個 `superpowers` 的 fork，安裝數 80 萬到 160 萬，比原作還高；`twitter-automation` 也被語意搜尋拉進來。安裝數不能拿來排序，語意搜尋的結果也不能直接信。
+
+### 做法
+
+- **只送槽位的關鍵字**：一組關鍵字去掉 skill、mcp 這類通用字後送出（它的模糊搜尋要每個字都中），加上筆數 20，沒有別的參數。
+- **在本機再比一次名稱**：回應沒有說明，只能比名稱與 skill id；一組關鍵字中幾個字算幾分、全中加分，一個字都沒中的不列。
+- **跟 Registry 一樣用 GitHub 現況篩**：來源不是 GitHub `owner/repo` 的（別的網站、自架的）不收；GitHub 查不到的不列；封存的拿掉並寫原因；星數不到 50 的排後面。排序先看比對分數、再看星數。
+- **安裝數只顯示、不排序**：不到 100 的標「skills.sh 安裝數不到 100」；`advise.py` 的依據寫「安裝數 N（CLI 自報、可以灌，只當參考）」。
+- **去掉複製品**：同一個 skill 名稱出現在好幾個 repo、或同一個 repo 有好幾個中的，只留星數最高的那份。每個槽位最多 3 個。
+- **名冊比對分辨 repo 與 repo 裡的 skill**：卡片網址指到 repo 裡某個 skill（`.../tree/main/skills/frontend-design`）的，只擋同一個 skill，不再把 `anthropics/skills` 裡所有 skill 都當成名冊已有。其他來源照舊。
+- **安裝指令**：`npx skills add <owner/repo> --skill <name> -g -a claude-code`（Codex 是 `-a codex`），附上「CLI 預設送遙測，不想送先設 `DO_NOT_TRACK=1`」。組進指令的兩個字只收安全字元。指令沒有實際執行過。
+- **限速**：每次至少隔 3 秒；429 照 `Retry-After` 等一次再試；被限速等的總時間超過 180 秒就停，這次剩下的不查，`notes` 寫「限速，再跑一次 find 會接著查」；查過的存 7 天，所以再跑會接著往下。
+
+### 實跑
+
+2026-11-14 在這台跑 `pool.py find --no-registry` 兩次（GitHub 有登入）：
+
+- 第一次還沒加節流，連續打太快，8 個槽位被 429 擋掉、照實寫進 `notes`；其他 20 個槽位拿到 70 個 skills.sh 候選。
+- 加上節流後再跑一次：查過的直接用存檔，只補查剩下的，68 秒跑完、`notes` 是空的。28 個槽位都有候選，skills.sh 83 個、Anthropic 目錄 12 個、OpenAI 目錄 9 個、之前上網找到的 3 個。11-11 那次一個都沒有的 7 個槽位（工程圖、結構驗算、訊號處理、圖表、回覆審查意見、字幕、轉檔）現在都有 skills.sh 的候選。
+- 雜訊還是有：例如「行為規則」槽位列進 `web-design-guidelines`（名稱裡有 guidelines），「回測」槽位挑到的是星數高的整合包裡的複製品，不是原作。這是只比名稱的代價，所以 skill 要求 agent 挑之前先開 `url` 看。
+- 全部 28 個槽位第一次查、又遇到限速的話，大約要 110 次查詢，照每次隔 3 秒算約 6 分鐘；之後 7 天內都用存檔。
+
+`pool.py` 自我測試加了 21 條檢查（共 53 條），`advise.py` 加 1 條；突變測試把判斷一條一條改壞（31 條），只剩一條沒抓到：`find` 實際上有沒有套用節流（自我測試都用假的連線，不會走到真的節流）。這一條由上面第二次實跑確認：68 秒、沒有 429。
+
+### 沒做的
+
+- 安全稽核（Gen、Socket、Snyk）：只有正式 API 有 `/audit` 端點，要 OIDC token，沒接。
+- 排行榜與精選（`/api/v1/skills`、`/curated`）：同樣要 token，沒接。
+- 沒有抓 skill 頁面拿說明：robots 允許，但一筆一頁，量太大；改成請 agent 挑之前自己開 `url` 看。
+- `/api/search` 沒有文件，格式隨時可能改；格式不對時當連不上處理，照實寫。
 
 ## 私有模組（2026-11-12 加上）
 

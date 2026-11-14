@@ -42,15 +42,15 @@ uv run scripts/report.py
    uv run scripts/report.py advise --agent <claude 或 codex>
    ```
 
-   第一行會連網（GitHub 與官方 MCP Registry），送出去的只有槽位的關鍵字；結果存在這台，7 天內不重抓。連不上就跳過，第二行照樣能跑。
+   第一行會連網（GitHub、官方 MCP Registry 與 skills.sh），送出去的只有槽位的關鍵字；結果存在這台，7 天內不重抓。連不上就跳過，第二行照樣能跑。skills.sh 有限速，`notes` 說沒查完就再跑一次第一行，查過的不會重查。
 
    輸出是 JSON。`active` 是 false 就照 `skip` 的原因回報，不出建議。Antigravity 目前不出建議。
 2. 在 `candidates` 裡挑：`install` 是裝，`replace` 是換（這台同一件事裝的是別的工具，名冊建議另一個），`remove` 是拿掉，`native` 是用內建的就好，`rules` 是規則檔瘦身（見下面第 3 點）。
    - 只能挑候選裡有的 `id`。你知道名冊外更好的工具，照下面第 3 點交給腳本檢查過才能挑。
-   - `outside` 是 true 的 `install` 候選是名冊外的（`id` 開頭是 `pool:`）：來自官方目錄、官方 MCP Registry 或上網找到的，沒有實測過，比對只看字面，雜訊很多。要從嚴：
-     - 先看 `description` 是不是真的在做這個槽位的事，不是就不挑。
+   - `outside` 是 true 的 `install` 候選是名冊外的（`id` 開頭是 `pool:`）：來自官方目錄、官方 MCP Registry、skills.sh 或上網找到的，沒有實測過，比對只看字面，雜訊很多。要從嚴：
+     - 先看 `description` 是不是真的在做這個槽位的事，不是就不挑。skills.sh 的候選沒有說明、只比了名稱：先開 `url` 看那個 skill 在做什麼再決定。
      - 同一個槽位最多挑一個；使用者這 30 天沒做過這類工作就不挑。
-     - 官方目錄收錄的優先；Registry 不審核，星數少、`basis` 有「注意」的，沒有別的理由就不挑。
+     - 官方目錄收錄的優先；Registry 與 skills.sh 不審核，星數少、`basis` 有「注意」的，沒有別的理由就不挑。skills.sh 的安裝數可以灌，不能當理由。
      - 理由要寫明「名冊外、沒有實測」與你看到的外部訊號，不要寫成推薦過的。
    - 每一項寫一句理由，要用到 JSON 裡的事實：用了幾段對話、裝了幾天、`basis`、`installed_here`。不要只重複名稱。
    - 你自己已經內建的功能，就是挑 `native`、或不挑某個 `install` 的理由，照實寫。
