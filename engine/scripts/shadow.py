@@ -92,7 +92,7 @@ def get_swap(sid, state):
 
 
 def git(args, cwd, env=None):
-    r = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
+    r = subprocess.run(["git", "-c", "core.longpaths=true", *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
     return r.stdout.strip() if r.returncode == 0 else None
 
 
