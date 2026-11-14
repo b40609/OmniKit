@@ -260,9 +260,11 @@ Add-Result 'FR-38：訪談寫進 repo 外的 profile 資料夾' ($preview -eq 0 
   (Test-Path (Join-Path $folder 'AGENTS.md')) -and (Test-Path (Join-Path $folder 'answers.json')) -and (Test-Path (Join-Path $folder 'scenarios.yaml')))
 Add-Result 'FR-38：訪談跑完，repo 的 git status 跟開始時一樣（看不到個人檔案）' ((Get-Status) -eq $StatusBefore)
 $imports = @((Get-Content -LiteralPath (Join-Path $FakeHome '.claude\CLAUDE.md') -Encoding UTF8) | Where-Object { $_.StartsWith('@') })
-Add-Result 'Claude import：路徑有空白與中文時，空白用反斜線跳脫，指到 repo 外的 profile' ($imports.Count -eq 2 -and
-  -not ($imports | Where-Object { $_ -match '(?<!\\) ' }) -and $imports[1].EndsWith('/omnikit/profiles/wang-xiaoming/AGENTS.md') -and
-  $imports[1].Contains('使用者\ 家目錄'))
+# 依序是安全底線、共用分派（data/rules/dispatch.md）、個人 AGENTS.md；個人 dispatch.md 有才接，這裡沒有
+Add-Result 'Claude import：路徑有空白與中文時，空白用反斜線跳脫，指到 repo 外的 profile' ($imports.Count -eq 3 -and
+  $imports[0].EndsWith('/rules/baseline.md') -and $imports[1].EndsWith('/rules/dispatch.md') -and
+  -not ($imports | Where-Object { $_ -match '(?<!\\) ' }) -and $imports[2].EndsWith('/omnikit/profiles/wang-xiaoming/AGENTS.md') -and
+  $imports[2].Contains('使用者\ 家目錄'))
 
 } finally {
   foreach ($k in $savedEnv.Keys) { [Environment]::SetEnvironmentVariable($k, $savedEnv[$k]) }
