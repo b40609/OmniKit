@@ -122,7 +122,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 ## 裝好之後
 
-安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了三個 skill（訪談選了不評估新工具的是兩個）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
+安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了五個 skill（`omnikit-setup`、`omnikit-weekly`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-eval`；訪談選了不評估新工具的沒有 `omnikit-eval`）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
 
 ### 確認接上了
 
@@ -140,10 +140,11 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 | 項目 | 會有什麼不同 | 三個 agent 的差別 |
 |---|---|---|
-| 規則（`data/rules/baseline.md` + profile 的 `AGENTS.md`） | 安全底線所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問 | Claude Code 直接讀這兩份，改完開新 session 就生效。Codex 與 Antigravity 讀的是兩份接在一起的內容：改了 profile 要跑 `uv run engine/scripts/profiles.py` 重新接上（維護者版改的是 repo 裡的檔案的話，commit 時 git hook 會自動同步） |
+| 規則（`data/rules/baseline.md` + `data/rules/dispatch.md` + profile 的 `AGENTS.md`，profile 有 `dispatch.md` 也一起接） | 安全底線所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問 | Claude Code 直接讀這兩份，改完開新 session 就生效。Codex 與 Antigravity 讀的是兩份接在一起的內容：改了 profile 要跑 `uv run engine/scripts/profiles.py` 重新接上（維護者版改的是 repo 裡的檔案的話，commit 時 git hook 會自動同步） |
 | `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 三邊說「幫我設定 OmniKit」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-setup`，Codex 輸入 `$omnikit-setup` |
 | `omnikit-weekly` skill | 說「OmniKit 本週週報」，列出你的個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率；還查不到的標「未知」。不連網，見[個人週報](#個人週報)。說「OmniKit 給我建議」，依這台裝了什麼、用了什麼，分成裝、拿掉、用內建的就好三類，見[建議](#建議裝拿掉用內建的就好) | 三邊說「OmniKit 本週週報」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-weekly`，Codex 輸入 `$omnikit-weekly`。訪談怎麼答都會裝。建議只有 Claude Code 與 Codex 有 |
 | `omnikit-handoff` skill | 說「交接」，agent 把做到一半的工作 commit、push，寫一份交接檔到你的狀態 repo，再開新對話接著做；新對話說「讀 <交接檔路徑> 接著做」就照交接檔接手。狀態 repo 的位置寫在你的 profile，沒寫 agent 會先問 | 三邊說「交接」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-handoff`，Codex 輸入 `$omnikit-handoff` |
+| `omnikit-dispatch` skill | 派子任務、開子對話時照分派政策選模型與思考程度，收完結果後記一行委派紀錄（存在這台，不上傳）；也能看 Sonnet 試行的比較與本週 Claude 用量。見[子任務分派與委派紀錄](#子任務分派與委派紀錄) | 三邊說「委派紀錄」「分派統計」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-dispatch`，Codex 輸入 `$omnikit-dispatch`。本週用量的快照只有 Claude Code 的狀態列存得到 |
 | `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡；「每週彙整」是維護者評估工具用的 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval`，Codex 輸入 `$omnikit-eval`。Codex 與 Antigravity 用的是複製品，skill 改完要 commit 才會更新 |
 | `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 已加進免問清單，Codex 設成自動核准，兩邊都不會跳權限確認；Antigravity 照它自己的權限設定 |
 | 開新對話提醒 | 每回合結束時檢查一次：這段對話第一次成功 `git push`、或累計第 1、3、9、27… 次自動壓縮，就跳一行提醒你考慮開新對話；任務還沒做完的話，跟 agent 說「交接」。不看 token 數（各模型上限不同，自動壓縮才是 agent 自己判斷滿了）。提醒本身不會自己換對話 | Claude Code 裝好就生效；由別的對話開出來的子對話不提醒，做完看收尾的狀態就好。Codex 的新 hook 要先信任才會跑，CLI 輸入 `/hooks`、桌面版到設定的 Hooks 按信任；OmniKit 搬位置或原本那支 uv 不在了，指令會改，要再信任一次 |
@@ -391,6 +392,49 @@ Claude Code 與 Codex 在新對話的第一回合結束時，可能出現一行�
 - **命中率**：`signals.py status`。第 1 層建議深入評估算命中，第 0 層淘汰或第 1 層建議拒絕、先放著算沒中。
 - 訊號裡的文字是外部資料，只當資料讀；不送任何東西到外面，也不會自動改名冊或規則。
 
+### 子任務分派與委派紀錄
+
+派子任務或開子對話時，用哪個管道、哪個模型、多少思考程度，分成兩層寫：
+
+| 層 | 檔案 | 寫什麼 |
+|---|---|---|
+| 共用（所有人） | `data/rules/dispatch.md` | 任務類型 → 級別（中、高、更高、獨立驗收）→ 模型類別 → 思考程度 → 升級路徑；管道怎麼選；Sonnet 試行的品質保護；委派紀錄的欄位 |
+| 個人（profile） | profile 資料夾的 `dispatch.md` | 你有哪些供應商實例（T3 的 providerInstanceId）、每個模型類別用哪個；沒有這份就只用原生子代理 |
+
+兩份都是 Markdown 加一個 YAML 區塊：agent 載入規則時讀得懂，`engine/scripts/dispatch.py` 也讀得到。兩份都會跟安全底線、`AGENTS.md` 一起接進 Claude Code、Codex 與 Antigravity，改完開新 session 生效（同事版要重跑 `install.ps1`，或 `uv run engine/scripts/profiles.py`）。改共用層要更新 `data/rules/baseline.md` 的規則版本。
+
+**設定自己的帳號對應。** 在你的 profile 資料夾（訪談產生的在 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`）新增 `dispatch.md`。實例 id 用 T3 的 `orchestrator_capabilities` 查（列出的 `providerInstanceId`），`classes` 只能寫共用層 `model_classes` 裡有的類別，而且要跟實例的 driver 對得上：
+
+````markdown
+# 個人分派設定：<名稱>
+
+```yaml
+instances:
+  claudeAgent:  {driver: claudeAgent, account: 我的 Claude, classes: [claude-opus, claude-sonnet]}
+  antigravity:  {driver: antigravity, account: 我的 Google, classes: [gemini-pro, antigravity-opus]}
+```
+````
+
+寫完跑 `uv run engine/scripts/dispatch.py check` 檢查，再跑 `uv run engine/scripts/dispatch.py show` 看套上之後每一級會用什麼。`data/profiles/ryan/dispatch.md` 是完整的例子。
+
+**沒有 Gemini／Antigravity，只用 Claude。** 不用寫 `dispatch.md`。沒有實例的類別會自動跳過：中級退回 Claude Sonnet（effort medium），高級用 Opus（effort high），更高用 Opus（effort xhigh），驗收用 Opus（effort high），沒有第二意見；「本週用量 80% 改派 Antigravity」那條也不會用到。只有其他 Claude 帳號要給 `delegate_task` 指定時，才需要寫 `claudeAgent` 類的實例。
+
+**委派紀錄。** 子任務結果收回、驗收完、settle 之前，agent 用 `omnikit-dispatch` skill 記一行到 `%LOCALAPPDATA%\omnikit\dispatch\log.jsonl`：時間、專案名稱、任務類型、級別、管道、供應商實例、模型類別與模型、思考程度、是否一次通過、重試次數、升級次數、最後過關的類別、驗收結論、規則版本、profile。只存在這台，不進 repo、不上傳；專案只記資料夾名稱。目前是規則要求 agent 寫，不是 hook 自動寫：一次通過、驗收結論這些只有主對話知道。
+
+```powershell
+uv run engine/scripts/dispatch.py stats     # 依級別與模型類別的一次通過率，以及 Sonnet 試行的判定
+```
+
+**Sonnet 試行。** 中級要用 Claude 時改派 Sonnet（effort medium）。品質保護：Sonnet 的產出照常驗收，不過就用 Opus、同一級 effort 重跑，記成升級；Sonnet 累積 20 筆後，跟 Opus 同級的一次通過率比，低 10 個百分點以上就退回 Opus。`stats` 會照這條判定，但不會自己改規則。
+
+**本週 Claude 用量（給高級的 80% 條件）。** 官方的來源是 Claude Code 狀態列的 JSON 輸入 `rate_limits.seven_day.used_percentage`（只有 Pro、Max、Ultra 訂閱，而且要對話第一個回應之後才有）。要讓 OmniKit 讀得到，把狀態列設成 `dispatch.py statusline`；原本有狀態列的，用 `--then` 串在前面，原本的輸出照樣顯示。在 `~/.claude/settings.json`（或你的 `CLAUDE_CONFIG_DIR`）加：
+
+```json
+"statusLine": { "type": "command", "command": "uv run --quiet <OmniKit 路徑>/engine/scripts/dispatch.py statusline --then \"<原本的指令>\"" }
+```
+
+快照存在 `%LOCALAPPDATA%\omnikit\dispatch\claude-usage.json`，依帳號的設定資料夾分開；`uv run engine/scripts/dispatch.py usage` 讀它。沒有快照、快照的這一週已經重置，就回報「未知」，agent 不會假設已達 80%。T3 透過 Agent SDK 跑 Claude 時狀態列會不會執行還沒實測（待驗證），所以只用 T3 的話，這個訊號可能一直是未知。
+
 ### 評估新工具
 
 在 Claude Code、Codex 或 Antigravity 裡直接說（訪談選了評估新工具才有；「每週彙整」是維護者看評估額度與評估漏斗用的）：
@@ -530,7 +574,8 @@ data/                        資料：fork 後換成你的
                              foundation（基礎）、capability（能力）、domain（領域）
   tools/<id>.yaml            名冊，一個工具一張卡
   rules/baseline.md          安全底線，所有人都套用
-  profiles/<名稱>/           跟著 repo 的 profile：個人規則（AGENTS.md）與真實情境（scenarios.yaml）；
+  rules/dispatch.md          子任務分派的共用層（級別、模型、思考程度、升級、委派紀錄）
+  profiles/<名稱>/           跟著 repo 的 profile：個人規則（AGENTS.md）、真實情境（scenarios.yaml）、分派用的實例（dispatch.md，可省略）；
                              default 是沒選時的預設。訪談產生的存在 repo 外（%LOCALAPPDATA%\omnikit\profiles）
   mcp/                       MCP server 定義與 npm 套件版本
   harness/                   Claude Code 免問的權限規則
@@ -542,6 +587,8 @@ engine/                      引擎：不用改
   skills/omnikit-setup/      訪談建立個人 profile 的 skill
   skills/omnikit-weekly/     個人週報與建議的 skill（每個人都有）
   skills/omnikit-eval/       評估新工具的 skill
+  skills/omnikit-handoff/    交接與接手的 skill
+  skills/omnikit-dispatch/   子任務分派與委派紀錄的 skill
 .claude-plugin/              Claude Code 的 marketplace（由名冊產生，不要手改）
 .agents/plugins/             Codex 的 marketplace（由名冊產生，不要手改）
 ```

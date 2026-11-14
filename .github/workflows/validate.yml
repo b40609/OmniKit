@@ -43,8 +43,12 @@ jobs:
       # 維護者版與同事版（含 git hook 只在維護者版同步）、免問核准的個人同意
       - run: uv run engine/scripts/edition.py --selftest
       - run: uv run engine/scripts/claude_allow.py --selftest
-      # 規則分層（安全底線 + profile）的自我測試
+      # 規則分層（安全底線 + 分派共用層 + profile）的自我測試
       - run: uv run engine/scripts/profiles.py --selftest
+      # 子任務分派：兩層政策的檢查、委派紀錄、Sonnet 試行的判定、本週 Claude 用量的快照
+      - run: uv run engine/scripts/dispatch.py --selftest
+      - run: uv run engine/scripts/dispatch.py check
+      - run: uv run engine/skills/omnikit-dispatch/scripts/run.py show > /dev/null
       # 接上三個 agent（規則、skills、MCP，以及從舊版 skillshare 接手）的自我測試
       - run: uv run engine/scripts/agents.py --selftest
       # 每週彙整用的使用統計：只算實際讀取或呼叫，不算對話開頭的 skill 清單

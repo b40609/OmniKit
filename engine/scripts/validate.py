@@ -35,6 +35,7 @@ import yaml
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import best_match
 
+import dispatch  # 同目錄的 dispatch.py：子任務分派政策的檢查
 import profiles  # 同目錄的 profiles.py：這台選的 profile
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -255,6 +256,20 @@ def enabled_modules(modules, selected):
     return [m["id"] for m in modules if m["kind"] == "foundation" or m["id"] in selected or m["id"] in pulled]
 
 
+def check_dispatch(data, d=None):
+    """子任務分派：共用層 data/rules/dispatch.md，加上 profile 的 dispatch.md（有才檢查）。沒有共用層不算錯。"""
+    try:
+        pol = dispatch.policy(data)
+        if pol is None:
+            return []
+        mine = dispatch.personal(d) if d is not None else None
+    except (ValueError, yaml.YAMLError) as e:
+        return [f"分派政策讀不懂：{e}"]
+    where = show(d / "dispatch.md") if mine is not None else show(data / "rules" / "dispatch.md")
+    return [f"{where}: {e}" for e in dispatch.check(pol, mine if d is not None else None)
+            if d is None or e.startswith("個人層")]
+
+
 def check_profile(d, slot_ids, check_scenarios, modules=None):
     """一個 profile 資料夾：回傳（問題清單, {槽位: 情境}）；沒有 AGENTS.md 就不是 profile，情境是 None。"""
     if not (d / "AGENTS.md").is_file():
@@ -283,6 +298,7 @@ def check_profiles(data, slot_ids, state=None, wanted=None, modules=None):
     baseline = data / "rules" / "baseline.md"
     if not baseline.is_file():
         errors.append(f"{show(baseline)}: 找不到安全底線")
+    errors += check_dispatch(data)
     root = data / "profiles"
     dirs = sorted(p for p in root.iterdir() if p.is_dir()) if root.is_dir() else []
     if profiles.DEFAULT not in [p.name for p in dirs]:
@@ -293,7 +309,7 @@ def check_profiles(data, slot_ids, state=None, wanted=None, modules=None):
             errors.append(f"{show(d)}: profile 名稱只能用小寫英數與 -")
             continue
         bad, scenarios = check_profile(d, slot_ids, check_scenarios, modules)
-        errors += bad
+        errors += bad + (check_dispatch(data, d) if (d / "dispatch.md").is_file() else [])
         if scenarios is not None:
             found[d.name] = scenarios
     in_repo = set(found)
@@ -301,7 +317,7 @@ def check_profiles(data, slot_ids, state=None, wanted=None, modules=None):
     local = state / "profiles" / name if state is not None and name and profiles.NAME.match(name) else None
     if local and (local / "AGENTS.md").is_file():
         bad, scenarios = check_profile(local, slot_ids, check_scenarios, modules)
-        errors += bad
+        errors += bad + (check_dispatch(data, local) if (local / "dispatch.md").is_file() else [])
         found[name] = scenarios
     return errors, found, in_repo
 

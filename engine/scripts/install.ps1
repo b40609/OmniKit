@@ -17,7 +17,7 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
    交給 profiles.py --migrate 搬到 repo 外（%LOCALAPPDATA%\omnikit\profiles）；刪掉 repo 裡的舊檔前先問，
    不能互動時什麼都不改，只列出來（FR-38）。
    agents.py connect：
-   - 規則 = 安全底線（data/rules/baseline.md）+ profile 的 AGENTS.md。訪談產生的 profile 在
+   - 規則 = 安全底線（data/rules/baseline.md）+ 分派共用層（data/rules/dispatch.md）+ profile 的 AGENTS.md（profile 有 dispatch.md 也接）。訪談產生的 profile 在
      %LOCALAPPDATA%\omnikit\profiles\<名稱>（不在 repo 裡），default 與維護者手寫的在 data/profiles/<名稱>；同名時 repo 外的優先。
      Claude 在 ~/.claude/CLAUDE.md 用受管區塊 import；Codex 的 ~/.codex/AGENTS.md 與 Antigravity 的
      ~/.gemini/GEMINI.md 在開頭加受管區塊（原地改寫，硬連結不會斷），原本的規則留在區塊外照常生效，

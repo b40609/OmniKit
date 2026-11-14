@@ -4,9 +4,11 @@
 # ///
 """OmniKit profile：這台電腦套用哪一份個人規則，並接到 Claude Code、Codex 與 Antigravity。
 
-agent 讀到的規則是兩層接在一起：
+agent 讀到的規則是兩層接在一起，依序：
 - data/rules/baseline.md：安全底線，所有人都套用
+- data/rules/dispatch.md：子任務分派的共用層（任務級別、模型類別、思考程度、升級、委派紀錄），所有人都套用
 - profile 的 AGENTS.md：個人規則（語言、語氣、授權程度）
+- profile 的 dispatch.md（有才接）：個人的供應商實例與帳號對應；沒有就只用原生子代理
 同一個 profile 資料夾裡的 scenarios.yaml 是評估工具用的真實情境，由 validate.py 讀。
 
 profile 放在兩個地方，同名時 repo 外的優先：
@@ -169,8 +171,17 @@ def resolve(data, state, wanted=None):
     return name, fallback
 
 
+SHARED_RULES = ("baseline.md", "dispatch.md")  # data/rules/ 底下所有人都套用的，依序；dispatch.md 沒有就跳過
+PROFILE_RULES = ("AGENTS.md", "dispatch.md")  # profile 資料夾裡的，依序；AGENTS.md 一定要有，dispatch.md 有才接
+
+
 def rules_files(data, state, name):
-    return data / "rules" / "baseline.md", (folder(data, state, name) or data / "profiles" / name) / "AGENTS.md"
+    """接給 agent 的規則檔，依序：安全底線、分派共用層、profile 的 AGENTS.md、profile 的分派設定。
+    安全底線與 AGENTS.md 一定列（不存在時讓後面的讀取失敗，不悄悄少一層）；兩份 dispatch.md 有才列。"""
+    base = folder(data, state, name) or data / "profiles" / name
+    shared = [data / "rules" / f for f in SHARED_RULES]
+    mine = [base / f for f in PROFILE_RULES]
+    return [p for p in shared + mine if p.name != "dispatch.md" or p.is_file()]
 
 
 def answers(data, state, name):
@@ -195,7 +206,9 @@ def skipped_skills(data, state, name):
 def compose(data, state, name):
     """給 Codex 與 Antigravity 的規則：底線在前，profile 在後；第一行是產生標記。"""
     parts = [text(p).replace("\r\n", "\n").strip() for p in rules_files(data, state, name)]
-    header = f"{HEADER}data/rules/baseline.md + {label(data, state, name)}/AGENTS.md -->"
+    where = label(data, state, name)
+    names = [f"data/rules/{p.name}" if p.parent == data / "rules" else f"{where}/{p.name}" for p in rules_files(data, state, name)]
+    header = f"{HEADER}{' + '.join(names)} -->"
     return "\n\n".join([header, *parts]) + "\n"
 
 
@@ -643,6 +656,22 @@ def selftest():
               len(imports) == 2 and not any(re.search(r"(?<!\\) ", line) for line in imports)
               and [line[1:].replace("\\ ", " ") for line in imports]
               == [p.resolve().as_posix() for p in rules_files(sdata, sstate, "amy")])
+
+        # 子任務分派：共用層 data/rules/dispatch.md 與 profile 的 dispatch.md 有才接，順序是底線、共用分派、個人規則、個人分派
+        write(sdata / "rules" / "dispatch.md", "# 分派共用\n")
+        check("分派：只有共用層時，接在底線之後、profile 之前",
+              [p.name for p in rules_files(sdata, sstate, "amy")] == ["baseline.md", "dispatch.md", "AGENTS.md"])
+        write(sstate / "profiles" / "amy" / "dispatch.md", "# amy 的實例\n")
+        files = rules_files(sdata, sstate, "amy")
+        merged = compose(sdata, sstate, "amy")
+        check("分派：profile 有 dispatch.md 就接在最後；Claude 四個 import、Codex 的內容與產生標記照同一個順序",
+              [p.parent.name + "/" + p.name for p in files]
+              == ["rules/baseline.md", "rules/dispatch.md", "amy/AGENTS.md", "amy/dispatch.md"]
+              and len([x for x in claude_block(sdata, sstate, "amy").splitlines() if x.startswith("@")]) == 4
+              and merged.index("# 底線") < merged.index("# 分派共用") < merged.index("# amy\n") < merged.index("# amy 的實例")
+              and merged.splitlines()[0].endswith(
+                  f"data/rules/baseline.md + data/rules/dispatch.md + {(sstate / 'profiles' / 'amy').as_posix()}/AGENTS.md + "
+                  f"{(sstate / 'profiles' / 'amy').as_posix()}/dispatch.md -->"))
 
         # ---- 舊版存在 repo 裡的 profile：搬到 repo 外 ----
         mdata, mstate = tmp / "m" / "data", tmp / "m" / "state"
