@@ -146,6 +146,7 @@ def installed(home, tools):
 
 def candidates(roster, repo, have, found, edition, swaps, today):
     """每個 agent 還沒裝、E3 以上的工具：{agent: [候選]}。打平或判定維持現任的不會在 levels 裡，所以不會通知。"""
+    import proof  # 會匯入 pyyaml，只在 plan 用，hook 的路徑不碰
     import swap
     tools = roster["tools"]
     hidden = {m["id"] for m in roster["modules"] if m.get("maintainer_only") and edition != "maintainer"}
@@ -168,7 +169,8 @@ def candidates(roster, repo, have, found, edition, swaps, today):
                 continue  # levels 先列 E4 再列 E3，先到的等級比較高
             out[agent].append({"key": f"{slot['id']}:{card['id']}", "slot": slot["id"], "slot_name": slot.get("name", slot["id"]),
                                "tool": card["id"], "name": card.get("name", card["id"]), "level": e["level"],
-                               "evidence": e["evidence"], "source": e["source"]})
+                               "evidence": e["evidence"], "source": e["source"],
+                               "proof": proof.brief(proof.summary(repo, e["evidence"], card["id"]))})
     return out
 
 
@@ -193,7 +195,8 @@ def plan(home, data, state, today):
 # ---------- 挑哪一則（只讀 JSON，給 hook 用） ----------
 
 def better_text(c, agent):
-    return (f"「{c['slot_name']}」有 OmniKit {LEVELS[c['level']]}的 {c['name']}（{LABELS[agent]} 還沒裝；依據 {c['evidence']}）。"
+    proof_part = f"；實測 {c['proof']}" if c.get("proof") else ""
+    return (f"「{c['slot_name']}」有 OmniKit {LEVELS[c['level']]}的 {c['name']}（{LABELS[agent]} 還沒裝；依據 {c['evidence']}{proof_part}）。"
             "想試 14 天就說「OmniKit 給我建議」；不想再看到這類通知就說「OmniKit 通知靜音」。")
 
 
@@ -394,6 +397,11 @@ def selftest():
     check("E4 主動通知；E3 不通知", got and "Acme" in got[0] and "Beta" not in got[0] and got[1]["kind"] == "better")
     check("通知寫明怎麼試、怎麼靜音", got and "OmniKit 給我建議" in got[0] and "通知靜音" in got[0])
     check("別的 agent 沒有候選就不通知", pick(queue, [], {}, [], "codex", today) is None)
+    import proof
+    shown = better_text({**cand, "proof": proof.brief(proof.summary(REPO, "data/evals/2026-11-13-web-sources-WR1.md", "firecrawl"))}, "claude")
+    check("E4 通知附上實測：差距、雜訊基準、次數、評審、沒驗證到", all(
+        w in shown for w in ("依據 data/evals/a.md", "4 勝 1 負 1 平", "沒量雜訊基準", "每組 6 次", "評審 Gemini", "沒驗證到 2 項")))
+    check("舊的佇列沒有 proof 也照常顯示", "；實測 " not in better_text(cand, "claude"))
     rec = got[1]
     check("同一個工具同一份證據只通知一次（過了 30 天也不再提）",
           pick(queue, [{**rec, "date": "2026-09-01"}], {}, [], "claude", today) is None)

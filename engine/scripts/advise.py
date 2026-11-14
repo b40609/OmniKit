@@ -46,6 +46,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cost  # noqa: E402
+import proof  # noqa: E402
 import edition as editions  # noqa: E402
 import pool  # noqa: E402
 import profiles  # noqa: E402
@@ -513,6 +514,15 @@ def basis_text(basis):
     return text
 
 
+def proof_lines(basis, tool=None):
+    """依據背後的實測數字（差距、雜訊基準、執行次數、評審、沒驗證到的部分）；replaces 這條路照實標沒有實測。"""
+    if basis["code"] == "replaces":
+        return [f"  - 實測：{proof.NO_TEST}"]
+    if basis["code"] in ("answer", "answer-native") and basis.get("evidence"):
+        return ["  - " + line for line in proof.lines(proof.summary(proof.REPO, basis["evidence"], tool))]
+    return []
+
+
 def usage_text(item):
     if item["status"] == "used":
         return f"{item['conversations']} 段對話用到" if item.get("conversations") else "有用到"
@@ -523,7 +533,7 @@ def usage_text(item):
 def install_lines(cand, reason):
     how = cand["how"]
     lines = [f"- **{cand['name']}**（{cand['slot_name']}{'；名冊外，沒有實測過' if cand.get('outside') else ''}）",
-             f"  - 理由：{reason}", f"  - 依據：{basis_text(cand['basis'])}"]
+             f"  - 理由：{reason}", f"  - 依據：{basis_text(cand['basis'])}", *proof_lines(cand["basis"], cand.get("id"))]
     if cand.get("outside"):
         lines.append(f"  - 來源：{cand['url']}")
     if how["commands"]:
@@ -555,7 +565,7 @@ def remove_lines(cand, reason):
 def replace_lines(cand, reason):
     how, old, new = cand["how"], cand["old"], cand["new"]
     lines = [f"- **{old['name']} → {new['name']}**（{cand['slot_name']}）", f"  - 理由：{reason}",
-             f"  - 依據：{basis_text(cand['basis'])}", f"  - 這台現在用的：{old['name']}（{old['kind']}，{usage_text(old)}）"]
+             f"  - 依據：{basis_text(cand['basis'])}", *proof_lines(cand["basis"], new.get("id")), f"  - 這台現在用的：{old['name']}（{old['kind']}，{usage_text(old)}）"]
     if how["apply"]:
         lines.append("  - 同意後執行：" + "，再 ".join(f"`{c}`" for c in how["apply"]) + f"。試用 {swap.TRIAL_DAYS} 天到 {cand['trial_until']}")
     else:
@@ -572,7 +582,8 @@ def replace_lines(cand, reason):
 
 
 def native_lines(cand, reason):
-    lines = [f"- **{cand['slot_name']}**", f"  - 理由：{reason}", f"  - 依據：{basis_text(cand['basis'])}"]
+    lines = [f"- **{cand['slot_name']}**", f"  - 理由：{reason}", f"  - 依據：{basis_text(cand['basis'])}",
+             *proof_lines(cand["basis"])]
     if cand["installed_here"]:
         lines.append("  - 這台同一件事還裝了：" + "、".join(
             f"{i['name']}（{i['kind']}，{usage_text(i)}）" for i in cand["installed_here"]))
@@ -778,6 +789,13 @@ def selftest():
           ids(sc, "replace") == ["replace:frontend:old-fe:fe2"] and by_card["basis"]["code"] == "replaces"
           and "取代 old-fe" in by_card["basis"]["caveat"] and by_card["also"] == ["review"] and "install:fe2" not in ids(sc, "install")
           and "install:fe" in ids(sc, "install"))
+    shown = "\n".join(replace_lines(by_card, "理由寫在這裡"))
+    check("換：replaces 這條路沒有實測，畫面照實寫", "  - 實測：沒有實測" in shown)
+    check("換：依據指到實測紀錄就列出差距、雜訊基準、執行次數、評審、沒驗證到",
+          [x.split("：")[0] for x in proof_lines({"code": "answer", "evidence": "data/evals/2026-11-13-web-sources-WR1.md"}, "firecrawl")]
+          == ["  - 差距", "  - 雜訊基準", "  - 執行次數", "  - 評審", "  - 沒驗證到"]
+          and proof_lines({"code": "answer", "evidence": "data/evals/沒有這份.md"})[0].startswith("  - 實測：找不到紀錄")
+          and proof_lines({"code": "pool", "text": "x", "caveat": "y"}) == [])
     check("換：Claude Code 先裝新的、再停用舊的；換回是移除新的、打開舊的",
           by_card["how"]["apply"] == ["claude plugin marketplace add owner/kit", "claude plugin install fe2@mk", "claude plugin disable old-fe@x"]
           and by_card["how"]["revert"] == ["claude plugin uninstall fe2@mk", "claude plugin enable old-fe@x"] and by_card["how"]["disable_old"]
