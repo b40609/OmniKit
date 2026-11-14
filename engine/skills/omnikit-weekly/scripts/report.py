@@ -16,6 +16,7 @@
   uv run scripts/report.py pool add --slot <id> --file <檔>             記下 agent 上網找到的候選
   uv run scripts/report.py swap list | start <候選 id> --agent <a> [--write] | check | revert | keep <id>
                                                                         換：14 天試用、換回與比對
+  uv run scripts/report.py shadow record | pick | prepare | rerun | compare | result | status <替換 id>   影子比對
   uv run scripts/report.py notify list | mute | unmute [--tool <id>]    通知：看候選、靜音或打開
   uv run scripts/report.py feedback status | consent yes|no             回流：看狀態、同意或撤回
   uv run scripts/report.py feedback export [--write]                    回流：預覽去識別的使用統計；--write 才寫檔
@@ -59,6 +60,9 @@ def main():
     if sys.argv[1:2] == ["swap"]:
         import swap
         return swap.main(sys.argv[2:])
+    if sys.argv[1:2] == ["shadow"]:
+        import shadow
+        return shadow.main(sys.argv[2:])
     if sys.argv[1:2] == ["notify"]:
         import notify
         return notify.main(sys.argv[2:])

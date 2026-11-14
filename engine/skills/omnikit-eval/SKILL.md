@@ -67,6 +67,12 @@ uv run scripts/layer0.py <GitHub 網址或 owner/repo> [--scan]
 
 雜訊基準的由來：2026-11-13 試跑（`data/evals/2026-11-13-web-sources-WR1.md`），挑戰者的工具 6 次只被叫用 1 次，評審卻判它 4 勝 1 負，表示同一個設定每次跑出來的差異就足以分出勝負。牽涉品味的題目在 spec 寫 `judge.user: true`，評審結果只當建議，最後由使用者盲選。
 
+**盲選（品味題）：** `scripts/blind.py`，不要手動開站或手寫對照表（第三輪就是手動給錯網址）。在一個資料夾寫 `spec.json`（各版本的資料夾、啟動指令、`port_env`；不蒙的對照版本寫 `reference`，格式見腳本開頭），然後：
+
+1. `uv run scripts/blind.py seal <資料夾>`：隨機標籤、封存對照，只印標籤與 SHA-256。
+2. `uv run scripts/blind.py serve <資料夾>`（背景跑）：每個版本開在隨機的空 port，另開灰階轉送；先自動檢查每個網址真的是該有的版本，通過才印網址，沒過就全部關掉。把網址給使用者：先只看灰階評版面與操作，再看彩色只評配色。`shots` 可以截圖給評審。
+3. 使用者每一段選完：`choose <資料夾> --phase gray|color --pick <標籤或 tie>`；都選了才 `reveal`。`stop` 關掉服務。
+
 每週的深度評估上限在 `data/omnikit.yaml` 的 `eval.weekly_deep_limit`，超過就排到下週。第 2 層可以交給 RIA 或第二輪的非互動代跑：輸入 `contracts/layer2-request.schema.json`，輸出 `contracts/layer2-result.schema.json`。代跑時只能改 OmniKit 的 `data/`，不能 push。
 
 ## 批次評估漏斗（維護者）

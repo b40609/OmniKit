@@ -197,12 +197,35 @@ def better_text(c, agent):
             "想試 14 天就說「OmniKit 給我建議」；不想再看到這類通知就說「OmniKit 通知靜音」。")
 
 
-def trial_text(s):
-    return (f"{s['old']['name']} 換成 {s['new']['name']} 的 14 天試用在 {s['trial_until']} 到期了："
+SHADOW_DAYS = 3  # 到期前幾天提醒可以做影子比對
+
+
+def trial_text(s, shadow=None):
+    evidence = (f"{shadow}（細節：shadow.py status {s['id']}）。" if shadow else
+                "這次沒有影子比對，只能憑使用感覺決定。")
+    return (f"{s['old']['name']} 換成 {s['new']['name']} 的 14 天試用在 {s['trial_until']} 到期了。{evidence}"
             f"說「留下 {s['new']['name']}」或「換回 {s['old']['name']}」（swap.py keep／revert {s['id']}）。")
 
 
-def pick(queue, shown, mute, swaps, agent, today):
+def shadow_text(s, left):
+    return (f"{s['old']['name']} 換成 {s['new']['name']} 的試用 {left} 天後（{s['trial_until']}）到期。"
+            f"想在決定前並排比比看，就說「OmniKit 影子比對」：拿試用期間的真實任務用 {s['old']['name']} 重跑，讓你盲選"
+            f"（shadow.py record {s['id']}）。")
+
+
+def shadows_of(state, swaps):
+    """每個替換的影子比對結果（只讀 JSON，給 hook 用）。"""
+    out = {}
+    for s in swaps:
+        if not isinstance(s, dict) or not s.get("id"):
+            continue
+        doc = read_json(state / "shadow" / str(s["id"]) / "result.json", {})
+        if isinstance(doc, dict) and doc.get("summary"):
+            out[s["id"]] = doc["summary"]
+    return out
+
+
+def pick(queue, shown, mute, swaps, agent, today, shadows=None):
     """回傳（訊息, 要記下的紀錄）或 None。"""
     if mute.get("all"):
         return None
@@ -210,11 +233,18 @@ def pick(queue, shown, mute, swaps, agent, today):
     if len(week) >= WEEK_TOTAL:
         return None
     keys = {s.get("key") for s in shown}
+    shadows = shadows or {}
     for s in swaps:
         left = days_between(today, s.get("trial_until"))
         if (s.get("agent") == agent and s.get("state") == "trial" and left is not None and left < 0
                 and f"trial:{s['id']}" not in keys):
-            return trial_text(s), {"key": f"trial:{s['id']}", "kind": "trial", "agent": agent, "date": today.isoformat()}
+            return trial_text(s, shadows.get(s["id"])), {"key": f"trial:{s['id']}", "kind": "trial", "agent": agent,
+                                                          "date": today.isoformat()}
+    for s in swaps:
+        left = days_between(today, s.get("trial_until"))
+        if (s.get("agent") == agent and s.get("state") == "trial" and left is not None and 0 <= left <= SHADOW_DAYS
+                and s["id"] not in shadows and f"shadow:{s['id']}" not in keys):
+            return shadow_text(s, left), {"key": f"shadow:{s['id']}", "kind": "trial", "agent": agent, "date": today.isoformat()}
     if sum(1 for s in week if s.get("kind") == "better") >= WEEK_BETTER:
         return None
     age = days_between(queue.get("generated"), today)
@@ -272,7 +302,7 @@ def due(agent, state=STATE, today=None, env=None, spawn=None):
     d = folder(state)
     shown = read_json(d / "shown.json", {}).get("shown") or []
     swaps = read_json(state / "swaps.json", {}).get("swaps") or []
-    got = pick(read_json(d / "queue.json", {}), shown, read_json(d / "mute.json", {}), swaps, agent, today)
+    got = pick(read_json(d / "queue.json", {}), shown, read_json(d / "mute.json", {}), swaps, agent, today, shadows_of(state, swaps))
     if not got:
         return None
     write_json(d / "shown.json", {"shown": [*shown, got[1]]})
@@ -387,7 +417,17 @@ def selftest():
              "new": {"name": "New"}}
     got = pick(queue, [], {}, [trial], "claude", today)
     check("試用到期先提，寫明留下或換回", got and got[1]["key"] == "trial:s1" and "留下 New" in got[0] and "換回 Old" in got[0])
-    check("試用還沒到期：不提", pick({}, [], {}, [{**trial, "trial_until": "2026-11-16"}], "claude", today) is None)
+    check("試用還沒到期、離到期還超過 3 天：不提", pick({}, [], {}, [{**trial, "trial_until": "2026-11-20"}], "claude", today) is None)
+    check("到期通知沒有影子比對：照實說只能憑感覺", "沒有影子比對" in got[0])
+    got = pick({}, [], {}, [trial], "claude", today, {"s1": "影子比對 2 筆：New 勝 2"})
+    check("到期通知附上影子比對的結果", got and "影子比對 2 筆：New 勝 2" in got[0] and "shadow.py status s1" in got[0])
+    soon = {**trial, "trial_until": "2026-11-19"}
+    got = pick({}, [], {}, [soon], "claude", today)
+    check("到期前 3 天內：提醒可以做影子比對", got and got[1]["key"] == "shadow:s1" and "OmniKit 影子比對" in got[0] and "3 天後" in got[0])
+    check("影子比對的提醒只提一次", pick({}, [{"key": "shadow:s1", "kind": "trial", "date": "2026-11-16"}], {}, [soon],
+                                       "claude", today) is None)
+    check("已經有影子比對結果：不再提醒", pick({}, [], {}, [soon], "claude", today, {"s1": "x"}) is None)
+    check("到期當天（還剩 0 天）也提醒", pick({}, [], {}, [{**trial, "trial_until": "2026-11-16"}], "claude", today)[1]["key"] == "shadow:s1")
     check("已經換回或留下的：不提", pick({}, [], {}, [{**trial, "state": "kept"}], "claude", today) is None)
     check("別的 agent 的試用：不提", pick({}, [], {}, [{**trial, "agent": "codex"}], "claude", today) is None)
     check("試用到期每個替換只提一次", pick({}, [{"key": "trial:s1", "kind": "trial", "date": "2026-11-16"}], {}, [trial],
@@ -424,6 +464,11 @@ def selftest():
             write_json(folder(broken) / name, "壞掉")
         write_json(broken / "swaps.json", ["壞掉"])
         check("due：檔案壞了當成沒有，不丟例外", due("claude", broken, today, env={}, spawn=lambda: None) is None)
+        st2 = tmp / "shadowed"
+        write_json(st2 / "swaps.json", {"swaps": [trial, "壞掉"]})
+        write_json(st2 / "shadow" / "s1" / "result.json", {"summary": "影子比對 3 筆：New 勝 2、Old 勝 1"})
+        msg = due("claude", st2, today, env={}, spawn=lambda: None)
+        check("due：到期通知讀得到影子比對的結果", msg and "New 勝 2、Old 勝 1" in msg)
         set_mute(state, tool="acme")
         set_mute(state)
         check("mute：全部與單一工具分開記", read_json(folder(state) / "mute.json", {}) == {"tools": ["acme"], "all": True})

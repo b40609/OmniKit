@@ -1,6 +1,6 @@
 ---
 name: omnikit-weekly
-description: 產生使用者自己的 OmniKit 個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率，以及成本（新裝工具的開頭成本、背景用量、對話開頭的大小）；也依這台裝了什麼、用了什麼給建議，分成裝、換、拿掉、用內建的就好四類（換是 14 天試用，可以一句話換回）（名冊沒有答案的槽位會從官方目錄找名冊外的候選），另外看規則檔（CLAUDE.md、AGENTS.md）每段對話花多少、哪些規則可以拿掉。也在使用者同意後，把去識別的使用統計匯出成檔案回報給維護者（回流）。使用者說「OmniKit 本週週報」「本週週報」「我的週報」「OmniKit 給我建議」「我該裝什麼」「哪些可以拿掉」「規則檔瘦身」「套用這個替換」「換回」「OmniKit 通知靜音」「通知打開」「匯出回流」「回報我的使用情況」時使用；不管訪談時有沒有選評估新工具都有。Generates the user's personal weekly OmniKit report and install, remove, or use-built-in advice.
+description: 產生使用者自己的 OmniKit 個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率，以及成本（新裝工具的開頭成本、背景用量、對話開頭的大小）；也依這台裝了什麼、用了什麼給建議，分成裝、換、拿掉、用內建的就好四類（換是 14 天試用，可以一句話換回）（名冊沒有答案的槽位會從官方目錄找名冊外的候選），另外看規則檔（CLAUDE.md、AGENTS.md）每段對話花多少、哪些規則可以拿掉。也在使用者同意後，把去識別的使用統計匯出成檔案回報給維護者（回流）。使用者說「OmniKit 本週週報」「本週週報」「我的週報」「OmniKit 給我建議」「我該裝什麼」「哪些可以拿掉」「規則檔瘦身」「套用這個替換」「換回」「OmniKit 影子比對」「OmniKit 通知靜音」「通知打開」「匯出回流」「回報我的使用情況」時使用；不管訪談時有沒有選評估新工具都有。Generates the user's personal weekly OmniKit report and install, remove, or use-built-in advice.
 ---
 
 # OmniKit 個人週報
@@ -127,10 +127,21 @@ uv run scripts/report.py
    - 使用者說「換回」：`swap revert <id>`，照輸出跑指令，再 `swap check <id>`。輸出「已經換回」才算數；它只比對這次動到的兩個工具，另外列出的變動不要動。
    - 使用者說要留下新的：`swap keep <id>`。舊的要不要拿掉由使用者決定，拿掉是刪除，一項一項問。
    - `uv run scripts/report.py swap list` 看所有替換與剩幾天。
+6. 已經手動裝好的試用（沒走上面的流程，例如照 README 裝的）：`swap adopt <新工具的卡片 id> --agent <a> --old <舊的卡片 id> --started <日期>` 預覽，同意後加 `--write` 補記，到期才會有通知、可以 keep 或 revert。
+
+## 影子比對
+
+試用到期前（通知會在到期前 3 天提醒），或使用者說「OmniKit 影子比對」時做：拿試用期間的真實任務，用舊工具在副本重跑，讓使用者盲選，決定留下或換回時有成果可以比。每一步的輸出照實講，`<id>` 是 `swap list` 的替換 id。
+
+1. `uv run scripts/report.py shadow record <id>`：從對話紀錄找試用期間叫用過新工具的對話，記下專案、第一個要求、開始前與結束時的 commit。
+2. `shadow pick <id>`：挑 2 到 3 筆。不到 2 筆會說沒辦法比：照實告訴使用者，建議延長試用或憑感覺決定，不要硬湊題目。
+3. 先講成本再問要不要重跑（前端一筆約扣 retis 5 小時額度的 5 到 10%）。同意後：`shadow prepare <id> --old-skill <舊工具的 skill 資料夾> [--setup "npm ci"]`，再 `shadow rerun <id>`（T3 子對話，retis 的 Claude）。
+4. `shadow compare <id> [--serve-cmd "<開示範頁的指令>" --port-env <變數>]`：寫出新舊 diff；有畫面的另外建好盲選資料夾，照 omnikit-eval 的「盲選」讓使用者選（先灰階再彩色）。
+5. `shadow result <id>`：彙整，到期通知會附上這一行。跟使用者講明：只重跑了第一個要求，新工具的成果包含後來追加的修改。
 
 ## 通知
 
-Claude Code 與 Codex 在一段新對話的第一回合結束時，可能出現一行「OmniKit：…」：OmniKit 實測勝出（E4）而這台還沒裝的工具，或試用到期。使用者接著說「OmniKit 給我建議」就走上面的建議與「換與換回」；說留下或換回就照「換與換回」第 5 步。
+Claude Code 與 Codex 在一段新對話的第一回合結束時，可能出現一行「OmniKit：…」：OmniKit 實測勝出（E4）而這台還沒裝的工具、試用快到期（提醒可以做影子比對），或試用到期（有影子比對就附上結果）。說「OmniKit 影子比對」就照上面「影子比對」做。使用者接著說「OmniKit 給我建議」就走上面的建議與「換與換回」；說留下或換回就照「換與換回」第 5 步。
 
 - 「OmniKit 通知靜音」：`uv run scripts/report.py notify mute`；只靜音一個工具加 `--tool <卡片 id>`（通知裡的工具名稱對到名冊的卡片 id）。
 - 「通知打開」：`notify unmute`（同樣可以加 `--tool`）。

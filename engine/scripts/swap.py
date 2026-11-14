@@ -329,6 +329,70 @@ def keep(sid, state, today=None):
     return 0
 
 
+def revert_commands(agent, new_now):
+    """沒有照 start 走、手動裝的新工具：照它在 agent 清單裡的樣子給移除的指令。"""
+    out = []
+    for x in new_now:
+        if x["kind"] == "plugin":
+            out.append(f"{'claude plugin uninstall' if agent == 'claude' else 'codex plugin remove'} {x['name']}")
+        elif x["kind"] == "skill":
+            base = "~/.claude/skills" if agent == "claude" else "~/.agents/skills"
+            out.append(f"Remove-Item -Recurse {base}/{x['name']}")
+        elif x["kind"] == "mcp":
+            out.append(f"{'claude' if agent == 'claude' else 'codex'} mcp remove {x['name']}")
+    return out
+
+
+def adopt(tool, agent, old_id, started, until, home, roster, state, write=False, run=run_cli):
+    """把已經手動裝好的試用補記成替換（例如照 README 裝的 skill），讓它到期時有通知、可以 keep 或 revert。
+
+    替換前的清單是補拍的：現在的清單拿掉新的工具。舊的工具只要它在替換前的狀態（裝著、停用或沒裝）。"""
+    tools = roster["tools"]
+    cards = dict(tools) if isinstance(tools, dict) else {c["id"]: c for c in tools}
+    slots = {s["id"]: s for s in roster["slots"]}
+    card, old = cards.get(tool), cards.get(old_id)
+    if not card or not old:
+        print(f"名冊找不到 {tool if not card else old_id} 這張卡。")
+        return 1
+    slot = next((s for s in card.get("slots") or [] if s in slots), None)
+    if not slot:
+        print(f"{tool} 的卡沒有對到名冊的槽位。")
+        return 1
+    swaps = load(state)
+    if any(s.get("agent") == agent and s.get("slot") == slot and s.get("state") in ACTIVE for s in swaps):
+        print(f"「{slots[slot]['name']}」在 {agent} 已經有一個替換還沒結束，不用再記。")
+        return 1
+    now = snapshot(agent, home, run)
+    new = {"tool": tool, "name": card.get("name") or tool, "kind": card.get("kind") or "skill",
+           "plugin_name": (card.get("plugin") or {}).get("name") or tool, "url": card.get("url")}
+    new_now = find_new(now, new)
+    if not any(x["enabled"] for x in new_now):
+        print(f"{new['name']} 不在 {agent} 自己的清單裡，或沒有啟用：先裝好再補記。")
+        return 1
+    old_rec = {"kind": old.get("kind") or "skill", "name": old_id, "where": "名冊的卡"}
+    old_now = find_old(now, old_rec)
+    revert_cmds = revert_commands(agent, new_now)
+    how = {"apply": [], "disable_old": False, "revert": revert_cmds, "note": "手動裝的，補記成替換",
+           "revert_note": (f"舊的 {old_id} 試用前{'是' + state_text(old_now) if old_now else '就沒裝在這台'}，"
+                           "換回只要拿掉新的" + ("" if old_now else "；要用舊的再照它的卡裝")),
+           "finish": {"note": f"舊的 {old_id} " + ("還在，要不要拿掉由你決定" if old_now else "試用前就沒裝，不用拿掉")}}
+    lines = [f"補記 {agent}：「{slots[slot]['name']}」{old_id} → {new['name']}，從 {started} 試用到 {until}。",
+             f"在 {agent} 清單裡找到：{'、'.join(x['kind'] + ' ' + x['name'] for x in new_now)}。",
+             "要換回時執行：" + "，再 ".join(f"`{c}`" for c in revert_cmds), how["revert_note"]]
+    if not write:
+        print("預覽：\n" + "\n".join(f"- {x}" for x in lines) + "\n\n這是預覽，還沒記下來。加 --write 才記。")
+        return 0
+    involved = {json.dumps(x) for x in new_now}
+    before = {"items": [x for x in now["items"] if json.dumps(x) not in involved], "unknown": now["unknown"], "reconstructed": True}
+    sid = f"{slot}-{started.replace('-', '')}-{agent}"
+    swaps.append({"id": sid, "agent": agent, "slot": slot, "slot_name": slots[slot]["name"], "old": old_rec, "new": new,
+                  "how": how, "disable_old": False, "state": "trial", "adopted": True, "started": started,
+                  "checked": date.today().isoformat(), "trial_until": until, "before": before})
+    save(state, swaps)
+    print(f"已補記 {sid}，狀態是試用中。\n" + "\n".join(f"- {x}" for x in lines))
+    return 0
+
+
 def listing(state, today=None):
     today = today or date.today()
     swaps = load(state)
@@ -507,6 +571,29 @@ def selftest():
         broken = Fake({"old-fe@x": True}, {}, broken={"plugin"})
         check_("查不到清單：未知，不算通過", "未知" in call(check, "fe-20261114", home, state3, broken, today)[1])
 
+        # 補記手動裝好的試用
+        roster = {"tools": {"uns": {"id": "uns", "name": "unslop", "kind": "skill", "slots": ["fe"]},
+                            "old-fe": {"id": "old-fe", "kind": "skill", "slots": ["fe"]}},
+                  "slots": [{"id": "fe", "name": "前端"}]}
+        state4 = tmp / "state4"
+        agent4 = Fake({}, {})
+        code, out = call(adopt, "uns", "claude", "old-fe", "2026-11-14", "2026-11-28", home, roster, state4, run=agent4)
+        check_("補記：還沒裝就不記", code == 1 and "先裝好" in out and not load(state4))
+        (home / ".claude" / "skills" / "unslop").mkdir(parents=True)
+        (home / ".claude" / "skills" / "unslop" / "SKILL.md").write_text("---\nname: unslop\n---\n", encoding="utf-8")
+        code, out = call(adopt, "uns", "claude", "old-fe", "2026-11-14", "2026-11-28", home, roster, state4, run=agent4)
+        check_("補記預覽：不記，給換回指令", code == 0 and "還沒記下來" in out and "~/.claude/skills/unslop" in out and not load(state4))
+        code, out = call(adopt, "uns", "claude", "old-fe", "2026-11-14", "2026-11-28", home, roster, state4, write=True, run=agent4)
+        rec = load(state4)[0] if load(state4) else {}
+        check_("補記：直接是試用中，替換前的清單拿掉新的、舊的沒裝就照實寫",
+               code == 0 and rec.get("state") == "trial" and rec.get("id") == "fe-20261114-claude"
+               and not find_new(rec["before"], rec["new"]) and "就沒裝" in rec["how"]["revert_note"])
+        check_("補記的試用到期會列成過期", trials(load(state4), "claude", date(2026, 11, 29))[0]["expired"])
+        check_("同一個槽位補記兩次：擋下來",
+               call(adopt, "uns", "claude", "old-fe", "2026-11-14", "2026-11-28", home, roster, state4, write=True, run=agent4)[0] == 1)
+        check_("補記的留下：舊的沒裝就不用拿掉", "不用拿掉" in call(keep, "fe-20261114-claude", state4)[1])
+        shutil.rmtree(home / ".claude" / "skills" / "unslop")
+
         (state / "swaps.json").write_text("{壞掉", encoding="utf-8")
         check_("紀錄壞了：當成沒有紀錄", load(state) == [])
         check_("找不到的 id：講明", call(check, "nope", home, state, agent, today)[0] == 1)
@@ -517,9 +604,12 @@ def selftest():
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="替換與換回：14 天試用，記下替換前的工具清單")
-    parser.add_argument("command", nargs="?", choices=["list", "start", "check", "revert", "keep"])
-    parser.add_argument("target", nargs="?", help="start：候選 id；check、revert、keep：替換的 id")
+    parser.add_argument("command", nargs="?", choices=["list", "start", "check", "revert", "keep", "adopt"])
+    parser.add_argument("target", nargs="?", help="start：候選 id；check、revert、keep：替換的 id；adopt：新工具的卡片 id")
     parser.add_argument("--agent", choices=["claude", "codex"])
+    parser.add_argument("--old", help="adopt：被換掉的卡片 id")
+    parser.add_argument("--started", help="adopt：試用開始的日期（YYYY-MM-DD）")
+    parser.add_argument("--until", help="adopt：試用到哪天；沒給就用卡片的 trial_until")
     parser.add_argument("--write", action="store_true", help="start：記下來；沒加只預覽")
     parser.add_argument("--selftest", action="store_true")
     a = parser.parse_args(argv)
@@ -539,7 +629,19 @@ def main(argv=None):
         return revert(a.target, STATE)
     if a.command == "keep":
         return keep(a.target, STATE)
-    parser.error("要給 list、start、check、revert 或 keep")
+    if a.command == "adopt":
+        if not (a.agent and a.old and a.started):
+            parser.error("adopt 要給 --agent、--old、--started")
+        import validate
+        errors, roster = validate.check(profiles.DATA, state=STATE, private=True)
+        if errors:
+            print(f"名冊驗證沒過（{len(errors)} 項），不補記。")
+            return 1
+        until = a.until or str((roster["tools"].get(a.target) or {}).get("trial_until") or "") or None
+        if not until:
+            parser.error("卡片沒有 trial_until，要給 --until")
+        return adopt(a.target, a.agent, a.old, a.started, until, Path.home(), roster, STATE, write=a.write)
+    parser.error("要給 list、start、check、revert、keep 或 adopt")
 
 
 if __name__ == "__main__":
