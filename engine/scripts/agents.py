@@ -21,8 +21,8 @@ git hook 與 agent 在背景同步時常失敗。支援的 agent 固定是這三
     其他子表格（例如工具核准紀錄）留著。寫入前用 tomllib 比對，除了這些 server 什麼都沒變才寫
   - Antigravity：~/.gemini/config/mcp_config.json，不寫 BOM（Antigravity 讀到 BOM 會整份失敗）
   - 帳本：agents.json 記每個 server 寫入時、OmniKit 管的欄位的雜湊。同步前先比對，使用者改過的、
-    OmniKit 加過但被移除的、同名但不是 OmniKit 的，都算衝突：停下來問（--ask），或列出來並停下，
-    規則、skills、MCP 都不寫。用 resolve 決定要用誰的設定
+    OmniKit 加過但被移除的、同名但不是 OmniKit 的，都算衝突：問（--ask），或略過那個 server 並印一行，
+    規則、skills 與其他 server 照常寫。用 resolve 決定要用誰的設定
   - 免問核准的欄位（Codex 的 default_tools_approval_mode）：同事版要本人同意才寫（approvals，見 edition.py）
 
 接上了哪些 agent、管了哪些 skills 與 MCP server，記在 %LOCALAPPDATA%\\omnikit\\agents.json；
@@ -769,13 +769,14 @@ def choose(env, rec, c, choice):
 
 
 def report(conflicts):
-    lines = ["MCP 有衝突，這次什麼都沒寫（規則、skills、MCP 都沒動）："]
+    """有衝突的 server 略過不動，其他照常寫；這裡列出略過了哪些、怎麼決定。"""
+    lines = ["MCP：下面有衝突的 server 這次略過沒動（規則、skills 與其他 server 照常）："]
     for c in conflicts:
         lines.append(f"  - {NAMES[c.agent]} 的 {c.name}：{c.why}" + (f"（不同的欄位：{'、'.join(c.keys)}）" if c.keys else ""))
-    lines += ["決定要用誰的設定，擇一執行，再重跑剛才的指令：",
+    lines += ["  要決定用誰的設定，擇一執行：",
               f"  改用 OmniKit 的設定（data/mcp/servers.yaml）：{RESOLVE} --use-omnikit",
               f"  保留你的設定，OmniKit 之後不再管它：{RESOLVE} --keep-mine"]
-    return "\n".join(lines)
+    return lines
 
 
 def ask_conflict(c):
@@ -784,14 +785,14 @@ def ask_conflict(c):
     print("  1) 改用 OmniKit 的設定（data/mcp/servers.yaml）")
     print("  2) 保留你的設定，OmniKit 之後不再管它")
     try:
-        answer = input("選 1 或 2（直接按 Enter 先不處理，這次什麼都不寫）：").strip()
+        answer = input("選 1 或 2（直接按 Enter 先不處理，這次略過這個 server）：").strip()
     except EOFError:
         return None
     return {"1": "omnikit", "2": "mine"}.get(answer)
 
 
 def settle(env, agents, rec, ask=None):
-    """寫入前先比對 MCP。有衝突就逐一問（ask）；還有沒解決的就停下，規則、skills、MCP 都不寫。"""
+    """寫入前先比對 MCP。有衝突就逐一問（ask）；還沒解決的留在 plan.conflicts，寫入時略過並列出來。"""
     plan = plan_mcp(env, agents, rec)
     if plan.conflicts and ask:
         chosen = False
@@ -803,8 +804,6 @@ def settle(env, agents, rec, ask=None):
         if chosen:
             save_record(env, rec)  # 已經決定的先記下來，下次不用再問
             plan = plan_mcp(env, agents, rec)
-    if plan.conflicts:
-        raise SystemExit(report(plan.conflicts))
     return plan
 
 
@@ -820,6 +819,8 @@ def apply_mcp(env, agents, rec, plan):
             lines.append(f"  同名而且設定一樣，改由 OmniKit 管：{'、'.join(plan.adopted[agent])}")
         if plan.keep[agent]:
             lines.append(f"  你選了自己管，OmniKit 沒動：{'、'.join(plan.keep[agent])}")
+    if plan.conflicts:
+        lines += report(plan.conflicts)
     return lines
 
 
@@ -900,7 +901,7 @@ def connect(env, profile=None, agents=None, ask=None):
     if not agents:
         raise SystemExit("找不到 Claude Code、Codex 或 Antigravity，沒有可以接上的 agent")
     rec = load_record(env)
-    plan = settle(env, agents, rec, ask)  # MCP 有衝突就停在這裡：規則、skills、MCP 都還沒動
+    plan = settle(env, agents, rec, ask)  # 有衝突的 server 留在 plan.conflicts，寫入時略過
     rec["agents"] = list(agents)
     lines = profiles.apply(env.data, env.state, env.rules, wanted=profile, agents=agents, take_over=True,
                            skillshare_config=env.skillshare / "config.yaml")
@@ -944,7 +945,7 @@ def resolve_conflict(env, name, choice, agent=None):
     lines = [f"MCP：{NAMES[c.agent]} 的 {name} {how}" for c in hits]
     if not rec["agents"]:
         return lines + ["這台還沒接上 agent：重跑 install.ps1 就會套用"]
-    return lines + sync(env, skills=False)  # 其他還沒解決的衝突一樣會停下來
+    return lines + sync(env, skills=False)  # 其他還沒解決的衝突一樣略過並列出來
 
 
 def approval_items(env, agents):
@@ -1069,10 +1070,10 @@ def selftest():
 
     def exit_message(fn):
         try:
-            fn()
+            out = fn()
         except SystemExit as e:
             return str(e.code)
-        return ""
+        return "\n".join(out) if isinstance(out, list) else ""
 
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         tmp = Path(tmp)
@@ -1307,8 +1308,8 @@ def selftest():
         put(weird, '[mcp_servers]\ndevtools = { command = "old" }\n')
         put(servers_yaml, "servers:\n  devtools:\n    command: cmd\n    targets: [codex]\n")
         msg = exit_message(lambda: sync(env, skills=False))
-        check("Codex 已經有同名但不是 OmniKit 的 server：停下來問，不寫入",
-              "不是 OmniKit 加的" in msg and weird.read_text(encoding="utf-8").startswith("[mcp_servers]\n"))
+        check("Codex 已經有同名但不是 OmniKit 的 server：略過並列出來，不寫入",
+              "不是 OmniKit 加的" in msg and "略過" in msg and weird.read_text(encoding="utf-8").startswith("[mcp_servers]\n"))
         msg = exit_message(lambda: resolve_conflict(env, "devtools", "omnikit"))
         check("決定用 OmniKit 的，但 Codex 用了 OmniKit 不認得的寫法：失敗，不寫入",
               "不認得的寫法" in msg and weird.read_text(encoding="utf-8").startswith("[mcp_servers]\n"))
@@ -1408,14 +1409,14 @@ def selftest():
               read_servers(env2, "codex")["devtools"]["tools"] == {"click": {"approval_mode": "approve"}}
               and codex_text2.count("[mcp_servers.devtools]") == 1 and '"y.js"' in codex_text2)
 
-        # 使用者在 Codex 改了 OmniKit 管的 args：下次同步停下來問，什麼都不寫
+        # 使用者在 Codex 改了 OmniKit 管的 args：下次同步略過 Codex 的這個 server，其他照常
         put(toml2, codex_text2.replace('"y.js"', '"mine.js"'))
-        snap = {p: p.read_bytes() for p in (toml2, home2 / ".claude.json", gem2, home2 / ".codex" / "AGENTS.md")}
+        snap = toml2.read_bytes()
         put(servers_yaml, approve_yaml.replace("x.js", "z.js"))
         msg = exit_message(lambda: sync(env2))
-        check("使用者在 Codex 改過 args：同步停下來，只列欄位名稱不列值，什麼都不寫",
+        check("使用者在 Codex 改過 args：略過 Codex 的這個 server，只列欄位名稱不列值，其他 agent 照常更新",
               "OmniKit 寫入之後被改過" in msg and "args" in msg and "mine.js" not in msg and "--keep-mine" in msg
-              and all(p.read_bytes() == b for p, b in snap.items()))
+              and toml2.read_bytes() == snap and read_servers(env2, "claude-code")["devtools"]["args"][-1] == "z.js")
         lines = sync(env2, ask=lambda c: "mine")
         check("問的時候選保留自己的：Codex 的 args 不動，其他 agent 照常更新",
               read_servers(env2, "codex")["devtools"]["args"][-1] == "mine.js"
@@ -1437,7 +1438,7 @@ def selftest():
         del doc["mcpServers"]["devtools"]
         put(gem2, json.dumps(doc))
         msg = exit_message(lambda: sync(env2, skills=False))
-        check("使用者移除了 OmniKit 加的 server：停下來問，不加回去",
+        check("使用者移除了 OmniKit 加的 server：略過並列出來，不加回去",
               "被移除了" in msg and "devtools" not in read_servers(env2, "antigravity"))
         resolve_conflict(env2, "devtools", "mine")
         sync(env2, skills=False)
@@ -1456,7 +1457,7 @@ def selftest():
         legacy_record()
         put(servers_yaml, approve_yaml.replace("x.js", "w.js"))
         msg = exit_message(lambda: sync(env2, skills=False))
-        check("舊版記錄（只有名稱）又跟 servers.yaml 不同：停下來問", "舊版的記錄沒有雜湊" in msg)
+        check("舊版記錄（只有名稱）又跟 servers.yaml 不同：略過並列出來", "舊版的記錄沒有雜湊" in msg)
         put(servers_yaml, approve_yaml.replace("x.js", "z.js"))
         sync(env2, skills=False)
 
@@ -1469,7 +1470,7 @@ def selftest():
               profiles.text(home2 / ".codex" / "AGENTS.md") == "# 同事原本的 Codex 規則\n"
               and not (home2 / ".codex" / "AGENTS.md.pre-omnikit").exists())
 
-        # 第一次接上就遇到同名但不是 OmniKit 的：規則、skills、MCP 都先不寫
+        # 第一次接上就遇到同名但不是 OmniKit 的：那個 server 不動，規則與 skills 照常接上
         home3, state3 = tmp / "home3", tmp / "state3"
         put(home3 / ".claude" / "CLAUDE.md", "# 我的\n")
         put(home3 / ".claude.json", json.dumps({"mcpServers": {"devtools": {"type": "stdio", "command": "mine"}}}))
@@ -1477,9 +1478,10 @@ def selftest():
         edition.set_edition(state3, "colleague")
         before3 = [(home3 / ".claude" / "CLAUDE.md").read_bytes(), (home3 / ".claude.json").read_bytes()]
         msg = exit_message(lambda: connect(env3, agents=["claude-code"]))
-        check("第一次接上遇到同名但不是 OmniKit 的 server：停下來，規則、skills、MCP 都不寫",
-              "不是 OmniKit 加的" in msg and not env3.record_file.exists() and not (home3 / ".claude" / "skills").exists()
-              and [(home3 / ".claude" / "CLAUDE.md").read_bytes(), (home3 / ".claude.json").read_bytes()] == before3)
+        check("第一次接上遇到同名但不是 OmniKit 的 server：那個 server 不動，規則照常接上",
+              "不是 OmniKit 加的" in msg and env3.record_file.exists()
+              and read_servers(env3, "claude-code")["devtools"]["command"] == "mine"
+              and profiles.BEGIN in profiles.text(home3 / ".claude" / "CLAUDE.md"))
         connect(env3, agents=["claude-code"], ask=lambda c: "mine")
         check("問的時候選保留自己的：同名的不動，其他照常接上",
               read_servers(env3, "claude-code")["devtools"]["command"] == "mine"

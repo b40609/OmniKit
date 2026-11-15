@@ -244,7 +244,7 @@ flowchart LR
 | `~/.gemini/GEMINI.md` | Antigravity 的規則：在開頭加一段受管區塊，放底線與 profile 接在一起的內容；原本的先備份成 `GEMINI.md.pre-omnikit`。原地改寫，這個檔案跟其他工具共用（硬連結）時，其他名字會一起更新，連結不會斷 |
 | `~/.claude/skills` | `engine/skills` 的每個 skill 用資料夾連結接上，改完馬上生效 |
 | `~/.agents/skills` | Codex 與 Antigravity 共用：`engine/skills` 的每個 skill 複製一份（Antigravity 不跟隨資料夾連結），裡面的 `.omnikit.json` 記來源；同名但不是 OmniKit 的不碰 |
-| `~/.claude.json`、`~/.codex/config.toml`、`~/.gemini/config/mcp_config.json` | 寫入 `data/mcp/servers.yaml` 的 MCP server，只動這些 server 裡 OmniKit 管的欄位；你加的欄位（例如停用）與 Codex 的工具核准紀錄都留著。被你改過、被你移除，或同名但不是 OmniKit 的，先停下來問，見 [MCP 有衝突時](#mcp-有衝突時)。Claude 用 `claude mcp add-json`；Codex 寫入前驗證其他設定沒被動到；Antigravity 不寫 BOM（它讀到 BOM 會整份失敗）。`config.toml` 結尾另加一段 `[[hooks.Stop]]` 開新對話提醒 |
+| `~/.claude.json`、`~/.codex/config.toml`、`~/.gemini/config/mcp_config.json` | 寫入 `data/mcp/servers.yaml` 的 MCP server，只動這些 server 裡 OmniKit 管的欄位；你加的欄位（例如停用）與 Codex 的工具核准紀錄都留著。被你改過、被你移除，或同名但不是 OmniKit 的，那個 server 略過不動，見 [MCP 有衝突時](#mcp-有衝突時)。Claude 用 `claude mcp add-json`；Codex 寫入前驗證其他設定沒被動到；Antigravity 不寫 BOM（它讀到 BOM 會整份失敗）。`config.toml` 結尾另加一段 `[[hooks.Stop]]` 開新對話提醒 |
 | `%LOCALAPPDATA%\omnikit\` | `profiles\<名稱>\` 是訪談產生的 profile（個人資料，不在 repo 裡；移除時也不刪）；`profile.json` 記這台選的 profile；`edition.json` 記這台是維護者版還是同事版；`consent.json` 記你同意了哪些工具免問；`agents.json` 記接上了哪些 agent、OmniKit 管了哪些 skills，以及每個 MCP server 寫入時的雜湊（判斷有沒有被改過）；`rules\AGENTS.md` 是底線與 profile 接在一起的內容（移除時比對用） |
 | 舊版的 skillshare | 以前用 skillshare 接的電腦，重跑 `install.ps1` 會改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分；skillshare 本身不刪 |
 | npm 全域套件 | 安裝 `data/mcp/packages.txt` 指定的固定版本 |
@@ -469,13 +469,13 @@ uv run engine/scripts/usage.py --days 60
 
 ### MCP 有衝突時
 
-OmniKit 寫入 MCP server 之後，`agents.json` 會記下它管的欄位的雜湊。下次同步發現下面三種情況，就先停下來，規則、skills、MCP 都不寫，並列出不同的欄位名稱（不列值，值可能是金鑰）：
+OmniKit 寫入 MCP server 之後，`agents.json` 會記下它管的欄位的雜湊。下次同步發現下面三種情況，那個 server 就略過不動，規則、skills 與其他 server 照常寫，並列出不同的欄位名稱（不列值，值可能是金鑰）：
 
 - 你在 agent 裡改過 OmniKit 管的欄位，例如 `args`。
 - OmniKit 加過的 server 被你移除了。
 - 已經有同名的 server，但不是 OmniKit 加的。
 
-`install.ps1` 會逐一問你；不能互動的時候（例如 git hook），決定之後執行其中一個，再重跑剛才的指令：
+`install.ps1` 會逐一問你；不能互動的時候（例如 git hook），決定之後執行其中一個：
 
 ```powershell
 uv run engine/scripts/agents.py resolve <名稱> --use-omnikit   # 改用 data/mcp/servers.yaml 的設定

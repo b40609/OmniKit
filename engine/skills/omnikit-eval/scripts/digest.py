@@ -45,7 +45,6 @@ def funnel_section(root, today):
     import json
 
     import batch0
-    import evidence
 
     funnel = root / "data" / "funnel"
     path = funnel / "layer0.json"
@@ -70,12 +69,12 @@ def funnel_section(root, today):
             deep.append(f"{d['tool_id']}（{'、'.join(d['slots']) or '未分配'}）")
     if deep:
         lines.append(f"- 第 1 層建議排實測：{'、'.join(deep)}")
-    lines += ["- " + line.lstrip("# ") if line.startswith("##") else "  " + line
-              for line in evidence.summary_lines(evidence.summary(funnel, today))]
-    import schedule
-
-    lines += ["- " + line.lstrip("# ") if line.startswith("##") else "  " + line
-              for line in schedule.digest_lines(funnel)]
+    # 證據卡（evidence.py）與自動排程（schedule.py）2026-11-15 停用，改看手寫的待測清單
+    todo = funnel / "layer2-todo.md"
+    if todo.exists():
+        items = [line[6:].strip() for line in todo.read_text(encoding="utf-8").splitlines() if line.startswith("- [ ] ")]
+        lines.append(f"- 第 2 層待測清單（data/funnel/layer2-todo.md）：{len(items)} 項")
+        lines += [f"  - {item}" for item in items]
     return lines
 
 

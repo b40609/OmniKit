@@ -67,7 +67,13 @@ def unused_section(result):
     count = sum(1 for i in result["items"] if i["status"] == "unused")
     if count:
         lines.append("- 要停用或移除就跟 agent 說；移除是刪除，會先問你。說「先留著」就不再追問，下週還會列出來")
+    lines.append(OFFICIAL_UNUSED)
     return lines, count
+
+
+# Claude Code 端官方已經有（2026-11-15 收斂範圍，docs/proposals/2026-11-15-maturity.md 的 B）
+OFFICIAL_UNUSED = ("- Claude Code 也可以看官方的：`/plugin` 的 Installed 頁（Not used recently、每個 plugin 的 Context cost）"
+                   "與 `/skill-doctor`；OmniKit 這一區多出來的是 Codex 與 Antigravity")
 
 
 def drift_section(rows):
@@ -213,6 +219,7 @@ def selftest():
         check("摘要也帶成本", "新裝 " in lines[2] and "成本高又沒在用" in lines[2])
         check("沒在用的工具：列出名稱，有用到的不列成沒在用",
               "30 天沒用到：1 個" in text and "old-helper（Claude Code，~/.claude/skills" in text and "會先問你" in text)
+        check("沒在用的工具：指向 Claude Code 官方的 /plugin 與 /skill-doctor", OFFICIAL_UNUSED in text)
         check("剛接上：設定都跟寫入時一樣", "被改過或不見了 0 項" in text and "沒有被手動改過的項目" in text)
         check("還查不到的區塊標未知並寫原因，不當成沒有",
               all(f"## {n}. {t}\n\n- 未知：{PENDING[t]}" in text for n, t in enumerate(SECTIONS, 1) if t in PENDING))

@@ -83,10 +83,10 @@ uv run scripts/layer0.py <GitHub 網址或 owner/repo> [--scan]
    - 沒有 url 的卡：比對不明確的寫進 `data/funnel/candidates.yaml`，請使用者勾選（`chosen` 填 owner/repo 或 none）；有建議的可以 `--accept-suggested`，選好後 `--apply` 寫回卡片，再跑 validate。
    - 確認惡意、高風險、不相容：使用者確認後記在 `data/funnel/decisions.yaml`，附證據與日期。
 2. **第 1 層**：`uv run scripts/layer1.py run [--max N]`。便宜模型（預設 Claude Haiku，沒有任何工具可用）讀 README，記槽位與情境、可查證的主張、內建功能涵蓋、相似群組。`layer1.py clusters` 每群建議代表。
-3. **第 1b 層證據卡**：`uv run scripts/evidence.py draft --from-layer1`，再 `evidence.py check`。引用原文最多 15 個字，到期日最多 90 天。
+3. **第 1b 層證據卡（2026-11-15 停用）**：27／28 個工具都是最低等級，對排序沒有作用（`docs/reviews/2026-11-10-project-review.md` 第 5 節）。`evidence.py` 留著但不再跑。
 4. **第 1c 層煙霧測試**：`uv run scripts/smoke.py env` 先確認隔離環境；`context` 不花 token 量每回合 context；`run` 真實非互動執行（隔離資料夾要先登入，見 `smoke.py login`）；有 hook、MCP 或可執行程式的，先做程式碼審查，再用 `sandbox` 在 Windows Sandbox 安裝與 MCP 交握。
 
-5. **第 2 層排程提案**：`uv run scripts/schedule.py`。優先序 = 槽位權重 × 痛點 × 使用頻率 × 證據等級，排進每週額度（客觀實測每週 2,000 萬 token、盲選每週 2 次）；不排凍結槽位、冷卻期、停滯或未知、同群不是代表的。各槽位是客觀或盲選、每次 token 的量級、手動痛點寫在 `data/funnel/schedule.yaml`。結果寫 `data/funnel/layer2-schedule.json`，週報列最近兩週；單組就超過每週上限的列在「排不進」，請維護者決定。
+5. **第 2 層待測清單**：手寫在 `data/funnel/layer2-todo.md`，想實測的寫一行，測完刪掉並把結果寫進 `data/evals/`；`digest.py` 會列出來。自動排程（`schedule.py`）2026-11-15 停用：深度評估只跑過幾次，排程從沒被照著跑過。
 
 便宜模型與煙霧測試的結果只用來排除與排序；要不要換工具只看第 2 層。
 

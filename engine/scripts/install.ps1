@@ -335,7 +335,7 @@ function Move-LegacyProfiles {
 }
 
 # 規則、skills、MCP 都交給 agents.py（維護者版的 git hook 也用它同步）。
-# MCP 被使用者改過、或同名但不是 OmniKit 的，--ask 會逐一問；不能互動時列出來並停下，什麼都不寫
+# MCP 被使用者改過、或同名但不是 OmniKit 的，--ask 會逐一問；不能互動時略過那個 server 並列出來，其他照常寫
 function Connect-Agents {
   $profileArgs = @(if ($ProfileName) { '--profile', $ProfileName })
   $r = Invoke-UvRun (Get-Uv) (@('run', '--quiet', $AgentsPy, 'connect') + $profileArgs + '--ask')
