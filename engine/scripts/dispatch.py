@@ -62,6 +62,21 @@ STALE_HOURS = 12  # 快照超過這麼久，用量可能偏低（週用量只會
 
 # ---------- 讀政策 ----------
 
+class NoDupLoader(yaml.SafeLoader):
+    """同一層重複的鍵直接報錯：PyYAML 預設只留後面那個，前面的規則會悄悄消失（2026-11-16 delegate_task 寫了兩個 note）。"""
+
+
+def _no_dup(loader, node, deep=False):
+    keys = [loader.construct_object(k, deep=deep) for k, _ in node.value]
+    dup = sorted({str(k) for k in keys if keys.count(k) > 1})
+    if dup:
+        raise ValueError(f"yaml 有重複的鍵（第 {node.start_mark.line + 1} 行那一層）：{'、'.join(dup)}")
+    return yaml.SafeLoader.construct_mapping(loader, node, deep)
+
+
+NoDupLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _no_dup)
+
+
 def block(path):
     """Markdown 檔裡第一個 ```yaml 區塊；檔案不存在回 None。"""
     if not Path(path).is_file():
@@ -69,7 +84,7 @@ def block(path):
     m = FENCE.search(Path(path).read_bytes().decode("utf-8-sig").replace("\r\n", "\n"))
     if not m:
         raise ValueError(f"{path}：找不到 ```yaml 區塊")
-    doc = yaml.safe_load(m.group(1))
+    doc = yaml.load(m.group(1), NoDupLoader)  # noqa: S506  SafeLoader 的子類別
     if not isinstance(doc, dict):
         raise ValueError(f"{path}：yaml 區塊不是對照表")
     return doc
@@ -595,6 +610,15 @@ def selftest():
     pol = policy(profiles.DATA)
     ryan = personal(profiles.DATA / "profiles" / "ryan")
     ok("repo 裡的共用層與 ryan 的個人層通過檢查", check(pol, ryan) == [])
+    with tempfile.TemporaryDirectory() as tmp:
+        dup = Path(tmp) / "d.md"
+        dup.write_text("```yaml\na:\n  note: 1\n  note: 2\n```\n", encoding="utf-8")
+        try:
+            block(dup)
+            caught = False
+        except ValueError as e:
+            caught = "note" in str(e)
+    ok("政策 yaml 同一層重複的鍵會報錯，不會悄悄只留後面那個", caught)
     ok("每一級、每個選項都寫明思考程度（不靠預設值）",
        all(o.get("thinking") in THINKING for lv in pol["levels"] for o in options(pol, lv)))
 

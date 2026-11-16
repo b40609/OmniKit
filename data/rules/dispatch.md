@@ -124,7 +124,7 @@ channels:
       結果一律由主控讀檔、跑測試驗收。用的是 antigravity 實例（ryan 帳號）。
   delegate_task:
     use: 在 T3 裡跨供應商（Gemini／Antigravity）、要獨立 worktree、要指定別的帳號實例（providerInstanceId）
-    note: >-
+    thinking: >-
       思考程度：model 直接寫帶程度的代號（gemini-4-hydrogen-xhigh）。2026-11-16 用 t3 thread start --provider antigravity 實測：
       T3 介面在模型旁標 Unavailable（T3 的模型目錄只有 gemini-4-hydrogen），但 T3 經 antigravity-acp 送到後端的就是這個代號，
       後端紀錄寫「running ... as gemini-4-hydrogen-xhigh」，回覆正確；只寫 gemini-4-hydrogen 時後端用 high。
