@@ -287,6 +287,13 @@ def diagnose(roster, used, costs, found, edition="colleague", added=None, today=
         entry["not_judged"] = {"new": sorted(i["name"] for i, _ in pairs if i["status"] == "new"),
                                "no_usage_data": sorted(i["name"] for i, _ in pairs if i["status"] == "no-data")}
         have = {c["id"] for _, c in pairs if c}
+        # plugin 附帶的 skill 也算裝了：不建議再裝，拿掉 plugin 時要講會一起拿掉
+        carried = {}
+        for i, _ in pairs:
+            for name in i.get("bundled") or []:
+                if (c := cost.roster_card({"name": name}, third)):
+                    have.add(c["id"])
+                    carried.setdefault(i["name"], []).append(c["id"])
         by_slot = {}
         for i, c in pairs:
             for slot_id in (c or {}).get("slots", []):
@@ -378,6 +385,9 @@ def diagnose(roster, used, costs, found, edition="colleague", added=None, today=
             if same and i["status"] == "new" and (i.get("installed_days") or 0) >= OVERLAP_DAYS:
                 basis.append({"code": "native-overlap", "text": f"裝了 {i['installed_days']} 天沒用到；「{same['slot_name']}」"
                                                                  f"名冊記了內建功能" + ("" if same["tested"] else "（還沒實測夠不夠）")})
+            if basis and carried.get(i["name"]):
+                basis.append({"code": "carries", "text": f"注意：這個 plugin 也帶了名冊上的 {'、'.join(carried[i['name']])}，"
+                                                          "拿掉會一起拿掉"})
             if basis:
                 shared = sorted(usage.NAMES[a] for a in i["agents"] if a != uid)
                 entry["candidates"]["remove"].append({
@@ -761,6 +771,14 @@ def selftest():
     check("裝：marketplace 已經加過就只剩安裝那一行", cand(diagnose(roster, used, costs, both, added={"claude": True})["agents"]["claude"],
           "install:fe")["how"]["commands"] == ["claude plugin install fe-plugin@mk"])
     check("裝：獨立程式掃不到有沒有裝，標出來", not cand(claude, "install:desk")["detectable"] and cand(claude, "install:fe")["detectable"])
+    carry = {**used, "items": used["items"] + [item("plugin", "docs@m", "~/.claude/plugins", ["claude-code"], "unused",
+                                                     days=90, bundled=["fe", "not-in-roster"])]}
+    carried = diagnose(roster, carry, costs, both, today=today)["agents"]["claude"]
+    check("裝：plugin 附帶了名冊上的 skill（2026-11-16 試點：document-skills 帶了 skill-creator 卻被建議再裝）就不列；"
+          "拿掉那個 plugin 時講明會一起拿掉",
+          "install:fe" not in ids(carried, "install")
+          and any(b["code"] == "carries" and "fe" in b["text"]
+                  for b in cand(carried, "remove:plugin:docs@m@~/.claude/plugins")["basis"]))
 
     # 換
     swapped_roster = {**roster, "tools": {**roster["tools"], **{c["id"]: c for c in [

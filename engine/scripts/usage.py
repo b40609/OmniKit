@@ -297,8 +297,12 @@ def inventory(home, ours, created_at):
     for key, entries in (plugins.get("plugins") or {}).items():
         entries = entries if isinstance(entries, list) else [entries]
         times = [t for e in entries if isinstance(e, dict) and (t := parse_time(e.get("installedAt")))]
+        # plugin 裡附帶的 skill（例如 document-skills 帶了 skill-creator）：名冊對卡片時算已安裝
+        bundled = sorted({s.name for e in entries if isinstance(e, dict) and e.get("installPath")
+                          for s in (Path(e["installPath"]) / "skills").glob("*") if (s / "SKILL.md").is_file()})
         items.append({"kind": "plugin", "name": key, "where": "~/.claude/plugins", "agents": ["claude-code"],
-                      "match": [], "prefix": key.split("@")[0] + ":", "installed": min(times) if times else None})
+                      "match": [], "prefix": key.split("@")[0] + ":", "installed": min(times) if times else None,
+                      **({"bundled": bundled} if bundled else {})})
     for key, skills in sorted(codex_loaded_plugins(home).items()):
         plugin, market = key.split("@", 1)
         try:
@@ -327,7 +331,7 @@ def judge(item, events, plugin_counts, now, days):
         status = "new"
     else:
         status = "unused"
-    out = {k: item[k] for k in ("kind", "name", "where", "agents", "skills") if k in item}
+    out = {k: item[k] for k in ("kind", "name", "where", "agents", "skills", "bundled") if k in item}
     out.update(status=status, conversations=len(sessions), installed_days=age,
                last_used=datetime.fromtimestamp(last, timezone.utc).astimezone().date().isoformat() if last else None)
     return out
@@ -473,7 +477,9 @@ def selftest():
             "floorplan@floorplan": [{"scope": "user", "installedAt": iso(60)}],
             "claude-mem@thedotmack": [{"scope": "user", "installedAt": iso(60)}],
             "shared@x": [{"scope": "user", "installedAt": iso(60)}],
-            "fresh@x": [{"scope": "user", "installedAt": iso(2)}]}}))
+            "fresh@x": [{"scope": "user", "installedAt": iso(2), "installPath": str(home / "pc" / "fresh")}]}}))
+        put("pc/fresh/skills/skill-creator/SKILL.md", "---\nname: skill-creator\n---\n")
+        put("pc/fresh/skills/not-a-skill/README.md", "x")
 
         put(".codex/sessions/2026/11/04/rollout-1.jsonl", "\n".join(json.dumps(x) for x in [
             {"timestamp": iso(1), "type": "response_item", "payload": {"type": "message", "role": "developer", "content": [
@@ -557,6 +563,9 @@ def selftest():
         check("plugin：累計用過就不列為沒用到", status("claude-mem@thedotmack", "~/.claude/plugins") == "used")
         check("plugin：裝了 60 天從沒用過", status("floorplan@floorplan", "~/.claude/plugins") == "unused")
         check("plugin：剛裝的先不判斷", status("fresh@x", "~/.claude/plugins") == "new")
+        check("plugin：列出附帶的 skill（有 SKILL.md 的才算），沒帶的不加這欄",
+              by[("fresh@x", "~/.claude/plugins")].get("bundled") == ["skill-creator"]
+              and "bundled" not in by[("floorplan@floorplan", "~/.claude/plugins")])
         check("記錄對話數與最後使用日期", by[("caveman", "~/.claude/skills")]["conversations"] == 1
               and by[("caveman", "~/.claude/skills")]["last_used"] is not None)
         check("對話數只算對話紀錄裡的呼叫：skillUsage 只有最後使用時間，算用到、更新日期，不多算一段對話",
