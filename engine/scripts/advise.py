@@ -390,8 +390,14 @@ def diagnose(roster, used, costs, found, edition="colleague", added=None, today=
                                                           "拿掉會一起拿掉"})
             if basis:
                 shared = sorted(usage.NAMES[a] for a in i["agents"] if a != uid)
+                # 2026-11-16 試點：使用者問「它做什麼、刪掉有什麼影響」，建議要自己答，不能丟回給使用者
+                others = sorted({o["name"] for s in (c or {}).get("slots", []) for o in by_slot.get(s, [])
+                                 if o["name"] != i["name"]})
+                natives = [builtin[s]["basis"]["text"] for s in (c or {}).get("slots", []) if s in builtin]
                 entry["candidates"]["remove"].append({
                     "id": f"remove:{i['kind']}:{i['name']}@{i['where']}", **brief(i, c), "basis": basis,
+                    "what": (c or {}).get("notes") or (c or {}).get("reason"),
+                    "after": {"others": others, "native": natives, "carries": carried.get(i["name"], [])},
                     "shared_with": shared, "how": how_remove(i, agent)})
 
         # 規則檔瘦身
@@ -560,8 +566,14 @@ def install_lines(cand, reason):
 
 def remove_lines(cand, reason):
     how = cand["how"]
-    lines = [f"- **{cand['name']}**（{cand['kind']}，{cand['where']}）", f"  - 理由：{reason}",
-             "  - 依據：" + "；".join(b["text"] for b in cand["basis"])]
+    lines = [f"- **{cand['name']}**（{cand['kind']}，{cand['where']}）",
+             f"  - 它做什麼：{clip(cand.get('what'))}" if cand.get("what") else "  - 它做什麼：名冊沒有這個工具的說明",
+             f"  - 理由：{reason}", "  - 依據：" + "；".join(b["text"] for b in cand["basis"])]
+    after = cand.get("after") or {}
+    left = ([f"這台同一件事還裝了 {'、'.join(after['others'])}"] if after.get("others") else []) \
+        + ([f"內建的：{clip(t)}" for t in after.get("native") or []])
+    lines.append("  - 拿掉之後：" + ("；".join(left) if left else "這件事就沒有別的工具了，要用時再裝回來")
+                 + (f"；也會一起拿掉 {'、'.join(after['carries'])}" if after.get("carries") else ""))
     if how.get("disable"):
         lines.append(f"  - 先停用（可以再打開）：`{how['disable']}`")
     if how.get("remove"):
@@ -770,6 +782,11 @@ def selftest():
           and cand(codex, "install:fe")["how"]["commands"] == ["codex plugin marketplace add owner/kit", "codex plugin add fe-plugin@mk"])
     check("裝：marketplace 已經加過就只剩安裝那一行", cand(diagnose(roster, used, costs, both, added={"claude": True})["agents"]["claude"],
           "install:fe")["how"]["commands"] == ["claude plugin install fe-plugin@mk"])
+    m2 = "\n".join(remove_lines(cand(claude, "remove:skill:mem2@~/.claude/skills"), "理由"))
+    old = "\n".join(remove_lines(cand(claude, "remove:skill:old@~/.claude/skills"), "理由"))
+    check("拿掉：寫出它做什麼、拿掉之後同一件事還剩什麼（這台裝的別的工具、內建的）；名冊沒有的照實說",
+          "它做什麼：mem2 的理由" in m2 and "拿掉之後：這台同一件事還裝了 mem-tool@m" in m2 and "內建的：內建的記憶功能" in m2
+          and "它做什麼：名冊沒有這個工具的說明" in old and "要用時再裝回來" in old)
     check("裝：獨立程式掃不到有沒有裝，標出來", not cand(claude, "install:desk")["detectable"] and cand(claude, "install:fe")["detectable"])
     carry = {**used, "items": used["items"] + [item("plugin", "docs@m", "~/.claude/plugins", ["claude-code"], "unused",
                                                      days=90, bundled=["fe", "not-in-roster"])]}
