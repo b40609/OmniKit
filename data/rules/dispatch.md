@@ -58,12 +58,13 @@ levels:
       - class: gemini-flash
         thinking: high
         when: gemini-pro 的額度用完
-        pending: >-
-          【待確認】現行規則是 Flash 接所有中級任務。建議 Flash 只接 docs 與 readonly，
-          改程式碼的任務（ui-small、code-small）改派 claude-sonnet（effort medium），因為 Flash 寫程式能力差很多。
+        tasks: [docs, readonly]
+        note: >-
+          2026-11-16 定案：Flash 只接 docs 與 readonly；改程式碼的任務（ui-small、code-small）落到下一個選項
+          claude-sonnet（effort medium），因為 Flash 寫程式能力差很多（BenchLM 寫程式綜合 53.7 對 Sonnet 5.5 的 81.1，第三方【待驗證】）。
       - class: claude-sonnet
         thinking: medium
-        note: 上面都沒有可用的實例（例如沒有 Gemini／Antigravity）時的退路
+        note: 退路：上面都沒有可用的實例（例如沒有 Gemini／Antigravity），或 gemini-pro 額度用完時的 ui-small、code-small
         trial: sonnet-trial
   high:
     name: 高
@@ -88,7 +89,7 @@ levels:
 # 驗收不過時怎麼升級。每次升級都要記進紀錄的 escalations；同設定重跑記 retries。
 escalation:
   - {from: claude-sonnet, to: claude-opus, thinking: same, why: Sonnet 試行的品質保護：驗收不過就用 Opus、同一級 effort 重跑}
-  - {from: level, to: higher, after_failures: 2, pending: 【待確認】「驗收一直不過」暫定為同一個任務驗收不過 2 次}
+  - {from: level, to: higher, after_failures: 2, why: 「驗收一直不過」定義為同一個任務驗收不過 2 次（2026-11-16 定案）}
   - {from: {class: claude-opus, thinking: xhigh}, to: {class: claude-opus, thinking: max}, why: max 只在 xhigh 也失敗時才用}
 
 # 管道。
@@ -121,14 +122,13 @@ trials:
     baseline: claude-opus
     compare: 同一級任務的一次通過率（first_pass），以一開始派的模型分組
     min_samples: 20
-    min_baseline: 10   # 【待確認】Opus 同級至少幾筆才拿來比；暫定 10
+    min_baseline: 10   # Opus 同級至少 10 筆才拿來比（2026-11-16 定案）
     max_gap_pp: 10
     action: Sonnet 比 Opus 低 10 個百分點以上，就把 levels.medium 的 claude-sonnet 換回 claude-opus（同一級 effort）
     how: omnikit-dispatch skill 的 dispatch.py stats（repo 裡是 uv run engine/scripts/dispatch.py stats）
-    pending: >-
-      【待確認】中級任務現在不派 Opus，所以紀錄裡不會自然出現「Opus 在中級的一次通過率」可以比。
-      建議加對照組：中級要用 Claude 時每 4 次改派 1 次 Opus（effort medium），記 control: true；
-      沒決定前 control_every 是 0（不派對照組），stats 會照實回報基準不足。
+    note: >-
+      中級任務不派 Opus，所以紀錄裡不會自然出現「Opus 在中級的一次通過率」可以比。2026-11-16 定案：凍結期間
+      （到 2026-11-29）不派對照組，control_every 維持 0，stats 會照實回報基準不足；凍結結束再決定要不要每 4 次派 1 次 Opus。
     control_every: 0
 
 # 委派紀錄：每次委派結束時一行 JSONL，存在本機，不進 repo。

@@ -281,7 +281,7 @@ def stats(pol, rows):
             if len(a) < tr["min_samples"]:
                 verdict = f"樣本不足：{tr['class']} 有 {len(a)} 筆，要 {tr['min_samples']} 筆"
             elif len(b) < tr.get("min_baseline", 1):
-                verdict = f"基準不足：{tr['baseline']} 在這一級有 {len(b)} 筆，要 {tr.get('min_baseline', 1)} 筆（見 trials.{name}.pending）"
+                verdict = f"基準不足：{tr['baseline']} 在這一級有 {len(b)} 筆，要 {tr.get('min_baseline', 1)} 筆（見 trials.{name}.note）"
             elif gap >= tr["max_gap_pp"]:
                 verdict = f"退回：{tr['class']} 比 {tr['baseline']} 低 {gap} 個百分點（門檻 {tr['max_gap_pp']}）"
             else:
