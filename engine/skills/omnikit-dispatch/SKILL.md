@@ -15,13 +15,29 @@ uv run scripts/run.py show
 
 印出套上你的實例之後，每一級依序可以用的選項，開頭附本週 Claude 用量。由上往下挑第一個「有實例、額度沒用完、條件成立」的。用量是「未知」時不要假設已達 80%。開子對話或派子代理時，在任務說明寫明級別與思考程度（Claude 寫 effort，Gemini／Antigravity 寫 thinking_level）。
 
+## 派給 Antigravity 的模型（agy_cli 管道）
+
+主控是 Claude Code 或 Codex、而選到的類別是 Antigravity 的（gemini-pro、gemini-flash、antigravity-opus）時，用 agy 無頭派：
+
+```
+uv run scripts/run.py agy --class gemini-pro --thinking high --brief-file <任務說明檔> [--cwd <工作資料夾>] [--timeout 1800]
+```
+
+- 思考程度由腳本寫進模型代號（`gemini-4-hydrogen-xhigh`），不合政策的（禁用的 low、超過上限）直接擋下。
+- 任務說明照常寫明級別、思考程度、完成條件與交付位置；要改檔就說只能改哪些檔。腳本會在後面附上 uv、gh 的絕對路徑（agy 的終端機看不到使用者 PATH）。
+- 輸出是 JSON 摘要；`ok` 是 false（終端機指令被拒、沒回覆、逾時）就當這次沒完成，看 `problems`。
+- 要跑很久的（調研、大範圍閱讀）用背景執行，完成再收。
+- 腳本用略過權限模式跑（無頭模式不能核准指令），並在任務說明前面固定加硬性限制：不 commit、不 push、不刪檔、不對外發送、不安裝。所以要 commit 或 push 的，由主控自己做。
+- 結果一律由主控驗收（讀它改的檔、跑測試），不要只看它的回覆。
+- 記紀錄時 `--channel agy_cli --instance antigravity`。
+
 ## 收完結果、settle 之前：記一行
 
 一次委派一行。重跑與升級記在同一行，`--class` 寫一開始派的類別，`--final-class` 寫最後過關的類別。
 
 ```
 uv run scripts/run.py log --task <任務類型> --class <模型類別> --thinking <程度> --verdict <pass|fail|partial|skipped> \
-  [--channel native|delegate_task|t3_thread_launch] [--instance <實例>] [--retries N] [--escalations N] [--final-class <類別>] [--control] [--note <一句話>]
+  [--channel native|agy_cli|delegate_task|t3_thread_launch] [--instance <實例>] [--retries N] [--escalations N] [--final-class <類別>] [--control] [--note <一句話>]
 ```
 
 - `--task`：共用層 `tasks` 的 key（docs、ui-small、readonly、code-small、accounting、risk、orders、design-decision、hard-bug、acceptance-loop、verify）。級別會自動帶出來。

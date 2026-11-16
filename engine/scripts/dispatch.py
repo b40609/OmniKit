@@ -24,11 +24,13 @@ T3 透過 Agent SDK 跑 Claude 時狀態列會不會執行，還沒實測（待�
   uv run engine/scripts/dispatch.py show [--agent claude|codex|antigravity] [--json]   套上這台 profile 之後的分派表
   uv run engine/scripts/dispatch.py check                                            檢查兩層政策
   uv run engine/scripts/dispatch.py log --task <類型> --class <類別> --thinking <程度> --verdict pass|fail|partial|skipped
-        [--first-pass yes|no] [--retries N] [--escalations N] [--final-class <類別>] [--channel native|delegate_task|t3_thread_launch]
+        [--first-pass yes|no] [--retries N] [--escalations N] [--final-class <類別>] [--channel native|agy_cli|delegate_task|t3_thread_launch]
         [--instance <實例>] [--level <級別>] [--project <名稱>] [--control] [--note <文字>] [--dry-run]
   uv run engine/scripts/dispatch.py stats [--json]                                   一次通過率與 Sonnet 試行的判定
   uv run engine/scripts/dispatch.py usage [--json]                                   本週 Claude 用量（快照）
   uv run engine/scripts/dispatch.py statusline [--then "<原本的狀態列指令>"]          給 Claude Code 狀態列用
+  uv run engine/scripts/dispatch.py agy --class <類別> --thinking <程度> (--brief <文字> | --brief-file <檔>) [--cwd <資料夾>]
+        [--timeout 秒] [--log-file <檔>]                                              用 agy 無頭派給 Antigravity 的模型
   uv run engine/scripts/dispatch.py --selftest
 """
 import argparse
@@ -50,7 +52,8 @@ import profiles  # noqa: E402  同一個資料夾：這台選的 profile 與它�
 
 THINKING = ["low", "medium", "high", "xhigh", "max"]
 VERDICTS = ("pass", "fail", "partial", "skipped")
-CHANNELS = ("native", "delegate_task", "t3_thread_launch")
+CHANNELS = ("native", "agy_cli", "delegate_task", "t3_thread_launch")
+AGY_MAX_BRIEF = 30000  # Windows 命令列上限約 32k 字元，任務說明走參數，留一點餘裕
 AGENT_DRIVER = {"claude": "claudeAgent", "codex": "codex", "antigravity": "antigravity"}
 FENCE = re.compile(r"```ya?ml\s*\n(.*?)\n```", re.S)
 VERSION = re.compile(r"規則版本：\s*(\S+)")
@@ -87,7 +90,7 @@ def rules_version(data):
 
 def options(pol, level):
     lv = pol["levels"][level]
-    return list(lv.get("route") or []) + list(lv.get("second_opinion") or [])
+    return list(lv.get("prework") or []) + list(lv.get("route") or []) + list(lv.get("second_opinion") or [])
 
 
 def check(pol, mine=None):
@@ -170,7 +173,8 @@ def resolved(pol, mine, agent="claude"):
     for level, lv in pol["levels"].items():
         tasks = [t for t, v in pol["tasks"].items() if v["level"] == level]
         rows = []
-        for kind, items in (("route", lv.get("route") or []), ("second_opinion", lv.get("second_opinion") or [])):
+        for kind, items in (("prework", lv.get("prework") or []), ("route", lv.get("route") or []),
+                            ("second_opinion", lv.get("second_opinion") or [])):
             for o in items:
                 cls = pol["model_classes"][o["class"]]
                 inst = instances_for(pol, mine, o["class"], agent)
@@ -364,11 +368,13 @@ def show_text(table, profile, has_personal, usage=None):
         lines.append(usage_text(usage))
     for level, lv in table.items():
         lines.append(f"\n{lv['name']}（{level}）：{'、'.join(lv['tasks']) or '—'}")
-        for i, o in enumerate(lv["options"], 1):
-            head = "第二意見" if o["kind"] == "second_opinion" else f"{i}."
+        route = [o for o in lv["options"] if o["kind"] == "route"]
+        for o in lv["options"]:
+            head = {"prework": "前置", "second_opinion": "第二意見"}.get(o["kind"]) or f"{route.index(o) + 1}."
             inst = "沒有實例，跳過" if o["skip"] else "實例：" + "、".join(o["instances"])
             extra = (f"；條件：{o['when']}" if o["when"] else "") + (f"；只接：{'、'.join(o['tasks'])}" if o["tasks"] else "")
-            lines.append(f"  {head} {o['class']}（{o['model']}）{o['thinking_name']} {o['thinking']}；{inst}{extra}")
+            role = f"；{o['role']}" if o["role"] and o["kind"] != "route" else ""
+            lines.append(f"  {head} {o['class']}（{o['model']}）{o['thinking_name']} {o['thinking']}；{inst}{extra}{role}")
             if o["pending"]:
                 lines.append(f"     {o['pending'].strip()}")
     return "\n".join(lines)
@@ -383,6 +389,87 @@ def stats_text(s):
         for p in per:
             lines.append(f"試行 {name}{'（' + p['level'] + '）' if p.get('level') else ''}：{p['verdict']}")
     return "\n".join(lines)
+
+
+# ---------- agy 管道：從任何 agent 無頭派給 Antigravity 的模型 ----------
+# 2026-11-16 用 agy 1.5.9 實測：
+# - 思考程度要寫在模型代號後面（gemini-4-hydrogen-xhigh），或用 --effort；只寫 gemini-4-hydrogen 會落到 medium。
+#   log 會印 resolved to "gemini-4-hydrogen-xhigh"，思考 token 三次是 high 約 900 到 1150、xhigh 約 1850 到 3330。
+# - 權限：無頭模式沒辦法核准，agy 的安全監控把不認得的指令送審時就自動拒絕，時好時壞（一次 3 分鐘的調研中途被拒）；
+#   --mode accept-edits 一律拒絕終端機指令；--settings 的允許規則讓指令落進沙盒，uv 跑不起來。
+#   --dangerously-skip-permissions 連測 3 次都穩定，所以用它，並在任務說明前面加硬性限制（AGY_GUARD），結果一律由主控驗收。
+# - agy 終端機的 PATH 只有系統路徑（沒有使用者路徑），uv、gh 這類要給絕對路徑。
+AGY_GUARD = ("【硬性限制，優先於下面的任務說明】不 git commit、不 git push、不刪檔或清空資料夾、不改 git 設定、"
+             "不寄信或發訊息、不安裝軟體、不改系統或安全設定；只改任務說明允許的檔案。做不到就停下來回報。\n\n")
+
+def agy_model(pol, cls, thinking):
+    """模型類別加思考程度 → agy 的模型代號；不合政策就停。"""
+    c = (pol.get("model_classes") or {}).get(cls)
+    if c is None:
+        raise SystemExit(f"模型類別不存在：{cls}")
+    if c.get("driver") != "antigravity":
+        raise SystemExit(f"{cls} 不是 Antigravity 的類別，不能走 agy（{c.get('driver')}）")
+    if thinking not in THINKING:
+        raise SystemExit(f"思考程度要寫明（{THINKING} 之一）：{thinking}")
+    if THINKING.index(thinking) > THINKING.index(c.get("max_thinking", "max")):
+        raise SystemExit(f"{cls} 的思考程度最高 {c['max_thinking']}，寫了 {thinking}")
+    if thinking in (c.get("forbid_thinking") or []):
+        raise SystemExit(f"{cls} 禁用思考程度 {thinking}")
+    return f"{c['model']}-{thinking}"
+
+
+def agy_path_note():
+    """agy 終端機看不到使用者 PATH：把這台常用工具的絕對路徑附在任務說明後面。"""
+    found = {n: shutil.which(n) for n in ("uv", "gh", "git", "node")}
+    found = {n: p for n, p in found.items() if p}
+    if not found:
+        return ""
+    return ("\n\n（執行環境備註：你的終端機 PATH 只有系統路徑，這些指令請用絕對路徑："
+            + "；".join(f"{n} = {p}" for n, p in found.items()) + "）")
+
+
+def agy_command(exe, brief, model, timeout_s, log_file=None):
+    if len(brief) > AGY_MAX_BRIEF:
+        raise SystemExit(f"任務說明 {len(brief)} 字元，超過 {AGY_MAX_BRIEF}；改寫成檔案，說明裡只寫路徑")
+    cmd = [exe, "-p", AGY_GUARD + brief, "--model", model, "--output-format", "json", "--print-timeout", f"{timeout_s}s",
+           "--dangerously-skip-permissions"]
+    return cmd + (["--log-file", str(log_file)] if log_file else [])
+
+
+def agy_result(raw):
+    """agy --output-format json 的輸出（前後可能夾著 jetski: 說明）→ 摘要；ok 要成功、沒有被拒的動作、有回覆。"""
+    i = raw.find('{"conversation_id"')
+    if i < 0:
+        return {"ok": False, "error": "看不到 agy 的 JSON 結果", "raw": raw[-2000:]}
+    try:
+        j, _ = json.JSONDecoder().raw_decode(raw[i:])
+    except ValueError as e:
+        return {"ok": False, "error": f"agy 的 JSON 讀不懂：{e}", "raw": raw[-2000:]}
+    denied = j.get("denied_actions") or []
+    resp = (j.get("response") or "").strip()
+    problems = ([] if j.get("status") == "SUCCESS" else [f"status 是 {j.get('status')}"]) \
+        + ([f"被拒的動作：{', '.join(d.get('display_name') or d.get('action', '?') for d in denied)}"] if denied else []) \
+        + ([] if resp else ["沒有回覆"])
+    u = j.get("usage") or {}
+    return {"ok": not problems, "problems": problems, "conversation_id": j.get("conversation_id"),
+            "duration_seconds": j.get("duration_seconds"), "thinking_tokens": u.get("thinking_tokens"),
+            "total_tokens": u.get("total_tokens"), "response": resp}
+
+
+def run_agy(pol, args):
+    exe = shutil.which("agy")
+    if not exe:
+        raise SystemExit("找不到 agy（Antigravity CLI）；這台沒裝就走 delegate_task 或原生子代理")
+    model = agy_model(pol, args.cls, args.thinking)
+    brief = Path(args.brief_file).read_text(encoding="utf-8-sig") if args.brief_file else args.brief
+    if not brief:
+        raise SystemExit("要給 --brief 或 --brief-file")
+    cmd = agy_command(exe, brief + agy_path_note(), model, args.timeout, args.log_file)
+    t0 = time.monotonic()
+    r = subprocess.run(cmd, cwd=args.cwd, capture_output=True, timeout=args.timeout + 120)
+    out = agy_result((r.stdout + r.stderr).decode("utf-8", "replace"))
+    out.update({"model": model, "elapsed_seconds": round(time.monotonic() - t0), "exit_code": r.returncode})
+    return out
 
 
 # ---------- 主程式 ----------
@@ -424,6 +511,14 @@ def main(argv=None):
     p.add_argument("--json", action="store_true")
     p = sub.add_parser("statusline")
     p.add_argument("--then", help="原本的狀態列指令：收到的 JSON 照樣轉給它，印它的輸出")
+    p = sub.add_parser("agy", help="用 agy 無頭派給 Antigravity 的模型（思考程度寫進模型代號）")
+    p.add_argument("--class", dest="cls", required=True)
+    p.add_argument("--thinking", required=True)
+    p.add_argument("--brief")
+    p.add_argument("--brief-file")
+    p.add_argument("--cwd", help="agy 的工作資料夾（預設目前資料夾）")
+    p.add_argument("--timeout", type=int, default=1800, help="秒")
+    p.add_argument("--log-file")
     args = ap.parse_args(argv)
     if args.selftest:
         return selftest()
@@ -468,6 +563,10 @@ def main(argv=None):
         s["unreadable_lines"] = bad
         print(json.dumps(s, ensure_ascii=False, indent=2) if args.json else stats_text(s) + (f"\n讀不懂的行：{bad}" if bad else ""))
         return 0
+    if args.cmd == "agy":
+        out = run_agy(pol, args)
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+        return 0 if out["ok"] else 1
     if args.cmd == "usage":
         u = weekly_usage(state, pol["usage_signal"]["claude_weekly_threshold_pct"])
         print(json.dumps(u, ensure_ascii=False) if args.json else usage_text(u))
@@ -516,11 +615,37 @@ def selftest():
        [o for o in med if o["class"] == "gemini-pro"][0]["instances"] == ["antigravity"]
        and [o for o in med if o["class"] == "gemini-flash"][0]["instances"] == ["antigravity_ava", "antigravity_kai"]
        and [o for o in med if o["class"] == "gemini-pro"][0]["thinking_name"] == "thinking_level")
-    ok("Claude 類別在 Claude 底下原生子代理排第一", t["high"]["options"][-1]["instances"][0] == "native")
+    ok("Claude 類別在 Claude 底下原生子代理排第一",
+       [o for o in t["high"]["options"] if o["class"] == "claude-opus"][0]["instances"][0] == "native")
+    ok("ryan：高級與更高級先派 Hydrogen 做前置苦工、Opus 定案後再由 Hydrogen xhigh 唯讀審查；驗收的第二意見不是選配",
+       all([o["kind"] for o in t[lv]["options"]][0] == "prework" and [o["kind"] for o in t[lv]["options"]][-1] == "second_opinion"
+           and t[lv]["options"][-1]["class"] == "gemini-pro" and t[lv]["options"][-1]["thinking"] == "xhigh"
+           for lv in ("high", "higher"))
+       and "optional" not in pol["levels"]["verify"]["second_opinion"][0])
     bare = resolved(pol, None, "claude")
     ok("沒有個人層（同事只有 Claude）：Gemini 與 Antigravity 選項全部跳過，中級退回 Sonnet effort medium",
        all(o["skip"] for lv in bare.values() for o in lv["options"] if not o["class"].startswith("claude-"))
        and any(o["class"] == "claude-sonnet" and o["thinking"] == "medium" and not o["skip"] for o in bare["medium"]["options"]))
+
+    ok("agy：類別加思考程度寫進模型代號（Hydrogen xhigh、Antigravity 的 Opus high）",
+       agy_model(pol, "gemini-pro", "xhigh") == "gemini-4-hydrogen-xhigh"
+       and agy_model(pol, "antigravity-opus", "high") == "claude-opus-5-5-high")
+    ok("agy：不合政策的不派（Claude Code 的類別、禁用的 low、超過上限、沒寫思考程度）",
+       fails(lambda: agy_model(pol, "claude-opus", "high")) and fails(lambda: agy_model(pol, "gemini-pro", "low"))
+       and fails(lambda: agy_model(pol, "gemini-flash", "xhigh")) and fails(lambda: agy_model(pol, "gemini-pro", None)))
+    cmd = agy_command("agy", "任務", "gemini-4-hydrogen-high", 600, "x.log")
+    ok("agy：指令帶模型代號、JSON 輸出、逾時、log 與略過權限；任務說明前面加硬性限制；不帶 --mode（accept-edits 會擋掉終端機指令）",
+       cmd[:2] == ["agy", "-p"] and cmd[2] == AGY_GUARD + "任務" and "gemini-4-hydrogen-high" in cmd and "json" in cmd
+       and "600s" in cmd and "--dangerously-skip-permissions" in cmd and "--mode" not in cmd and cmd[-1] == "x.log"
+       and fails(lambda: agy_command("agy", "x" * (AGY_MAX_BRIEF + 1), "m", 1)))
+    good = agy_result('{"conversation_id":"c1","status":"SUCCESS","response":"完成\\n","duration_seconds":14.2,'
+                      '"usage":{"thinking_tokens":358,"total_tokens":23514}}')
+    denied = agy_result('{"conversation_id":"c2","status":"SUCCESS","response":"","denied_actions":[{"action":"command",'
+                        '"display_name":"Bash"}]}jetski: no output produced')
+    ok("agy：成功、有回覆才算 ok；終端機指令被拒或沒回覆不算；讀不到 JSON 照實說",
+       good["ok"] and good["thinking_tokens"] == 358 and good["response"] == "完成"
+       and not denied["ok"] and any("Bash" in p for p in denied["problems"]) and any("沒有回覆" in p for p in denied["problems"])
+       and not agy_result("jetski: crashed")["ok"])
 
     ns = argparse.Namespace
     base = dict(task="docs", cls="claude-sonnet", thinking="medium", verdict="pass", first_pass=None, retries=0, escalations=0,

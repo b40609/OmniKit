@@ -44,7 +44,13 @@ tasks:
   acceptance-loop: {level: higher, desc: 驗收一直不過}
   verify:          {level: verify, desc: 獨立驗收}
 
+# 分工原則（2026-11-16，ryan：Claude 只拿來做真正重要的事）：跨模型、跨應用的主控與工作者。
+# - 主控（規劃、拆解、定案、最後驗收）是主線的 Claude；量大、不關鍵的工作派 Hydrogen（agy_cli 管道）。
+# - 寫的模型與審的模型不同家：Hydrogen 寫的由主控驗收；Opus 做的重要任務由 Hydrogen xhigh 唯讀審查（second_opinion）。
+# - 重要任務先派 Hydrogen 做前置苦工（prework），Opus 只花在判斷與定案。
+# 業界對照與實測在 docs/proposals/2026-11-16-cross-model-dispatch.md。
 # 級別 → 依序嘗試的選項。沒有對應實例的類別直接跳過；when 是成立才用的條件，沒寫就是預設。
+# prework 在 route 之前跑、second_opinion 在 route 之後跑；兩者都沒有實例就跳過，不擋 route。
 # Claude 類別在 Claude 底下一定有（原生子代理），其他類別要個人層有實例。
 levels:
   medium:
@@ -52,9 +58,9 @@ levels:
     route:
       - class: claude-sonnet
         thinking: medium
-        when: 需要 Claude 子代理（專案規則要求 Claude，或要用只有 Claude 有的工具）
+        when: 專案規則要求 Claude，或任務要用的工具 agy 沒有（寫明是哪個工具）；「主控是 Claude」不算理由
         trial: sonnet-trial
-      - {class: gemini-pro, thinking: high, note: 禁用 low；Gemini 的 token 不用省}
+      - {class: gemini-pro, thinking: high, note: 中級的預設；禁用 low；Gemini 的 token 不用省。從 Claude Code、Codex 派用 agy_cli 管道}
       - class: gemini-flash
         thinking: high
         when: gemini-pro 的額度用完
@@ -68,6 +74,8 @@ levels:
         trial: sonnet-trial
   high:
     name: 高
+    prework:
+      - {class: gemini-pro, thinking: high, role: 前置苦工：讀程式、收資料、重現、列候選與證據，不下結論、不改檔；Opus 拿它的整理定案}
     route:
       - class: antigravity-opus
         thinking: high
@@ -75,19 +83,26 @@ levels:
         tasks: [accounting, risk, orders]
         note: 額度消耗快，只用在這三類，簡單工作不要用
       - {class: claude-opus, thinking: high}
+    second_opinion:
+      - {class: gemini-pro, thinking: xhigh, role: 唯讀審查 Opus 的結果（不同模型家族，避免同樣的盲點）；有異議由 Opus 判斷}
   higher:
     name: 更高
+    prework:
+      - {class: gemini-pro, thinking: xhigh, role: 前置苦工：讀程式、重現錯誤、縮小範圍、列假設與證據，不改檔；Opus 拿它的整理定案}
     route:
       - {class: claude-opus, thinking: xhigh, note: max 只在 xhigh 也失敗時才用（見 escalation）}
+    second_opinion:
+      - {class: gemini-pro, thinking: xhigh, role: 唯讀審查 Opus 的修法；有異議由 Opus 判斷}
   verify:
     name: 獨立驗收
     route:
       - {class: claude-opus, thinking: high, role: 主驗收}
     second_opinion:
-      - {class: gemini-pro, thinking: xhigh, role: 唯讀第二意見, optional: true}
+      - {class: gemini-pro, thinking: xhigh, role: 唯讀第二意見（預設要跑，Gemini 的 token 不用省）}
 
 # 驗收不過時怎麼升級。每次升級都要記進紀錄的 escalations；同設定重跑記 retries。
 escalation:
+  - {from: gemini-pro, to: claude-sonnet, thinking: medium, why: Hydrogen 驗收不過，先用 Sonnet medium 重跑；再不過照下一條升 Opus}
   - {from: claude-sonnet, to: claude-opus, thinking: same, why: Sonnet 試行的品質保護：驗收不過就用 Opus、同一級 effort 重跑}
   - {from: level, to: higher, after_failures: 2, why: 「驗收一直不過」定義為同一個任務驗收不過 2 次（2026-11-16 定案）}
   - {from: {class: claude-opus, thinking: xhigh}, to: {class: claude-opus, thinking: max}, why: max 只在 xhigh 也失敗時才用}
@@ -96,8 +111,22 @@ escalation:
 channels:
   native:
     use: 同供應商、沒有特殊設定、前景執行（Claude 用 Agent 工具，model 與 effort 都寫明）
+  agy_cli:
+    use: >-
+      從 Claude Code、Codex 等任何 agent 派給 Antigravity 的模型（Hydrogen、Flash、Antigravity 的 Opus），前景或背景都可以。
+      用 omnikit-dispatch skill 的 run.py agy --class <類別> --thinking <程度> --brief-file <任務說明>；
+      思考程度寫進模型代號（gemini-4-hydrogen-xhigh），只寫 gemini-4-hydrogen 會落到 medium。
+    note: >-
+      2026-11-16 用 agy 1.5.9 實測：xhigh 確實生效（log 印 resolved to gemini-4-hydrogen-xhigh，思考 token 約 high 的 2 到 3 倍）；
+      能改檔並自己跑測試；終端機 PATH 只有系統路徑，腳本會把 uv、gh 的絕對路徑附在任務說明後面；
+      權限：無頭模式不能核准，agy 的安全監控送審就自動拒絕（時好時壞）；accept-edits 一律擋終端機指令；允許規則會落進沙盒。
+      所以腳本用 --dangerously-skip-permissions，任務說明前面固定加硬性限制（不 commit、不 push、不刪檔、不對外發送、不安裝），
+      結果一律由主控讀檔、跑測試驗收。用的是 antigravity 實例（ryan 帳號）。
   delegate_task:
-    use: 跨供應商（Gemini／Antigravity）、要背景執行、要獨立 worktree、要指定別的帳號實例（providerInstanceId）
+    use: 在 T3 裡跨供應商（Gemini／Antigravity）、要獨立 worktree、要指定別的帳號實例（providerInstanceId）
+    pending: >-
+      【待驗證】11-14 經 T3 派 Hydrogen 時思考程度沒有生效（委派紀錄）；agy 直接呼叫已確認可以，T3 這條還沒重測，
+      要指定 xhigh 時先用 agy_cli。
     note: >-
       現行規則：delegate_task 不能指定別的專案。【待驗證】T3 的 delegate_task 參數裡有 target.projectId，
       實際能不能把子任務開在別的專案還沒實測，驗證前照現行規則。
