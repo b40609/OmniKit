@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["pyyaml", "jsonschema"]
+# dependencies = ["pyyaml", "jsonschema", "zstandard"]
 #
 # [tool.uv]
 # exclude-newer = "2026-11-01T00:00:00Z"
@@ -125,12 +125,9 @@ def claude_from_disk(home):
 
 
 def codex_from_sessions(home):
-    root = Path(home) / ".codex" / "sessions"
-    if not root.is_dir():
-        return None
-    for p in sorted(root.glob("*/*/*/rollout-*.jsonl"), reverse=True)[:RECENT]:
+    for p in cost.usage.codex_files(home)[:RECENT]:
         try:
-            f = p.open("rb")
+            f = cost.usage.open_rollout(p)
         except OSError:
             continue
         with f:

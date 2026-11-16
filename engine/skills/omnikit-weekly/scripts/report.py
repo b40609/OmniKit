@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["pyyaml", "jsonschema"]
+# dependencies = ["pyyaml", "jsonschema", "zstandard"]
 #
 # [tool.uv]
 # exclude-newer = "2026-11-01T00:00:00Z"

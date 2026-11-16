@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["pyyaml", "jsonschema"]
+# dependencies = ["pyyaml", "jsonschema", "zstandard"]
 #
 # [tool.uv]
 # exclude-newer = "2026-11-01T00:00:00Z"
@@ -369,7 +369,7 @@ def diagnose(roster, used, costs, found, edition="colleague", added=None, today=
         # 拿掉
         builtin = {c["slot"]: c for c in entry["candidates"]["native"]}
         for i, c in pairs:
-            if i.get("ours"):
+            if i.get("ours") or i.get("builtin"):  # builtin：Codex 隨附的 plugin，就是「用內建的就好」指的那些
                 continue
             basis = []
             if i["status"] == "unused":

@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = []
+# dependencies = ["zstandard"]
 # ///
 """OmniKit 使用統計：這台電腦裝的 skill 與 plugin，最近有沒有被用到。給每週彙整找「裝了沒在用」的。
 
@@ -12,8 +12,9 @@
   同樣的字樣，不算。另外看 ~/.claude.json 的 skillUsage（最後使用時間）；plugin 再看 pluginUsage 的累計使用
   次數：用過一次就不算「沒用到」
 - 時間：Claude Code 與 Codex 的紀錄都是 UTC；沒寫時區的也當 UTC，不當本地時間
-- Codex：~/.codex/sessions 的 rollout 裡，執行指令讀了 skills/<名稱>/SKILL.md；路徑在
-  ~/.codex/plugins/cache/<marketplace>/<plugin>/ 底下的，算那個 plugin 用到
+- Codex：~/.codex/sessions 與 archived_sessions 的 rollout（含壓縮的 .jsonl.zst）裡，執行指令讀了
+  skills/<名稱>/SKILL.md；路徑在 ~/.codex/plugins/cache/<marketplace>/<plugin>/ 底下的，算那個 plugin 用到。
+  壓縮的讀不了（沒有 zstd 解碼器）時，Codex 讀得到的工具標「查不到」，不判沒用到
 - Antigravity：~/.gemini/antigravity*/conversations/*.db 裡 view_file 讀 SKILL.md、IsSkill 是 true 的步驟；
   時間用資料庫檔的修改時間
 
@@ -95,6 +96,48 @@ def recent(paths, since):
     return out
 
 
+try:  # Codex 把結束的對話壓成 .jsonl.zst（2026-11-16 這台：30 天 209 段只有 8 段沒壓縮）
+    from compression.zstd import open as _zstd_open  # Python 3.14 起內建
+except ImportError:
+    try:
+        from zstandard import open as _zstd_open
+    except ImportError:
+        _zstd_open = None
+ZSTD = _zstd_open is not None
+# Codex 隨程式附帶的 plugin（config.toml 的 marketplace 來源在 Codex 自己的暫存或 runtime 資料夾）：
+# 是 Codex 的內建功能，名冊對 Codex 的「用內建的就好」就是指它們，不列進拿掉
+CODEX_BUILTIN_MARKETS = ("openai-bundled", "openai-primary-runtime")
+
+
+def codex_files(home, since=None):
+    """Codex 的對話紀錄：~/.codex/sessions（年/月/日）與 archived_sessions，含壓縮的 .jsonl.zst；
+    檔名有開始時間，新的排前面。同一段對話兩邊都有時只留一份。"""
+    seen, out = set(), []
+    for sub in ("sessions", "archived_sessions"):
+        root = Path(home) / ".codex" / sub
+        if not root.is_dir():
+            continue
+        for p in root.rglob("rollout-*"):
+            if not p.name.endswith((".jsonl", ".jsonl.zst")):
+                continue
+            key = p.name.removesuffix(".zst").removesuffix(".jsonl")
+            if key not in seen:
+                seen.add(key)
+                out.append(p)
+    if since is not None:
+        out = recent(out, since)
+    return sorted(out, key=lambda p: p.name, reverse=True)
+
+
+def open_rollout(path):
+    """開一份 Codex 對話紀錄（二進位、可以逐行讀）。壓縮的而這台沒有 zstd 解碼器：丟 OSError，呼叫端當成讀不到。"""
+    if path.name.endswith(".zst"):
+        if _zstd_open is None:
+            raise OSError(f"沒有 zstd 解碼器，讀不了 {path.name}")
+        return _zstd_open(path, "rb")
+    return path.open("rb")
+
+
 def note(events, agent, name, session, when):
     """記一次用到。session 是 None：只知道最後使用時間（Claude Code 的 skillUsage），算用到，但不算一段對話。"""
     use = events.setdefault(agent, {}).setdefault(name, {"sessions": set(), "last": 0.0})
@@ -135,24 +178,39 @@ def claude_calls(raw):
     return [n.lstrip("/") for n in names if isinstance(n, str) and n.strip("/")], d
 
 
+def claude_session(path):
+    """子代理的紀錄（<對話>/subagents/x.jsonl）歸到它的主對話，不另算一段。"""
+    return path.parent.parent.with_suffix(".jsonl") if path.parent.name == "subagents" else path
+
+
 def claude_events(home, since, events):
+    """回傳 (互動對話數, plugin 累計次數)。entrypoint 是 sdk 開頭的（claude -p、背景程序，例如 claude-mem 的
+    observer、實測腳本）不是使用者在用，呼叫不算、也不算對話數：2026-11-16 這台 896 段裡 536 段是 observer。"""
     root = home / ".claude" / "projects"
     files = recent(root.rglob("*.jsonl"), since) if root.is_dir() else []
+    talks = set()
     for p in files:
         try:
             f = p.open("rb")
         except OSError:
             continue
+        found, background = [], False
         with f:
             for line in f:
+                if b'"entrypoint"' in line and b'"entrypoint":"sdk' in line.replace(b'": "', b'":"'):
+                    background = True
+                    break
                 names, record = claude_calls(line)
                 if not names:
                     continue
                 when = parse_time(record.get("timestamp")) or p.stat().st_mtime
-                if when < since:
-                    continue
-                for name in names:
-                    note(events, "claude-code", name, str(p), when)
+                if when >= since:
+                    found += [(name, when) for name in names]
+        if background:
+            continue
+        talks.add(claude_session(p))
+        for name, when in found:
+            note(events, "claude-code", name, str(claude_session(p)), when)
     try:
         doc = json.loads((home / ".claude.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -161,20 +219,27 @@ def claude_events(home, since, events):
         when = (v.get("lastUsedAt") or 0) / 1000 if isinstance(v, dict) else 0
         if when >= since:
             note(events, "claude-code", name, None, when)
-    return len(files), {k: (v.get("usageCount") or 0) for k, v in (doc.get("pluginUsage") or {}).items()
+    return len(talks), {k: (v.get("usageCount") or 0) for k, v in (doc.get("pluginUsage") or {}).items()
                         if isinstance(v, dict)}
 
 
 def codex_events(home, since, events):
-    root = home / ".codex" / "sessions"
-    files = recent(root.glob("*/*/*/rollout-*.jsonl"), since) if root.is_dir() else []
-    for p in files:
+    """回傳 (讀到的對話數, 讀不到的對話數)。讀不到的不能當成「沒用到」。"""
+    read, unreadable = 0, 0
+    for p in codex_files(home, since):
         try:
-            f = p.open("rb")
+            f = open_rollout(p)
         except OSError:
+            unreadable += 1
             continue
+        read += 1
         with f:
-            for raw in f:
+            try:
+                lines = list(f)
+            except Exception:  # 壓縮檔損毀或還在寫：這一段算讀不到
+                read, unreadable = read - 1, unreadable + 1
+                continue
+            for raw in lines:
                 if b"SKILL.md" not in raw:
                     continue
                 try:
@@ -200,13 +265,13 @@ def codex_events(home, since, events):
                 # plugin 裡的 skill 只算 plugin 用到，免得同名的獨立 skill 被誤判成用到
                 for name in set(SKILL_PATH.findall(PLUGIN_SKILL.sub("", text))):
                     note(events, "codex", name, str(p), when)
-    return len(files)
+    return read, unreadable
 
 
 def skills_block(path, max_lines=60):
     """rollout 開頭給模型的 skill 清單（<skills_instructions> 那段）；找不到回 None。"""
     try:
-        f = path.open("rb")
+        f = open_rollout(path)
     except OSError:
         return None
     with f:
@@ -228,10 +293,7 @@ def skills_block(path, max_lines=60):
 
 def codex_loaded_plugins(home):
     """Codex 最近一次對話實際載入的 plugin skill：{"<plugin>@<marketplace>": {skill 名稱}}。"""
-    root = home / ".codex" / "sessions"
-    if not root.is_dir():
-        return {}
-    for p in sorted(root.glob("*/*/*/rollout-*.jsonl"), reverse=True):  # 路徑含日期與時間，新的排前面
+    for p in codex_files(home):  # 新的排前面
         block = skills_block(p)
         if block is None:
             continue
@@ -310,11 +372,13 @@ def inventory(home, ours, created_at):
         except OSError:
             when = None
         items.append({"kind": "plugin", "name": key, "where": "~/.codex/plugins", "agents": ["codex"],
-                      "match": [key], "skills": len(skills), "installed": when})
+                      "match": [key], "skills": len(skills), "installed": when,
+                      **({"builtin": True} if market in CODEX_BUILTIN_MARKETS else {})})
     return items
 
 
-def judge(item, events, plugin_counts, now, days):
+def judge(item, events, plugin_counts, now, days, blind=()):
+    """blind：紀錄讀不完整的 agent。沒看到用過、而且有一個讀它的 agent 紀錄不完整，就是「查不到」，不是沒用到。"""
     sessions, last, seen = set(), 0.0, False
     for agent in item["agents"]:
         for name, use in (events.get(agent) or {}).items():
@@ -329,9 +393,11 @@ def judge(item, events, plugin_counts, now, days):
         status = "used"  # Claude Code 記的累計次數：用過就不建議移除（Codex 的同名 plugin 不適用）
     elif age is not None and age < days:
         status = "new"
+    elif set(item["agents"]) & set(blind):
+        status = "no-data"
     else:
         status = "unused"
-    out = {k: item[k] for k in ("kind", "name", "where", "agents", "skills", "bundled") if k in item}
+    out = {k: item[k] for k in ("kind", "name", "where", "agents", "skills", "bundled", "builtin") if k in item}
     out.update(status=status, conversations=len(sessions), installed_days=age,
                last_used=datetime.fromtimestamp(last, timezone.utc).astimezone().date().isoformat() if last else None)
     return out
@@ -343,14 +409,17 @@ def collect(home, days=30, now=None, ours=None, created_at=created):
     ours = ours if ours is not None else {p.name for p in (ROOT / "engine" / "skills").iterdir() if p.is_dir()}
     events = {}
     claude_files, plugin_counts = claude_events(home, since, events)
-    sources = {"claude-code": claude_files, "codex": codex_events(home, since, events),
+    codex_read, codex_unreadable = codex_events(home, since, events)
+    sources = {"claude-code": claude_files, "codex": codex_read,
                "antigravity": antigravity_events(home, since, events)}
-    items = [judge(i, events, plugin_counts, now, days) for i in inventory(home, ours, created_at)]
+    unreadable = {"codex": codex_unreadable} if codex_unreadable else {}
+    items = [judge(i, events, plugin_counts, now, days, blind=unreadable) for i in inventory(home, ours, created_at)]
     return {
         "days": days,
         "since": datetime.fromtimestamp(since).date().isoformat(),
         "until": datetime.fromtimestamp(now).date().isoformat(),
         "sources": sources,
+        **({"unreadable": unreadable} if unreadable else {}),
         "items": items,
     }
 
@@ -379,11 +448,14 @@ def report(result, limit=None):
     """Markdown 清單：使用紀錄來源、有用到的、沒用到的（可以考慮移除）、太新先不判斷的。"""
     days, items = result["days"], result["items"]
     used = sorted((i for i in items if i["status"] == "used"), key=lambda i: -i["conversations"])
-    unused = [i for i in items if i["status"] == "unused"]
+    unused = [i for i in items if i["status"] == "unused" and not i.get("builtin")]  # Codex 隨附的不叫人移除
     new = [i for i in items if i["status"] == "new"]
     src = result["sources"]
     lines = [f"- 讀了 {result['since']} ～ {result['until']} 的紀錄：Claude Code {src['claude-code']} 段對話、"
              f"Codex {src['codex']} 段、Antigravity {src['antigravity']} 段"]
+    if (result.get("unreadable") or {}).get("codex"):
+        lines.append(f"- Codex 另有 {result['unreadable']['codex']} 段壓縮的紀錄讀不到（這台沒有 zstd 解碼器），"
+                     "Codex 讀得到的工具這次不判斷有沒有用到")
     top = "、".join(f"{i['name']}（{agents_label(i)}，{i['conversations']} 段）" for i in used[:5] if i["conversations"])
     lines.append(f"- 有用到：{len(used)} 個" + (f"，最常用的是 {top}" if top else ""))
     lines.append(f"- {days} 天沒用到：{len(unused)} 個" + ("，可以考慮移除：" if unused else ""))
@@ -400,6 +472,7 @@ def report(result, limit=None):
 
 
 def selftest():
+    global _zstd_open  # 有一項要模擬「沒有 zstd 解碼器」
     failures = []
 
     def check(label, ok):
@@ -467,6 +540,14 @@ def selftest():
                   "toolUseResult": {"name": "Skill", "input": {"skill": "read-only"}}}),
             skill_call("read-only", 1, kind="api-request-blob"),
         ]) + "\n")
+        # 背景程序與 claude -p（entrypoint sdk-*）呼叫的不算；子代理的呼叫算，但歸到主對話
+        for name in ("bg-only", "sub-used"):
+            skill(".claude/skills", name)
+        put(".claude/projects/obs/o1.jsonl", line({"type": "user", "entrypoint": "sdk-ts", "timestamp": iso(1),
+                                                   "message": {"content": "x"}}) + "\n" + skill_call("bg-only", 1) + "\n")
+        put(".claude/projects/p/a/subagents/agent-1.jsonl", line({"type": "user", "entrypoint": "claude-desktop",
+                                                                  "isSidechain": True, "timestamp": iso(1), "message": {"content": "x"}})
+            + "\n" + skill_call("sub-used", 1) + "\n")
         put(".claude.json", json.dumps({
             "skillUsage": {"graphify": {"usageCount": 2, "lastUsedAt": (now - DAY) * 1000},
                            "caveman": {"usageCount": 3, "lastUsedAt": (now - DAY) * 1000}},
@@ -520,6 +601,15 @@ def selftest():
                 "type": "CommandExecution", "command": ["pwsh.exe", "-Command", "Get-Content -LiteralPath "
                     "'C:\\Users\\u\\.codex\\plugins\\cache\\claude-mem-local\\claude-mem\\15.9.0\\skills\\build\\SKILL.md'"]}}},
         ]) + "\n")
+        # 結束的對話：Codex 壓成 .jsonl.zst，有的在 archived_sessions；讀了 zipped-one
+        for name in ("zipped-one", "zip-unused"):
+            skill(".codex/skills", name)
+        zipped = home / ".codex" / "archived_sessions" / "rollout-2026-11-01T09-00-00-z.jsonl.zst"
+        zipped.parent.mkdir(parents=True, exist_ok=True)
+        if ZSTD:
+            with _zstd_open(zipped, "wb") as zf:
+                zf.write((json.dumps({"timestamp": iso(3), "type": "response_item", "payload": {
+                    "type": "function_call", "arguments": '{"cmd": "cat ~/.codex/skills/zipped-one/SKILL.md"}'}}) + "\n").encode())
 
         db = home / ".gemini" / "antigravity-cli" / "conversations" / "c1.db"
         db.parent.mkdir(parents=True)
@@ -586,7 +676,26 @@ def selftest():
                   "document-skills@anthropic-agent-skills", "ponytail@ponytail", "shared@x"])
         check("摘要：Codex plugin 標出載入幾個 skill",
               "document-skills@anthropic-agent-skills（Codex，~/.codex/plugins，載入 1 個 skill，裝了 60 天）" in "\n".join(report(result)))
-        check("統計來源的對話數", result["sources"] == {"claude-code": 1, "codex": 2, "antigravity": 1})
+        check("Claude：背景程序與 claude -p（entrypoint sdk-*）的呼叫不算；子代理的算、對話數歸到主對話",
+              status("bg-only", "~/.claude/skills") == "unused" and status("sub-used", "~/.claude/skills") == "used"
+              and by[("sub-used", "~/.claude/skills")]["conversations"] == 1)
+        check("統計來源的對話數（Claude 不算背景與子代理；Codex 含 archived_sessions 裡壓縮的）",
+              result["sources"] == {"claude-code": 1, "codex": 3 if ZSTD else 2, "antigravity": 1})
+        check("Codex：壓縮的 .jsonl.zst、archived_sessions 裡的也讀（2026-11-16 這台 209 段只讀到 8 段）",
+              ZSTD and status("zipped-one", "~/.codex/skills") == "used" and status("zip-unused", "~/.codex/skills") == "unused")
+        check("Codex 隨附的 plugin（openai-bundled）標成內建", by[("computer-use@openai-bundled", cx)].get("builtin") is True
+              and "builtin" not in by[("claude-mem@claude-mem-local", cx)])
+        saved, _zstd_open = _zstd_open, None
+        try:
+            blind = collect(home, days=30, now=now, ours={"omnikit-eval"}, created_at=lambda p: now - ages.get(p.name, 60) * DAY)
+        finally:
+            _zstd_open = saved
+        bb = {(i["name"], i["where"]): i for i in blind["items"]}
+        check("Codex：壓縮的讀不了時，Codex 讀得到的工具是「查不到」，不是沒用到；Claude Code 的照常判斷",
+              blind["unreadable"] == {"codex": 1} and bb[("zip-unused", "~/.codex/skills")]["status"] == "no-data"
+              and bb[("okx", "~/.agents/skills")]["status"] == "no-data"
+              and bb[("unused-one", "~/.claude/skills")]["status"] == "unused"
+              and "1 段壓縮的紀錄讀不到" in "\n".join(report(blind)))
         text = json.dumps(result, ensure_ascii=False) + "\n".join(report(result))
         check("不輸出對話內容", "秘密內容" not in text and "Get-Content" not in text)
         lines = report(result, limit=2)

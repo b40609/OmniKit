@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["pyyaml", "jsonschema"]
+# dependencies = ["pyyaml", "jsonschema", "zstandard"]
 #
 # [tool.uv]
 # exclude-newer = "2026-11-01T00:00:00Z"
@@ -64,7 +64,7 @@ def unused_section(result):
     if isinstance(result, Exception):
         return [f"- 未知：讀不到使用紀錄（{result}）"], None
     lines = usage.report(result, limit=15)
-    count = sum(1 for i in result["items"] if i["status"] == "unused")
+    count = sum(1 for i in result["items"] if i["status"] == "unused" and not i.get("builtin"))
     if count:
         lines.append("- 要停用或移除就跟 agent 說；移除是刪除，會先問你。說「先留著」就不再追問，下週還會列出來")
     lines.append(OFFICIAL_UNUSED)

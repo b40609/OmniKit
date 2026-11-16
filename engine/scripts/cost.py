@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.12"
-# dependencies = []
+# dependencies = ["zstandard"]
 # ///
 """成本監測（FR-40 到 FR-44）：給個人週報（weekly.py）用。只讀本機的紀錄與設定，不連網、不花 token。
 
@@ -290,7 +290,7 @@ class Rollout:
 def read_codex(path):
     r = Rollout(path=path)
     try:
-        f = path.open("rb")
+        f = usage.open_rollout(path)
     except OSError:
         return None
     with f:
@@ -311,9 +311,7 @@ def read_codex(path):
 
 
 def codex_rollouts(home, now):
-    root = home / ".codex" / "sessions"
-    files = usage.recent(root.glob("*/*/*/rollout-*.jsonl"), now - SCAN_DAYS * DAY) if root.is_dir() else []
-    return [r for p in files if (r := read_codex(p))]
+    return [r for p in usage.codex_files(home, now - SCAN_DAYS * DAY) if (r := read_codex(p))]
 
 
 def codex_parts(rollouts):
