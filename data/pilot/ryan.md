@@ -15,4 +15,5 @@
   6. **已修**：「拿掉」的依據之一是「同一件事名冊記了內建功能」，但內建功能沒實測過也算，graphify 因此被建議刪掉。使用者：「還沒實際比過就不能叫用戶拿掉，證據不夠」。現在只認實測過夠用的內建功能；graphify 與 document-skills 都不再列。agent 挑選時也犯了同樣的錯（理由寫了「內建夠不夠還沒實測」卻照樣挑）。
   7. 使用者要求實測 graphify：第 2 層（`data/evals/2026-11-16-code-understanding-C1C2.md`）結果是內建在兩個真實情境都不輸，graphify、Floorplan 裝著也 12 次沒被叫用。槽位答案改成內建（實測過），之後拿掉 graphify 的建議才有證據。順帶修了 `dispatch.py agy` 長說明放參數會讓呼叫端靜默結束的問題。
   8. **待修**：實測沒隔離設定資料夾，graphify 被算成今天用過，30 天內不會出現在拿掉。要不要拿掉由使用者看實測紀錄直接決定。實測腳本之後要用獨立的 `CLAUDE_CONFIG_DIR`。
+- 體檢（使用者：「都要一邊改才會發現缺口」）：主動找「說的比證據多」的地方，70 項，已修 18 項（A 級 10 項），見 `docs/reviews/2026-11-16-claims-audit.md`。同事試點等安裝與移除的 A 級修完。
 - 指標 2：採納 1 項。使用者看完實測決定拿掉 graphify：Claude 端的 skill（`~/.claude/skills/graphify`）移到 `%LOCALAPPDATA%\omnikit\backup\2026-11-16-graphify-claude-skill`，要換回就移回原處。Codex 端的 skill 與 `graphify` CLI（`~/.local/bin`）沒動，這次實測只測 Claude Code。
