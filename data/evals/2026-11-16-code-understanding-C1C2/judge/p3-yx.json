@@ -1,0 +1,17 @@
+{
+ "pair": "p3",
+ "order": "yx",
+ "A": "native-C2-1",
+ "B": "floorplan-forced-C2-1",
+ "ok": true,
+ "verdict": {
+  "winner": "B",
+  "a_checked": 20,
+  "a_wrong": 9,
+  "b_checked": 20,
+  "b_wrong": 6,
+  "reason": "兩者流程完整度與風險洞察相當，但 B 的檔案行號引用更貼近實碼，未出現 A 將 48 行的 constants.py 與 99 行的 models.py 誤引至 284-402 行的嚴重超界錯位。"
+ },
+ "thinking_tokens": 51656,
+ "seconds": 399
+}

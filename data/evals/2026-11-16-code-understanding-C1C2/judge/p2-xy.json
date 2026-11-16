@@ -1,0 +1,17 @@
+{
+ "pair": "p2",
+ "order": "xy",
+ "A": "graphify-forced-C2-3",
+ "B": "native-C2-3",
+ "ok": true,
+ "verdict": {
+  "winner": "B",
+  "a_checked": 18,
+  "a_wrong": 11,
+  "b_checked": 18,
+  "b_wrong": 1,
+  "reason": "B 完整涵蓋五大流程且風險分析有根據，18 處引用核對僅 1 處偏移 2 行；A 則在 18 處中有 11 處嚴重行號錯誤，多次出現遠超檔案實際長度的幽靈行號。"
+ },
+ "thinking_tokens": 23109,
+ "seconds": 251
+}

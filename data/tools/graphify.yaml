@@ -10,5 +10,5 @@ works_with:
 - codex
 sources:
 - 桌機盤點
-notes: 用 tree-sitter 把程式碼和文件建成知識圖譜，agent 改查圖譜。舊桌機兩邊都裝，舊規則有專節；Codex 端要開 multi_agent。
+notes: '用 tree-sitter 把程式碼和文件建成知識圖譜，agent 改查圖譜。舊桌機兩邊都裝，舊規則有專節；Codex 端要開 multi_agent。第 2 層（2026-11-16，data/evals/2026-11-16-code-understanding-C1C2.md，Claude Code、Sonnet 5.5 medium）：程式碼圖用 `graphify update` 只靠 AST 建，35 秒、不花 token，`graphify explain` 查得到函式層級的呼叫關係。但裝著、圖也建好，C1、C2 共 6 次都沒被叫用（模型自己選 Grep）；明講要用時 C1 一樣找齊但花費 2 倍，C2 對內建淨勝 0.33，低於雜訊 0.67。判「沒用到」，維持待評估；大型或跨 repo 的程式碼還沒測。'
 added: '2026-11-04'

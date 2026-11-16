@@ -1,0 +1,17 @@
+{
+ "pair": "p1",
+ "order": "xy",
+ "A": "graphify-forced-C2-2",
+ "B": "native-C2-2",
+ "ok": true,
+ "verdict": {
+  "winner": "A",
+  "a_checked": 10,
+  "a_wrong": 0,
+  "b_checked": 10,
+  "b_wrong": 1,
+  "reason": "兩份皆涵蓋完整流程且風險分析有據，但 B 錯誤斷言 requires_model() 為 False 仍會經過 server.py:844-862 檢查，依正確性優先原則由零錯誤的 A 勝出。"
+ },
+ "thinking_tokens": 28153,
+ "seconds": 180
+}

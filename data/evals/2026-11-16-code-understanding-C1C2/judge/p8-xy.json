@@ -1,0 +1,17 @@
+{
+ "pair": "p8",
+ "order": "xy",
+ "A": "native-C2-1",
+ "B": "native-C2-3",
+ "ok": true,
+ "verdict": {
+  "winner": "B",
+  "a_checked": 10,
+  "a_wrong": 6,
+  "b_checked": 10,
+  "b_wrong": 1,
+  "reason": "回答B的檔案與行號引用幾乎完全準確且五大流程更完整，而回答A出現多處超出檔案總行數的錯誤行號與常數行號錯位。"
+ },
+ "thinking_tokens": 23219,
+ "seconds": 233
+}

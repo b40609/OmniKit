@@ -443,9 +443,20 @@ def agy_path_note():
             + "；".join(f"{n} = {p}" for n, p in found.items()) + "）")
 
 
-def agy_command(exe, brief, model, timeout_s, log_file=None):
+AGY_INLINE_MAX = 4000  # 超過就寫成檔案，參數只放指標
+
+
+def agy_command(exe, brief, model, timeout_s, log_file=None, spill_dir=None):
+    """長說明寫成檔案、參數只放「讀這個檔照做」：2026-11-16 評審時，約 1.7 萬字的說明放在參數裡，
+    有兩份每次都讓呼叫端在 1 秒內靜默結束（結束碼 0、沒有任何輸出），改成檔案指標就正常。"""
+    if len(brief) > AGY_INLINE_MAX:
+        folder = Path(spill_dir or tempfile.gettempdir()) / "omnikit-agy"
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / f"brief-{int(time.time() * 1000)}-{os.getpid()}.md"
+        path.write_text(brief, encoding="utf-8")
+        brief = f"完整的任務說明在這個檔案：{path}\n先讀它，完全照裡面的指示做；最後的回覆格式也照它寫的。"
     if len(brief) > AGY_MAX_BRIEF:
-        raise SystemExit(f"任務說明 {len(brief)} 字元，超過 {AGY_MAX_BRIEF}；改寫成檔案，說明裡只寫路徑")
+        raise SystemExit(f"任務說明 {len(brief)} 字元，超過 {AGY_MAX_BRIEF}")
     cmd = [exe, "-p", AGY_GUARD + brief, "--model", model, "--output-format", "json", "--print-timeout", f"{timeout_s}s",
            "--dangerously-skip-permissions"]
     return cmd + (["--log-file", str(log_file)] if log_file else [])
@@ -660,8 +671,14 @@ def selftest():
     cmd = agy_command("agy", "任務", "gemini-4-hydrogen-high", 600, "x.log")
     ok("agy：指令帶模型代號、JSON 輸出、逾時、log 與略過權限；任務說明前面加硬性限制；不帶 --mode（accept-edits 會擋掉終端機指令）",
        cmd[:2] == ["agy", "-p"] and cmd[2] == AGY_GUARD + "任務" and "gemini-4-hydrogen-high" in cmd and "json" in cmd
-       and "600s" in cmd and "--dangerously-skip-permissions" in cmd and "--mode" not in cmd and cmd[-1] == "x.log"
-       and fails(lambda: agy_command("agy", "x" * (AGY_MAX_BRIEF + 1), "m", 1)))
+       and "600s" in cmd and "--dangerously-skip-permissions" in cmd and "--mode" not in cmd and cmd[-1] == "x.log")
+    with tempfile.TemporaryDirectory() as tmp:
+        long_cmd = agy_command("agy", "長說明" * 3000, "m", 1, spill_dir=tmp)
+        spilled = list((Path(tmp) / "omnikit-agy").glob("brief-*.md"))
+        ok("agy：長說明寫成檔案，參數只放指標與硬性限制（長參數曾讓呼叫端靜默結束）",
+           len(long_cmd[2]) < AGY_INLINE_MAX + len(AGY_GUARD) and long_cmd[2].startswith(AGY_GUARD)
+           and len(spilled) == 1 and spilled[0].read_text(encoding="utf-8") == "長說明" * 3000
+           and str(spilled[0]) in long_cmd[2])
     good = agy_result('{"conversation_id":"c1","status":"SUCCESS","response":"完成\\n","duration_seconds":14.2,'
                       '"usage":{"thinking_tokens":358,"total_tokens":23514}}')
     denied = agy_result('{"conversation_id":"c2","status":"SUCCESS","response":"","denied_actions":[{"action":"command",'

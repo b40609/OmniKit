@@ -1,0 +1,17 @@
+{
+ "pair": "p0",
+ "order": "xy",
+ "A": "graphify-forced-C2-1",
+ "B": "native-C2-1",
+ "ok": true,
+ "verdict": {
+  "winner": "A",
+  "a_checked": 14,
+  "a_wrong": 3,
+  "b_checked": 14,
+  "b_wrong": 7,
+  "reason": "兩份皆涵蓋五個面向且 B 的風險洞察較深，但 B 在 clink/constants.py 與 clink/models.py 出現大量遠超檔案總行數的不存在行號與行號錯置（抽檢 14 處錯 7 處），整體引用正確性與可驗證性由 A（抽檢 14 處錯 3 處，含一處誤判 events 僅在截斷時移除）勝出。"
+ },
+ "thinking_tokens": 46441,
+ "seconds": 320
+}

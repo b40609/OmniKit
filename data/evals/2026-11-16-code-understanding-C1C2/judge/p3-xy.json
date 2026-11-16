@@ -1,0 +1,17 @@
+{
+ "pair": "p3",
+ "order": "xy",
+ "A": "floorplan-forced-C2-1",
+ "B": "native-C2-1",
+ "ok": true,
+ "verdict": {
+  "winner": "tie",
+  "a_checked": 16,
+  "a_wrong": 5,
+  "b_checked": 16,
+  "b_wrong": 6,
+  "reason": "A 行號誤差多屬局部截斷或小偏移並抓出 prepare_prompt 空值 bug，但技術完整度較淺且有 5 處定位失誤；B 流程完整、多數核心檔案精準且風險分析深入，但 constants.py 與 models.py 行號全數嚴重錯位越界，雙方綜合表現平手。"
+ },
+ "thinking_tokens": 56393,
+ "seconds": 425
+}

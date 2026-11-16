@@ -1,0 +1,16 @@
+{
+ "pair": "p6",
+ "order": "yx",
+ "A": "native-C2-2",
+ "B": "native-C2-1",
+ "ok": true,
+ "verdict": {
+  "winner": "A",
+  "a_checked": 16,
+  "a_wrong": 1,
+  "b_checked": 16,
+  "b_wrong": 6,
+  "reason": "（理由文字在背景工作輸出時編碼毀損；數字與勝負可讀）"
+ },
+ "via": "pointer-file"
+}

@@ -11,7 +11,7 @@
 - [ ] behavior-rules：（無現任）對 ecc、ponytail（客觀）
 - [ ] output-compression：（無現任）對 rtk（客觀，短）
 - [ ] tool-discovery：（無現任）對 mcp-registry（客觀，短）
-- [ ] code-understanding：native-search 對 graphify、claude-lsp、deepwiki-open（客觀，短）
+- [ ] code-understanding：native-search 對 claude-lsp、deepwiki-open（客觀，短；graphify 與 Floorplan 2026-11-16 已測，見 data/evals/2026-11-16-code-understanding-C1C2.md）
 - [ ] browser：chrome-devtools-mcp 對 agent-browser、playwright-mcp（客觀，短）
 - [ ] dev-workflow：bmad 對 compound-engineering 等 7 個（客觀，重；單組就超過每週額度，要先決定只跑一個 agent 或減少次數）
 - [ ] memory：native-memory 對 ce-handoff、claude-mem、planning-with-files（客觀，重；同上）

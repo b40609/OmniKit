@@ -1,0 +1,17 @@
+{
+ "pair": "p4",
+ "order": "yx",
+ "A": "native-C2-2",
+ "B": "floorplan-forced-C2-2",
+ "ok": true,
+ "verdict": {
+  "winner": "B",
+  "a_checked": 10,
+  "a_wrong": 2,
+  "b_checked": 10,
+  "b_wrong": 1,
+  "reason": "B 的流程與引用幾近全對且誠實標註推論；A 誤判 server.py 控制流（錯認 requires_model() 為 False 仍會走進 844-862 檢查）並誤引截斷後 status。"
+ },
+ "thinking_tokens": 31243,
+ "seconds": 208
+}

@@ -1,0 +1,17 @@
+{
+ "pair": "p4",
+ "order": "xy",
+ "A": "floorplan-forced-C2-2",
+ "B": "native-C2-2",
+ "ok": true,
+ "verdict": {
+  "winner": "A",
+  "a_checked": 12,
+  "a_wrong": 1,
+  "b_checked": 12,
+  "b_wrong": 2,
+  "reason": "兩份皆具紮實風險根據且 B 的風險洞見更深，但 A 在整體正確性（最重要的標準）與五大流程完整度上明顯較佳，B 則出現誤讀 server.py:807-810 提早返回而錯稱 clink 仍經過 844-862 檢查的重大控制流錯誤。"
+ },
+ "thinking_tokens": 39401,
+ "seconds": 314
+}

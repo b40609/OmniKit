@@ -1,0 +1,17 @@
+{
+ "pair": "p5",
+ "order": "xy",
+ "A": "floorplan-forced-C2-3",
+ "B": "native-C2-3",
+ "ok": true,
+ "verdict": {
+  "winner": "B",
+  "a_checked": 10,
+  "a_wrong": 2,
+  "b_checked": 10,
+  "b_wrong": 2,
+  "reason": "B在端到端請求生命週期覆蓋更完整，風險分析具高度安全與底層洞見（如環境變數外洩、進程樹與stream limit盲點），且行號錯位比A輕微。"
+ },
+ "thinking_tokens": 38903,
+ "seconds": 384
+}

@@ -1,0 +1,17 @@
+{
+ "pair": "p5",
+ "order": "yx",
+ "A": "native-C2-3",
+ "B": "floorplan-forced-C2-3",
+ "ok": true,
+ "verdict": {
+  "winner": "A",
+  "a_checked": 10,
+  "a_wrong": 1,
+  "b_checked": 10,
+  "b_wrong": 1,
+  "reason": "A 涵蓋 server.py 入口到 ToolOutput 的完整鏈路且點出 os.environ.copy() 外洩金鑰等核心風險（僅 limit= 行號差 2 行），B 漏掉入口鏈與金鑰外洩且將 Codex 壞行 continue 錯引為 parsers/codex.py:37-41。"
+ },
+ "thinking_tokens": 37020,
+ "seconds": 363
+}

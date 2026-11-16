@@ -1,0 +1,17 @@
+{
+ "pair": "p0",
+ "order": "yx",
+ "A": "native-C2-1",
+ "B": "graphify-forced-C2-1",
+ "ok": true,
+ "verdict": {
+  "winner": "B",
+  "a_checked": 14,
+  "a_wrong": 5,
+  "b_checked": 14,
+  "b_wrong": 3,
+  "reason": "B 的檔案與行號幾乎全部對應實際原始碼且抓出 images 空殼參數，僅誤判正常路徑未移除 events 及多列未達到的 server.py:865；A 雖風險分析較深，但對 constants.py 與 models.py 的行號引用全部錯誤（多處超出檔案總行數）。"
+ },
+ "thinking_tokens": 45567,
+ "seconds": 374
+}

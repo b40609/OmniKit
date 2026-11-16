@@ -42,8 +42,10 @@ slots:
     search: [code search mcp, lsp plugin, code graph, codebase index]
     answers:
       claude:
-        verdict: unknown
-        reason: '內建的 grep、glob 搜尋。'
+        verdict: native
+        reason: '第 2 層實測（2026-11-16，Sonnet 5.5 medium 各 3 次）：內建的 Grep、Read 在 C1（OmniKeep 找呼叫者與影響範圍）每次都找齊；C2（深讀 pal-mcp-server 寫附行號筆記）graphify、Floorplan 明講要用也沒有贏過雜訊。兩個工具裝著時 12 次都沒被叫用。只測了這兩個情境與中型 repo，LSP、CodeGraph、Serena 還沒測。'
+        evidence: data/evals/2026-11-16-code-understanding-C1C2.md
+        decided_at: '2026-11-16'
       codex:
         verdict: unknown
         reason: '內建的 grep、glob 搜尋。'

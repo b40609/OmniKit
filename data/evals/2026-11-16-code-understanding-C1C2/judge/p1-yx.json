@@ -1,0 +1,17 @@
+{
+ "pair": "p1",
+ "order": "yx",
+ "A": "native-C2-2",
+ "B": "graphify-forced-C2-2",
+ "ok": true,
+ "verdict": {
+  "winner": "B",
+  "a_checked": 12,
+  "a_wrong": 1,
+  "b_checked": 12,
+  "b_wrong": 0,
+  "reason": "B 抽檢 12 處全部正確且五面向流程與 parser 細節更完整，A 則在 server.py:844-862 誤判了 requires_model() 為 False 時其實會於 807-810 行提早返回而跳過該檢查。"
+ },
+ "thinking_tokens": 28993,
+ "seconds": 244
+}

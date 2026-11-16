@@ -1,0 +1,17 @@
+{
+ "pair": "p2",
+ "order": "yx",
+ "A": "native-C2-3",
+ "B": "graphify-forced-C2-3",
+ "ok": true,
+ "verdict": {
+  "winner": "A",
+  "a_checked": 16,
+  "a_wrong": 1,
+  "b_checked": 16,
+  "b_wrong": 11,
+  "reason": "A 完整涵蓋請求到回傳的五個面向且 16 處抽查僅 1 處偏差 2 行，B 在 parsers、constants 與 agents 出現 11 處嚴重錯誤或超出行數的幻覺行號。"
+ },
+ "thinking_tokens": 34424,
+ "seconds": 219
+}

@@ -1,0 +1,17 @@
+{
+ "pair": "p7",
+ "order": "yx",
+ "A": "native-C2-3",
+ "B": "native-C2-2",
+ "ok": true,
+ "verdict": {
+  "winner": "A",
+  "a_checked": 12,
+  "a_wrong": 1,
+  "b_checked": 12,
+  "b_wrong": 4,
+  "reason": "兩者流程皆完整且各有獨到風險洞見，但回答 A 準確掌握 requires_model() 提早 return 與設定載入行為，回答 B 則誤判了 server.py:844-862 控制流及 JSON 損壞導致伺服器啟動失敗等關鍵事實。"
+ },
+ "thinking_tokens": 37070,
+ "seconds": 322
+}

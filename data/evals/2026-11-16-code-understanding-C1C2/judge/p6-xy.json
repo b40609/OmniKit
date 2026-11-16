@@ -1,0 +1,17 @@
+{
+ "pair": "p6",
+ "order": "xy",
+ "A": "native-C2-1",
+ "B": "native-C2-2",
+ "ok": true,
+ "verdict": {
+  "winner": "tie",
+  "a_checked": 16,
+  "a_wrong": 6,
+  "b_checked": 16,
+  "b_wrong": 1,
+  "reason": "A 的流程邏輯與解析細節完整正確且抓到 raw 繞過字數上限，但 constants.py 與 models.py 多處行號錯位甚至超出檔案總行數；B 的行號精準且風險盤點更廣，卻誤讀 server.py:807-810 提前 return 而錯判請求仍經 844-862 模型與檔案大小檢查，兩者各有一項重大硬傷難分高下。"
+ },
+ "thinking_tokens": 50182,
+ "seconds": 446
+}
