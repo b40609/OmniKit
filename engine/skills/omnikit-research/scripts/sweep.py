@@ -51,7 +51,8 @@ REGISTRY = "https://registry.modelcontextprotocol.io/v0/servers"
 SKILLS = "https://skills.sh/api/search"
 SKILLS_GAP = 3
 STOP_WORDS = {"mcp", "skill", "skills", "plugin", "plugins", "agent", "agents", "claude", "codex", "tool", "tools",
-              "server", "servers", "ai", "for", "the", "and", "with", "llm", "cli", "a", "an", "to", "of"}
+              "server", "servers", "ai", "for", "the", "and", "with", "llm", "cli", "a", "an", "to", "of", "from",
+              "in", "on", "by", "into", "using", "your", "any"}
 REPO = re.compile(r"github\.com/([A-Za-z0-9-]+)/([A-Za-z0-9_.-]+)")
 NOT_REPO_OWNERS = {"orgs", "topics", "sponsors", "features", "marketplace", "apps", "settings", "about", "login",
                    "collections", "search", "site", "pricing", "enterprise", "users", "user-attachments"}
@@ -98,8 +99,9 @@ def save(path, ledger):
     p.write_text(json.dumps(ledger, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
-def record(ledger, group, channel, names, error=None):
-    """一個管道的結果記進一組（同一組可以分好幾次記）。error 不是 None 就是「查不到」。"""
+def record(ledger, group, channel, names, error=None, hits=None):
+    """一個管道的結果記進一組（同一組可以分好幾次記）。names 是判斷過、跟題目相關的工具名；
+    hits 是這個管道回了幾筆原始結果（程式管道只記這個，雜訊不算名字）。error 不是 None 就是「查不到」。"""
     g = next((x for x in ledger["groups"] if x["group"] == group), None)
     if g is None:
         g = {"group": group, "channels": {}}
@@ -110,6 +112,8 @@ def record(ledger, group, channel, names, error=None):
             c["names"].append(n)
     if error:
         c["errors"].append(error)
+    if hits is not None:
+        c["hits"] = c.get("hits", 0) + hits
     return g
 
 
@@ -131,7 +135,7 @@ def status(ledger):
             if k and not seen_before(k, keys, shorts):
                 keys.add(k)
                 shorts.add(short(k))
-        failed = sorted(ch for ch, c in g["channels"].items() if c["errors"] and not c["names"])
+        failed = sorted(ch for ch, c in g["channels"].items() if c["errors"] and not c["names"] and not c.get("hits"))
         missing = [ch for ch in SCRIPT_CHANNELS if ch not in g["channels"]]
         if not any(ch in g["channels"] for ch in WEB):
             missing.append("web-zh 或 web-en")
@@ -160,17 +164,21 @@ def gh_json(args):
     return json.loads(out.stdout or "null")
 
 
+MAX_TOPICS = 5
+
+
 def topics_of(keyword):
-    """關鍵字 → GitHub topic：拿掉通用字後空白換 -；中文關鍵字沒有 topic。"""
+    """關鍵字 → GitHub topic：整串、拿掉通用字後的整串，再加相鄰兩個字（architecture-diagram 這種最常見的
+    topic 長這樣）；空白換 -，最多 MAX_TOPICS 個。中文關鍵字沒有 topic。"""
     words = [w for w in re.findall(r"[a-z0-9]+", keyword.lower())]
     core = [w for w in words if w not in STOP_WORDS]
+    cands = [words, core] + ([core[i:i + 2] for i in range(len(core) - 1)] if len(core) >= 3 else [])
     out = []
-    for ws in (words, core):
-        if ws and len("-".join(ws)) >= 3:
-            t = "-".join(ws)
-            if t not in out:
-                out.append(t)
-    return out
+    for ws in cands:
+        t = "-".join(ws)
+        if ws and len(t) >= 3 and t not in out:
+            out.append(t)
+    return out[:MAX_TOPICS]
 
 
 def term_of(keyword):
@@ -197,12 +205,14 @@ def ch_github_topic(keyword, limit, gh, extra_topics=()):
 
 
 def ch_github_keyword(keyword, limit, gh):
-    return repo_rows(gh(["search", "repos", keyword, "--sort", "stars", "--limit", str(limit), "--json", GH_FIELDS])), []
+    # 一個參數帶空白，gh 會當成整句精確比對（實測「codebase diagram generator」0 筆）；拆成字是每個字都要中
+    words = keyword.split()
+    return repo_rows(gh(["search", "repos", *words, "--sort", "stars", "--limit", str(limit), "--json", GH_FIELDS])), []
 
 
 def ch_awesome(keyword, limit, gh):
-    term = term_of(keyword) or keyword
-    rows = repo_rows(gh(["search", "repos", f"awesome {term}", "--sort", "stars", "--limit", str(min(limit, 5)),
+    words = (term_of(keyword) or keyword).split()[:3]
+    rows = repo_rows(gh(["search", "repos", "awesome", *words, "--sort", "stars", "--limit", str(min(limit, 5)),
                          "--json", GH_FIELDS]))
     return rows, ["awesome 清單本身不是候選；挑相關的用 related 抽條目"]
 
@@ -349,6 +359,7 @@ def print_status(st):
             line += f"；沒查的管道：{', '.join(g['missing'])}（這組不算完成）"
         if g["failed"]:
             line += f"；查不到：{', '.join(g['failed'])}"
+        line += "；管道：" + ", ".join(g["channels"])
         print(line)
         if g["new"]:
             print("  新：" + ", ".join(g["new"][:30]) + (" …" if len(g["new"]) > 30 else ""))
@@ -390,8 +401,9 @@ def main(argv=None):
         res = run_channels(args.keyword, args.limit, args.topic)
         ledger = load(args.ledger)
         for ch, out in res.items():
-            record(ledger, args.keyword, ch, [x["name"] for x in out["rows"] if not x.get("lead") and ch != "awesome"],
-                   out["error"])
+            # 只記查過、回了幾筆；原始結果雜訊多（npm 查 generator 會回 is-generator-function），
+            # 相關的工具名由 agent 判斷後用 add 記，停止條件只算那些
+            record(ledger, args.keyword, ch, [], out["error"], hits=len(out["rows"]))
         save(args.ledger, ledger)
         if args.json:
             print(json.dumps(res, ensure_ascii=False, indent=1))
@@ -402,7 +414,8 @@ def main(argv=None):
                 for x in out["rows"]:
                     print("- " + fmt_row(x))
             print()
-            print_status(status(ledger))
+            print(f"上面是原始結果。跟題目相關的工具名用 add 記進「{args.keyword}」這組（--channel 寫在哪個管道看到的），"
+                  "停止條件只算 add 記的名字。")
         return 0
     if args.cmd == "add":
         ledger = load(args.ledger)
@@ -450,6 +463,13 @@ def selftest():
     check("不同名字算新", not seen_before("codeflow", {"tt-a1i/archify"}, {"archify"}))
     check("topic 拿掉通用字", topics_of("architecture diagram agent skill") == ["architecture-diagram-agent-skill",
                                                                                 "architecture-diagram"])
+    check("topic 加相鄰兩個字、最多 5 個",
+          topics_of("agent skill architecture diagram from codebase")
+          == ["agent-skill-architecture-diagram-from-codebase", "architecture-diagram-codebase",
+              "architecture-diagram", "diagram-codebase"])
+    seen_args = []
+    ch_github_keyword("codebase diagram generator", 5, lambda a: seen_args.append(a) or [])
+    check("GitHub 關鍵字拆成字送（不是整句）", seen_args[0][2:5] == ["codebase", "diagram", "generator"])
     check("中文關鍵字沒有 topic", topics_of("架構圖 工具") == [])
 
     led = {"groups": []}
@@ -482,6 +502,13 @@ def selftest():
     for ch in SCRIPT_CHANNELS:
         record(led2, "only-script", ch, [])
     check("一組沒做任何網頁搜尋不算完成", status(led2)["groups"][0]["missing"] == ["web-zh 或 web-en"])
+    led3 = {"groups": []}
+    record(led3, "k", "npm", [], None, hits=20)          # 程式管道只記筆數，雜訊不算名字
+    record(led3, "k", "npm", ["x/real-tool"])            # agent 判斷相關的才記名字
+    record(led3, "k", "hn", [], "URLError", hits=0)
+    st3 = status(led3)["groups"][0]
+    check("原始筆數不算名字、只算 add 的", st3["names"] == 1 and led3["groups"][0]["channels"]["npm"]["hits"] == 20)
+    check("有錯誤又 0 筆才算查不到", st3["failed"] == ["hn"])
 
     def fake_gh(args):
         if args[:2] == ["search", "repos"]:

@@ -30,11 +30,12 @@ description: 飽和式調研：查業界或開源做法、找同類工具、比�
    ```
    uv run scripts/sweep.py channels "<關鍵字>" --ledger <帳本>
    ```
-   再用網頁搜尋查同一組（中文組查中文、英文組查英文），把看到的工具名記進同一組：
+   它只記「哪些管道查過、各回幾筆」；原始結果雜訊多（npm 查 generator 會回 `is-generator-function`），所以**跟題目相關的工具名由你判斷後記進同一組**，停止條件只算這些。再用網頁搜尋查同一組（中文組查中文、英文組查英文），一樣記：
    ```
+   uv run scripts/sweep.py add <帳本> --group "<關鍵字>" --channel github-topic --names <owner/repo>...
    uv run scripts/sweep.py add <帳本> --group "<關鍵字>" --channel web-en --names <名字或 owner/repo>...
    ```
-   查不到的管道也要記：`--channel producthunt --error "<原因>"`。
+   查不到的管道也要記：`--channel producthunt --error "<原因>"`。判斷標準寫進報告（例如「能把 repo 畫成圖的工具才算，純圖表函式庫不算」）。
 4. **擴展**：下一組從結果裡的新詞挑：工具自稱的說法、結果裡的 GitHub topic、README 與 HN 標題的用語、競品比較表裡的名詞。挑過的詞記在報告裡。
 5. **停止**：`uv run scripts/sweep.py status <帳本>` 印「可以停」才停：連續 3 組沒有新名字（每組該查的管道都查了才算），而且整次的中英文網頁、Product Hunt、related 都查過。缺什麼它會列出來。
 6. **實測**：要寫進報告的 repo，用 `uv run scripts/sweep.py verify <owner/repo>...` 查星數、授權、是否封存、最後 push，附查詢日期。不要抄 README 或網頁上的星數。
