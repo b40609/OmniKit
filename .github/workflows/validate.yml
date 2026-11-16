@@ -48,6 +48,8 @@ jobs:
       - run: uv run engine/scripts/dispatch.py --selftest
       - run: uv run engine/scripts/dispatch.py check
       - run: uv run engine/skills/omnikit-dispatch/scripts/run.py show > /dev/null
+      # 飽和式調研：帳本、停止條件、各管道的解析（假的 gh 與網路）
+      - run: uv run engine/skills/omnikit-research/scripts/sweep.py --selftest
       # 接上三個 agent（規則、skills、MCP，以及從舊版 skillshare 接手）的自我測試
       - run: uv run engine/scripts/agents.py --selftest
       # 每週彙整用的使用統計：只算實際讀取或呼叫，不算對話開頭的 skill 清單
