@@ -1,0 +1,264 @@
+{
+ "created": "2026-11-16",
+ "groups": [
+  {
+   "group": "repo visualization tool",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "mohamedsci/project-structure-tree-generator"
+     ],
+     "errors": [],
+     "hits": 6
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 15
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "fadhlirahim/codebase-map"
+     ],
+     "errors": [],
+     "hits": 15
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 15
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 15
+    },
+    "hn": {
+     "names": [
+      "Paradigm"
+     ],
+     "errors": [],
+     "hits": 15
+    },
+    "web-en": {
+     "names": [
+      "coder-ralph/repotree",
+      "madhurjindal/github-repo-visualizer",
+      "MapMyRepo",
+      "githubocto/repo-visualizer",
+      "visualize-repo",
+      "StructViz",
+      "GitProbe",
+      "Graphify"
+     ],
+     "errors": []
+    },
+    "exa": {
+     "names": [
+      "Gitvize",
+      "Visual Anything",
+      "ahmedkhaleel2004/gitdiagram",
+      "Grappl",
+      "corvidlabs/fledge-plugin-atlas",
+      "RepoGraph",
+      "gitcgr",
+      "RepoSense",
+      "GitScope"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "codebase diagram generator",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "ahmedkhaleel2004/gitdiagram",
+      "jfeliu007/goplantuml"
+     ],
+     "errors": [],
+     "hits": 15
+    },
+    "github-keyword": {
+     "names": [
+      "arrufat/meduza",
+      "bb-boy680/open-zread",
+      "amz34/archmap",
+      "helloiamlee/repomap",
+      "arthurmgraf/claude-diagram-generator",
+      "techdeveloper-org/mcp-uml-diagram",
+      "yusufguzeldere/codebase-architect-agent"
+     ],
+     "errors": [],
+     "hits": 15
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 14
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 15
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 15
+    },
+    "hn": {
+     "names": [
+      "bkryza/clang-uml",
+      "tensorush/meduza",
+      "Eraser",
+      "CodeViz",
+      "Composer",
+      "codeboarding/codeboarding",
+      "smeghead/php-class-diagram",
+      "Auto Wiki",
+      "JigsawML"
+     ],
+     "errors": [],
+     "hits": 15
+    },
+    "web-en": {
+     "names": [
+      "vedantparmar12/document-automation",
+      "Eraser",
+      "tensorush/meduza",
+      "codetwin",
+      "repoarch",
+      "pjaerr/code-flow-extension",
+      "diagram-gen",
+      "diagramgen",
+      "zebbern/claude-code-guide",
+      "codeboarding/codeboarding",
+      "arkit",
+      "swark-io/swark",
+      "Architecture Diagram Generator (mcpmarket)",
+      "Software Ideas Modeler",
+      "seandearnaley/code-diagram-generator",
+      "excalidraw-diagram-generator",
+      "sopaco/smart-docs",
+      "mikegazzaruso/codemap",
+      "Vxplain"
+     ],
+     "errors": []
+    },
+    "exa": {
+     "names": [
+      "DataDef",
+      "ArchToCode",
+      "Codesplain",
+      "Codebase Mermaid Generator",
+      "ahmedkhaleel2004/gitdiagram",
+      "Atomic Viz",
+      "CodeArchy",
+      "sudokatie/cartographer",
+      "Code2Graph",
+      "Taskade code to architecture diagram"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "agent skill architecture diagram from codebase",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "tt-a1i/archify",
+      "ahmedkhaleel2004/gitdiagram",
+      "agents365-ai/drawio-skill",
+      "sverweij/dependency-cruiser",
+      "haydenschmitty/floorplan",
+      "patrickchugh/terravision",
+      "aryanutkarsh/seecode",
+      "lazypay/archscribe"
+     ],
+     "errors": [],
+     "hits": 15
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 2
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "inkboard/system-atlas",
+      "shibainu0817/draw-c4-skill",
+      "dp-archive/archive",
+      "zebbern/claude-code-guide"
+     ],
+     "errors": [],
+     "hits": 15
+    },
+    "npm": {
+     "names": [
+      "@archme/cli"
+     ],
+     "errors": [],
+     "hits": 15
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 13
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 2
+    },
+    "web-en": {
+     "names": [
+      "thomasgauvin/codebase-architecture-analysis",
+      "agentera/agently",
+      "athola/claude-night-market",
+      "tt-a1i/archify",
+      "donbr/skills",
+      "oimiragieo/agent-studio",
+      "mgiovani/cc-arsenal",
+      "imperialautomation/claude-code-toolkit",
+      "dp-archive/archive"
+     ],
+     "errors": []
+    },
+    "exa": {
+     "names": [
+      "lewes2/archpresent",
+      "nedeadinside/likec4-skill",
+      "jatinbhargava/repo-architecture-skill",
+      "shibainu0817/draw-c4-skill",
+      "ccalita/graphviz-dive",
+      "yaambe/synopsis",
+      "konraddzbik/architecture-diagram-skill",
+      "beadnall/codemap",
+      "wyxnick/agent-mermaid-skill",
+      "laneparton/document-flows",
+      "agents365-ai/drawio-skill"
+     ],
+     "errors": []
+    }
+   }
+  }
+ ]
+}

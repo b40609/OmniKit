@@ -1,11 +1,18 @@
 id: exa
 name: Exa
-kind: service
+kind: mcp
 slots:
 - product-research
-status: pending
+status: trial
 url: https://github.com/exa-labs/exa-mcp-server
+works_with:
+- claude
+- codex
+decided_at: '2026-11-16'
+trial_until: '2026-11-30'
+reason: P2 實測（找能把 repo 畫成架構圖的工具，3 組關鍵字）：Exa 多出 26 個 WebSearch 與 omnikit-research 免費管道都沒有的名字，雜訊 3% 對 WebSearch 21%；但 3 組都沒找到 Archify，所以是多加一個管道，不取代 GitHub topic。hosted MCP 匿名可用，試用不用金鑰。
 sources:
 - RIA:C048
-notes: 付費搜尋 API。
+- 使用者提出
+notes: 語意搜尋 API 的官方 MCP，exa-labs/exa-mcp-server ★5,235，MIT（2026-11-16 gh api）。第 0 層通過，兩個 skill 掃描都是 INFO。hosted MCP https://mcp.exa.ai/mcp 匿名可用、有限速（多少沒公布）；金鑰用 x-api-key 或 Authorization 標頭，放環境變數 EXA_API_KEY。預設 2 個工具（web_search_exa 的 objective 必填），定義 2,421 bytes；Claude Code 的 tool search 預設延遲載入，開頭只多工具名與 458 字元的 instructions。費用：註冊後每月 $10 額度、每月重置，搜尋每千次 $4 到 $7（exa.ai/pricing，2026-11-16）。OmniKit 的 servers.yaml 只收 stdio，遠端 URL 要另外接。實測紀錄見 data/evals/2026-11-16-product-research-P2.md。
 added: '2026-11-04'
