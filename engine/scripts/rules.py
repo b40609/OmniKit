@@ -58,6 +58,8 @@ GENERIC = re.compile(r"\b(?:be thorough|think (?:hard|harder|carefully|step by s
 MARK = re.compile(r"^(?:[-*+]|\d+[.)])\s+")
 LABEL = re.compile(r"^(?:profile|規則版本|rules version)\s*[：:]", re.I)  # 檔案自己的標記行，不是規則
 TABLE_RULE = re.compile(r"^\|?\s*:?-{2,}")
+# 這些標題底下的是界線（紅線、要先確認的、權限），不列進瘦身候選（體檢 ADV-08）
+GUARDED = re.compile(r"紅線|底線|確認|權限|安全|禁止|red ?line|guardrail|confirm|permission|safety", re.I)
 
 
 def norm(text):
@@ -85,8 +87,12 @@ def claude_from_sessions(home):
     root = Path(home) / ".claude" / "projects"
     if not root.is_dir():
         return None
-    files = sorted((p for p in root.glob("*/*.jsonl")), key=lambda p: p.stat().st_mtime, reverse=True)[:RECENT]
+    # 先排掉背景對話再算 RECENT 段：claude-mem 的 observer 一天幾十段，以前會佔滿而退回只看磁碟（體檢 ADV-17）
+    files = sorted((p for p in root.glob("*/*.jsonl")), key=lambda p: p.stat().st_mtime, reverse=True)
+    tried = 0
     for p in files:
+        if tried >= RECENT:
+            break
         background, found = False, None
         try:
             f = p.open("rb")
@@ -104,7 +110,10 @@ def claude_from_sessions(home):
                     if a.get("type") == "instructions" and not a.get("changed"):
                         found = [{"path": str(e.get("path") or ""), "type": str(e.get("type") or ""), "content": str(e.get("content") or "")}
                                  for e in a.get("files") or [] if isinstance(e, dict)]
-        if found and not background:
+        if background:
+            continue
+        tried += 1
+        if found:
             return {"source": "session", "when": date.fromtimestamp(p.stat().st_mtime).isoformat(), "files": found}
     return None
 
@@ -162,7 +171,9 @@ def loaded(home, agent):
 # ---------- 一條一條的規則 ----------
 
 def split(content):
-    """規則檔 → [(行號, 所在的標題, 文字, 在不在 OmniKit 的受管區塊裡)]。標題、空行、註解、@import、表格分隔線與程式碼區塊不算。"""
+    """規則檔 → [(行號, 所在的標題, 文字, 在不在 OmniKit 的受管區塊裡)]。標題、空行、註解、@import、表格與程式碼區塊不算。
+    縮排的子項目與續行併進上一條（體檢 ADV-09：以前子項被拆成獨立規則，照行號刪會拆壞整條）；表格整個不算，
+    一列一列刪會弄壞表格。"""
     out, section, managed, fenced = [], "", False, False
     for n, raw in enumerate(content.splitlines(), 1):
         line = raw.strip()
@@ -173,15 +184,29 @@ def split(content):
         if line.startswith("```"):
             fenced = not fenced
             continue
-        if fenced or not line or line.startswith(("<!--", "@", ">")) or TABLE_RULE.match(line):
+        if fenced or not line or line.startswith(("<!--", "@", ">", "|")) or TABLE_RULE.match(line):
             continue
         if line.startswith("#"):
             section = line.lstrip("#").strip()
             continue
         text = MARK.sub("", line).strip()
-        if text and not LABEL.match(text):
-            out.append((n, section, text, managed))
+        if not text or LABEL.match(text):
+            continue
+        if raw[:1] in (" ", "\t") and out and out[-1][1] == section:
+            first, sec, prev, was = out[-1]
+            out[-1] = (first, sec, f"{prev} / {text}", was)
+            continue
+        out.append((n, section, text, managed))
     return out
+
+
+def line_in(content, text):
+    """在來源檔裡找這條規則的行號（比對第一行的文字）；找不到回 None。"""
+    head = norm(text.split(" / ", 1)[0])
+    for n, _, t, _ in split(content or ""):
+        if norm(t.split(" / ", 1)[0]) == head:
+            return n
+    return None
 
 
 def template_habits():
@@ -198,8 +223,10 @@ def inspect(found, home, baseline, profile_file=None, agent="claude"):
     """實際載入的規則檔 → 給 advise.py 的事實：每個檔的大小，以及不受保護的每一條規則與腳本標得出的訊號。"""
     if not found:
         return None
+    # baseline 是共用層的全部內容（data/rules/ 底下每個檔，不只 baseline.md）：大家共用，不是個人瘦身能動的（體檢 ADV-08）
     protected = {norm(text) for _, _, text, _ in split(baseline or "")}
     habits = template_habits()
+    profile_text = read(profile_file) if profile_file else None
     files, rows = [], []
     for f in found["files"]:
         memory = f["type"] == "AutoMem"
@@ -209,16 +236,23 @@ def inspect(found, home, baseline, profile_file=None, agent="claude"):
         if memory:
             continue  # 自動記憶的索引不是規則，只算大小
         for n, section, text, managed in split(f["content"]):
-            # Codex 讀的是 OmniKit 接好的副本：受管區塊裡的規則要回來源的 profile 改
-            source = tilde(profile_file, home) if managed and profile_file else entry["file"]
-            rows.append({"file": source, "loaded_from": entry["file"], "line": n, "section": section, "text": text,
+            source, line = entry["file"], n
+            if managed and profile_file and norm(text) not in protected:
+                # Codex 讀的是 OmniKit 接好的副本：受管區塊裡的規則要回來源的 profile 改，行號也要換成來源檔的；
+                # 來源檔裡找不到的是共用層接進來的，不列（以前沿用副本的行號，照著刪會刪錯行）
+                line = line_in(profile_text, text)
+                if line is None:
+                    continue
+                source = tilde(profile_file, home)
+            rows.append({"file": source, "loaded_from": entry["file"], "line": line, "section": section, "text": text,
                          "managed": managed, "key": norm(text)})
-    counts = {}
+    counts, where = {}, {}
     for r in rows:
         counts[r["key"]] = counts.get(r["key"], 0) + 1
+        where.setdefault(r["key"], []).append(f"{r['file']}:{r['line']}")
     units, seen, kept = [], set(), 0
     for r in rows:
-        if r["key"] in protected:
+        if r["key"] in protected or GUARDED.search(r["section"] or ""):
             kept += 1
             continue
         if r["key"] in seen:
@@ -228,7 +262,9 @@ def inspect(found, home, baseline, profile_file=None, agent="claude"):
         if r["key"] in habits:
             signals.append({"code": "generated", "text": f"訪談產生的通用規則（{habits[r['key']]}），不是你自己寫的"})
         if counts[r["key"]] > 1:
-            signals.append({"code": "duplicate", "text": f"同一條在載入的規則裡出現 {counts[r['key']]} 次"})
+            # 列出每個位置：留哪一份要看範圍（全域的拿掉，其他專案也跟著沒有），不能只給第一個（體檢 ADV-09）
+            signals.append({"code": "duplicate", "text": f"同一條在載入的規則裡出現 {counts[r['key']]} 次："
+                                                         + "、".join(where[r["key"]]) + "；通常留全域的、拿掉專案裡重複的"})
         if GENERIC.search(r["text"]):
             signals.append({"code": "generic", "text": "通用的口號，新模型不需要這類指令"})
         if EMPHASIS.search(r["text"]):
@@ -253,7 +289,7 @@ def inspect(found, home, baseline, profile_file=None, agent="claude"):
 
 
 def collect(home, data, state, profile_dir=None):
-    baseline = read(Path(data) / "rules" / "baseline.md") or ""
+    baseline = "\n".join(read(p) or "" for p in sorted((Path(data) / "rules").glob("*.md")))
     profile_file = Path(profile_dir) / "AGENTS.md" if profile_dir else None
     return {agent: inspect(loaded(home, agent), home, baseline, profile_file, agent) for agent in AGENTS}
 
@@ -359,6 +395,19 @@ def selftest():
         check("Codex：受管區塊裡的規則要回 profile 的來源檔改，區塊外的改 ~/.codex/AGENTS.md",
               where["用繁體中文回覆。"] == ("~/kit/profiles/me/AGENTS.md", True)
               and where["區塊外自己寫的。"] == ("~/.codex/AGENTS.md", False))
+        mine_lines = read(profile).splitlines()
+        zh = next(u for u in codex["units"] if u["text"] == "用繁體中文回覆。")
+        check("Codex：受管區塊的規則給來源檔的行號，不是副本的（體檢 ADV-08）",
+              mine_lines[zh["line"] - 1].strip().endswith("用繁體中文回覆。"))
+        nested = split("## 紅線\n- 不准實盤下單\n## 狀態\n- 標籤：\n  - 【完成】\n  - 【卡住】\n| a | b |\n|---|---|\n| 1 | 2 |\n")
+        check("split：縮排的子項併進上一條、表格整個不算（體檢 ADV-09）",
+              nested == [(2, "紅線", "不准實盤下單", False), (4, "狀態", "標籤： / 【完成】 / 【卡住】", False)])
+        guard = inspect({"source": "disk", "when": None, "files": [{"path": str(home / "g.md"), "type": "User",
+                         "content": "## 紅線\n- 不准實盤下單\n## 其他\n- 普通的一條\n"}]}, home, "")
+        check("紅線、確認、權限這類標題底下的不列進候選（體檢 ADV-08）",
+              [u["text"] for u in guard["units"]] == ["普通的一條"] and guard["protected"] == 1)
+        dup = next(s for u in got["units"] if u["text"] == "用繁體中文回覆。" for s in u["signals"] if s["code"] == "duplicate")
+        check("重複的規則列出每個位置", dup["text"].count(":") >= 2 and "AGENTS.md" in dup["text"] and "CLAUDE.md" in dup["text"])
         put(other / ".codex" / "AGENTS.md", "- 磁碟上的一條\n")
         check("Codex 沒有對話紀錄：改看 ~/.codex/AGENTS.md；兩邊都沒有就回 None",
               [u["text"] for u in inspect(loaded(other, "codex"), other, baseline)["units"]] == ["磁碟上的一條"]

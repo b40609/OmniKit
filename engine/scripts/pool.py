@@ -455,10 +455,18 @@ def short_name(name):
     return re.sub(r"[^a-z0-9-]+", "-", name.split("/")[-1].lower()).strip("-") or "server"
 
 
+# Registry 不審核：進指令列的網址與套件名稱只收這些字元，其他的不組指令（體檢 ADV-10：以前 `x && calc` 也照組）
+SAFE_URL = re.compile(r"^https://[A-Za-z0-9._~:/?#@%=+,-]+$")
+SAFE_PKG = re.compile(r"^(?:@[a-z0-9][a-z0-9._-]*/)?[A-Za-z0-9][A-Za-z0-9._-]*(?:@[A-Za-z0-9._-]+)?$")
+UNSAFE = "登記的網址或套件名稱有不安全的字元，不組指令，照來源的說明安裝"
+
+
 def registry_install(server):
     """照 Registry 登記的資料組出安裝指令；要金鑰或要填變數的不組。回傳（指令, 說明）。"""
     name = short_name(server.get("name", ""))
     for remote in server.get("remotes") or []:
+        if remote.get("type") == "streamable-http" and "{" not in (remote.get("url") or "") and not SAFE_URL.match(remote.get("url") or ""):
+            return {}, UNSAFE
         if remote.get("type") == "streamable-http" and "{" not in (remote.get("url") or "") and not remote.get("headers"):
             url = remote["url"]
             return ({"claude": {"command": f"claude mcp add --transport http {name} {url}"},
@@ -469,6 +477,8 @@ def registry_install(server):
         if any(v.get("isRequired") for v in pkg.get("environmentVariables") or []):
             return {}, "要先設定金鑰或環境變數，照來源的說明安裝"
         runner = {"npm": "npx -y", "pypi": "uvx"}.get(pkg.get("registryType"))
+        if runner and not SAFE_PKG.match(pkg["identifier"]):
+            return {}, UNSAFE
         if runner:
             run = f"{runner} {pkg['identifier']}"
             return ({"claude": {"command": f"claude mcp add {name} -- {run}"},
@@ -988,6 +998,11 @@ def selftest():
               and registry_install({"name": "a/b", "remotes": [{"type": "streamable-http", "url": "https://x/mcp", "headers": [{"name": "Authorization"}]}]})[0] == {}
               and registry_install({"name": "a/b", "packages": [{"registryType": "pypi", "identifier": "pk", "transport": {"type": "stdio"}}]})[0]["claude"]["command"]
               == "claude mcp add b -- uvx pk")
+        check("Registry：網址或套件名稱有 shell 字元、不是 https 的，不組指令（體檢 ADV-10）",
+              registry_install({"name": "a/b", "remotes": [{"type": "streamable-http", "url": "http://evil/mcp && calc.exe"}]})[0] == {}
+              and registry_install({"name": "a/b", "remotes": [{"type": "streamable-http", "url": "https://x/mcp;whoami"}]})[0] == {}
+              and registry_install({"name": "a/b", "packages": [{"registryType": "npm", "identifier": "@evil/pkg && whoami",
+                                                                 "transport": {"type": "stdio"}}]})[0] == {})
         check("Registry：一組關鍵字只送第一個有意義的字", registry_term("browser automation") == "browser"
               and registry_term("playwright mcp") == "playwright" and registry_term("mcp server") is None
               and registry_term("on-device inference") == "device" and registry_term("ml") is None)

@@ -59,7 +59,9 @@ ANTIGRAVITY_HOMES = ("antigravity", "antigravity-cli", "antigravity-ide")
 COMMAND = re.compile(r"\s*(?:<command-message>[^<]*</command-message>\s*)?<command-name>/?([A-Za-z0-9_.:-]+)</command-name>")
 STAMP = re.compile(rb'"timestamp":"([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+(?:Z|[+-][0-9]{2}:?[0-9]{2})?)"')
 SKILL_PATH = re.compile(r"skills[\\/]+([A-Za-z0-9_.:-]+)[\\/]+SKILL\.md")
-AG_READ = re.compile(rb'"AbsolutePath":"((?:[^"\\]|\\.)*?)SKILL\.md","IsSkill":true')
+# Antigravity 步驟裡讀 SKILL.md 的紀錄；鍵的順序與空白不固定，兩種順序都認（體檢 ADV-05）
+AG_READ = re.compile(rb'"AbsolutePath"\s*:\s*"((?:[^"\\]|\\.)*?)SKILL\.md"\s*,\s*"IsSkill"\s*:\s*true'
+                     rb'|"IsSkill"\s*:\s*true\s*,\s*"AbsolutePath"\s*:\s*"((?:[^"\\]|\\.)*?)SKILL\.md"')
 CODEX_CALLS = {"function_call", "custom_tool_call", "local_shell_call"}
 # plugins/cache/<marketplace>/<plugin>/<版本>/skills/<skill>/SKILL.md
 PLUGIN_SKILL = re.compile(r"plugins[\\/]+cache[\\/]+([^\\/\s'\"`]+)[\\/]+([^\\/\s'\"`]+)[\\/]+[^\\/\s'\"`]+"
@@ -178,6 +180,31 @@ def claude_calls(raw):
     return [n.lstrip("/") for n in names if isinstance(n, str) and n.strip("/")], d
 
 
+def json_or_none(raw):
+    try:
+        d = json.loads(raw)
+    except ValueError:
+        return None
+    return d if isinstance(d, dict) else None
+
+
+def plugin_mcp_calls(raw):
+    """assistant 呼叫 plugin 帶的 MCP 工具（mcp__plugin_<plugin>_<server>__<工具>）→ ["<plugin>:mcp"]，
+    讓 plugin 的前綴比對得到；只靠 MCP 的 plugin 以前一律算沒用到（體檢 ADV-04）。"""
+    d = json_or_none(raw)
+    if not d or d.get("type") != "assistant":
+        return []
+    content = (d.get("message") or {}).get("content") if isinstance(d.get("message"), dict) else None
+    out = []
+    for b in content if isinstance(content, list) else []:
+        name = b.get("name") if isinstance(b, dict) and b.get("type") == "tool_use" else None
+        if isinstance(name, str) and name.startswith("mcp__plugin_"):
+            plugin = name[len("mcp__plugin_"):].split("_", 1)[0]
+            if plugin:
+                out.append(f"{plugin}:mcp")
+    return out
+
+
 def claude_session(path):
     """子代理的紀錄（<對話>/subagents/x.jsonl）歸到它的主對話，不另算一段。"""
     return path.parent.parent.with_suffix(".jsonl") if path.parent.name == "subagents" else path
@@ -194,14 +221,24 @@ def claude_events(home, since, events):
             f = p.open("rb")
         except OSError:
             continue
-        found, background = [], False
+        found, background, origin = [], False, None
         with f:
             for line in f:
-                if b'"entrypoint"' in line and b'"entrypoint":"sdk' in line.replace(b'": "', b'":"'):
-                    background = True
-                    break
+                # 只看紀錄頂層的 entrypoint（第一筆有寫的）；工具輸出裡出現同樣字樣不算（體檢 ADV-17）
+                if origin is None and b'"entrypoint"' in line:
+                    try:
+                        d = json.loads(line)
+                    except ValueError:
+                        d = None
+                    if isinstance(d, dict) and isinstance(d.get("entrypoint"), str):
+                        origin = d["entrypoint"]
+                        if origin.startswith("sdk"):
+                            background = True
+                            break
                 names, record = claude_calls(line)
-                if not names:
+                if b"mcp__plugin_" in line:
+                    names, record = names + plugin_mcp_calls(line), record or json_or_none(line)
+                if not names or not isinstance(record, dict):
                     continue
                 when = parse_time(record.get("timestamp")) or p.stat().st_mtime
                 if when >= since:
@@ -308,7 +345,9 @@ def codex_loaded_plugins(home):
 
 
 def antigravity_events(home, since, events):
+    """回傳 (讀到的對話數, 讀不到的對話數)。資料庫被鎖或格式不同時算讀不到，不當成沒用到。"""
     dbs = recent([db for sub in ANTIGRAVITY_HOMES for db in (home / ".gemini" / sub / "conversations").glob("*.db")], since)
+    unreadable = 0
     for db in dbs:
         when = db.stat().st_mtime
         try:
@@ -318,17 +357,18 @@ def antigravity_events(home, since, events):
             finally:
                 con.close()
         except sqlite3.Error:
+            unreadable += 1
             continue
         for blob in blobs:
             for m in AG_READ.finditer(blob if isinstance(blob, bytes) else str(blob).encode()):
                 try:
-                    path = json.loads(b'"' + m.group(1) + b'SKILL.md"')
+                    path = json.loads(b'"' + (m.group(1) or m.group(2)) + b'SKILL.md"')
                 except ValueError:
                     continue
                 parts = [x for x in re.split(r"[\\/]+", path) if x]
                 if len(parts) >= 2:
                     note(events, "antigravity", parts[-2], str(db), when)
-    return len(dbs)
+    return len(dbs) - unreadable, unreadable
 
 
 def front_name(folder):
@@ -356,6 +396,10 @@ def inventory(home, ours, created_at):
         plugins = json.loads((home / ".claude" / "plugins" / "installed_plugins.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         plugins = {}
+    try:  # 停用中的 plugin（體檢 ADV-01）：例如換的試用期間被停用的舊工具，不能叫人拿掉
+        enabled = json.loads((home / ".claude" / "settings.json").read_text(encoding="utf-8")).get("enabledPlugins") or {}
+    except (OSError, ValueError, AttributeError):
+        enabled = {}
     for key, entries in (plugins.get("plugins") or {}).items():
         entries = entries if isinstance(entries, list) else [entries]
         times = [t for e in entries if isinstance(e, dict) and (t := parse_time(e.get("installedAt")))]
@@ -364,7 +408,8 @@ def inventory(home, ours, created_at):
                           for s in (Path(e["installPath"]) / "skills").glob("*") if (s / "SKILL.md").is_file()})
         items.append({"kind": "plugin", "name": key, "where": "~/.claude/plugins", "agents": ["claude-code"],
                       "match": [], "prefix": key.split("@")[0] + ":", "installed": min(times) if times else None,
-                      **({"bundled": bundled} if bundled else {})})
+                      **({"bundled": bundled} if bundled else {}),
+                      **({"enabled": False} if isinstance(enabled, dict) and enabled.get(key) is False else {})})
     for key, skills in sorted(codex_loaded_plugins(home).items()):
         plugin, market = key.split("@", 1)
         try:
@@ -373,6 +418,8 @@ def inventory(home, ours, created_at):
             when = None
         items.append({"kind": "plugin", "name": key, "where": "~/.codex/plugins", "agents": ["codex"],
                       "match": [key], "skills": len(skills), "installed": when,
+                      # 附帶的 skill（claude-mem:build → build）：名冊對卡片時算已安裝（體檢 ADV-14）
+                      "bundled": sorted({s.split(":")[-1] for s in skills}),
                       **({"builtin": True} if market in CODEX_BUILTIN_MARKETS else {})})
     return items
 
@@ -393,11 +440,11 @@ def judge(item, events, plugin_counts, now, days, blind=()):
         status = "used"  # Claude Code 記的累計次數：用過就不建議移除（Codex 的同名 plugin 不適用）
     elif age is not None and age < days:
         status = "new"
-    elif set(item["agents"]) & set(blind):
-        status = "no-data"
+    elif age is None or set(item["agents"]) & set(blind):
+        status = "no-data"  # 安裝時間不明（體檢 ADV-02）或紀錄讀不完整：查不到，不是沒用到
     else:
         status = "unused"
-    out = {k: item[k] for k in ("kind", "name", "where", "agents", "skills", "bundled", "builtin") if k in item}
+    out = {k: item[k] for k in ("kind", "name", "where", "agents", "skills", "bundled", "builtin", "enabled") if k in item}
     out.update(status=status, conversations=len(sessions), installed_days=age,
                last_used=datetime.fromtimestamp(last, timezone.utc).astimezone().date().isoformat() if last else None)
     return out
@@ -410,9 +457,9 @@ def collect(home, days=30, now=None, ours=None, created_at=created):
     events = {}
     claude_files, plugin_counts = claude_events(home, since, events)
     codex_read, codex_unreadable = codex_events(home, since, events)
-    sources = {"claude-code": claude_files, "codex": codex_read,
-               "antigravity": antigravity_events(home, since, events)}
-    unreadable = {"codex": codex_unreadable} if codex_unreadable else {}
+    ag_read, ag_unreadable = antigravity_events(home, since, events)
+    sources = {"claude-code": claude_files, "codex": codex_read, "antigravity": ag_read}
+    unreadable = {k: v for k, v in (("codex", codex_unreadable), ("antigravity", ag_unreadable)) if v}
     items = [judge(i, events, plugin_counts, now, days, blind=unreadable) for i in inventory(home, ours, created_at)]
     return {
         "days": days,
@@ -436,7 +483,7 @@ def describe(item, used):
     same = [u for u in used if u["kind"] == "skill" and u["name"] == item["name"] and u["where"] != item["where"]]
     dup = sorted({u["where"] for u in same if set(u["agents"]) & set(item["agents"])})
     others = sorted({NAMES[a] for u in same for a in u["agents"]} - {NAMES[a] for a in item["agents"]})
-    note = ""
+    note = "；停用中" if item.get("enabled") is False else ""
     if dup:
         note = f"；{'、'.join(dup)} 的同名 skill 有在用，這份可能是重複的"
     elif others:
@@ -456,6 +503,9 @@ def report(result, limit=None):
     if (result.get("unreadable") or {}).get("codex"):
         lines.append(f"- Codex 另有 {result['unreadable']['codex']} 段壓縮的紀錄讀不到（這台沒有 zstd 解碼器），"
                      "Codex 讀得到的工具這次不判斷有沒有用到")
+    if (result.get("unreadable") or {}).get("antigravity"):
+        lines.append(f"- Antigravity 另有 {result['unreadable']['antigravity']} 段對話的資料庫打不開（可能正在用），"
+                     "Antigravity 讀得到的工具這次不判斷有沒有用到")
     top = "、".join(f"{i['name']}（{agents_label(i)}，{i['conversations']} 段）" for i in used[:5] if i["conversations"])
     lines.append(f"- 有用到：{len(used)} 個" + (f"，最常用的是 {top}" if top else ""))
     lines.append(f"- {days} 天沒用到：{len(unused)} 個" + ("，可以考慮移除：" if unused else ""))
@@ -504,7 +554,7 @@ def selftest():
             skill(".agents/skills", name)
         for name in ("hatch-pet", "itri-work-agent", "build"):
             skill(".codex/skills", name)
-        for name in ("search-first", "lean-build", "agent-reach", "itri-work-agent"):
+        for name in ("search-first", "lean-build", "agent-reach", "itri-work-agent", "ag-reordered"):
             skill(".gemini/config/skills", name)
 
         for name in ("read-only", "edge-one"):
@@ -548,6 +598,11 @@ def selftest():
         put(".claude/projects/p/a/subagents/agent-1.jsonl", line({"type": "user", "entrypoint": "claude-desktop",
                                                                   "isSidechain": True, "timestamp": iso(1), "message": {"content": "x"}})
             + "\n" + skill_call("sub-used", 1) + "\n")
+        # 只靠 MCP 的 plugin：呼叫 mcp__plugin_<plugin>_<server>__<工具> 算那個 plugin 用到
+        put(".claude/projects/p/mcp.jsonl", line({"type": "assistant", "entrypoint": "claude-desktop", "timestamp": iso(2),
+                                                  "message": {"content": [{"type": "tool_use", "name": "mcp__plugin_mcp-only_srv__search",
+                                                                           "input": {}}]}}) + "\n")
+        put(".claude/settings.json", json.dumps({"enabledPlugins": {"parked@x": False, "mcp-only@x": True}}))
         put(".claude.json", json.dumps({
             "skillUsage": {"graphify": {"usageCount": 2, "lastUsedAt": (now - DAY) * 1000},
                            "caveman": {"usageCount": 3, "lastUsedAt": (now - DAY) * 1000}},
@@ -558,7 +613,10 @@ def selftest():
             "floorplan@floorplan": [{"scope": "user", "installedAt": iso(60)}],
             "claude-mem@thedotmack": [{"scope": "user", "installedAt": iso(60)}],
             "shared@x": [{"scope": "user", "installedAt": iso(60)}],
-            "fresh@x": [{"scope": "user", "installedAt": iso(2), "installPath": str(home / "pc" / "fresh")}]}}))
+            "fresh@x": [{"scope": "user", "installedAt": iso(2), "installPath": str(home / "pc" / "fresh")}],
+            "parked@x": [{"scope": "user", "installedAt": iso(60)}],
+            "mcp-only@x": [{"scope": "user", "installedAt": iso(60)}],
+            "no-date@x": [{"scope": "user"}]}}))
         put("pc/fresh/skills/skill-creator/SKILL.md", "---\nname: skill-creator\n---\n")
         put("pc/fresh/skills/not-a-skill/README.md", "x")
 
@@ -618,6 +676,8 @@ def selftest():
         con.execute("insert into steps values (0, ?)", (b"Available skills:\n- lean-build (C:\\x\\skills\\lean-build\\SKILL.md): y",))
         con.execute("insert into steps values (1, ?)", (b'..view_file...{"AbsolutePath":"C:\\\\Users\\\\u\\\\.gemini\\\\config'
                                                         b'\\\\skills\\\\search-first\\\\SKILL.md","IsSkill":true}',))
+        con.execute("insert into steps values (2, ?)", (b'{"IsSkill": true, "AbsolutePath": "C:\\\\Users\\\\u\\\\.gemini\\\\config'
+                                                        b'\\\\skills\\\\ag-reordered\\\\SKILL.md"}',))
         con.commit()
         con.close()
 
@@ -676,11 +736,19 @@ def selftest():
                   "document-skills@anthropic-agent-skills", "ponytail@ponytail", "shared@x"])
         check("摘要：Codex plugin 標出載入幾個 skill",
               "document-skills@anthropic-agent-skills（Codex，~/.codex/plugins，載入 1 個 skill，裝了 60 天）" in "\n".join(report(result)))
+        check("plugin：只靠 MCP 的，呼叫 mcp__plugin_<plugin>_ 的工具算用到（體檢 ADV-04）",
+              status("mcp-only@x", "~/.claude/plugins") == "used")
+        check("plugin：停用中的標出來；安裝時間不明的是查不到，不是沒用到（體檢 ADV-01、ADV-02）",
+              by[("parked@x", "~/.claude/plugins")].get("enabled") is False and "enabled" not in by[("mcp-only@x", "~/.claude/plugins")]
+              and status("no-date@x", "~/.claude/plugins") == "no-data")
+        check("Antigravity：鍵的順序對調、有空白也認得（體檢 ADV-05）", status("ag-reordered", "~/.gemini/config/skills") == "used")
+        check("Codex plugin：附帶的 skill 列出來（去掉 plugin 前綴）",
+              by[("claude-mem@claude-mem-local", cx)].get("bundled") == ["build", "do"])
         check("Claude：背景程序與 claude -p（entrypoint sdk-*）的呼叫不算；子代理的算、對話數歸到主對話",
               status("bg-only", "~/.claude/skills") == "unused" and status("sub-used", "~/.claude/skills") == "used"
               and by[("sub-used", "~/.claude/skills")]["conversations"] == 1)
         check("統計來源的對話數（Claude 不算背景與子代理；Codex 含 archived_sessions 裡壓縮的）",
-              result["sources"] == {"claude-code": 1, "codex": 3 if ZSTD else 2, "antigravity": 1})
+              result["sources"] == {"claude-code": 2, "codex": 3 if ZSTD else 2, "antigravity": 1})
         check("Codex：壓縮的 .jsonl.zst、archived_sessions 裡的也讀（2026-11-16 這台 209 段只讀到 8 段）",
               ZSTD and status("zipped-one", "~/.codex/skills") == "used" and status("zip-unused", "~/.codex/skills") == "unused")
         check("Codex 隨附的 plugin（openai-bundled）標成內建", by[("computer-use@openai-bundled", cx)].get("builtin") is True

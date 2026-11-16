@@ -417,7 +417,7 @@ def measure(home, state, now=None, roster=None, plugin_details=details, persist=
     costs = {"claude-code": latest.parts if latest else {}, "codex": codex_parts(rollouts)}
     codex_talks = sorted((r for r in rollouts if not r.background and r.start), key=lambda r: r.start, reverse=True)
     codex_used = {}
-    usage.codex_events(home, now - SCAN_DAYS * DAY, codex_used)
+    _, codex_blind = usage.codex_events(home, now - SCAN_DAYS * DAY, codex_used)  # 讀不到的段數（體檢 ADV-03）
     try:
         skill_usage = json.loads((home / ".claude.json").read_text(encoding="utf-8")).get("skillUsage") or {}
     except (OSError, ValueError, AttributeError):
@@ -459,9 +459,12 @@ def measure(home, state, now=None, roster=None, plugin_details=details, persist=
     # B：成本乘上使用量
     installed_at = {}
     for item in items:
+        # 沒有安裝時間（MCP 等）：用 OmniKit 第一次看到它的日期；連那個都沒有就是不明，不判斷（體檢 ADV-02）
+        seen_day = first_seen.get(item["key"])
+        when = item.get("installed") or (datetime.fromisoformat(seen_day).timestamp() if seen_day else None)
         for agent, tool in tool_keys(item).items():
-            if item.get("installed"):
-                installed_at[(agent, tool)] = min(item["installed"], installed_at.get((agent, tool), item["installed"]))
+            if when:
+                installed_at[(agent, tool)] = min(when, installed_at.get((agent, tool), when))
     rows = []
     for agent, convs, uses in (("claude-code", talks, lambda c, t: t in c.used),
                                ("codex", codex_talks, lambda r, t: any(str(r.path) in v["sessions"] for n, v in codex_used.get("codex", {}).items()
@@ -474,10 +477,12 @@ def measure(home, state, now=None, roster=None, plugin_details=details, persist=
                 used_14d += 1 if last and last / 1000 >= idle_since and used_14d == 0 else 0
             used_10 = sum(1 for c in convs[:IDLE_CONVS] if uses(c, tool))
             since_install = installed_at.get((agent, tool))
-            enough = since_install is None or sum(1 for c in convs if c.start >= since_install) >= IDLE_CONVS
-            why = None if enough else f"裝好之後還不到 {IDLE_CONVS} 段對話"
+            enough = since_install is not None and sum(1 for c in convs if c.start >= since_install) >= IDLE_CONVS
+            why = None if enough else ("安裝時間不明" if since_install is None else f"裝好之後還不到 {IDLE_CONVS} 段對話")
             if tool.startswith("hook:"):
                 enough, why = False, "hook 每段對話都會跑，沒有「用到」的紀錄可以判斷"
+            elif agent == "codex" and codex_blind:
+                enough, why = False, f"Codex 有 {codex_blind} 段壓縮的紀錄讀不到"
             rows.append({"agent": agent, "tool": tool, "tokens": tokens, "used_14d": used_14d, "used_last10": used_10,
                          "week": tokens * week_convs, "convs_week": week_convs, "judged": enough, "why": why,
                          "idle": enough and used_14d == 0 and used_10 == 0 and len(convs) > 0})
@@ -821,8 +826,10 @@ def selftest():
         check("B：裝好之後還不到 10 段對話：先不判斷", not mem["judged"] and not mem["idle"])
         cav = rows[("claude-code", "skill:caveman")]
         check("B：子 agent 用到的算進主對話；用過的不算沒在用", cav["used_14d"] == 2 and not cav["idle"])
-        check("B：Codex 的開頭成本從 rollout 的 skill 清單量", rows[("codex", "skill:codex-heavy")]["tokens"] >= 1000
-              and rows[("codex", "skill:codex-heavy")]["idle"])
+        # 以前安裝時間不明就當成「已經夠久」，Codex 只有 1 段對話也判成沒在用（體檢 ADV-02）
+        check("B：Codex 的開頭成本從 rollout 的 skill 清單量；安裝時間不明的不判斷",
+              rows[("codex", "skill:codex-heavy")]["tokens"] >= 1000 and not rows[("codex", "skill:codex-heavy")]["idle"]
+              and rows[("codex", "skill:codex-heavy")]["why"] == "安裝時間不明")
         bg = {(g["who"], g["where"]): g for g in result["background"]}
         obs = bg.get(("Claude Code（sdk-ts）", "~/.claude-mem/observer-sessions"))
         check("C：背景用 entrypoint 判斷、依工作資料夾分組；同一個回應拆兩行只算一次；7 天前的不算",
@@ -853,7 +860,7 @@ def selftest():
         check("報告：五個小節都在，數字有千分位", all(h in text for h in ("### 新裝的工具", "### 成本高又沒在用的", "### 背景與非互動",
                                                        "### 對話開頭的大小", "### 名冊比對")) and "80,005" in text)
         check("報告：不輸出對話內容", "秘密內容甲" not in text and "秘密回答乙" not in text)
-        check("摘要一行", summary(result).startswith("新裝 ") and "成本高又沒在用 2 個" in summary(result))
+        check("摘要一行", summary(result).startswith("新裝 ") and "成本高又沒在用 1 個" in summary(result))
 
         measure(home, state, now, roster, fake_details, persist=True, created_at=created)
         saved = json.loads((state / "weekly" / "startup.json").read_text(encoding="utf-8"))["weeks"]

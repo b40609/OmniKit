@@ -133,12 +133,14 @@ def how_pool(e, agent, markets):
 def pool_candidates(roster, edition, agent, pooled, taken, markets, today):
     """槽位還沒有答案、名冊也沒有可以裝的卡：列候選池裡支援這個 agent、這台還沒裝的。回傳（候選, 這些槽位的概況）。"""
     saved = (pooled or {}).get("slots") or {}
+    index = pool.roster_index(roster)
     cands, overview = [], []
     for s in pool.open_slots(roster, edition):
         if agent not in s["agents"]:
             continue
         got = saved.get(s["slot"]) or {}
-        mine = [e for e in got.get("candidates") or [] if agent in e["agents"]
+        # 快取是之前找的：這期間名冊收了或拒絕了的，用現在的名冊再擋一次（體檢 ADV-13）
+        mine = [e for e in got.get("candidates") or [] if agent in e["agents"] and not pool.in_roster(e, index)
                 and not {pool.norm(e["name"]), pool.norm(e["id"].split(":", 1)[-1].split("/")[-1])} & taken]
         searched = got.get("searched")
         overview.append({"slot": s["slot"], "slot_name": s["slot_name"], "module": s["module"], "keywords": s["keywords"],
@@ -174,8 +176,11 @@ def how_replace(item, card, agent, cfg, added):
     換回：移除新的、把舊的打開。試用結束留下新的：舊的照「拿掉」的方式，由使用者決定。"""
     inst, old = how_install(card, agent, cfg, added), how_remove(item, agent)
     apply, revert, notes = list(inst["commands"]), [], [inst["note"]]
-    if old.get("disable"):
+    if old.get("disable") and inst["commands"]:
         apply.append(old["disable"])
+    elif old.get("disable"):
+        # 沒有裝新工具的指令：先停用舊的就會兩個都沒有（體檢 ADV-06）。新的照說明裝好、swap check 通過，再停用舊的
+        notes.append(f"新的沒有可以直接跑的安裝指令：先照說明裝好、確認能用，再停用舊的（{old['disable']}）")
     else:
         notes.append(f"舊的 {item['name']} 先留著不動（{LABELS[agent]} 沒有停用這類工具的指令）：試用期間兩個都在，結束時再決定拿掉哪一個")
     revert_note = None
@@ -184,9 +189,9 @@ def how_replace(item, card, agent, cfg, added):
         revert.append(f"claude plugin uninstall {name}" if agent == "claude" else f"codex plugin remove {name}")
     else:
         revert_note = f"新的不是用 plugin 裝的：照 {card.get('url') or '它的官方說明'} 移除"
-    if old.get("disable"):
+    if old.get("disable") and inst["commands"]:
         revert.append(old["disable"].replace(" disable ", " enable ", 1))
-    return {"apply": apply, "disable_old": bool(old.get("disable")), "revert": revert, "finish": old,
+    return {"apply": apply, "disable_old": bool(old.get("disable") and inst["commands"]), "revert": revert, "finish": old,
             "note": "；".join(notes), **({"revert_note": revert_note} if revert_note else {})}
 
 
@@ -278,6 +283,9 @@ def diagnose(roster, used, costs, found, edition="colleague", added=None, today=
                  "conversations": convs, "installed": [], "candidates": {k: [] for k in KINDS},
                  "not_judged": {"new": [], "no_usage_data": []}}
         out["agents"][agent] = entry
+        blind = (used.get("unreadable") or {}).get(uid)
+        if blind and entry["active"]:
+            out["notes"].append(f"{LABELS[agent]}：{blind} 段對話紀錄讀不到，它讀得到的工具標成「查不到」，不列進拿掉")
         if not entry["active"]:
             entry["skip"] = ("這台沒有裝，不出建議" if not entry["found"]
                              else f"{used['days']} 天內沒有對話紀錄，不出建議")
@@ -371,12 +379,16 @@ def diagnose(roster, used, costs, found, edition="colleague", added=None, today=
         for i, c in pairs:
             if i.get("ours") or i.get("builtin"):  # builtin：Codex 隨附的 plugin，就是「用內建的就好」指的那些
                 continue
+            disabled = i.get("enabled") is False
+            if disabled and not (c and c["status"] in ("rejected", "retired")):
+                continue  # 停用中的（例如換的試用期間留著的舊工具）：不佔對話開頭，拿掉會讓換回沒東西可開（體檢 ADV-01）
             basis = []
             if i["status"] == "unused":
                 age = f"，裝了 {i['installed_days']} 天" if i.get("installed_days") is not None else ""
                 basis.append({"code": "unused", "text": f"{used['days']} 天沒用到{age}"})
             row = rows.get((uid, cost.tool_keys(i).get(uid)))
-            if row and row.get("idle") and row["tokens"] >= cost.THRESHOLD:
+            # 查不到使用紀錄的（no-data），成本那邊的「沒用到」也不可信（體檢 ADV-03）
+            if row and row.get("idle") and row["tokens"] >= cost.THRESHOLD and i["status"] != "no-data":
                 basis.append({"code": "costly-idle", "text": f"每段對話開頭約 {row['tokens']:,} tokens，"
                                                                f"{cost.IDLE_DAYS} 天內與最近 {cost.IDLE_CONVS} 段對話都沒用到"})
             if c and c["status"] in ("rejected", "retired"):
@@ -554,7 +566,7 @@ def usage_text(item):
 def install_lines(cand, reason):
     how = cand["how"]
     lines = [f"- **{cand['name']}**（{cand['slot_name']}{'；名冊外，沒有實測過' if cand.get('outside') else ''}）",
-             f"  - 理由：{reason}", f"  - 依據：{basis_text(cand['basis'])}", *proof_lines(cand["basis"], cand.get("id"))]
+             f"  - 理由：{reason}", f"  - 依據：{basis_text(cand['basis'])}", *proof_lines(cand["basis"], cand.get("tool"))]
     if cand.get("outside"):
         lines.append(f"  - 來源：{cand['url']}")
     if how["commands"]:
@@ -592,9 +604,11 @@ def remove_lines(cand, reason):
 def replace_lines(cand, reason):
     how, old, new = cand["how"], cand["old"], cand["new"]
     lines = [f"- **{old['name']} → {new['name']}**（{cand['slot_name']}）", f"  - 理由：{reason}",
-             f"  - 依據：{basis_text(cand['basis'])}", *proof_lines(cand["basis"], new.get("id")), f"  - 這台現在用的：{old['name']}（{old['kind']}，{usage_text(old)}）"]
+             f"  - 依據：{basis_text(cand['basis'])}", *proof_lines(cand["basis"], new.get("tool")), f"  - 這台現在用的：{old['name']}（{old['kind']}，{usage_text(old)}）"]
+    # 換要先拍替換前的快照，才換得回來：不能直接跑指令（體檢 ADV-15）
+    lines.append(f"  - 同意後先記下替換前的狀態：`swap start {cand['id']} --agent <agent> --write`，照它印的順序跑指令，再 `swap check`")
     if how["apply"]:
-        lines.append("  - 同意後執行：" + "，再 ".join(f"`{c}`" for c in how["apply"]) + f"。試用 {swap.TRIAL_DAYS} 天到 {cand['trial_until']}")
+        lines.append("  - 會跑的指令：" + "，再 ".join(f"`{c}`" for c in how["apply"]) + f"。試用 {swap.TRIAL_DAYS} 天到 {cand['trial_until']}")
     else:
         lines.append(f"  - 怎麼換：照 {new.get('url') or '新工具的官方說明'} 裝；試用 {swap.TRIAL_DAYS} 天到 {cand['trial_until']}")
     lines.append(f"  - 注意：{how['note']}")
@@ -661,7 +675,7 @@ def render(facts, agent, chosen):
             count = len(entry["candidates"][kind])
             lines.append("- 這一類這次沒有建議：" + (f"有 {count} 個候選，都沒有挑" if count else "沒有候選"))
         for cand, reason in chosen[kind]:
-            lines += SECTION[kind](cand, reason)
+            lines += [x.replace("--agent <agent>", f"--agent {agent}") for x in SECTION[kind](cand, reason)]
         if kind == "install" and any(c.get("outside") for c, _ in chosen[kind]):
             lines.append("- 名冊外的候選沒有實測過，也沒有做安全掃描：裝之前先看一眼來源；用過之後覺得好，再評估要不要收進名冊。")
         if kind == "rules" and chosen[kind]:
