@@ -18,7 +18,8 @@
 - 裝（install）：槽位的答案是「建議裝某張卡」而這台還沒裝；槽位還沒有答案時，名冊上是預設或試用、
   支援這個 agent、這台還沒裝的卡（註明還沒有分 agent 的實測）。
 - 拿掉（remove）：30 天沒用到（裝不到 30 天的不列）；開頭成本高、14 天內與最近 10 段對話都沒用到；
-  裝著、但名冊上是拒絕或退役；同一件事名冊記了內建功能，而這份裝了一週以上從沒用到。
+  裝著、但名冊上是拒絕或退役；同一件事的內建功能實測過夠用，而這份裝了一週以上從沒用到
+  （內建功能沒實測過不算依據：拿掉是刪除，證據要夠）。
   沒有使用紀錄可以判斷的（例如 MCP），不會只因為「沒看到用」就列進來。
 - 用內建的就好（native）：槽位的答案是「內建就夠」；還沒實測的，名冊記了內建功能也列（註明還沒實測）。
   同一個槽位這台裝了第三方工具的，一併列出來給 agent 判斷。
@@ -380,11 +381,12 @@ def diagnose(roster, used, costs, found, edition="colleague", added=None, today=
                                                                f"{cost.IDLE_DAYS} 天內與最近 {cost.IDLE_CONVS} 段對話都沒用到"})
             if c and c["status"] in ("rejected", "retired"):
                 basis.append({"code": f"roster-{c['status']}", "text": f"名冊上是{STATUS[c['status']]}：{c.get('reason')}"})
-            # 剛裝的本來先不判斷；但同一件事名冊記了內建功能、裝了一週以上又從沒用到，兩個事實都成立就列
-            same = next((builtin[s] for s in (c or {}).get("slots", []) if s in builtin), None)
+            # 剛裝的本來先不判斷；但同一件事內建功能「實測過」夠用、裝了一週以上又從沒用到，兩個事實都成立就列。
+            # 內建功能沒實測過不算：2026-11-16 試點，graphify 只因為「名冊記了內建功能（還沒實測）」就被建議刪掉，證據不夠。
+            same = next((builtin[s] for s in (c or {}).get("slots", []) if s in builtin and builtin[s]["tested"]), None)
             if same and i["status"] == "new" and (i.get("installed_days") or 0) >= OVERLAP_DAYS:
                 basis.append({"code": "native-overlap", "text": f"裝了 {i['installed_days']} 天沒用到；「{same['slot_name']}」"
-                                                                 f"名冊記了內建功能" + ("" if same["tested"] else "（還沒實測夠不夠）")})
+                                                                 f"的內建功能實測過夠用"})
             if basis and carried.get(i["name"]):
                 basis.append({"code": "carries", "text": f"注意：這個 plugin 也帶了名冊上的 {'、'.join(carried[i['name']])}，"
                                                           "拿掉會一起拿掉"})
@@ -754,6 +756,12 @@ def selftest():
     today = date(2026, 11, 11)
     facts = diagnose(roster, used, costs, both, today=today, notes=["備註"])
     claude, codex = facts["agents"]["claude"], facts["agents"]["codex"]
+    # 同一份名冊，但記憶槽位在 Claude 的內建功能實測過（拿掉的「跟內建重疊」只認實測過的）
+    tested_roster = {**roster, "slots": [
+        {**s, "answers": {**s["answers"], "claude": {"verdict": "native", "reason": "內建的記憶功能實測夠用",
+                                                     "evidence": "data/evals/m.md", "decided_at": "2026-11-10"}}}
+        if s["id"] == "memory" else s for s in roster["slots"]]}
+    tested_claude = diagnose(tested_roster, used, costs, both, today=today)["agents"]["claude"]
 
     def ids(entry, kind):
         return [c["id"] for c in entry["candidates"][kind]]
@@ -782,7 +790,7 @@ def selftest():
           and cand(codex, "install:fe")["how"]["commands"] == ["codex plugin marketplace add owner/kit", "codex plugin add fe-plugin@mk"])
     check("裝：marketplace 已經加過就只剩安裝那一行", cand(diagnose(roster, used, costs, both, added={"claude": True})["agents"]["claude"],
           "install:fe")["how"]["commands"] == ["claude plugin install fe-plugin@mk"])
-    m2 = "\n".join(remove_lines(cand(claude, "remove:skill:mem2@~/.claude/skills"), "理由"))
+    m2 = "\n".join(remove_lines(cand(tested_claude, "remove:skill:mem2@~/.claude/skills"), "理由"))
     old = "\n".join(remove_lines(cand(claude, "remove:skill:old@~/.claude/skills"), "理由"))
     check("拿掉：寫出它做什麼、拿掉之後同一件事還剩什麼（這台裝的別的工具、內建的）；名冊沒有的照實說",
           "它做什麼：mem2 的理由" in m2 and "拿掉之後：這台同一件事還裝了 mem-tool@m" in m2 and "內建的：內建的記憶功能" in m2
@@ -874,11 +882,13 @@ def selftest():
           and "5,000 tokens" in cand(claude, "remove:skill:fresh@~/.claude/skills")["basis"][0]["text"]
           and cand(claude, "remove:skill:bad@~/.claude/skills")["basis"] == [{"code": "roster-rejected", "text": "名冊上是拒絕：bad 的理由"}])
     check("拿掉：剛裝的、有在用的、名冊上只是待評估的，不列", not any(n in " ".join(ids(claude, "remove")) for n in ("quiet", "mem-tool")))
-    overlap = cand(claude, "remove:skill:mem2@~/.claude/skills")["basis"]
-    check("拿掉：同一件事名冊記了內建功能、這份裝了一週以上從沒用到，才列；裝不到一週的不列",
-          ids(claude, "remove")[3:] == ["remove:skill:mem2@~/.claude/skills"] and overlap[0]["code"] == "native-overlap"
-          and "裝了 10 天沒用到" in overlap[0]["text"] and "還沒實測" in overlap[0]["text"]
-          and "terse" not in " ".join(ids(claude, "remove")))
+    overlap = cand(tested_claude, "remove:skill:mem2@~/.claude/skills")["basis"]
+    check("拿掉：同一件事內建功能實測過夠用、這份裝了一週以上從沒用到，才列；裝不到一週的不列",
+          "remove:skill:mem2@~/.claude/skills" in ids(tested_claude, "remove") and overlap[0]["code"] == "native-overlap"
+          and "裝了 10 天沒用到" in overlap[0]["text"] and "實測過夠用" in overlap[0]["text"]
+          and "terse" not in " ".join(ids(tested_claude, "remove")))
+    check("拿掉：內建功能還沒實測過，不能當拿掉的依據（2026-11-16 試點 graphify）",
+          "mem2" not in " ".join(ids(claude, "remove")))
     check("拿掉：沒有使用紀錄的 MCP 不會只因為沒看到用就列；OmniKit 自己的 MCP 成本再高也不列",
           not any("mcp" in i for i in ids(claude, "remove")) and claude["not_judged"]["no_usage_data"] == ["kit-server", "other-server"])
     shared = cand(codex, "remove:skill:shared-old@~/.agents/skills")
@@ -954,7 +964,7 @@ def selftest():
     check("規則檔：沒挑也照樣報成本", "## 規則檔瘦身（0 項）\n\n每段對話載入 2 個規則檔" in text and "有 2 個候選，都沒有挑" in text)
 
     check("成本量不到（None）：其他依據照常", ids(diagnose(roster, used, None, both)["agents"]["claude"], "remove")
-          == ["remove:skill:old@~/.claude/skills", "remove:skill:bad@~/.claude/skills", "remove:skill:mem2@~/.claude/skills"])
+          == ["remove:skill:old@~/.claude/skills", "remove:skill:bad@~/.claude/skills"])
 
     # 名冊外的候選（候選池）
     def found_entry(eid, agents, **extra):
@@ -1045,7 +1055,7 @@ def selftest():
     check("建議：同一件事另外裝的工具，寫出有沒有在用", "這台同一件事還裝了：mem-tool@m（plugin，4 段對話用到）、mem2（skill，裝了 10 天沒用到）"
           in "\n".join(render(facts, agent, chosen)))
     check("建議：沒挑的候選只列數量；剛裝的與沒有使用紀錄的也交代",
-          "候選裡沒有挑的：裝 1 個、拿掉 3 個、用內建的就好 3 個" in text and "先不判斷：4 個" in text
+          "候選裡沒有挑的：裝 1 個、拿掉 2 個、用內建的就好 3 個" in text and "先不判斷：4 個" in text
           and "沒有使用紀錄可以判斷（例如 MCP）：2 個" in text and "- 備註" in text and "- 這個 profile 還沒選領域" in text)
     bad = {"agent": "claude", "picks": [{"id": "install:not-listed", "reason": "自己想到的工具"},
                                         {"id": "install:fe", "reason": ""}, {"id": "native:browser", "reason": "內建就夠用了"},
