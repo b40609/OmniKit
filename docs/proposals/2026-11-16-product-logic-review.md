@@ -129,20 +129,43 @@
 - 用量最大的槓桿是使用習慣（切換任務不清 context、長對話、子代理），不是工具清單。47 個沒叫用的 skill 合計才約 5,870 tokens。OmniKit 一直在最佳化小的那一邊。
 - 官方也會說錯，但它會自己講證據弱，而且每一項都等使用者確認。
 
-### 3.6 同類工具
+### 3.6 同類工具（飽和式調研）
 
-飽和式調研派給 Gemini 4 Hydrogen（high），寫這份文件時還在跑，結果回來、驗收之後補在這裡。
+派給 Gemini 4 Hydrogen（high）照 `omnikit-research` 的流程查，17 分鐘。驗收結果是**部分通過**：
 
-到 2026-11-16 23:50 的帳本：12 組關鍵字、122 個它判定相關的名字，還沒飽和（每一組都還有新名字）。我還沒驗收，下面只是帳本裡看得到的分布：
+- **沒有飽和。** 跑滿我設的 12 組上限，每一組都還有新名字（最後兩組是 1 個與 6 個），所以「沒有人在做 X」這類結論只能說「130 個裡沒看到」。
+- 相關工具 130 個：先前已知的 18 個，新找到 112 個；星數與最後 push 都用 `gh api` 查過（2026-11-16）。
+- 我抽查了 4 個關鍵引用的一手來源（3 份 README、1 則 Claude Code 的 release note），都對得上。其餘沒有逐條查。
+- 完整報告與帳本在這台的暫存資料夾，沒有放進 repo。
 
-- 找沒在用的 skill 或 MCP、清理 context：第 1 組就有 29 個（skill-graveyard、mcp-prune、claude-slim、cc-audit 這類）。
-- CLAUDE.md、AGENTS.md 的 lint 與 doctor：26 個（agnix、AgentLint、claudelint、claude-md-doctor 這類）。
-- skill 的實測框架：16 個。
-- profile 切換與還原：7 個。
+分布：
 
-光看數量就有一個結論：「替 coding agent 找沒在用的東西、審規則檔」這件事，外面有一百個以上的人在做，官方也做了。這一塊不缺工具。
+| 類別 | 新找到 | 例子 |
+|---|---|---|
+| 使用分析、context 成本、清理 | 33 | skillreaper、ccaudit、claude-slim、janitor、groundskeeper、mcp-prune |
+| 規則檔體檢、瘦身、lint | 30 | agnix、claude-md-doctor、claudelint、AgentLint |
+| skill 與 MCP 的實測框架 | 18 | skill-eval-harness、gcamilo/skill-eval、NVIDIA/SkillEvaluator、skillgrade |
+| 設定精靈、推薦、健康檢查 | 14 | caliber-ai-org/ai-setup |
+| 跨 agent 同步加管理 | 10 | xingkongliang/skills-manager（7,543 星） |
+| profile 切換與還原 | 7 | aisw、claude-code-profile |
 
-第 4 節關於節奏與門檻的判斷，目前只有官方文件與這台的資料當依據；同類工具怎麼做，要等這份調研。
+四個問題的答案：
+
+1. **換與換回、試用期、影子比對**：130 個裡沒有人把「裝新的、試用一段時間、看真實對話的表現決定留或換回」做成一套。最接近的是兩種：可還原的封存（skillreaper、ccaudit、janitor、groundskeeper 都是把東西搬到封存資料夾，一個指令還原），以及離線的成對實測（同一題跑有 skill 與沒 skill，skill-eval-harness 還算信賴區間）。
+2. **節奏**：九成以上是使用者想到才跑。skill-graveyard 的 README 建議每月手動跑一次。會主動提醒的只有兩個（groundskeeper、cleanup），做法是在開新對話時印一行，而且最多 7 天一次。沒有任何一個出定期報告。
+3. **「沒在用」的門檻**：30 到 60 天沒叫用（mcp-prune 是 7 天警告、14 天警示）。多數另外設「剛裝的寬限期」14 或 30 天。只有極少數處理背景與子代理的紀錄。沒看到預設用「對話段數」當門檻的，兼看天數與段數的是官方。
+4. **有沒有因為官方內建而退場的**：有，而且就在這個賽道。
+   - `khendzel/skills-janitor`（129 星）2026-09 進入維護模式，README 寫："Claude Code now does the core of this natively."、"They see real usage from inside the harness, which a plugin never can."、"We were early, and now it's native. That's a good ending for a janitor."
+   - `/skill-doctor` 是 2026-09-04 的 v2.1.261 加的，`/doctor prompt-audit` 是 2026-09-25 的 v2.1.283。也就是 OmniKit 開工（2026-11-04）之前兩個月，官方就有了。
+   - `MarioGiancini/ralph-loop-setup` 2026-06-20 標 DEPRECATED 並封存，理由是官方有了 `/goal`、`/loop` 等原生功能，手寫的 harness 重複了。
+
+**Hydrogen 的結論跟我不一樣，兩邊都列出來。** 它認為還沒被滿足的空白是「試用期加線上影子比對加換回」與「跨 agent 的定期週報」，OmniKit 應該收斂到這兩塊。我的判斷相反：
+
+- 沒有人做，不等於有人要。OmniKit 正好把這兩塊都做了，而自己的紀錄是 4 筆試用 0 段任務、週報跑過 1 次。130 個工具沒有一個做，比較像是沒有需求，不像是大家都沒想到。
+- 跨 agent 對主要使用者已經不成立（Codex 退訂）。
+- 同業在做的反而是比較簡單的版本：可還原的封存取代換回狀態機，一次性的成對實測取代 14 天試用，開對話時每週最多一行取代週報。
+
+這個分歧要你裁決（第 8 節第 2 題）。
 
 ## 4. 底層邏輯逐項檢討
 
@@ -172,6 +195,7 @@
 - 這台的工具變動是一陣一陣的：4 週分別是 1、9、5、3 個（最後一週才過一天）。安靜的那週，週報沒東西可講，變成雜訊；變動多的那週，一週才看一次又太慢。
 - 日報更糟：絕大多數日子沒有任何變化。月報對不上任何事件。
 - 官方沒有任何定期報告：`/doctor`、`/skill-doctor`、`/usage` 都是想到才跑，`/usage` 可以切 24 小時或 7 天；主動建議是事件觸發，而且限制頻率。
+- 同類工具也一樣（第 3.6 節）：九成以上是想到才跑；會主動提醒的兩個，是開新對話時印一行、最多 7 天一次；沒有任何一個出定期報告。
 
 合理的觸發不是日曆，是事件：
 
@@ -197,7 +221,7 @@
 | 規則檔哪些可以拿掉 | `rules.py:17-27` | 腳本只標得出五種表面訊號（訪談產生的、重複、口號、語氣重、很長）。最關鍵的那一步「這條是不是模型現在預設就會做」腳本判斷不了，留給 agent 寫理由，也就是沒有證據。體檢後還得把紅線、確認、權限類全部設成受保護，免得被列進去。腳本自己的說明也寫了官方 `/doctor` 在做同一件事，它補的是每段對話的成本、Codex 端、底線受保護 | 交給 `/doctor` 與 `prompt-audit`，成本看 `/usage`；紅線改用 hook 強制，不靠文字 |
 | 第 2 層實測（雜訊基準、不同家族的評審、盲選） | `omnikit-eval` | 這是 OmniKit 最嚴謹、也最有自己東西的一塊：雜訊基準抓到過「評審判 4 勝 1 負的工具其實只被叫用 1 次」 | 留。執行的框架可以逐步換成 `claude plugin eval`，題目與結論是自己的 |
 
-這些數字（30、7、14、10、1,000）都來自 PRD 的條文編號，沒有一個是從資料定出來的。
+這些數字（30、7、14、10、1,000）都來自 PRD 的條文編號，沒有一個是從資料定出來的。同類工具的門檻落在 30 到 60 天，另外幾乎都有「剛裝的寬限期」14 或 30 天（第 3.6 節）；30 天本身不離譜，問題在後面接的結論。
 
 ### 4.4 通知與回流
 
@@ -275,6 +299,8 @@
 
 第一類佔了現在大部分的程式，第三類大多是資料與幾份短的 skill，不是引擎。
 
+同業已經有人走完這條路：skills-janitor 的作者在官方出了 `/skill-doctor` 之後把專案轉成維護模式，理由是 harness 從裡面看得到真實的使用，plugin 永遠看不到（第 3.6 節）。
+
 還有一個角度：照 PRD 的試點指標「少了它會不會非常失望」，用這台的叫用紀錄先替你自己答一次。少了交接、分派、底線規則，你明天就會有感覺；少了週報與建議，從紀錄看不出會有人發現。
 
 ## 7. 三個方案
@@ -301,7 +327,7 @@
 ## 8. 想先跟你對的三件事
 
 1. **同事實際用哪個 agent？** 如果都是 Claude，「跨 agent」可以整根拿掉，安裝也只要做 Claude 的原生 plugin。如果有人主要用 Codex 或別的，要另外查那邊的原生機制。
-2. **你自己「少了會非常失望」的是哪幾樣？** 我從叫用紀錄猜是交接、分派、底線規則。如果你覺得建議或週報其實有幫到你，只是紀錄看不出來，結論要改。
+2. **你自己「少了會非常失望」的是哪幾樣？** 我從叫用紀錄猜是交接、分派、底線規則。如果你覺得建議或週報其實有幫到你，只是紀錄看不出來，結論要改。這題也裁決第 3.6 節的分歧：Hydrogen 認為試用與換回、跨 agent 週報是該守的空白，我認為那是沒有需求的空白。
 3. **OmniKit 是做給誰的？** 自己好用、同事好用，還是想做成給外面的人用的產品？前兩個指向 A。第三個的話，「工具顧問」這個產品的對手是平台自己，我不建議；但「一套跨模型分派加交接的工作方法」是另一個題目，可以另外談。
 
 ## 9. 這份分析的限制
@@ -310,6 +336,7 @@
 - Codex 端：11-11 查過，官方的 `codex doctor` 只做健康檢查，沒有「沒在用」的偵測；這次沒有重查。Antigravity 沒查過。
 - 「原生 plugin 能取代自製安裝」是推論，還沒做原型。OmniKit 當初自己寫安裝，有一部分原因是公司防毒擋第三方同步工具，這個限制對原生 plugin 成不成立要實測。
 - 叫用次數只有 7 天、只有這一台、只有你一個人。
+- 同類工具的調研沒有飽和（跑滿 12 組仍有新名字），130 個裡我只抽查了 4 個引用。
 - Anthropic 的「做法」是從公開文章與產品倒推的，不是內部資訊。
 
 ## 來源
@@ -331,6 +358,13 @@ Anthropic 工程文章：
 - https://www.anthropic.com/engineering/writing-tools-for-agents
 - https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
 - https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
+
+同類工具（2026-11-16 用 `gh api` 讀 README 與 release）：
+
+- https://github.com/khendzel/skills-janitor
+- https://github.com/anthropics/claude-code/releases/tag/v2.1.261
+- https://github.com/MarioGiancini/ralph-loop-setup
+- https://github.com/zvoque/groundskeeper
 
 二手報導【待驗證】：
 
