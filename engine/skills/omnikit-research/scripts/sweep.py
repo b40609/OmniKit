@@ -10,7 +10,7 @@
 用法（路徑相對於這個 skill 的資料夾）：
   uv run scripts/sweep.py channels "<關鍵字>" --ledger <帳本.json> [--topic <topic>]... [--limit 20]
       一組關鍵字查 GitHub topic、GitHub 關鍵字（依星數）、awesome 清單、skills.sh、npm、官方 MCP Registry、
-      Hacker News，名字記進帳本；查不到的管道也記。
+      Hacker News、Exa（語意搜尋，匿名可用），帳本記查過與筆數；查不到的管道也記。
   uv run scripts/sweep.py add <帳本.json> --group "<關鍵字>" --channel web-zh|web-en|producthunt|related|... --names A B ...
       把網頁搜尋這類 agent 自己查的結果記進同一組。
   uv run scripts/sweep.py related <owner/repo> [--ledger <帳本.json> --group "<關鍵字>"] [--forks 10]
@@ -21,13 +21,15 @@
       用 gh api 實測星數、授權、是否封存、最後 push，附查詢日期。
   uv run scripts/sweep.py --selftest
 
-只送關鍵字與 repo 名稱出去。GitHub 走本機 gh（要先 gh auth login）；其他都是不用金鑰的公開端點。
+只送關鍵字與 repo 名稱出去。GitHub 走本機 gh（要先 gh auth login）；其他都是不用金鑰的公開端點
+（Exa 匿名有限速；設了 EXA_API_KEY 就帶上，額度較高）。
 skills.sh 依 IP 限速：每次至少隔 3 秒，被擋就記「查不到」，不繞過。
 """
 import argparse
 import base64
 import datetime as dt
 import json
+import os
 import re
 import subprocess
 import sys
@@ -39,8 +41,11 @@ import urllib.request
 from pathlib import Path
 
 STOP_AFTER = 3  # 連續幾組沒有新名字就停
-# 每組關鍵字都要查的：這支自動查的七個，加上至少一種網頁搜尋（web-zh 或 web-en）
-SCRIPT_CHANNELS = ("github-topic", "github-keyword", "awesome", "skills-sh", "npm", "mcp-registry", "hn")
+# 每組關鍵字都要查的：這支自動查的八個，加上至少一種網頁搜尋（web-zh 或 web-en）
+SCRIPT_CHANNELS = ("github-topic", "github-keyword", "awesome", "skills-sh", "npm", "mcp-registry", "hn", "exa")
+# Exa 語意搜尋（試用到 2026-11-30，見 data/evals/2026-11-16-product-research-P2.md）：直接對 hosted MCP 講協定，
+# 不裝進任何 agent。匿名可用、有限速；有環境變數 EXA_API_KEY 就用 x-api-key 標頭帶上（不印、不存）。
+EXA_MCP = "https://mcp.exa.ai/mcp"
 WEB = ("web-zh", "web-en")
 # 整次調研至少各查一次的
 ONCE = {"web-zh": "中文網頁搜尋", "web-en": "英文網頁搜尋", "producthunt": "Product Hunt（網頁搜尋 site:producthunt.com）",
@@ -273,7 +278,46 @@ def ch_skills(keyword, limit, fetch, sleep=time.sleep, clock=time.monotonic):
     return rows, []
 
 
-def run_channels(keyword, limit, topics=(), gh=gh_json, fetch=http_json):
+def exa_post(payload, session=None):
+    """對 Exa hosted MCP 送一個 JSON-RPC 訊息，回（回應, session id）。回應可能是 JSON 或 SSE。"""
+    headers = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream",
+               "User-Agent": "omnikit-research"}
+    if session:
+        headers["Mcp-Session-Id"] = session
+    if os.environ.get("EXA_API_KEY"):
+        headers["x-api-key"] = os.environ["EXA_API_KEY"]
+    req = urllib.request.Request(EXA_MCP, data=json.dumps(payload).encode(), headers=headers, method="POST")
+    with urllib.request.urlopen(req, timeout=90) as resp:
+        session = resp.headers.get("Mcp-Session-Id") or session
+        body = resp.read().decode("utf-8", "replace")
+    if not body.strip():
+        return None, session
+    if body.lstrip().startswith("{"):
+        return json.loads(body), session
+    msgs = [json.loads(x[5:]) for x in body.splitlines() if x.startswith("data:") and x[5:].strip()]
+    return next((m for m in msgs if "result" in m or "error" in m), None), session
+
+
+def ch_exa(keyword, limit, post=exa_post):
+    _, sid = post({"jsonrpc": "2.0", "id": 1, "method": "initialize",
+                   "params": {"protocolVersion": "2025-06-18", "capabilities": {},
+                              "clientInfo": {"name": "omnikit-research", "version": "1"}}})
+    post({"jsonrpc": "2.0", "method": "notifications/initialized"}, sid)
+    # objective 必填；實測寫不寫任務描述結果幾乎一樣，所以用關鍵字本身
+    res, _ = post({"jsonrpc": "2.0", "id": 2, "method": "tools/call",
+                   "params": {"name": "web_search_exa",
+                              "arguments": {"query": keyword, "objective": keyword, "numResults": min(limit, 10)}}}, sid)
+    if not res or res.get("error") or (res.get("result") or {}).get("isError"):
+        raise RuntimeError(f"Exa 回錯誤：{str((res or {}).get('error') or res)[:150]}")
+    text = "".join(x.get("text", "") for x in res["result"].get("content", []))
+    rows = []
+    for t, u in zip(re.findall(r"^Title: (.*)$", text, re.M), re.findall(r"^URL: (.*)$", text, re.M)):
+        rows.append({"name": repo_of(u) or t.strip()[:80], "url": u.strip(), "lead": not repo_of(u)})
+    auth = "金鑰" if os.environ.get("EXA_API_KEY") else "匿名"
+    return rows, [f"{auth}；名字取 repo 或頁面標題，標題要自己判斷工具名"]
+
+
+def run_channels(keyword, limit, topics=(), gh=gh_json, fetch=http_json, exa=exa_post):
     jobs = {
         "github-topic": lambda: ch_github_topic(keyword, limit, gh, topics),
         "github-keyword": lambda: ch_github_keyword(keyword, limit, gh),
@@ -282,6 +326,7 @@ def run_channels(keyword, limit, topics=(), gh=gh_json, fetch=http_json):
         "npm": lambda: ch_npm(keyword, limit, fetch),
         "mcp-registry": lambda: ch_registry(keyword, limit, fetch),
         "hn": lambda: ch_hn(keyword, limit, fetch),
+        "exa": lambda: ch_exa(keyword, limit, exa),
     }
     out = {}
     for name, job in jobs.items():
@@ -538,13 +583,34 @@ def selftest():
                                {"source": "https://evil.example", "skillId": "x"}]}
         raise ValueError(url)
 
+    exa_calls = []
+
+    def fake_exa(payload, session=None):
+        exa_calls.append((payload.get("method"), session))
+        if payload.get("method") == "initialize":
+            return {"result": {}}, "sid-1"
+        if payload.get("method") == "tools/call":
+            text = ("Title: GitDiagram - Visualize Any GitHub Repository\nURL: https://gitdiagram.com/\n\n"
+                    "Title: konraddzbik/architecture-diagram-skill\nURL: https://github.com/konraddzbik/architecture-diagram-skill\n")
+            return {"result": {"content": [{"type": "text", "text": text}]}}, session
+        return None, session
+
     global SKILLS_GAP
     gap, SKILLS_GAP = SKILLS_GAP, 0
     try:
-        res = run_channels("architecture diagram", 5, gh=fake_gh, fetch=fake_fetch)
+        res = run_channels("architecture diagram", 5, gh=fake_gh, fetch=fake_fetch, exa=fake_exa)
     finally:
         SKILLS_GAP = gap
-    check("七個程式管道都有結果或錯誤", set(res) == set(SCRIPT_CHANNELS))
+    check("八個程式管道都有結果或錯誤", set(res) == set(SCRIPT_CHANNELS))
+    check("Exa：先 initialize 再帶 session 呼叫、名字取 repo 或標題",
+          [r["name"] for r in res["exa"]["rows"]] == ["GitDiagram - Visualize Any GitHub Repository",
+                                                      "konraddzbik/architecture-diagram-skill"]
+          and exa_calls[-1] == ("tools/call", "sid-1"))
+    try:
+        ch_exa("x", 5, post=lambda p, s=None: ({"error": {"message": "rate limited"}}, "s"))
+        check("Exa 回錯誤要丟例外（記成查不到）", False)
+    except RuntimeError:
+        check("Exa 回錯誤要丟例外（記成查不到）", True)
     check("topic 搜尋找得到 Archify", res["github-topic"]["rows"][0]["name"] == "tt-a1i/archify")
     check("Registry 連不上記成錯誤", res["mcp-registry"]["error"] and not res["mcp-registry"]["rows"])
     check("HN：github 網址取 repo、其他標成線索",

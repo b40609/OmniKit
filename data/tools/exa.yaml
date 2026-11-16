@@ -14,5 +14,5 @@ reason: P2 實測（找能把 repo 畫成架構圖的工具，3 組關鍵字）�
 sources:
 - RIA:C048
 - 使用者提出
-notes: 語意搜尋 API 的官方 MCP，exa-labs/exa-mcp-server ★5,235，MIT（2026-11-16 gh api）。第 0 層通過，兩個 skill 掃描都是 INFO。hosted MCP https://mcp.exa.ai/mcp 匿名可用、有限速（多少沒公布）；金鑰用 x-api-key 或 Authorization 標頭，放環境變數 EXA_API_KEY。預設 2 個工具（web_search_exa 的 objective 必填），定義 2,421 bytes；Claude Code 的 tool search 預設延遲載入，開頭只多工具名與 458 字元的 instructions。費用：註冊後每月 $10 額度、每月重置，搜尋每千次 $4 到 $7（exa.ai/pricing，2026-11-16）。OmniKit 的 servers.yaml 只收 stdio，遠端 URL 要另外接。實測紀錄見 data/evals/2026-11-16-product-research-P2.md。
+notes: 語意搜尋 API 的官方 MCP，exa-labs/exa-mcp-server ★5,235，MIT（2026-11-16 gh api）。第 0 層通過，兩個 skill 掃描都是 INFO。hosted MCP https://mcp.exa.ai/mcp 匿名可用、有限速（多少沒公布）；金鑰用 x-api-key 或 Authorization 標頭，放環境變數 EXA_API_KEY。預設 2 個工具（web_search_exa 的 objective 必填），定義 2,421 bytes；Claude Code 的 tool search 預設延遲載入，開頭只多工具名與 458 字元的 instructions。費用：註冊後每月 $10 額度、每月重置，搜尋每千次 $4 到 $7（exa.ai/pricing，2026-11-16）。OmniKit 的 servers.yaml 只收 stdio，遠端 URL 要另外接。實測紀錄見 data/evals/2026-11-16-product-research-P2.md。試用的接法（2026-11-16 使用者選定）：omnikit-research 的 sweep.py 多一個 exa 管道，直接對 hosted MCP 講協定，不裝進任何 agent，對話開頭成本 0。試用結束看 Exa 帶來的新名字占比、有沒有撞到匿名限速。
 added: '2026-11-04'
