@@ -124,9 +124,12 @@ channels:
       結果一律由主控讀檔、跑測試驗收。用的是 antigravity 實例（ryan 帳號）。
   delegate_task:
     use: 在 T3 裡跨供應商（Gemini／Antigravity）、要獨立 worktree、要指定別的帳號實例（providerInstanceId）
-    pending: >-
-      【待驗證】11-14 經 T3 派 Hydrogen 時思考程度沒有生效（委派紀錄）；agy 直接呼叫已確認可以，T3 這條還沒重測，
-      要指定 xhigh 時先用 agy_cli。
+    note: >-
+      思考程度：model 直接寫帶程度的代號（gemini-4-hydrogen-xhigh）。2026-11-16 用 t3 thread start --provider antigravity 實測：
+      T3 介面在模型旁標 Unavailable（T3 的模型目錄只有 gemini-4-hydrogen），但 T3 經 antigravity-acp 送到後端的就是這個代號，
+      後端紀錄寫「running ... as gemini-4-hydrogen-xhigh」，回覆正確；只寫 gemini-4-hydrogen 時後端用 high。
+      所以 Unavailable 可以不理。【待驗證】思考 token 在 T3 的紀錄裡看不到，xhigh 有沒有多想只有耗時佐證（77 秒對 high 54 秒，各 1 次）；
+      要確定思考程度時用 agy_cli（輸出有 thinking_tokens）。
     note: >-
       現行規則：delegate_task 不能指定別的專案。【待驗證】T3 的 delegate_task 參數裡有 target.projectId，
       實際能不能把子任務開在別的專案還沒實測，驗證前照現行規則。

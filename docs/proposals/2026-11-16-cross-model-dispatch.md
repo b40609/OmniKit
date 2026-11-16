@@ -37,7 +37,7 @@ Codex 已改免費版，不排進路由。
 
 ## 實測（2026-11-16，agy 1.5.9）
 
-- **思考程度能指定**：`--model gemini-4-hydrogen-xhigh` 或 `--effort xhigh` 都生效，log 印 `resolved to "gemini-4-hydrogen-xhigh"`。思考 token 各 3 次：high 892 到 1145，xhigh 1846 到 3333。只寫 `gemini-4-hydrogen` 會落到 medium（684 到 837）。11-14 做不到是走 T3；T3 這條還沒重測（待驗證）。
+- **思考程度能指定**：`--model gemini-4-hydrogen-xhigh` 或 `--effort xhigh` 都生效，log 印 `resolved to "gemini-4-hydrogen-xhigh"`。思考 token 各 3 次：high 892 到 1145，xhigh 1846 到 3333。只寫 `gemini-4-hydrogen` 會落到 medium（684 到 837）。T3 也能用：`t3 thread start --provider antigravity --model gemini-4-hydrogen-xhigh`，T3 介面標 Unavailable（目錄裡沒有這個代號），但後端 antigravity-acp 的紀錄寫「as gemini-4-hydrogen-xhigh」；只寫 `gemini-4-hydrogen` 在 T3 會用 high。T3 看不到思考 token，xhigh 多想多少待驗證。
 - **能改檔、能自己跑測試**：在暫存資料夾修兩個小 bug，改對並跑過測試。
 - **權限**：無頭模式不能核准。agy 的安全監控把不認得的指令送審就自動拒絕，時好時壞（第一次調研跑到一半被拒）；`--mode accept-edits` 一律拒終端機指令；`--settings` 的允許規則讓指令落進沙盒，uv 跑不起來。`--dangerously-skip-permissions` 連 3 次穩定。所以 `dispatch.py agy` 用它，任務說明前面固定加硬性限制（不 commit、不 push、不刪檔、不對外發送、不安裝），結果由主控驗收。
 - **PATH**：agy 的終端機只有系統 PATH，`dispatch.py agy` 會附上 uv、gh、git、node 的絕對路徑。
