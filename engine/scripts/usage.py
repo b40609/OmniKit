@@ -32,6 +32,7 @@
   uv run engine/scripts/usage.py --selftest
 """
 import argparse
+import io
 import json
 import os
 import re
@@ -102,7 +103,14 @@ try:  # Codex 把結束的對話壓成 .jsonl.zst（2026-11-16 這台：30 天 2
     from compression.zstd import open as _zstd_open  # Python 3.14 起內建
 except ImportError:
     try:
-        from zstandard import open as _zstd_open
+        import zstandard as _zstandard
+
+        def _zstd_open(path, mode="rb"):
+            """zstandard 套件開的讀取串流不能逐行讀（CI 的 Python 3.12 上 io.UnsupportedOperation）：整份解開放進記憶體。"""
+            if "w" in mode:
+                return _zstandard.open(path, mode)
+            with open(path, "rb") as fh:
+                return io.BytesIO(_zstandard.ZstdDecompressor().stream_reader(fh).read())
     except ImportError:
         _zstd_open = None
 ZSTD = _zstd_open is not None
