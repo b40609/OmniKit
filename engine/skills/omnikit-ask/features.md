@@ -1,6 +1,6 @@
 # 官方功能對照：什麼情況用哪個、各家叫什麼
 
-核對日期：2026-11-17（第二輪：補了 Codex、Antigravity 的指令，加上 11-10 之後的更新紀錄；證據與網址見 `SOURCES.md` 的「2026-11-17 第二輪」）。「待驗證」表示這次沒有在官方文件或原始碼裡查到，不代表沒有。功能會變，用之前可以請 agent 查官方文件確認。
+核對日期：2026-11-17（第二輪：補了 Codex、Antigravity 的指令，加上 11-10 之後的更新紀錄；證據與網址見 `SOURCES.md` 的「2026-11-17 第二輪」）。「待驗證」表示這次沒有在官方文件或原始碼裡查到，不代表沒有。功能會變，用之前可以請 agent 查官方文件確認。2026-11-18 補了 6 列（對照表最後 6 列，加上「規則檔與 skill 越來越重」一節），只核對了 Claude Code 欄（官方 `features-overview`，`/doctor prompt-audit` 在這台 2.1.326 實跑過）；其他三欄標待驗證，下一輪雷達補。
 
 核對的版本：Claude Code 2.1.326、Codex 0.168.0（原始碼 tag rust-v0.168.0）、Antigravity CLI 1.5.9、Gemini CLI 0.68.0。
 
@@ -38,6 +38,13 @@ Gemini CLI 的免費與 Google One 使用者已在 2026-06-18 改用 Antigravity
 - 限制與補法：它不知道你已經裝了哪些 skill，可能建議你做已經有的東西；拿到建議後照 `situations/project.md` 的「一直重複提醒同一件事」那一條整理。
 - 其他家：Codex、Gemini CLI 沒有對應的指令（Codex 的 `/usage` 只看 token 用量）。Antigravity 沒有報告，但 `/learn` 會把這段對話裡的糾正整理成規則或 skill 的提案，先給你看再寫。其餘情況改用同一條裡「回顧這段對話」的做法，每個工作結束時做一次。
 
+### 規則檔與 skill 越來越重
+- 做什麼：找出規則檔與 skill 裡過時、互相打架、或 agent 看程式碼就知道的指示；把不常用的 skill 從每回合的 context 拿掉。
+- 什麼時候用：規則檔改過很多次；換了新模型；回覆變慢、額度掉得快；覺得 agent 一直過度套用某條規則。
+- 怎麼用：Claude Code `/doctor prompt-audit`（`/checkup` 是同一個指令），它先列清單、你確認才改，改完自己看一次 diff。自己寫的 skill，說明欄只想在點名時用的，front matter 寫 `disable-model-invocation: true`；別人的 skill 不想改它的檔，就在設定檔用 `skillOverrides` 做同一件事，不用移除整個 plugin。
+- 其他家：Codex 停用單一 skill 是設定檔的 `[[skills.config]]`（讀過官方文件，沒實測）；Antigravity、Gemini CLI 待驗證。
+- 依據：官方 `code.claude.com/docs/en/features-overview` 的「Context cost by feature」；Anthropic 為新模型把 Claude Code 的系統提示砍掉八成以上，評測沒有退步（Thariq Shihipar，2026-07-24）。
+
 ### 不知道某個指令是做什麼的
 - Claude Code `/help 〔指令名〕`（2.1.326 起）；想看有哪些功能用 `/powerup`。
 - Antigravity `/antigravity-guide 〔問題〕`，它照官方文件回答；`/changelog` 看更新紀錄。
@@ -63,5 +70,11 @@ Gemini CLI 的免費與 Google One 使用者已在 2026-06-18 改用 Antigravity
 | 設定有沒有問題、哪些沒在用 | `/doctor`、`/skill-doctor` | `codex doctor`（只查環境與設定壞了沒） | 沒有 | 沒有 |
 | 學有哪些功能 | `/help 〔指令〕`、`/powerup` | 沒有；直接問它 | `/antigravity-guide`、`/changelog` | `/docs` |
 | 把用法包給同事 | `/team-onboarding`；或做成 plugin | 做成 plugin（`codex plugin marketplace add`）；`/import` 從 Claude Code 帶設定過來 | 做成 plugin | `/extensions`（能包哪些待驗證） |
+| 規則檔有沒有過時或互相打架 | `/doctor prompt-audit`（`/checkup`） | 待驗證 | 待驗證 | 待驗證 |
+| 不常用的 skill 別每回合佔 context | `disable-model-invocation: true`；別人的 skill 用 `skillOverrides` | `[[skills.config]]`（待驗證） | 待驗證 | 待驗證 |
+| 讓它自己記住學到的事 | auto memory（自動記憶，不用自己寫） | 待驗證 | `/learn` 先提案再寫 | `/memory`（手動加） |
+| 一次跑很多子代理、交叉驗證 | dynamic workflow（在提示裡要求跑一個 workflow） | 待驗證 | 待驗證 | 待驗證 |
+| 一段對話的結論送到另一段 | cross-session messaging（請它把結論送過去） | 待驗證 | 待驗證 | 待驗證 |
+| 型別語言找定義、找引用 | 裝那個語言的 code intelligence plugin | 待驗證 | 待驗證 | 待驗證 |
 
 三家都能用的：規則檔、skill（都是 Markdown）、plan mode、`/btw`、`/goal`、plugin、worktree、這份問法庫裡「可以直接貼」的句子。只有 Claude Code 有的，多半是「量」的功能（使用習慣報告、用量歸因、設定體檢）。只用 Codex 或 Antigravity 的人，這幾樣用問法庫裡的做法手動做。

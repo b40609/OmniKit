@@ -1,6 +1,6 @@
 # 起手清單：新電腦要設什麼、裝什麼、不用裝什麼
 
-更新：2026-11-17。規則：**實測過的才進「值得裝」與「不用裝」**；沒測過的放最後一欄，不下結論。所以這份很短，短是故意的。
+更新：2026-11-18（加第 6 節「出現這些症狀再加」）。規則：**實測過的才進「值得裝」與「不用裝」**；沒測過的放最後一欄，不下結論。所以這份很短，短是故意的。
 
 官方對 Claude Code 的說法是「your first plain prompt in a fresh session already does the right thing, without any setup on your part」。外面的「必裝清單」調研看了 6 份，沒有一份附整體成效的實測；交集最大的是三個習慣（短的規則檔、先規劃再動手、讓 agent 自己跑測試驗證），不是工具。
 
@@ -41,7 +41,7 @@
 
 | 工具 | 現況 |
 |---|---|
-| claude-mem（跨對話記憶） | 維護者在用，hook 自動執行；它帶的二十幾個 skill 從沒被叫用、每回合都佔 context。有沒有幫助沒測過 |
+| claude-mem（跨對話記憶） | 維護者在用，hook 自動執行；它帶的二十幾個 skill 從沒被叫用、每回合都佔 context。有沒有幫助沒測過。想先省掉那些 skill 的 context：在設定檔用 `skillOverrides` 讓它們只在點名時載入，不用移除 plugin（官方 features-overview；這台還沒做） |
 | T3 Code（多家模型的桌面應用） | 維護者在用，試用中；只測過它會正確載入規則與 skill |
 | taste-skill（行銷頁的設計） | 試用到 2026-11-28 |
 | caveman 的「先壓縮 log 與測試輸出再給 agent 讀」 | 省的是輸入，作者自測整段對話少 33.2% |
@@ -59,5 +59,23 @@
 | OmniKit 的週報與建議 | `/doctor`、`/skill-doctor`、`/usage`、`/insights` |
 | 精簡回覆的 skill | Concise 輸出風格 |
 | 為舊模型寫的提示詞補丁（要它一步一步想、叫它不要偷懶、全大寫強調） | 不需要；想得多深用 `/effort` |
+
+## 6. 出現這些症狀再加
+
+不用一開始就全設好。官方的建議是等症狀出現再加，大部分團隊大約照這個順序（`code.claude.com/docs/en/features-overview` 的「Build your setup over time」，2026-11-18 讀；下表是我翻的）：
+
+| 出現什麼症狀 | 加什麼 |
+|---|---|
+| 同一個慣例或指令，它錯了兩次 | 寫進規則檔（`CLAUDE.md`、`AGENTS.md`） |
+| 一直叫它短一點、多解釋、或用同一種格式回 | 設輸出風格 |
+| 開工時一直打同一段提示 | 存成要點名才用的 skill |
+| 同一份多步驟流程第三次貼進對話 | 做成 skill |
+| 一直從瀏覽器複製它看不到的資料 | 把那個系統接成 MCP（能用 CLI 的先用 CLI） |
+| 它要讀很多檔案才找到某個函式在哪 | 裝那個語言的 code intelligence plugin |
+| 支線任務的輸出塞滿對話、之後不會再看 | 交給子代理 |
+| 想每次都自動發生、不用開口 | 寫 hook |
+| 第二個 repo 要同一套設定 | 包成 plugin |
+
+同一張表也用來判斷「已經有的要不要改」：同一個錯誤一再出現、或審查時一再留同一句意見，就改規則檔，不要只在對話裡糾正一次；一直手動調整的流程，就是 skill 該改版了。各家怎麼做見 `features.md`；Codex 與 Antigravity 沒有的，問法庫裡有替代做法。
 
 各家的指令對照與「什麼情況用哪個」在 `engine/skills/omnikit-ask/features.md`。

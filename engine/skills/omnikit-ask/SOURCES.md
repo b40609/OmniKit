@@ -61,6 +61,17 @@
 - https://www.anthropic.com/research/AI-assistance-coding-skills （用 AI 學新函式庫的實驗）
 - https://hbr.org/2007/09/performing-a-project-premortem （事前驗屍；網址是調研給的，這次沒有重新打開）
 
+### 2026-11-18 補充（`features.md` 新增的 6 列與「規則檔與 skill 越來越重」一節）
+
+官方，讀過原文：
+
+- https://code.claude.com/docs/en/features-overview （「Build your setup over time」觸發表、「Context cost by feature」、`disable-model-invocation` 與 `skillOverrides`、dynamic workflow、cross-session messaging、code intelligence；起手清單第 6 節也用這頁）
+- https://claude.dev/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models （Thariq Shihipar，2026-07-24：為新模型把 Claude Code 系統提示砍掉八成以上、評測沒有退步；給判斷不給規則、不給範例、漸進揭露；CLAUDE.md 寫地雷、不寫看專案就知道的事）
+- https://www.claude.com/resources/articles/building-agents-when-to-fold-subagents-into-your-main-agent-loop （Diane Sarkis，2026-10-22：單一 agent 加 skill 常比整組子代理好；只在 context 塞到測得出變差、要平行、選不到工具或指示互相打架時拆；收回時一次收一個、有它沒它各比一次）
+- `/doctor prompt-audit`：2026-11-17 在這台 Claude Code 2.1.326 無頭跑過一次（plan 模式，唯讀），會先列清單、確認才改
+
+沒讀到原文的：Lydia Hallie〈Rethinking Claude Code Best Practices〉（AI Engineer，2026-11-12），字幕被 YouTube 限速擋住；〈Using Claude Code: Spending your effort〉只看過影片的轉述。
+
 ## 調研裡我改掉的
 
 - 「官方建議規則檔控制在 60 到 80 行」：官方文件沒有這個數字（費用頁寫的是 200 行以內）。條目裡只寫「保持短」。

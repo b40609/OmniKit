@@ -31,6 +31,10 @@ model_classes:
 #   價格每百萬 token $2/$10 對 $4/$20。【待驗證】
 # - Anthropic 多代理研究（anthropic.com/engineering/multi-agent-research-system）：Opus 主控、Sonnet 子代理，
 #   比單一 Opus 好 90.2%；把投入分級規則寫進 prompt，可以避免簡單任務投入過多。【待驗證】
+# - Anthropic Applied AI〈When to fold subagents into your main agent loop〉（Diane Sarkis，2026-10-22，原文讀過）：
+#   幾家企業的部署裡，單一 agent 加 skill 常比整組子代理好，成本與等待也較低；只在 context 塞到測得出變差、
+#   要平行而且各要乾淨的 context、或選不到工具、指示互相打架時才拆。收回時先建小評測、一次收一個、有它沒它各比一次。
+#   跟 data/rules/dispatch.md「派出去不會讓答案更好」同方向。
 
 # 任務類型 → 級別。紀錄的 task 欄位用這裡的 key。
 tasks:
