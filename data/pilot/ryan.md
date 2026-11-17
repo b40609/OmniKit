@@ -17,4 +17,5 @@
   8. **待修**：實測沒隔離設定資料夾，graphify 被算成今天用過，30 天內不會出現在拿掉。要不要拿掉由使用者看實測紀錄直接決定。實測腳本之後要用獨立的 `CLAUDE_CONFIG_DIR`。
 - 體檢（使用者：「都要一邊改才會發現缺口」）：主動找「說的比證據多」的地方，70 項，已修 18 項（A 級 10 項），見 `docs/reviews/2026-11-16-claims-audit.md`。同事試點等安裝與移除的 A 級修完。
 - 產品邏輯檢討（使用者：「為什麼一定是刪除、換或換回、為什麼是週報」「OmniKit 還有存在的必要嗎」）：官方 `/doctor` 與 `/skill-doctor` 在這台各跑一次，跟 OmniKit 的建議並排；7 天內叫用最多的是交接（12 次），建議與週報 1 次。建議收成團隊設定包，等使用者決定，見 `docs/proposals/2026-11-16-product-logic-review.md`。
+- 指標 3 的答案（2026-11-17，使用者）：少了會失望的是壓縮與交接、分派、底線與全域規則的引導設定，新電腦的起手清單，使用技巧與問法；對象先自己再同事；同事的 agent 各種組合都有。沒有一項是建議、週報、換與換回。方向修訂見 `docs/proposals/2026-11-17-guide-and-playbook.md`，等使用者決定。
 - 指標 2：採納 1 項。使用者看完實測決定拿掉 graphify：Claude 端的 skill（`~/.claude/skills/graphify`）移到 `%LOCALAPPDATA%\omnikit\backup\2026-11-16-graphify-claude-skill`，要換回就移回原處。Codex 端的 skill 與 `graphify` CLI（`~/.local/bin`）沒動，這次實測只測 Claude Code。
