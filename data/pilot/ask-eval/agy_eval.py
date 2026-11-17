@@ -27,6 +27,10 @@
   量叫用率（variants、negatives）用 global 比較準。
 兩組都放一份 `AGENTS.md`（預設是 ~/.gemini/GEMINI.md，也就是平常的 OmniKit 規則）。
 
+訓練題與保留題（--split，2026-11-18 起）：holdout.txt 列的題目是保留題，預設不跑。改問法庫時只看
+訓練題（預設 --split train）；保留題只在定案時用 --split holdout 跑一次，報告把兩份分數分開列。
+用 --case 點名到另一份的題目會直接停下來。--list 只列出會跑的題目，不開對話。
+
 評分：每個 llm 評分項由評分者判 PASS 或 FAIL，加權平均成 0 到 1 分。
 - 主要評分者：本機 Claude Code 的 Sonnet（`claude -p`，關掉工具、MCP 與設定檔，一次約 700 個輸入 token），
   跟 run.ps1 的評分者同一個，結果才能比；也跟被測的 Gemini 不同家（同家評分會偏袒自己，arXiv:2604.06996）。
@@ -41,6 +45,7 @@ agent 回覆是額度用完的訊息時記為錯誤；連續 3 次就停止開�
   uv run data/pilot/ask-eval/agy_eval.py --set negatives --model gemini-3.8-flash-high --runs 1
   uv run data/pilot/ask-eval/agy_eval.py --set variants --arms global --kind vague --runs 1
   uv run data/pilot/ask-eval/agy_eval.py --out <結果資料夾> --rejudge
+  uv run data/pilot/ask-eval/agy_eval.py --set cases --split holdout --list
 """
 from __future__ import annotations
 
@@ -64,6 +69,8 @@ HERE = pathlib.Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 CASES = HERE / "cases"
 SETS = ("cases", "variants", "negatives")
+HOLDOUT = HERE / "holdout.txt"
+SPLITS = ("train", "holdout", "all")
 # 只看短回覆，避免把在討論額度的正常回答（例如 feature 題）誤判成額度用完
 QUOTA_RE = re.compile(r"Individual quota reached|quota (?:reached|exceeded|exhausted)|RESOURCE_EXHAUSTED"
                       r"|exceeded your current quota|rate.?limit(?:ed)? exceeded|額度已用完", re.I)
@@ -377,7 +384,30 @@ def load_cases(set_name, names):
                       "expect_fire": front.get("expect_fire", "true").lower() != "false"})
     if names and len(cases) != len(set(names)):
         sys.exit(f"有題目找不到：{sorted(set(names) - {c['name'] for c in cases})}")
+    held = load_holdout()
+    for c in cases:
+        c["split"] = "holdout" if c["name"] in held or (c["base"] and c["base"] in held) else "train"
     return cases
+
+
+def load_holdout() -> set[str]:
+    """holdout.txt：一行一個保留題的名稱，# 開頭是註解。變體看 front matter 的 base。"""
+    if not HOLDOUT.exists():
+        return set()
+    lines = HOLDOUT.read_text(encoding="utf-8").splitlines()
+    return {s for s in (line.strip() for line in lines) if s and not s.startswith("#")}
+
+
+def pick_split(cases, split, named):
+    """依 --split 篩題目。用 --case 點名到另一份的題目時直接停下來，免得不小心跑到保留題。"""
+    if split == "all":
+        return cases
+    if named:
+        other = sorted(c["name"] for c in cases if c["split"] != split)
+        if other:
+            sys.exit(f"{', '.join(other)} 不在 {split}（見 holdout.txt）；要跑請加 --split all 或 --split "
+                     f"{'holdout' if split == 'train' else 'train'}")
+    return [c for c in cases if c["split"] == split]
 
 
 
@@ -648,6 +678,9 @@ def main():
     ap.add_argument("--arms", help="with、without、global，逗號分隔；預設 cases 跑 with,without，"
                                    "variants 與 negatives 跑 with")
     ap.add_argument("--kind", action="append", help="只跑這種說法（base、explicit、vague、negative），可重複")
+    ap.add_argument("--split", default="train", choices=SPLITS,
+                    help="train（預設，改問法庫時只看這份）、holdout（定案時才跑，見 holdout.txt）、all")
+    ap.add_argument("--list", action="store_true", help="只列出會跑的題目與它屬於哪一份，不開對話")
     ap.add_argument("-j", "--jobs", type=int, default=6)
     ap.add_argument("--timeout", type=int, default=600)
     ap.add_argument("--rules", default=str(DEFAULT_RULES), help="放進工作資料夾當 AGENTS.md 的規則檔")
@@ -659,6 +692,12 @@ def main():
     args.arms = args.arms or ("with,without" if args.set == "cases" else "with")
 
     cases = [c for c in load_cases(args.set, args.case) if not args.kind or c["kind"] in args.kind]
+    cases = pick_split(cases, args.split, bool(args.case))
+    if args.list:
+        for c in cases:
+            print(f"{c['split']}\t{c['kind']}\t{c['name']}")
+        print(f"{args.set} {args.split}：{len(cases)} 題")
+        return
     by_name = {c["name"]: c for c in cases}
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
     out_dir = (pathlib.Path(args.out) if args.out else pathlib.Path(tempfile.gettempdir())
@@ -721,7 +760,8 @@ def main():
     per_judge, agree, fire = summarize(results, cases, args.judge)
     first = next(iter(results), {})
     errors = sum(1 for r in results if r["error"])
-    summary = {"set": args.set, "arms": args.arms, "kind": args.kind, "account": first.get("account", args.account),
+    summary = {"set": args.set, "split": args.split, "arms": args.arms, "kind": args.kind,
+               "account": first.get("account", args.account),
                "model": first.get("agent_model", args.model), "judges": args.judge, "votes": args.votes,
                "rules": None if args.no_rules else args.rules,
                "finished": dt.datetime.now().isoformat(timespec="seconds"),
