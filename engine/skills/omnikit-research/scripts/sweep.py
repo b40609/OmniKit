@@ -15,8 +15,10 @@
       把網頁搜尋這類 agent 自己查的結果記進同一組。
   uv run scripts/sweep.py related <owner/repo> [--ledger <帳本.json> --group "<關鍵字>"] [--forks 10]
       主要專案星數最高的 fork，加上 README 裡連到的其他 GitHub repo（競品、awesome 清單的條目）。
-  uv run scripts/sweep.py status <帳本.json>
+  uv run scripts/sweep.py status <帳本.json> [--min-stars 1000]
       每組的新名字數、連續幾組沒有新名字、可不可以停、哪些管道沒查過或查不到。
+      --min-stars：另外只看 ★N 以上的 GitHub repo 算一次（星數用 gh 查，存進帳本的 stars 欄，下次不重查）。
+      長尾題目每組都還有新的小 repo、永遠停不下來時，用這個判斷有分量的名字是不是已經找齊。
   uv run scripts/sweep.py verify <owner/repo>...
       用 gh api 實測星數、授權、是否封存、最後 push，附查詢日期。
   uv run scripts/sweep.py --selftest
@@ -41,6 +43,9 @@ import urllib.request
 from pathlib import Path
 
 STOP_AFTER = 3  # 連續幾組沒有新名字就停
+# 這麼多組還沒停就先回報、問使用者（縮小題目、拆成子題或繼續）。2026-11-17 P3 實測：兩個題目各跑 13 組都沒收斂，
+# 每組還有一大半是新名字，兩條平行的調研就把 Antigravity 一個帳號的額度用完了。
+MAX_GROUPS = 12
 # 每組關鍵字都要查的：這支自動查的八個，加上至少一種網頁搜尋（web-zh 或 web-en）
 SCRIPT_CHANNELS = ("github-topic", "github-keyword", "awesome", "skills-sh", "npm", "mcp-registry", "hn", "exa")
 # Exa 語意搜尋（試用到 2026-11-30，見 data/evals/2026-11-16-product-research-P2.md）：直接對 hosted MCP 講協定，
@@ -122,10 +127,13 @@ def record(ledger, group, channel, names, error=None, hits=None):
     return g
 
 
-def status(ledger):
+def status(ledger, min_stars=None):
     """依帳本的組別順序算每組的新名字。可以停 = 連續 STOP_AFTER 組沒有新名字，而且 ONCE 的管道都查過。
-    一組裡有該查的管道沒查過，那組不算「沒有新名字」（還沒查完），連續數歸零。"""
-    keys, shorts, streak, rows = set(), set(), 0, []
+    一組裡有該查的管道沒查過，那組不算「沒有新名字」（還沒查完），連續數歸零。
+    min_stars：另外只算 ★min_stars 以上的 GitHub repo（星數取帳本的 stars 欄），連續 STOP_AFTER 組沒有這種
+    新名字就是「有分量的名字找齊了」（stop_notable）。帳本裡還有 repo 沒查過星數時不判定。"""
+    stars = ledger.get("stars", {})
+    keys, shorts, streak, nstreak, rows = set(), set(), 0, 0, []
     for g in ledger["groups"]:
         names = []
         for c in g["channels"].values():
@@ -146,12 +154,38 @@ def status(ledger):
             missing.append("web-zh 或 web-en")
         complete = not missing
         streak = streak + 1 if (complete and not new) else 0
+        notable = [n for n in new if min_stars is not None
+                   and ((stars.get(key_of(n)) or {}).get("stars") or 0) >= min_stars]
+        nstreak = nstreak + 1 if (complete and not notable) else 0
         rows.append({"group": g["group"], "names": len({key_of(n) for n in names if key_of(n)}), "new": new,
-                     "missing": missing, "failed": failed, "complete": complete, "streak": streak,
-                     "channels": list(g["channels"])})
+                     "new_notable": notable, "missing": missing, "failed": failed, "complete": complete,
+                     "streak": streak, "notable_streak": nstreak, "channels": list(g["channels"])})
     once_missing = [k for k in ONCE if not any(k in g["channels"] for g in ledger["groups"])]
-    return {"groups": rows, "total": len(keys), "streak": streak, "once_missing": once_missing,
-            "stop": streak >= STOP_AFTER and not once_missing}
+    stop = streak >= STOP_AFTER and not once_missing
+    unpriced = repos_without_stars(ledger) if min_stars is not None else []
+    stop_notable = min_stars is not None and nstreak >= STOP_AFTER and not once_missing and not unpriced
+    return {"groups": rows, "total": len(keys), "streak": streak, "once_missing": once_missing, "stop": stop,
+            "min_stars": min_stars, "notable_streak": nstreak, "unpriced": unpriced, "stop_notable": stop_notable,
+            "over_budget": not stop and not stop_notable and len(rows) >= MAX_GROUPS}
+
+
+def repos_without_stars(ledger):
+    stars = ledger.get("stars", {})
+    return sorted({key_of(n) for g in ledger["groups"] for c in g["channels"].values() for n in c["names"]
+                   if "/" in key_of(n) and key_of(n) not in stars})
+
+
+def price(ledger, gh=None, today=None):
+    """帳本裡還沒查過星數的 GitHub repo 用 gh 查一次，存進 ledger["stars"]（key 是帳本裡的名字）。
+    查不到的記 0 星與錯誤，下次不重查。回傳這次查了幾個。"""
+    stars = ledger.setdefault("stars", {})
+    todo = repos_without_stars(ledger)
+    for key in todo:
+        row = verify([key], gh=gh or gh_json, today=today)[0]
+        stars[key] = {"stars": row.get("stars") or 0, "checked": row["checked"]}
+        if row.get("error"):
+            stars[key]["error"] = row["error"]
+    return len(todo)
 
 
 # ---------- 連網 ----------
@@ -396,6 +430,13 @@ def fmt_row(r):
 def print_status(st):
     print(f"總共 {st['total']} 個不重複的名字；連續 {st['streak']} 組沒有新名字（要 {STOP_AFTER} 組）："
           + ("可以停" if st["stop"] else "還不能停"))
+    if st.get("min_stars") is not None:
+        print(f"★{st['min_stars']} 以上的 GitHub repo：連續 {st['notable_streak']} 組沒有新的（要 {STOP_AFTER} 組）："
+              + ("可以停，報告寫「長尾未飽和」並附上面兩種連續數" if st["stop_notable"] else "還不能停")
+              + (f"；還有 {len(st['unpriced'])} 個 repo 沒查到星數" if st["unpriced"] else ""))
+    if st.get("over_budget"):
+        print(f"已經 {len(st['groups'])} 組還沒停（上限 {MAX_GROUPS} 組）：先回報現況，問使用者要縮小題目、"
+              "拆成幾個子題各自查，還是繼續")
     if st["once_missing"]:
         print("整次調研還沒查過：" + "、".join(ONCE[k] for k in st["once_missing"]))
     for i, g in enumerate(st["groups"], 1):
@@ -408,6 +449,8 @@ def print_status(st):
         print(line)
         if g["new"]:
             print("  新：" + ", ".join(g["new"][:30]) + (" …" if len(g["new"]) > 30 else ""))
+        if g.get("new_notable"):
+            print(f"  ★{st['min_stars']} 以上的新名字：" + ", ".join(g["new_notable"]))
 
 
 def main(argv=None):
@@ -436,6 +479,7 @@ def main(argv=None):
     s = sub.add_parser("status")
     s.add_argument("ledger")
     s.add_argument("--json", action="store_true")
+    s.add_argument("--min-stars", type=int, help="另外只看 ★N 以上的 GitHub repo 算連續數（星數用 gh 查、存進帳本）")
     v = sub.add_parser("verify")
     v.add_argument("repos", nargs="+")
     args = ap.parse_args(argv)
@@ -478,7 +522,10 @@ def main(argv=None):
             save(args.ledger, ledger)
         return 0
     if args.cmd == "status":
-        st = status(load(args.ledger))
+        ledger = load(args.ledger)
+        if args.min_stars is not None and price(ledger):
+            save(args.ledger, ledger)
+        st = status(ledger, args.min_stars)
         print(json.dumps(st, ensure_ascii=False, indent=1) if args.json else "", end="")
         if not args.json:
             print_status(st)
@@ -543,6 +590,41 @@ def selftest():
     check("整次調研的管道都查過才可以停", status(led)["stop"])
     record(led, "g4", "related", ["x/brand-new"])
     check("related 帶出新名字，連續數歸零", status(led)["streak"] == 0)
+    # 有分量的名字：只算 ★門檻以上、而且查過星數的 repo
+    led4 = {"groups": [], "stars": {"big/one": {"stars": 5000}, "small/a": {"stars": 3}, "small/b": {"stars": 10},
+                                    "small/c": {"stars": 1}}}
+
+    def group4(name, names):
+        for ch in (*SCRIPT_CHANNELS, "web-en", "web-zh", "producthunt", "related"):
+            record(led4, name, ch, names if ch == "web-en" else [])
+
+    group4("n1", ["big/one", "small/a"])
+    group4("n2", ["small/b"])
+    group4("n3", ["small/c", "某個產品"])
+    st4 = status(led4, 1000)
+    check("長尾一直有新名字：全部名字還不能停", not st4["stop"] and st4["streak"] == 0)
+    check("★1000 以上連續 2 組沒有新的：還不能停", not st4["stop_notable"] and st4["notable_streak"] == 2)
+    group4("n4", ["small/d"])
+    st4 = status(led4, 1000)
+    check("有 repo 沒查過星數：不能用 ★ 門檻停", not st4["stop_notable"] and st4["unpriced"] == ["small/d"])
+    led4["stars"]["small/d"] = {"stars": 0}
+    st4 = status(led4, 1000)
+    check("★1000 以上連續 3 組沒有新的：可以停", st4["stop_notable"] and st4["groups"][0]["new_notable"] == ["big/one"])
+    check("沒給門檻就不算 ★", status(led4)["stop_notable"] is False and status(led4)["groups"][0]["new_notable"] == [])
+    led6 = {"groups": [{"group": "g", "channels": {"web-en": {"names": ["X/Y", "tool"], "errors": []}}}]}
+    n_priced = price(led6, gh=lambda a: {"full_name": "X/Y", "stargazers_count": 42}, today=dt.date(2026, 11, 18))
+    check("price 只查還沒查過的 repo（產品名不查）、存在帳本的名字下",
+          n_priced == 1 and led6["stars"]["x/y"]["stars"] == 42 and price(led6, gh=None) == 0)
+    led5 = {"groups": []}
+    for i in range(MAX_GROUPS):
+        for ch in (*SCRIPT_CHANNELS, "web-en"):
+            record(led5, f"b{i}", ch, [f"x/n{i}"] if ch == "web-en" else [])
+    check(f"{MAX_GROUPS} 組還沒停：over_budget", status(led5)["over_budget"])
+    led5["stars"] = {f"x/n{i}": {"stars": 0} for i in range(MAX_GROUPS)}
+    for ch in ("web-zh", "producthunt", "related"):
+        record(led5, "b0", ch, [])
+    st5 = status(led5, 1000)
+    check("★ 門檻已經可以停就不算 over_budget", st5["stop_notable"] and not st5["over_budget"])
     led2 = {"groups": []}
     for ch in SCRIPT_CHANNELS:
         record(led2, "only-script", ch, [])
