@@ -128,7 +128,7 @@ channels:
       思考程度：model 直接寫帶程度的代號（gemini-4-hydrogen-xhigh）。2026-11-16 用 t3 thread start --provider antigravity 實測：
       T3 介面在模型旁標 Unavailable（T3 的模型目錄只有 gemini-4-hydrogen），但 T3 經 antigravity-acp 送到後端的就是這個代號，
       後端紀錄寫「running ... as gemini-4-hydrogen-xhigh」，回覆正確；只寫 gemini-4-hydrogen 時後端用 high。
-      所以 Unavailable 可以不理。【待驗證】思考 token 在 T3 的紀錄裡看不到，xhigh 有沒有多想只有耗時佐證（77 秒對 high 54 秒，各 1 次）；
+      所以 Unavailable 可以不理：這是介面的標示，不是代號錯誤，不要因此改代號或當成幻覺（2026-11-17 ryan 確認繼續用 xhigh）。【待驗證】思考 token 在 T3 的紀錄裡看不到，xhigh 有沒有多想只有耗時佐證（77 秒對 high 54 秒，各 1 次）；
       要確定思考程度時用 agy_cli（輸出有 thinking_tokens）。
     note: >-
       現行規則：delegate_task 不能指定別的專案。【待驗證】T3 的 delegate_task 參數裡有 target.projectId，
