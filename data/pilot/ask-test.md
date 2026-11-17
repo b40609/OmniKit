@@ -51,7 +51,7 @@ Copy-Item -Recurse OmniKit\engine\skills\omnikit-ask "$env:USERPROFILE\.gemini\c
 
 只打 `/ok`（Codex 是 `$ok`）會列出 OmniKit 的主選單（問法庫、交接、調研、分派、設定）。`/ok`、`/ok ask` 在 Claude Code 與 Antigravity 都實測過（2026-11-17）；Codex 的 `$ok` 照官方文件寫，還沒實測。
 
-用 OmniKit 安裝的（`install.ps1`）另外有一組捷徑：打 `/ok` 時選單會一起列出 `ok-ask`、`ok-handoff`、`ok-research`、`ok-dispatch`、`ok-setup`、`ok-eval`，直接選就好，等同對應的 `omnikit-*`。`/ok-ask` 在 Claude Code 實測過（2026-11-17）。
+用 OmniKit 安裝的（`install.ps1`）另外有一組捷徑：打 `/ok` 時選單會一起列出 `ok-ask`、`ok-handoff`、`ok-research`、`ok-dispatch`、`ok-setup`、`ok-eval`，直接選就好，等同對應的 `omnikit-*`。`/ok-ask` 在 Claude Code 與 Antigravity（Gemini Flash）都實測過（2026-11-17）：沒加字會列出問法庫的 10 個類別，加上狀況會直接給問法。
 
 第一次用時，agent 可能會問能不能讀 skill 資料夾裡的檔案（各類情境分開存放）。選「一律允許」。不允許它也會回答，但只有索引層級的內容。
 
