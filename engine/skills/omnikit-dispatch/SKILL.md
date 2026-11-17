@@ -5,7 +5,7 @@ description: 派子任務或開子對話時，照 OmniKit 分派政策選管道�
 
 # 子任務分派與委派紀錄
 
-分派規則已經在你載入的規則裡：共用層 `data/rules/dispatch.md`，加上 profile 的 `dispatch.md`（自己的供應商實例；沒有就只用原生子代理）。這個 skill 只負責跑腳本。下面的指令路徑都相對於這個 skill 的資料夾；`uv` 不在 PATH 時，用 `%LOCALAPPDATA%\Programs\uv\uv.exe`。
+載入的規則裡只有分派的原則（`data/rules/dispatch.md`）。完整政策在 repo 的 `data/rules/dispatch-policy.md`，不常駐載入：派之前跑下面的 `show`，它會印出套上你的實例（profile 的 `dispatch.md`；沒有就只用原生子代理）之後每一級可用的選項。管道的細節與實測備註要看原文時再讀那份檔。下面的指令路徑都相對於這個 skill 的資料夾；`uv` 不在 PATH 時，用 `%LOCALAPPDATA%\Programs\uv\uv.exe`。
 
 ## 派之前
 

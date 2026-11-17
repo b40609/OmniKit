@@ -19,4 +19,5 @@
 - 產品邏輯檢討（使用者：「為什麼一定是刪除、換或換回、為什麼是週報」「OmniKit 還有存在的必要嗎」）：官方 `/doctor` 與 `/skill-doctor` 在這台各跑一次，跟 OmniKit 的建議並排；7 天內叫用最多的是交接（12 次），建議與週報 1 次。建議收成團隊設定包，等使用者決定，見 `docs/proposals/2026-11-16-product-logic-review.md`。
 - 指標 3 的答案（2026-11-17，使用者）：少了會失望的是壓縮與交接、分派、底線與全域規則的引導設定，新電腦的起手清單，使用技巧與問法；對象先自己再同事；同事的 agent 各種組合都有。沒有一項是建議、週報、換與換回。方向修訂見 `docs/proposals/2026-11-17-guide-and-playbook.md`，等使用者決定。
 - 2026-11-17 追問後的結果：自動壓縮門檻設成 400k（這台 7 天的模擬最多省約兩成）；問法庫第 0 版 `omnikit-ask`（72 個情境加官方功能對照）已做，實測步驟在 `data/pilot/ask-test.md`，使用者會在筆電與家裡電腦測；官方 `/insights` 實跑一次，它自己抓到「把例子當成固定清單」這個卡點。使用者的新目標：讓人知道官方出了什麼功能、怎麼用、什麼時候用，並清掉被取代的工具（提案第 11 節）。
+- 2026-11-17 使用者「同意所有建議」後做的：停用建議與週報的觸發（腳本留著）；分派的常駐規則縮成幾行，完整政策搬到 `data/rules/dispatch-policy.md`；對話開頭改講用法小提示（`data/tips.json`），`/insights` 超過 14 天沒跑會在 push 時提醒；設定問答加三項；起手清單 `docs/starter.md`。統整在 `docs/proposals/2026-11-17-summary.md`。
 - 指標 2：採納 1 項。使用者看完實測決定拿掉 graphify：Claude 端的 skill（`~/.claude/skills/graphify`）移到 `%LOCALAPPDATA%\omnikit\backup\2026-11-16-graphify-claude-skill`，要換回就移回原處。Codex 端的 skill 與 `graphify` CLI（`~/.local/bin`）沒動，這次實測只測 Claude Code。

@@ -1,0 +1,23 @@
+{
+  "note": "當下提醒在主線對話的第一回合結束時講的小提示：一天最多一則，每則只講一次。agents 寫 claude、codex；text 一句話，講情況、功能、怎麼用。新的官方功能加在最後，added 寫日期。來源與核對狀態見 engine/skills/omnikit-ask/features.md。",
+  "tips": [
+    {"id": "ask", "added": "2026-11-17", "agents": ["claude", "codex"],
+     "text": "小提示：卡住或不知道怎麼開口時，說「我不知道怎麼問：〔你的狀況〕」，問法庫會給做法與該用的官方功能。"},
+    {"id": "clear-between-tasks", "added": "2026-11-17", "agents": ["claude"],
+     "text": "小提示：下一件事跟目前的無關時，先 /clear（桌面版開新對話）。每次請求都會重送整段對話，清掉不花成本，舊對話用 /resume 找得回來。"},
+    {"id": "clear-between-tasks-codex", "added": "2026-11-17", "agents": ["codex"],
+     "text": "小提示：下一件事跟目前的無關時，開新的對話再做。每次請求都會重送整段對話；舊對話用 codex resume 找得回來。"},
+    {"id": "two-fails", "added": "2026-11-17", "agents": ["claude", "codex"],
+     "text": "小提示：同一件事糾正兩次還不對，就清掉對話，把學到的寫進新的提示詞重來，通常比修第三次有效。"},
+    {"id": "interview", "added": "2026-11-17", "agents": ["claude", "codex"],
+     "text": "小提示：還沒想清楚要做什麼時，請它先訪談你：「先不要寫。一次問我一題，問到你能寫出規格為止。」"},
+    {"id": "concise", "added": "2026-11-17", "agents": ["claude"],
+     "text": "小提示：覺得回覆太長，試 /output-style concise：先講結果，不寫開場與回顧，工作一樣仔細。"},
+    {"id": "fresh-reviewer", "added": "2026-11-17", "agents": ["claude", "codex"],
+     "text": "小提示：要它檢查自己寫的東西時，改請一個沒看過過程的審查者（新對話或子代理），只給規格與改動。寫的那個自己審，多半說沒問題。"},
+    {"id": "autocompact", "added": "2026-11-17", "agents": ["claude"],
+     "text": "小提示：同一件事做很久時用量會越滾越大。/autocompact 400k 讓對話超過 400k 就自動壓縮（沒設的話要到約 967k）。"},
+    {"id": "verify", "added": "2026-11-17", "agents": ["claude", "codex"],
+     "text": "小提示：交辦時講清楚「怎樣算做完」與要跑的檢查指令，並要它附上實際輸出。這是官方列的最有效做法之一。"}
+  ]
+}

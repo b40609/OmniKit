@@ -92,7 +92,7 @@ uv run scripts/layer0.py <GitHub 網址或 owner/repo> [--scan]
 
 ## 每週彙整
 
-這是給維護者評估工具用的。使用者要看自己的個人週報（沒在用的工具、被手動改過的設定等），交給 `omnikit-weekly`（說「OmniKit 本週週報」），那份每個人都有。
+這是給維護者評估工具用的。個人週報（`omnikit-weekly`）已在 2026-11-17 停用；使用者想看自己的使用情況，用 Claude Code 的 `/doctor` 與 `/insights`。
 
 ```
 uv run scripts/digest.py [--since YYYY-MM-DD]

@@ -1,9 +1,25 @@
 ---
 name: omnikit-weekly
-description: 產生使用者自己的 OmniKit 個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率，以及成本（新裝工具的開頭成本、背景用量、對話開頭的大小）；也依這台裝了什麼、用了什麼給建議，分成裝、換、拿掉、用內建的就好四類（換是 14 天試用，可以一句話換回）（名冊沒有答案的槽位會從官方目錄找名冊外的候選），另外看規則檔（CLAUDE.md、AGENTS.md）每段對話花多少、哪些規則可以拿掉。也在使用者同意後，把去識別的使用統計匯出成檔案回報給維護者（回流）。使用者說「OmniKit 本週週報」「本週週報」「我的週報」「OmniKit 給我建議」「我該裝什麼」「哪些可以拿掉」「規則檔瘦身」「套用這個替換」「換回」「OmniKit 影子比對」「OmniKit 通知靜音」「通知打開」「匯出回流」「回報我的使用情況」時使用；不管訪談時有沒有選評估新工具都有。Generates the user's personal weekly OmniKit report and install, remove, or use-built-in advice.
+description: （已停用，2026-11-17）OmniKit 的個人週報與工具建議。只有使用者明確點名「omnikit-weekly」或堅持要看舊的 OmniKit 週報時才用；想知道哪些工具沒在用、該怎麼改善用法、卡住怎麼問，改用官方的 /doctor、/insights 或 omnikit-ask。Retired: use /doctor, /insights or omnikit-ask instead.
 ---
 
-# OmniKit 個人週報
+# OmniKit 個人週報（已停用）
+
+**2026-11-17 起停用。** 原因與取代方式見 `docs/proposals/2026-11-17-summary.md`。使用者問到時，先講已停用，並帶到取代的做法：
+
+| 原本的功能 | 現在用什麼 |
+|---|---|
+| 沒在用的工具、context 成本 | Claude Code 的 `/doctor`、`/skill-doctor`、`/usage` |
+| 該怎麼改善用法、哪裡常卡住 | Claude Code 的 `/insights`；其他 agent 用 `omnikit-ask` 的「一直重複提醒同一件事」 |
+| 該裝什麼、用內建的就好 | 起手清單 `docs/starter.md` |
+| 不知道怎麼問、該用哪個官方功能 | `omnikit-ask` |
+| 換與換回、影子比對、通知、回流 | 不再提供 |
+
+下面的腳本都還在，使用者聽完說明仍堅持要跑才跑；跑出來的結論有已知的問題（`docs/reviews/2026-11-16-claims-audit.md`），要照實講。「OmniKit 通知靜音」「通知打開」還有效，管的是對話開頭的小提示。
+
+---
+
+以下是停用前的說明。
 
 每位使用者每週一份，只讀這台的紀錄與設定，不連網、不上傳（建議裡「找名冊外的候選」那一步會連網，見下面）。下面的指令路徑都相對於這個 skill 的資料夾；`uv` 不在 PATH 時，用 `%LOCALAPPDATA%\Programs\uv\uv.exe`。
 

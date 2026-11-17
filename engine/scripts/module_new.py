@@ -227,7 +227,7 @@ def run(draft_path, data, state=None, write=False, force=False, today=None):
             if Path(item["file"]) == path:
                 print("\n".join(f"- {p}" for p in item["problems"]))
         return 1
-    print(f"已經啟用：{doc['name']}（{len(doc['slots'])} 個槽位）。接著跑「OmniKit 給我建議」（omnikit-weekly）就會替這些槽位找候選。")
+    print(f"已經啟用：{doc['name']}（{len(doc['slots'])} 個槽位）。要替這些槽位找工具，貼候選的 GitHub 連結說「幫我評估」（omnikit-eval）。")
     return 0
 
 

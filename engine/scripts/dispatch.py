@@ -8,7 +8,8 @@
 """子任務分派：讀分派政策、寫委派紀錄、算 Sonnet 試行的比較、讀本週 Claude 用量。
 
 政策分兩層，都是 Markdown 檔裡的一個 ```yaml 區塊（agent 載入規則時讀得懂，這支腳本也讀得到）：
-- data/rules/dispatch.md：共用層，所有人都套用（任務類型 → 級別 → 模型類別 → 思考程度 → 升級）
+- data/rules/dispatch-policy.md：共用層的完整政策（任務類型 → 級別 → 模型類別 → 思考程度 → 升級）；
+  常駐載入的 data/rules/dispatch.md 只有幾行原則，沒有 yaml
 - <profile>/dispatch.md：個人層，自己有哪些供應商實例、每個類別用哪個；沒有就只用原生子代理
 profiles.py 把兩份接進 Claude Code、Codex 與 Antigravity 的規則；這支不改規則，只讀。
 
@@ -90,8 +91,17 @@ def block(path):
     return doc
 
 
+def policy_path(data):
+    """完整政策在 dispatch-policy.md（不載入每段對話）；舊版放在 dispatch.md 的 yaml 區塊，還讀得到。"""
+    rules = Path(data) / "rules"
+    return rules / "dispatch-policy.md" if (rules / "dispatch-policy.md").is_file() else rules / "dispatch.md"
+
+
 def policy(data):
-    return block(Path(data) / "rules" / "dispatch.md")
+    path = policy_path(data)
+    if path.name == "dispatch.md" and path.is_file() and not FENCE.search(path.read_bytes().decode("utf-8-sig")):
+        return None  # 只有原則、沒有政策：當成沒有共用層
+    return block(path)
 
 
 def personal(profile_dir):
@@ -756,6 +766,15 @@ def selftest():
         doc = Path(tmp) / "x.md"
         doc.write_text("# 說明\n\n```yaml\na: 1\n```\n", encoding="utf-8")
         ok("Markdown 裡的 yaml 區塊讀得到；檔案不存在回 None", block(doc) == {"a": 1} and block(Path(tmp) / "nope.md") is None)
+        rules = Path(tmp) / "split" / "rules"
+        rules.mkdir(parents=True)
+        (rules / "dispatch.md").write_text("# 只有原則\n\n- 不為了品質而派\n", encoding="utf-8")
+        ok("常駐的 dispatch.md 只有原則、沒有 yaml：當成沒有共用層，不報錯", policy(rules.parent) is None)
+        (rules / "dispatch-policy.md").write_text("# 完整政策\n\n```yaml\nb: 2\n```\n", encoding="utf-8")
+        ok("完整政策讀 dispatch-policy.md", policy(rules.parent) == {"b": 2} and policy_path(rules.parent).name == "dispatch-policy.md")
+        (rules / "dispatch-policy.md").unlink()
+        (rules / "dispatch.md").write_text("```yaml\nc: 3\n```\n", encoding="utf-8")
+        ok("舊版把 yaml 放在 dispatch.md 的還讀得到", policy(rules.parent) == {"c": 3})
 
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0

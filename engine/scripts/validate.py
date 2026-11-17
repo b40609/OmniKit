@@ -257,7 +257,7 @@ def enabled_modules(modules, selected):
 
 
 def check_dispatch(data, d=None):
-    """子任務分派：共用層 data/rules/dispatch.md，加上 profile 的 dispatch.md（有才檢查）。沒有共用層不算錯。"""
+    """子任務分派：共用層 data/rules/dispatch-policy.md，加上 profile 的 dispatch.md（有才檢查）。沒有共用層不算錯。"""
     try:
         pol = dispatch.policy(data)
         if pol is None:
@@ -265,7 +265,7 @@ def check_dispatch(data, d=None):
         mine = dispatch.personal(d) if d is not None else None
     except (ValueError, yaml.YAMLError) as e:
         return [f"分派政策讀不懂：{e}"]
-    where = show(d / "dispatch.md") if mine is not None else show(data / "rules" / "dispatch.md")
+    where = show(d / "dispatch.md") if mine is not None else show(dispatch.policy_path(data))
     return [f"{where}: {e}" for e in dispatch.check(pol, mine if d is not None else None)
             if d is None or e.startswith("個人層")]
 

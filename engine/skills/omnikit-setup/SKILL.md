@@ -46,7 +46,7 @@ Claude Code 用 AskUserQuestion（一次最多 4 題）；Codex 一次列出編�
 
 | # | 問題 | 答案欄位 |
 |---|---|---|
-| 5 | 要不要用 OmniKit 持續評估新工具？（貼 GitHub 連結，它會拿你的專案情境幫你比較；選「先不要」就不裝評估工具的 skill，個人週報照樣有，之後重新訪談可以改） | 要 → `evaluate_tools: true`；先不要 → `false` |
+| 5 | 要不要用 OmniKit 持續評估新工具？（貼 GitHub 連結，它會拿你的專案情境幫你比較；選「先不要」就不裝評估工具的 skill，之後重新訪談可以改） | 要 → `evaluate_tools: true`；先不要 → `false` |
 | 6 | 用一句話介紹你的主要工作與技術。第 5 題選「要」的話，再給主要專案名稱；有前端的話，也給前端專案名稱。 | `background`、`projects.main`、`projects.frontend`（自由回答） |
 
 補充：
@@ -90,7 +90,7 @@ uv run scripts/setup.py profile --answers <answers_file>
 - 這份會跟安全底線（`data/rules/baseline.md`：刪除、對外發送、付款前先確認，不碰金鑰；push 要不要先問，依授權程度寫在 profile）一起生效，底線不能放寬。
 - 有 `scenarios.yaml` 的話，評估工具時會用這些情境當考題。
 - `domains.yaml` 是第 1 題選的領域；之後想改，重新訪談，或直接改這個檔。
-- 預覽最後有「套用時不裝 omnikit-eval」（第 5 題選了先不要）：照實告訴使用者，評估新工具不會有；個人週報（`omnikit-weekly`，說「OmniKit 本週週報」）照樣有。
+- 預覽最後有「套用時不裝 omnikit-eval」（第 5 題選了先不要）：照實告訴使用者，評估新工具不會有。
 
 問「照這樣建立嗎？」。要改就回到對應的題目，改完重新預覽。
 
@@ -110,11 +110,28 @@ uv run scripts/setup.py profile --answers <answers_file> --write --apply
 （要覆蓋時再加 `--force`。）輸出出現「已套用 profile：…」就完成。回報：
 
 - 開新的 session 才會生效。確認方式：問「OmniKit 規則版本與 profile 是什麼？」
-- 第 5 題選「先不要」：輸出會有「不裝 omnikit-eval」，評估工具的 skill 已經拿掉；之後想用，重新訪談選「要」就會裝回來。不管選哪個，每週都可以說「OmniKit 本週週報」看個人週報。
+- 第 5 題選「先不要」：輸出會有「不裝 omnikit-eval」，評估工具的 skill 已經拿掉；之後想用，重新訪談選「要」就會裝回來。
 - 依第 2 題給一個試試看的例子，例如選了 `scope-creep`：請它改一個小地方，看它會不會順手改別的。
-- 想知道這台該裝什麼、拿掉什麼、哪些用內建的就好：說「OmniKit 給我建議」（`omnikit-weekly`）。
+- 卡住或不知道怎麼開口時：說「我不知道怎麼問：〔狀況〕」（`omnikit-ask`）。新電腦該裝什麼、哪些不用裝：看 repo 的 `docs/starter.md`。
 - profile 存在這台電腦的 `profiles_dir`（`%LOCALAPPDATA%\omnikit\profiles\<名稱>\`），在 repo 外，不會被 commit 或上傳。之後想手動改，直接改那裡的 `AGENTS.md`，再在 repo 根目錄跑 `uv run engine/scripts/profiles.py` 重新接上（Claude Code 直接讀這份；Codex 與 Antigravity 讀的是接在一起的副本）；想換別的 profile，跑 `uv run engine/scripts/profiles.py --set <名稱>`。
 - 輸出提到某個 agent 的規則「沒有覆蓋」或「沒有加回去」：那是使用者自己改過的檔案，這次沒動；要接上就在 repo 根目錄重跑 `install.ps1`。
+
+## 4b. 套用之後：三項設定
+
+profile 套用完，再逐項問這三項。每一項都是改使用者的設定檔：先講會改哪個檔、改成什麼，同意才改；不要的就跳過。改之前備份原檔。細節與各家的對應見 `omnikit-ask` 的 `features.md`。
+
+1. **訂了哪幾家？**（Claude、Codex、Antigravity，可複選）
+   - 只有一家：不用做事。分派只用這個 agent 的原生子代理，照載入的分派原則。
+   - 兩家以上，而且想從一家派工作給另一家（例如 Claude 派調研給 Antigravity 的 Gemini）：在 profile 資料夾（掃描結果的 `profiles_dir` 下這個 profile）寫一份 `dispatch.md`，格式照 repo 的 `data/profiles/ryan/dispatch.md`：`instances` 底下每個實例寫 `driver`、`account`、`classes`（可用的模型類別見 `data/rules/dispatch-policy.md` 的 `model_classes`）。寫完在 repo 根目錄跑 `uv run engine/scripts/validate.py` 與 `uv run engine/scripts/profiles.py`，再用 `omnikit-dispatch` 的 `run.py show` 給使用者看結果。不知道實例名稱就先不寫，只用原生子代理。
+2. **回覆要不要精簡？**（第 3 題選精簡的才問）
+   - Claude Code：在 `~/.claude/settings.json` 設 `"outputStyle": "Concise"`（先講結果，不寫開場與回顧；工作一樣仔細）。
+   - Codex：在 `~/.codex/config.toml` 設 `model_verbosity = "low"`。
+3. **要不要設自動壓縮的門檻？**
+   - 說明：對話越長，每一回合重送的越多。設門檻會在超過時自動把前面換成摘要，省用量，代價是細節會少一些。
+   - Claude Code：在 `~/.claude/settings.json` 設 `"autoCompactWindow": 400000`（維護者這台 7 天紀錄的模擬：最多省約兩成；沒設的話 1M 的模型要到約 967k 才壓縮）。
+   - Codex：設定鍵是 `model_auto_compact_token_limit`，該設多少沒有資料，先不設，告訴使用者有這個選項。
+
+另外提醒一句（不用改設定）：每個專案的規則檔寫上「做完要跑的檢查指令」，agent 才有辦法自己驗證；進到專案時說「我不知道怎麼問：它說做完了其實沒有」會帶著做。
 
 ## 5. 名冊沒有的領域（私有模組）
 
@@ -159,7 +176,7 @@ uv run scripts/setup.py profile --answers <answers_file> --write --apply
    ```
 
    輸出「已經啟用」就完成。告訴使用者：
-   - 這些槽位還沒有答案；說「OmniKit 給我建議」就會替它們找名冊外的候選，那些候選沒有實測過。
+   - 這些槽位還沒有答案；要找工具時，貼候選的 GitHub 連結說「幫我評估」（`omnikit-eval`）。
    - 想改就直接改那個檔，想停用就刪掉它（檔案位置在輸出裡）；不要替使用者刪。
    - 覺得別人也用得到，可以把檔案放進 repo 的 `data/modules/` 提成公版；提之前把單位專屬的內容拿掉。
 

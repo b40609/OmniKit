@@ -2,7 +2,7 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""Claude Code 與 Codex 的 Stop hook：該開新對話時提醒使用者。只提醒，不做任何動作。
+"""Claude Code 與 Codex 的 Stop hook：該開新對話時提醒使用者。只提醒，不做任何動作（只記下哪則提示講過了）。
 
 兩種訊號（換主題只能靠模型判斷，不在這裡）：
 1. 自動壓縮：這段對話累計第 1、3、9、27… 次自動壓縮發生在這一回合時提醒。
@@ -10,8 +10,11 @@
    Codex 常設 96000），固定門檻一定會誤判；自動壓縮是 agent 自己判斷「滿了」，會跟著模型走。
 2. 任務告一段落：這一回合成功跑了 git push，而且是這段對話的第一次（之後每回合都 push，不再提醒）。
 Claude 的子對話（由別的對話開出來的）兩種都不提醒：做完就收，看收尾的狀態標籤就好。
-另外，主線 session 的第一回合結束時，附上 notify.py 挑的一則通知（有更好的選擇或試用到期；FR-16、FR-19）。
-子對話、Codex 的 exec（非互動）、CI 都不附。notify.py 只讀 JSON，要讀名冊的部分在背景另開 uv 算。
+另外兩種小提示（tips.py，內容在 data/tips.json）：
+- 主線 session 的第一回合結束時，講一則用法提示（一天最多一則、每則只講一次；新的官方功能加進 data/tips.json 就會講到）。
+  子對話、Codex 的 exec（非互動）、CI 都不講。
+- Claude Code 這段對話第一次 git push 時，/insights 的報告超過 14 天沒更新就提醒一句（14 天內只提醒一次）。
+2026-11-17 起不再附 notify.py 的工具通知（有更好的選擇、試用到期）：建議與週報已停用，notify.py 留著但沒有人叫。
 
 從 stdin 讀 hook 輸入，再讀 transcript_path 的 JSONL（Claude Code 的對話紀錄或 Codex 的 rollout，
 自動分辨）；有話要說就印 {"systemMessage": ...}。任何錯誤都安靜結束（exit 0），提醒壞掉不能干擾對話。
@@ -167,14 +170,28 @@ def first_turn(entries: list[dict]) -> bool:
 
 
 def notice(entries: list[dict], due=None) -> list[str]:
-    """第一回合才問 notify.py 有沒有要通知的；任何錯誤都當成沒有。"""
+    """第一回合才問 tips.py 有沒有要講的用法提示；任何錯誤都當成沒有。"""
     if not first_turn(entries):
         return []
     try:
         if due is None:
             sys.path.insert(0, str(Path(__file__).resolve().parent))
-            from notify import due
+            from tips import due
         msg = due("codex" if is_codex(entries) else "claude")
+    except Exception:
+        return []
+    return [msg] if msg else []
+
+
+def insights(entries: list[dict], msgs: list[str], due=None) -> list[str]:
+    """Claude Code 這一回合有「已推送」的提醒時，順便問 tips.py 要不要提醒跑 /insights；任何錯誤都當成沒有。"""
+    if is_codex(entries) or PUSHED not in msgs:
+        return []
+    try:
+        if due is None:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from tips import insights_due as due
+        msg = due()
     except Exception:
         return []
     return [msg] if msg else []
@@ -187,6 +204,7 @@ def main() -> int:
             return 0
         entries = read_jsonl(data["transcript_path"])
         msgs = codex_nudge(entries, data.get("turn_id")) if is_codex(entries) else nudge(entries)
+        msgs += insights(entries, msgs)
         msgs += notice(entries)
     except Exception:
         return 0
@@ -281,7 +299,13 @@ def selftest() -> int:
         assert is_codex(entries) and len(entries) == 4 and len(codex_nudge(entries, "a")) == 1
         path.write_text(json.dumps(prompt()) + "\n", encoding="utf-8")
         assert not is_codex(read_jsonl(str(path)))
-    # 通知：只在主線 session 的第一回合問 notify.py
+    # /insights 提醒：只在 Claude Code 這一回合有「已推送」時問
+    assert insights([prompt()], [PUSHED], lambda: "跑 insights") == ["跑 insights"]
+    assert insights([prompt()], [], lambda: "跑 insights") == []  # 沒有推送
+    assert insights([meta, *turn("a")], [PUSHED], lambda: "跑 insights") == []  # Codex 沒有 /insights
+    assert insights([prompt()], [PUSHED], lambda: None) == []
+    assert insights([prompt()], [PUSHED], lambda: 1 / 0) == []  # 壞了不干擾
+    # 用法提示：只在主線 session 的第一回合問 tips.py
     asked = []
 
     def fake_due(agent):

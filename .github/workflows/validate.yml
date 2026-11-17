@@ -36,6 +36,7 @@ jobs:
       - run: uv run engine/scripts/doctor.py --selftest
       # 開新對話提醒的自我測試
       - run: uv run engine/scripts/session_nudge.py --selftest
+      - run: uv run engine/scripts/tips.py --selftest
       - run: uv run engine/scripts/codex_hooks.py --selftest
       # 防毒短暫鎖住檔案時等一下再試（FR-34）：寫檔、複製、刪除的腳本都用它
       - run: uv run engine/scripts/fsretry.py --selftest

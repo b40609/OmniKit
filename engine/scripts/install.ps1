@@ -541,7 +541,7 @@ function Show-NextSteps($edition) {
   if ($hasEval) {
     Write-Host '  - 評估新工具：說「幫我評估」加上 GitHub 連結（Claude Code 也可以輸入 /omnikit-eval，Codex 輸入 $omnikit-eval）'
   }
-  Write-Host '  - 個人週報：每週說一次「OmniKit 本週週報」（Claude Code 也可以輸入 /omnikit-weekly，Codex 輸入 $omnikit-weekly）'
+  Write-Host '  - 卡住或不知道怎麼開口：說「我不知道怎麼問：你的狀況」（Claude Code 也可以輸入 /omnikit-ask，Codex 輸入 $omnikit-ask）'
   Write-Host '  - 預設 plugin 不會自動安裝；安裝方式與其他說明見 README 的「裝好之後」'
 }
 
