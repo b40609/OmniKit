@@ -757,6 +757,7 @@ def selftest():
         item("skill", "terse", "~/.claude/skills", ["claude-code"], "new", days=3),
         item("mcp", "kit-server", "~/.claude.json", ["claude-code"], "no-data", days=None, ours=True),
         item("mcp", "other-server", "~/.claude.json", ["claude-code"], "no-data", days=None),
+        # 假設兩個 agent 讀同一份，只測 shared_with 的邏輯；實際上 Antigravity 不讀 ~/.agents/skills（見 usage.SKILL_DIRS）
         item("skill", "shared-old", "~/.agents/skills", ["codex", "antigravity"], "unused", days=70),
         item("plugin", "heavy@m", "~/.codex/plugins", ["codex"], "used", convs=1, skills=3),
         item("mcp", "devtools", "~/.codex/config.toml", ["codex"], "no-data", days=None)]}

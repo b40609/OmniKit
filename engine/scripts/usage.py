@@ -19,8 +19,9 @@
   時間用資料庫檔的修改時間
 
 列出的項目：
-- skills：~/.claude/skills、~/.agents/skills（Codex 與 Antigravity 共用）、~/.codex/skills、
-  ~/.gemini/config/skills 裡的 skill；OmniKit 自己的（engine/skills）不列
+- skills：~/.claude/skills（Claude Code）、~/.agents/skills 與 ~/.codex/skills（Codex）、~/.gemini/config/skills
+  與 Antigravity 另外讀的三個位置裡的 skill（見 SKILL_DIRS）；OmniKit 自己的（engine/skills）不列。
+  Antigravity 不讀 ~/.agents/skills（.agents/skills 只在專案資料夾裡有效）
 - plugins：Claude Code 裝的 plugin（~/.claude/plugins/installed_plugins.json）；Codex 最近一次對話實際載入的
   plugin skill，依 plugin 分組（停用的 plugin 與 skill 不會出現，沒有 skill 的 plugin 不列）。
   Codex 的快取裡有很多沒安裝的 plugin、帳號同步的 plugin 也不記在 config.toml，所以用載入清單當準
@@ -47,12 +48,17 @@ ROOT = Path(__file__).resolve().parents[2]
 DAY = 86400
 NAMES = {"claude-code": "Claude Code", "codex": "Codex", "antigravity": "Antigravity"}
 
-# 位置（相對家目錄）與讀它的 agent
+# 位置（相對家目錄）與讀它的 agent。Antigravity 的 App、IDE 與 CLI 共用 ~/.gemini/config/skills，IDE 另外讀舊的
+# ~/.gemini/antigravity/skills，CLI 另外讀 ~/.gemini/antigravity-cli/skills 與 ~/.gemini/skills；
+# 不讀 ~/.agents/skills（https://antigravity.google/docs/skills.md，2026-11-17）
 SKILL_DIRS = [
     (".claude/skills", ("claude-code",)),
-    (".agents/skills", ("codex", "antigravity")),
+    (".agents/skills", ("codex",)),
     (".codex/skills", ("codex",)),
     (".gemini/config/skills", ("antigravity",)),
+    (".gemini/antigravity/skills", ("antigravity",)),
+    (".gemini/antigravity-cli/skills", ("antigravity",)),
+    (".gemini/skills", ("antigravity",)),
 ]
 ANTIGRAVITY_HOMES = ("antigravity", "antigravity-cli", "antigravity-ide")
 
@@ -564,6 +570,7 @@ def selftest():
             skill(".codex/skills", name)
         for name in ("search-first", "lean-build", "agent-reach", "itri-work-agent", "ag-reordered"):
             skill(".gemini/config/skills", name)
+        skill(".gemini/antigravity-cli/skills", "cli-only")
 
         for name in ("read-only", "edge-one"):
             skill(".claude/skills", name)
@@ -778,9 +785,17 @@ def selftest():
         check("摘要：列出沒用到的，超過上限只顯示前幾個", any("可以考慮移除" in line for line in lines)
               and any("還有" in line for line in lines) and any("先不判斷" in line for line in lines))
         full = "\n".join(report(result))
-        check("摘要：同名 skill 在別的位置有用到，標成可能重複",
-              status("agent-reach", "~/.gemini/config/skills") == "unused"
-              and "~/.agents/skills 的同名 skill 有在用，這份可能是重複的" in full)
+        check("Antigravity 不讀 ~/.agents/skills：Codex 在那裡用到的，不算 Antigravity 那份的重複，只註明誰有在用",
+              by[("agent-reach", "~/.agents/skills")]["agents"] == ["codex"]
+              and status("agent-reach", "~/.gemini/config/skills") == "unused"
+              and "~/.gemini/config/skills，裝了 60 天；Codex 有在用同名的 skill" in full
+              and "可能是重複的" not in full)
+        check("Antigravity CLI 另外讀的 ~/.gemini/antigravity-cli/skills 也列",
+              by[("cli-only", "~/.gemini/antigravity-cli/skills")]["agents"] == ["antigravity"])
+        dup_item = {"kind": "skill", "name": "x", "where": "~/.codex/skills", "agents": ["codex"], "installed_days": 60}
+        dup_used = {"kind": "skill", "name": "x", "where": "~/.agents/skills", "agents": ["codex"]}
+        check("摘要：同一個 agent 讀得到的另一份同名 skill 有在用，標成可能重複",
+              "~/.agents/skills 的同名 skill 有在用，這份可能是重複的" in describe(dup_item, [dup_used]))
         check("摘要：最常用的標出是哪個 agent", "caveman（Claude Code，1 段）" in full)
         check("摘要：別的 agent 讀不到的同名 skill，不算重複，只註明誰有在用",
               status("itri-work-agent", "~/.gemini/config/skills") == "unused"

@@ -245,7 +245,8 @@ flowchart LR
 | `~/.codex/AGENTS.md` | 在開頭加一段受管區塊，放底線與 profile 接在一起的內容；原本的規則留在區塊外，照常生效，也先備份成 `AGENTS.md.pre-omnikit`。舊版整份換掉的，同步時換成只有區塊（規則內容一樣）；區塊被拿掉的話，同步時不加回去 |
 | `~/.gemini/GEMINI.md` | Antigravity 的規則：在開頭加一段受管區塊，放底線與 profile 接在一起的內容；原本的先備份成 `GEMINI.md.pre-omnikit`。原地改寫，這個檔案跟其他工具共用（硬連結）時，其他名字會一起更新，連結不會斷 |
 | `~/.claude/skills` | `engine/skills` 的每個 skill 用資料夾連結接上，改完馬上生效 |
-| `~/.agents/skills` | Codex 與 Antigravity 共用：`engine/skills` 的每個 skill 複製一份（Antigravity 不跟隨資料夾連結），裡面的 `.omnikit.json` 記來源；同名但不是 OmniKit 的不碰 |
+| `~/.agents/skills` | Codex 的：`engine/skills` 的每個 skill 複製一份，裡面的 `.omnikit.json` 記來源；同名但不是 OmniKit 的不碰 |
+| `~/.gemini/config/skills` | Antigravity 的（App、IDE 與 CLI 共用）：一樣複製一份、帶 `.omnikit.json`，因為 Antigravity 不跟隨資料夾連結。它不讀 `~/.agents/skills`（`.agents/skills` 只在專案資料夾裡有效） |
 | `~/.claude.json`、`~/.codex/config.toml`、`~/.gemini/config/mcp_config.json` | 寫入 `data/mcp/servers.yaml` 的 MCP server，只動這些 server 裡 OmniKit 管的欄位；你加的欄位（例如停用）與 Codex 的工具核准紀錄都留著。被你改過、被你移除，或同名但不是 OmniKit 的，那個 server 略過不動，見 [MCP 有衝突時](#mcp-有衝突時)。Claude 用 `claude mcp add-json`；Codex 寫入前驗證其他設定沒被動到；Antigravity 不寫 BOM（它讀到 BOM 會整份失敗）。`config.toml` 結尾另加一段 `[[hooks.Stop]]` 開新對話提醒 |
 | `%LOCALAPPDATA%\omnikit\` | `profiles\<名稱>\` 是訪談產生的 profile（個人資料，不在 repo 裡；移除時也不刪）；`profile.json` 記這台選的 profile；`edition.json` 記這台是維護者版還是同事版；`consent.json` 記你同意了哪些工具免問；`agents.json` 記接上了哪些 agent、OmniKit 管了哪些 skills，以及每個 MCP server 寫入時的雜湊（判斷有沒有被改過）；`rules\AGENTS.md` 是底線與 profile 接在一起的內容（移除時比對用） |
 | 舊版的 skillshare | 以前用 skillshare 接的電腦，重跑 `install.ps1` 會改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分；skillshare 本身不刪 |
@@ -649,7 +650,7 @@ OmniKit 只支援 Claude Code、Codex 與 Antigravity 三個 agent，所以改�
 <details>
 <summary><b>Antigravity 看不到 OmniKit 的 skill？</b></summary>
 
-Antigravity 不跟隨資料夾連結，所以 OmniKit 把 skill 複製到 `~/.agents/skills`（Codex 也讀這裡）。改了 `engine/skills` 裡的 skill 要 commit，git hook 才會重新複製；也可以跑 `uv run engine/scripts/agents.py sync --skills`。同名的資料夾已經存在、而且不是 OmniKit 的，OmniKit 不會覆蓋，同步時會印出來。
+Antigravity 的全域 skill 只讀 `~/.gemini/config/skills`，而且不跟隨資料夾連結，所以 OmniKit 把 skill 複製到那裡。2026-11-17 以前的版本裝到 `~/.agents/skills`，Antigravity 讀不到（那份 Codex 還在用，留著）；更新 OmniKit 後跑一次 `uv run engine/scripts/agents.py sync --skills`（維護者版 commit 或 pull 時 git hook 會自動跑，同事版重跑 `install.ps1`）就會補裝。改了 `engine/skills` 裡的 skill 也一樣要 commit 或跑這個指令才會重新複製。同名的資料夾已經存在、而且不是 OmniKit 的，OmniKit 不會覆蓋，同步時會印出來。
 
 </details>
 

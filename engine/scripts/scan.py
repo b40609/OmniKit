@@ -55,9 +55,12 @@ AGENTS = [
 RULES = {"claude-code": ".claude/CLAUDE.md", "codex": ".codex/AGENTS.md", "antigravity": ".gemini/GEMINI.md",
          "gemini-cli": ".gemini/GEMINI.md"}
 
-# 各 agent 讀的全域 skills 資料夾（相對家目錄）；~/.agents/skills 是 Codex 與 Antigravity 共用的
+# 各 agent 讀的全域 skills 資料夾（相對家目錄）。Antigravity 不讀 ~/.agents/skills（.agents/skills 只在專案資料夾裡有效）：
+# App、IDE 與 CLI 共用 ~/.gemini/config/skills，IDE 另外讀舊的 ~/.gemini/antigravity/skills，CLI 另外讀
+# ~/.gemini/antigravity-cli/skills 與 ~/.gemini/skills（https://antigravity.google/docs/skills.md，2026-11-17）
 SKILLS = {"claude-code": [".claude/skills"], "codex": [".agents/skills", ".codex/skills"],
-          "antigravity": [".gemini/config/skills", ".agents/skills"]}
+          "antigravity": [".gemini/config/skills", ".gemini/antigravity/skills", ".gemini/antigravity-cli/skills",
+                          ".gemini/skills"]}
 
 TOOLS = ["git", "node", "uv", "gh", "pwsh"]
 
@@ -262,6 +265,7 @@ def selftest():
               '[mcp_servers.m2]\ncommand = "x"\n[mcp_servers.m2.env]\nKEY = "s3cret-codex"\n')
         (home / ".agents" / "skills" / "okx").mkdir(parents=True)
         (home / ".gemini" / "config" / "skills" / "search-first").mkdir(parents=True)
+        (home / ".gemini" / "antigravity-cli" / "skills" / "cli-only").mkdir(parents=True)
         write(home / ".gemini" / "config" / "mcp_config.json", '﻿{"mcpServers": {"m3": {"command": "x"}}}')
         write(home / ".gemini" / "GEMINI.md", "# 共用的規則\n")
         write(home / ".gemini" / "settings.json", "{壞掉的 JSON")
@@ -285,8 +289,9 @@ def selftest():
         check("標出 OmniKit 接得上的 agent：Claude Code、Codex、Antigravity",
               all(by_id[a]["omnikit_supported"] for a in ("claude-code", "codex", "antigravity"))
               and not by_id["gemini-cli"]["omnikit_supported"])
-        check("Antigravity：skills 含共用的 ~/.agents/skills，MCP 讀 config/mcp_config.json（有 BOM 也讀得到）",
-              by_id["antigravity"]["skills"] == ["okx", "search-first"] and by_id["antigravity"]["mcp"] == ["m3"]
+        check("Antigravity：skills 不含 ~/.agents/skills（它不讀），含 CLI 的 antigravity-cli/skills；"
+              "MCP 讀 config/mcp_config.json（有 BOM 也讀得到）",
+              by_id["antigravity"]["skills"] == ["cli-only", "search-first"] and by_id["antigravity"]["mcp"] == ["m3"]
               and by_id["antigravity"]["rules"]["exists"])
         check("規則檔只回報行數與 OmniKit 標記",
               by_id["claude-code"]["rules"]["lines"] == 4 and by_id["claude-code"]["rules"]["omnikit"])

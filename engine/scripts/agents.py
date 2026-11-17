@@ -13,8 +13,11 @@ git hook 與 agent 在背景同步時常失敗。支援的 agent 固定是這三
 - 規則：交給 profiles.py（Claude 用 import，Codex 整份複製，Antigravity 在 GEMINI.md 加受管區塊）
 - skills：engine/skills 的每個 skill，profile 的訪談答案不要的除外（見 profiles.OPTIONAL_SKILLS）
   - Claude Code：~/.claude/skills/<名稱> 用資料夾連結，改完馬上生效；建不起來就改用複製
-  - Codex 與 Antigravity 共用 ~/.agents/skills/<名稱>，用複製：Antigravity 不跟隨資料夾連結。
-    複製品裡放 .omnikit.json，記來源、repo 位置與內容雜湊；內容變了才重新複製
+  - Codex：~/.agents/skills/<名稱>，用複製
+  - Antigravity：~/.gemini/config/skills/<名稱>，用複製：Antigravity 不跟隨資料夾連結。它的全域 skill 只讀
+    這裡（App、IDE 與 CLI 共用），.agents/skills 只在專案資料夾裡有效（https://antigravity.google/docs/skills.md）。
+    舊版把 Antigravity 也裝到 ~/.agents/skills，它其實讀不到；那份 Codex 還在用，記錄改當 Codex 的
+  - 複製品裡放 .omnikit.json，記來源、repo 位置與內容雜湊；內容變了才重新複製
 - MCP：data/mcp/servers.yaml 的 server，只動 OmniKit 管的欄位（command、args、env 與 options 給的）
   - Claude Code：claude mcp add-json -s user（找不到 claude 指令才直接改 ~/.claude.json）
   - Codex：~/.codex/config.toml 的 [mcp_servers.<名稱>]，原地換掉 OmniKit 管的欄位；使用者加的欄位與
@@ -105,8 +108,10 @@ class Env:
 
     @property
     def skill_dirs(self):
+        """每個 agent 的全域 skills 資料夾與放法；key 跟 agent 名稱一樣，也是 agents.json 的 skills 記錄的 key。"""
         return {"claude-code": (self.home / ".claude" / "skills", "link"),
-                "shared": (self.home / ".agents" / "skills", "copy")}
+                "codex": (self.home / ".agents" / "skills", "copy"),
+                "antigravity": (self.home / ".gemini" / "config" / "skills", "copy")}
 
     @property
     def claude_json(self):
@@ -158,6 +163,12 @@ def load_record(env):
         rec = {}
     for key, empty in (("agents", []), ("skills", {}), ("mcp", {}), ("mcp_keep", {})):
         rec.setdefault(key, empty)
+    if not isinstance(rec["skills"], dict):
+        rec["skills"] = {}
+    if "shared" in rec["skills"]:
+        # 舊版：~/.agents/skills 記成 Codex 與 Antigravity 共用的 shared。Antigravity 讀不到那裡，
+        # 那份只有 Codex 在用，改記成 Codex 的；沒有標記的複製品也才認得出是 OmniKit 放的
+        rec["skills"].setdefault("codex", rec["skills"].pop("shared"))
     rec["mcp"] = {agent: ledger_of(names) for agent, names in rec["mcp"].items()} if isinstance(rec["mcp"], dict) else {}
     return rec
 
@@ -326,18 +337,7 @@ def place_skill(src_dir, dest, mode, env, recorded=()):
 
 
 def skill_targets(agents):
-    keys = []
-    if "claude-code" in agents:
-        keys.append("claude-code")
-    if "codex" in agents or "antigravity" in agents:
-        keys.append("shared")
-    return keys
-
-
-def target_label(key, agents):
-    if key == "claude-code":
-        return NAMES["claude-code"]
-    return "、".join(NAMES[a] for a in ("codex", "antigravity") if a in agents)
+    return [a for a in AGENTS if a in agents]
 
 
 def profile_skips(env, profile=None):
@@ -376,11 +376,20 @@ def sync_skills(env, agents, rec, profile=None):
                 lines.append(f"skills：拿掉{'這個 profile 不裝' if name in skip else '已經刪除'}的 {name}（{folder}）")
         rec["skills"][key] = placed
         how = "連結" if mode == "link" else "複製"
-        lines.append(f"skills：{target_label(key, agents)} {len(placed)} 個（{how}，{folder}）")
+        lines.append(f"skills：{NAMES[key]} {len(placed)} 個（{how}，{folder}）")
         if copied_instead:
             lines.append(f"  建不起資料夾連結，改用複製：{'、'.join(copied_instead)}")
         for name in skipped:
             lines.append(f"  {folder / name} 已經有同名的 skill，不是 OmniKit 的，沒有動")
+    # 沒接上的 agent 的資料夾裡還有 OmniKit 之前放的（例如舊版給 Antigravity 裝在 ~/.agents/skills、這台沒有 Codex）：
+    # 不更新也不刪，說一聲；disconnect（uninstall.ps1）會一起拿掉
+    for key, names in rec["skills"].items():
+        if key in env.skill_dirs and key not in skill_targets(agents):
+            folder = env.skill_dirs[key][0]
+            left = [n for n in names if present(folder / n)]
+            if left:
+                lines.append(f"skills：{folder} 還有 OmniKit 之前放的 {len(left)} 個 skill，只有 {NAMES[key]} 會讀，"
+                             f"它沒有接上，所以沒有更新也沒有刪；用不到可以自己刪")
     return lines
 
 
@@ -1109,6 +1118,7 @@ def selftest():
             put(folder / ".skillshare-manifest.json", json.dumps({"managed": {"alpha": "symlink", "other": "symlink"}}))
         put(home / ".agents" / "skills" / "beta" / "SKILL.md", "---\nname: beta\n---\n使用者自己的\n")
         put(home / ".agents" / "skills" / "mine" / "SKILL.md", "---\nname: mine\n---\n")
+        put(home / ".gemini" / "config" / "skills" / "ag-mine" / "SKILL.md", "---\nname: ag-mine\n---\n")
         put(ss / "config.yaml", f"sources:\n  mcp: {servers_yaml}\n  skills: {ss / 'skills'}\n\nmode: merge\n\n"
                                 f"extras:\n  - name: rules-codex\n    source: {state / 'rules'}\n    file: AGENTS.md\n"
                                 f"    targets:\n      - path: {home / '.codex'}\n        mode: copy\n\nignore:\n  - .git/\n")
@@ -1142,18 +1152,28 @@ def selftest():
         edition.set_edition(state, "maintainer")
         with flaky(Path, "write_bytes", times=1, match=lambda p, *_: p == ss / "config.yaml") as config_lock:
             lines = connect(env)
-        claude_alpha, shared_alpha = home / ".claude" / "skills" / "alpha", home / ".agents" / "skills" / "alpha"
+        claude_alpha, codex_alpha = home / ".claude" / "skills" / "alpha", home / ".agents" / "skills" / "alpha"
+        agy_skills = home / ".gemini" / "config" / "skills"
+        agy_alpha = agy_skills / "alpha"
         check("Claude：舊的 skillshare 連結換成直接連到 engine/skills",
               is_link(claude_alpha) and same_path(link_target(claude_alpha), src / "alpha"))
-        check("Codex 與 Antigravity：換成複製品，帶 .omnikit.json",
-              not is_link(shared_alpha) and (shared_alpha / "scripts" / "run.py").exists() and (shared_alpha / MARKER).exists())
-        marker = json.loads((shared_alpha / MARKER).read_text(encoding="utf-8"))
-        check("複製品記下 repo 位置，skill 的腳本找得到 repo", marker["repo"] == str(repo))
-        check("不複製 __pycache__", not (shared_alpha / "scripts" / "__pycache__").exists())
+        check("Codex：~/.agents/skills 的舊連結換成複製品，帶 .omnikit.json",
+              not is_link(codex_alpha) and (codex_alpha / "scripts" / "run.py").exists() and (codex_alpha / MARKER).exists())
+        check("Antigravity：複製到它讀的 ~/.gemini/config/skills，帶 .omnikit.json（它不讀 ~/.agents/skills）",
+              not is_link(agy_alpha) and (agy_alpha / "scripts" / "run.py").exists() and (agy_alpha / MARKER).exists()
+              and (agy_skills / "beta" / MARKER).exists())
+        marker = json.loads((codex_alpha / MARKER).read_text(encoding="utf-8"))
+        check("複製品記下 repo 位置，skill 的腳本找得到 repo", marker["repo"] == str(repo)
+              and json.loads((agy_alpha / MARKER).read_text(encoding="utf-8"))["repo"] == str(repo))
+        check("不複製 __pycache__", not (codex_alpha / "scripts" / "__pycache__").exists()
+              and not (agy_alpha / "scripts" / "__pycache__").exists())
         check("同名但不是 OmniKit 的 skill 不動", "使用者自己的" in (home / ".agents" / "skills" / "beta" / "SKILL.md").read_text(encoding="utf-8")
               and any("不是 OmniKit 的" in line for line in lines))
-        check("使用者自己的 skill 不動", (home / ".agents" / "skills" / "mine" / "SKILL.md").exists())
+        check("使用者自己的 skill 不動", (home / ".agents" / "skills" / "mine" / "SKILL.md").exists()
+              and not (agy_skills / "ag-mine" / MARKER).exists())
         check("Claude：beta 也接上", is_link(home / ".claude" / "skills" / "beta"))
+        check("每個 agent 印一行，寫出放在哪", any(f"skills：Antigravity 2 個（複製，{agy_skills}）" == line for line in lines)
+              and any(f"skills：Codex 1 個（複製，{home / '.agents' / 'skills'}）" == line for line in lines))
 
         claude_doc = json.loads((home / ".claude.json").read_text(encoding="utf-8"))
         check("Claude MCP：跟 skillshare 寫的一樣就不動，其他設定保留",
@@ -1187,7 +1207,8 @@ def selftest():
         check("skillshare：manifest 拿掉 OmniKit 的 skill，其他保留", manifest["managed"] == {"other": "symlink"})
         rec = load_record(env)
         check("記錄接上的 agent、skills 與 MCP；MCP 帳本記雜湊", rec["agents"] == list(AGENTS)
-              and rec["skills"]["shared"] == ["alpha"] and list(rec["mcp"]["codex"]) == ["devtools"]
+              and rec["skills"]["codex"] == ["alpha"] and rec["skills"]["antigravity"] == ["alpha", "beta"]
+              and "shared" not in rec["skills"] and list(rec["mcp"]["codex"]) == ["devtools"]
               and len(rec["mcp"]["codex"]["devtools"]["sha256"]) == 64)
 
         snapshot = {p: p.read_bytes() for p in (home / ".claude.json", home / ".codex" / "config.toml",
@@ -1196,16 +1217,40 @@ def selftest():
         connect(env)
         check("重跑 connect：設定檔都不變", all(p.read_bytes() == b for p, b in snapshot.items()))
 
+        # 舊版的記錄：Codex 與 Antigravity 共用 ~/.agents/skills，記成 shared；~/.gemini/config/skills 什麼都沒有。
+        # 那份 Codex 還在用：改記成 Codex 的，不刪；標記不見了也照記錄認得。Antigravity 補裝到它讀的位置
+        old = json.loads(env.record_file.read_text(encoding="utf-8"))
+        old["skills"] = {"claude-code": old["skills"]["claude-code"], "shared": old["skills"]["codex"]}
+        env.record_file.write_text(json.dumps(old, ensure_ascii=False), encoding="utf-8")
+        for name in ("alpha", "beta"):
+            remove_tree(agy_skills / name)
+        (codex_alpha / MARKER).unlink()
+        lines = sync(env, mcp=False)
+        saved = json.loads(env.record_file.read_text(encoding="utf-8"))["skills"]
+        check("舊版記錄的 shared 改記成 Codex：~/.agents/skills 的複製品留著，沒有標記的也照記錄認得、補上標記",
+              (codex_alpha / MARKER).exists() and saved.get("codex") == ["alpha"] and "shared" not in saved
+              and not any(str(codex_alpha) in line for line in lines))
+        check("舊版沒裝到 Antigravity 讀的位置：補裝到 ~/.gemini/config/skills",
+              (agy_alpha / MARKER).exists() and (agy_skills / "beta" / MARKER).exists()
+              and saved.get("antigravity") == ["alpha", "beta"])
+        # 這台沒有 Codex（只接 Antigravity）：~/.agents/skills 裡舊版放的不更新也不刪，說一聲
+        lines = sync_skills(env, ["claude-code", "antigravity"], load_record(env))
+        check("沒接 Codex：~/.agents/skills 裡 OmniKit 之前放的留著，印一行說明",
+              (codex_alpha / MARKER).exists() and any(str(home / ".agents" / "skills") in line and "只有 Codex 會讀" in line
+                                                      for line in lines))
+
         put(src / "alpha" / "scripts" / "run.py", "print('alpha v2')\n")
         put(src / "gamma" / "SKILL.md", "---\nname: gamma\n---\n")
         sync(env, mcp=False)
-        check("skill 改了：複製品跟著更新，Claude 的連結不用動",
-              "v2" in (shared_alpha / "scripts" / "run.py").read_text(encoding="utf-8") and is_link(claude_alpha))
-        check("來源資料夾是唯讀的：複製品的資料夾不帶唯讀", os.access(shared_alpha / "scripts", os.W_OK)
-              and not (getattr(os.stat(shared_alpha / "scripts"), "st_file_attributes", 0) & 1))
+        check("skill 改了：Codex 與 Antigravity 的複製品都跟著更新，Claude 的連結不用動",
+              "v2" in (codex_alpha / "scripts" / "run.py").read_text(encoding="utf-8")
+              and "v2" in (agy_alpha / "scripts" / "run.py").read_text(encoding="utf-8") and is_link(claude_alpha))
+        check("來源資料夾是唯讀的：複製品的資料夾不帶唯讀",
+              all(os.access(d / "scripts", os.W_OK) and not (getattr(os.stat(d / "scripts"), "st_file_attributes", 0) & 1)
+                  for d in (codex_alpha, agy_alpha)))
 
         # 防毒掃描剛複製好的檔案（FR-34）：複製品被短暫鎖住時等一下再試，不會失敗
-        run_py = shared_alpha / "scripts" / "run.py"
+        run_py = codex_alpha / "scripts" / "run.py"
         put(src / "alpha" / "scripts" / "run.py", "print('alpha v3')\n")
         with flaky(shutil, "copyfile", times=2, match=lambda s, d, *a, **k: Path(d) == run_py) as st:
             sync(env, mcp=False)
@@ -1225,20 +1270,21 @@ def selftest():
         sync(env, mcp=False)
 
         # 複製品被刪到一半（舊版遇到唯讀資料夾刪不掉）：.omnikit.json 不見了也照記錄認得，原地補齊
-        (shared_alpha / MARKER).unlink()
-        (shared_alpha / "scripts" / "run.py").unlink()
-        put(shared_alpha / "scripts" / "stale.py", "多出來的\n")
+        (codex_alpha / MARKER).unlink()
+        (codex_alpha / "scripts" / "run.py").unlink()
+        put(codex_alpha / "scripts" / "stale.py", "多出來的\n")
         sync(env, mcp=False)
         check("複製品缺檔、標記也不見了：照記錄認出是 OmniKit 的，原地補齊、刪掉多的",
-              "v2" in (shared_alpha / "scripts" / "run.py").read_text(encoding="utf-8")
-              and (shared_alpha / MARKER).exists() and not (shared_alpha / "scripts" / "stale.py").exists())
-        check("新增 skill：兩邊都接上", is_link(home / ".claude" / "skills" / "gamma")
-              and (home / ".agents" / "skills" / "gamma" / MARKER).exists())
+              "v2" in (codex_alpha / "scripts" / "run.py").read_text(encoding="utf-8")
+              and (codex_alpha / MARKER).exists() and not (codex_alpha / "scripts" / "stale.py").exists())
+        check("新增 skill：三邊都接上", is_link(home / ".claude" / "skills" / "gamma")
+              and (home / ".agents" / "skills" / "gamma" / MARKER).exists() and (agy_skills / "gamma" / MARKER).exists())
         shutil.rmtree(src / "gamma")
-        shared_gamma = home / ".agents" / "skills" / "gamma"
-        with flaky(shutil, "rmtree", times=1, match=lambda p, *a, **k: Path(p) == shared_gamma) as st:
+        codex_gamma = home / ".agents" / "skills" / "gamma"
+        with flaky(shutil, "rmtree", times=1, match=lambda p, *a, **k: Path(p) == codex_gamma) as st:
             sync(env, mcp=False)
-        check("刪掉 skill：兩邊都拿掉", not present(home / ".claude" / "skills" / "gamma") and not present(shared_gamma))
+        check("刪掉 skill：三邊都拿掉", not present(home / ".claude" / "skills" / "gamma") and not present(codex_gamma)
+              and not present(agy_skills / "gamma"))
         check("刪複製品時被防毒短暫鎖住：等一下再試，照樣刪掉", st.calls == 2)
 
         # 訪談第 5 題答「不要」（answers.json 的 evaluate_tools 是 false）：不裝 omnikit-eval。
@@ -1247,28 +1293,32 @@ def selftest():
         put(state / "profiles" / "bob" / "AGENTS.md", "# bob\n")
         bob_answers = state / "profiles" / "bob" / "answers.json"
         put(bob_answers, json.dumps({"name": "bob", "evaluate_tools": False}))
-        claude_eval, shared_eval = home / ".claude" / "skills" / "omnikit-eval", home / ".agents" / "skills" / "omnikit-eval"
+        claude_eval, codex_eval = home / ".claude" / "skills" / "omnikit-eval", home / ".agents" / "skills" / "omnikit-eval"
+        agy_eval = agy_skills / "omnikit-eval"
         sync(env, mcp=False)
-        check("還沒選 bob：omnikit-eval 兩邊都裝", is_link(claude_eval) and (shared_eval / MARKER).exists())
+        check("還沒選 bob：omnikit-eval 三邊都裝", is_link(claude_eval) and (codex_eval / MARKER).exists()
+              and (agy_eval / MARKER).exists())
         lines = connect(env, profile="bob")
         rec = load_record(env)
-        check("換成不評估工具的 profile：omnikit-eval 兩邊都拿掉，其他 skill 照裝",
-              not present(claude_eval) and not present(shared_eval) and is_link(claude_alpha)
-              and "omnikit-eval" not in rec["skills"]["claude-code"] + rec["skills"]["shared"]
+        check("換成不評估工具的 profile：omnikit-eval 三邊都拿掉，其他 skill 照裝",
+              not present(claude_eval) and not present(codex_eval) and not present(agy_eval) and is_link(claude_alpha)
+              and all("omnikit-eval" not in rec["skills"][a] for a in AGENTS)
               and any("不裝 omnikit-eval" in line for line in lines))
         sync(env, mcp=False)
-        check("之後的同步（git hook）照選的 profile，不會裝回來", not present(claude_eval) and not present(shared_eval))
-        put(shared_eval / "SKILL.md", "---\nname: omnikit-eval\n---\n使用者自己的\n")
+        check("之後的同步（git hook）照選的 profile，不會裝回來", not present(claude_eval) and not present(codex_eval)
+              and not present(agy_eval))
+        put(codex_eval / "SKILL.md", "---\nname: omnikit-eval\n---\n使用者自己的\n")
         sync(env, mcp=False)
-        check("同名但不是 OmniKit 的 omnikit-eval 不動", (shared_eval / "SKILL.md").exists())
-        shutil.rmtree(shared_eval)
+        check("同名但不是 OmniKit 的 omnikit-eval 不動", (codex_eval / "SKILL.md").exists())
+        shutil.rmtree(codex_eval)
         put(bob_answers, "{壞掉")
         sync(env, mcp=False)
-        check("answers.json 讀不懂：全部都裝", is_link(claude_eval) and (shared_eval / MARKER).exists())
+        check("answers.json 讀不懂：全部都裝", is_link(claude_eval) and (codex_eval / MARKER).exists()
+              and (agy_eval / MARKER).exists())
         put(bob_answers, json.dumps({"name": "bob", "evaluate_tools": False}))
         connect(env, profile="default")
         check("換回手寫的 profile（沒有 answers.json）：omnikit-eval 裝回來",
-              is_link(claude_eval) and (shared_eval / MARKER).exists())
+              is_link(claude_eval) and (codex_eval / MARKER).exists() and (agy_eval / MARKER).exists())
         shutil.rmtree(src / "omnikit-eval")
         sync(env, mcp=False)
 
@@ -1321,12 +1371,15 @@ def selftest():
         sync(env, skills=False)
         check("帳本的雜湊對不上、但現在的設定剛好就是 servers.yaml 要的：直接接手，不用問",
               all("devtools" in read_servers(env, a) for a in AGENTS) and not plan_mcp(env, AGENTS, load_record(env)).conflicts)
-        os.chmod(shared_alpha / "scripts", stat.S_IREAD | stat.S_IEXEC)  # 複製品裡有唯讀資料夾也要刪得掉
+        for d in (codex_alpha, agy_alpha):
+            os.chmod(d / "scripts", stat.S_IREAD | stat.S_IEXEC)  # 複製品裡有唯讀資料夾也要刪得掉
         with flaky(Path, "unlink", times=1, match=lambda p, *a, **k: p == env.record_file) as record_lock:
             lines = disconnect(env)
         check("移除：OmniKit 的 skills 都拿掉，engine/skills 與使用者的不動",
-              not present(claude_alpha) and not present(shared_alpha) and (src / "alpha" / "SKILL.md").exists()
-              and (home / ".agents" / "skills" / "mine").exists() and (home / ".agents" / "skills" / "beta").exists())
+              not present(claude_alpha) and not present(codex_alpha) and not present(agy_alpha)
+              and not present(agy_skills / "beta") and (src / "alpha" / "SKILL.md").exists()
+              and (home / ".agents" / "skills" / "mine").exists() and (home / ".agents" / "skills" / "beta").exists()
+              and (agy_skills / "ag-mine" / "SKILL.md").exists())
         check("移除：三邊的 MCP 拿掉，別人的不動",
               "devtools" not in read_servers(env, "claude-code") and "mine" in read_servers(env, "claude-code")
               and "devtools" not in read_servers(env, "codex") and "keep" in read_servers(env, "antigravity"))

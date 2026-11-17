@@ -22,7 +22,8 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
      Claude 在 ~/.claude/CLAUDE.md 用受管區塊 import；Codex 的 ~/.codex/AGENTS.md 與 Antigravity 的
      ~/.gemini/GEMINI.md 在開頭加受管區塊（原地改寫，硬連結不會斷），原本的規則留在區塊外照常生效，
      也先備份成 .pre-omnikit。沒指定也沒選過 profile 就用 default（下載、安裝前會先問）。
-   - skills：engine/skills 連到 ~/.claude/skills；複製到 ~/.agents/skills 給 Codex 與 Antigravity。
+   - skills：engine/skills 連到 ~/.claude/skills；複製到 ~/.agents/skills 給 Codex，複製到
+     ~/.gemini/config/skills 給 Antigravity（它的全域 skill 只讀這裡，不跟隨資料夾連結）。
    - MCP：data/mcp/servers.yaml 寫進三邊的設定，只動 OmniKit 管的欄位。agents.json 記每個 server 寫入時的
      雜湊；使用者改過的，或同名但不是 OmniKit 的，先停下來問，不覆蓋。
    - 舊版用 skillshare 接的，改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分（skillshare 本身不刪）。
@@ -476,8 +477,8 @@ function Show-InstallPlan {
     Where-Object { (Test-Path (Join-Path $_.FullName 'SKILL.md')) -and $_.Name -notin $skip }).Name -join '、'
   if ($skip) { $plan += "  skills：profile「$name」選了不評估新工具，不裝 $($skip -join '、')" }
   if ($agents -contains 'claude-code') { $plan += "  skills：$skills 連到 ~/.claude/skills" }
-  $shared = @($agents | Where-Object { $_ -in 'codex', 'antigravity' } | ForEach-Object { $AgentNames[$_] })
-  if ($shared) { $plan += "  skills：$skills 複製到 ~/.agents/skills（給 $($shared -join '、')）" }
+  if ($agents -contains 'codex') { $plan += "  skills：$skills 複製到 ~/.agents/skills（給 Codex）" }
+  if ($agents -contains 'antigravity') { $plan += "  skills：$skills 複製到 ~/.gemini/config/skills（給 Antigravity）" }
   $servers = [regex]::Matches((Get-FileText (Join-Path $Repo 'data\mcp\servers.yaml')), '(?m)^  ([A-Za-z0-9_-]+):\s*$') |
     ForEach-Object { $_.Groups[1].Value }
   $files = @{ 'claude-code' = '~/.claude.json'; 'codex' = '~/.codex/config.toml'; 'antigravity' = '~/.gemini/config/mcp_config.json' }

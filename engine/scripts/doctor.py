@@ -76,10 +76,11 @@ def check_rules(env, rec):
 def check_skills(env, rec):
     out = []
     for key, names in rec["skills"].items():
-        if key not in env.skill_dirs:
+        # 沒接上的 agent 的資料夾，sync 不會更新（例如舊版給 Antigravity 裝在 ~/.agents/skills、這台沒有 Codex），不檢查
+        if key not in env.skill_dirs or key not in rec["agents"]:
             continue
         folder, _ = env.skill_dirs[key]
-        label = "Claude Code" if key == "claude-code" else "Codex、Antigravity"
+        label = profiles.NAMES[key]
         for name in names:
             dest, src = folder / name, env.skills_src / name
             if not agents.present(dest):
@@ -313,7 +314,8 @@ def selftest():
         status = {(r["area"], r["agent"], r["item"]): r["status"] for r in rows}
         check("剛接上：寫入檢查全部通過", all(r["status"] == OK for r in rows if r["area"] != "清單"))
         check("規則：三個 agent 的受管區塊都比對了", sum(1 for k in status if k[0] == "規則") == 3)
-        check("skills：兩邊各 2 個", sum(1 for k in status if k[0] == "skills") == 4)
+        check("skills：三邊各 2 個（Antigravity 在 ~/.gemini/config/skills）",
+              sum(1 for k in status if k[0] == "skills") == 6 and status[("skills", "Antigravity", "alpha")] == OK)
         check("MCP：三邊帳本都比對了", sum(1 for k in status if k[0] == "MCP" and status[k] == OK) == 3)
         check("權限與兩邊的提醒 hook", status[("權限", "Claude Code", "mcp__devtools")] == OK
               and status[("hook", "Claude Code", "開新對話提醒")] == OK and status[("hook", "Codex", "開新對話提醒")] == OK)
@@ -340,8 +342,9 @@ def selftest():
         rows = collect(env, record_path, run=fake_run, which=which)
         status = {(r["area"], r["agent"], r["item"]): r["status"] for r in rows}
         check("規則區塊被手改：失敗", status[("規則", "Codex", "AGENTS.md")] == FAIL and status[("規則", "Claude Code", "CLAUDE.md")] == OK)
-        check("skill 不見了、複製品被改：失敗", status[("skills", "Codex、Antigravity", "beta")] == FAIL
-              and status[("skills", "Codex、Antigravity", "alpha")] == FAIL and status[("skills", "Claude Code", "alpha")] == OK)
+        check("skill 不見了、複製品被改：失敗，只算那一邊", status[("skills", "Codex", "beta")] == FAIL
+              and status[("skills", "Codex", "alpha")] == FAIL and status[("skills", "Claude Code", "alpha")] == OK
+              and status[("skills", "Antigravity", "alpha")] == OK)
         check("MCP 被改過：失敗，並提示 resolve", status[("MCP", "Claude Code", "devtools")] == FAIL
               and any("resolve devtools" in r["detail"] for r in rows))
         check("舊版沒有雜湊：未知", status[("MCP", "Antigravity", "devtools")] == UNKNOWN)

@@ -195,9 +195,9 @@ def selftest():
         put(state / "profiles" / "bob" / "answers.json", json.dumps({"name": "bob", "evaluate_tools": False}))
         agents.connect(env, profile="bob", agents=["claude-code", "codex", "antigravity"])
         installed = {key: sorted(names) for key, names in agents.load_record(env)["skills"].items()}
-        check("第 5 題選「先不要」：不裝 omnikit-eval，個人週報兩邊都照裝",
+        check("第 5 題選「先不要」：不裝 omnikit-eval，個人週報三邊都照裝",
               SKILL not in profiles.OPTIONAL_SKILLS
-              and installed == {"claude-code": sorted(["omnikit-setup", SKILL]), "shared": sorted(["omnikit-setup", SKILL])})
+              and installed == {a: sorted(["omnikit-setup", SKILL]) for a in ("claude-code", "codex", "antigravity")})
 
         def offline(*_args, **_kwargs):
             raise RuntimeError("週報不應該連網")
