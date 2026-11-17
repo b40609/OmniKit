@@ -22,6 +22,8 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
      Claude 在 ~/.claude/CLAUDE.md 用受管區塊 import；Codex 的 ~/.codex/AGENTS.md 與 Antigravity 的
      ~/.gemini/GEMINI.md 在開頭加受管區塊（原地改寫，硬連結不會斷），原本的規則留在區塊外照常生效，
      也先備份成 .pre-omnikit。沒指定也沒選過 profile 就用 default（下載、安裝前會先問）。
+     其他 Claude 設定目錄（CLAUDE_CONFIG_DIR、T3 Code 每個 Claude 實例的 homePath）的 CLAUDE.md 也放同一個
+     區塊，skills 也連進那些目錄的 skills；Claude 只讀自己設定目錄的 CLAUDE.md，不放就讀不到規則。
    - skills：engine/skills 連到 ~/.claude/skills；複製到 ~/.agents/skills 給 Codex，複製到
      ~/.gemini/config/skills 給 Antigravity（它的全域 skill 只讀這裡，不跟隨資料夾連結）。
    - MCP：data/mcp/servers.yaml 寫進三邊的設定，只動 OmniKit 管的欄位。agents.json 記每個 server 寫入時的
@@ -441,6 +443,7 @@ function Show-InstallPlan {
   if ($agents -contains 'claude-code') {
     $verb = if ((Get-FileText $ClaudeMd) -match $BlockPattern) { '更新' } else { '在開頭加上' }
     $plan += "  ~/.claude/CLAUDE.md：$($verb)受管區塊，import 底線與 profile；其他內容不動"
+    $plan += "  其他 Claude 設定目錄（CLAUDE_CONFIG_DIR、T3 Code 的 Claude 實例 homePath）：CLAUDE.md 一樣放受管區塊，skills 一樣連進去"
   }
   if ($agents -contains 'codex') {
     $legacy = (Get-FileText $SkillshareConfig) -match '(?m)^\s*- name: rules-codex\s*$'

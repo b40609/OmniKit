@@ -58,12 +58,13 @@ def check_rules(env, rec):
     except SystemExit as e:
         return [row("規則", profiles.NAMES.get(a, a), "受管區塊", UNKNOWN, str(e.code)) for a in rec["agents"]]
     out = []
-    for agent in rec["agents"]:
-        path = env.rules[agent]
+    targets = [(a, env.rules[a], profiles.NAMES[a]) for a in rec["agents"]]
+    if "claude-code" in rec["agents"]:  # 其他 Claude 設定目錄（T3 Code 的多帳號）也要有區塊
+        targets += [("claude-code", p, agents.label_of(agents.extra_key(p.parent))) for p in env.claude_extra_rules]
+    for agent, path, label in targets:
         want = (profiles.claude_block(env.data, env.state, name) if agent == "claude-code"
                 else profiles.content_block(profiles.compose(env.data, env.state, name)))
         found = profiles.BLOCK.search(profiles.text(path)) if path.exists() else None
-        label = profiles.NAMES[agent]
         if not found:
             out.append(row("規則", label, path.name, FAIL, f"{path} 沒有 OmniKit 受管區塊：重跑 install.ps1"))
         elif same_text(found.group(0), want):
@@ -77,10 +78,10 @@ def check_skills(env, rec):
     out = []
     for key, names in rec["skills"].items():
         # 沒接上的 agent 的資料夾，sync 不會更新（例如舊版給 Antigravity 裝在 ~/.agents/skills、這台沒有 Codex），不檢查
-        if key not in env.skill_dirs or key not in rec["agents"]:
+        if key not in env.skill_dirs or agents.agent_of(key) not in rec["agents"]:
             continue
         folder, _ = env.skill_dirs[key]
-        label = profiles.NAMES[key]
+        label = agents.label_of(key)
         for name in names:
             dest, src = folder / name, env.skills_src / name
             if not agents.present(dest):

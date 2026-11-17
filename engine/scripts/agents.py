@@ -52,7 +52,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -87,6 +87,7 @@ class Env:
     state: Path
     skillshare: Path  # 舊版用的 %APPDATA%\skillshare
     claude_cli: list | None = None  # claude 指令；None 表示直接改 ~/.claude.json
+    claude_homes: list = field(default_factory=list)  # ~/.claude 以外的 Claude 設定目錄（profiles.claude_homes）
     which: object = shutil.which
 
     @property
@@ -107,11 +108,16 @@ class Env:
                 "antigravity": self.home / ".gemini" / "GEMINI.md"}
 
     @property
+    def claude_extra_rules(self):
+        return [h / "CLAUDE.md" for h in self.claude_homes]
+
+    @property
     def skill_dirs(self):
         """每個 agent 的全域 skills 資料夾與放法；key 跟 agent 名稱一樣，也是 agents.json 的 skills 記錄的 key。"""
         return {"claude-code": (self.home / ".claude" / "skills", "link"),
                 "codex": (self.home / ".agents" / "skills", "copy"),
-                "antigravity": (self.home / ".gemini" / "config" / "skills", "copy")}
+                "antigravity": (self.home / ".gemini" / "config" / "skills", "copy"),
+                **{extra_key(h): (h / "skills", "link") for h in self.claude_homes}}
 
     @property
     def claude_json(self):
@@ -126,11 +132,24 @@ class Env:
         return self.home / ".gemini" / "config" / "mcp_config.json"
 
 
+def extra_key(home):
+    """其他 Claude 設定目錄在 skill_dirs 與 agents.json 的 key：claude-code@<目錄>。"""
+    return f"claude-code@{home}"
+
+
+def agent_of(key):
+    return key.split("@", 1)[0]
+
+
+def label_of(key):
+    return NAMES[agent_of(key)] + (f"（{key.split('@', 1)[1]}）" if "@" in key else "")
+
+
 def real_env():
     claude = shutil.which("claude")
     return Env(home=Path.home(), repo=profiles.ROOT, state=profiles.STATE,
                skillshare=Path(os.environ.get("APPDATA", Path.home())) / "skillshare",
-               claude_cli=[claude] if claude else None)
+               claude_cli=[claude] if claude else None, claude_homes=profiles.claude_homes())
 
 
 def detect(env):
@@ -336,8 +355,12 @@ def place_skill(src_dir, dest, mode, env, recorded=()):
     return "copied"
 
 
-def skill_targets(agents):
-    return [a for a in AGENTS if a in agents]
+def skill_targets(agents, env=None):
+    """要放 skills 的 key；Claude Code 接上時，其他 Claude 設定目錄也放（env 有給才算）。"""
+    keys = [a for a in AGENTS if a in agents]
+    if env is not None and "claude-code" in agents:
+        keys += [extra_key(h) for h in env.claude_homes]
+    return keys
 
 
 def profile_skips(env, profile=None):
@@ -358,7 +381,7 @@ def sync_skills(env, agents, rec, profile=None):
     if shown:
         why = "、".join(dict.fromkeys(skip[n] for n in shown))
         lines.append(f"skills：profile {profile_name} 選了{why}，不裝 {'、'.join(shown)}")
-    for key in skill_targets(agents):
+    for key in skill_targets(agents, env):
         folder, mode = env.skill_dirs[key]
         folder.mkdir(parents=True, exist_ok=True)
         placed, skipped, copied_instead = [], [], []
@@ -378,7 +401,7 @@ def sync_skills(env, agents, rec, profile=None):
                 lines.append(f"skills：拿掉{'這個 profile 不裝' if name in skip else '已經刪除'}的 {name}（{folder}）")
         rec["skills"][key] = placed
         how = "連結" if mode == "link" else "複製"
-        lines.append(f"skills：{NAMES[key]} {len(placed)} 個（{how}，{folder}）")
+        lines.append(f"skills：{label_of(key)} {len(placed)} 個（{how}，{folder}）")
         if copied_instead:
             lines.append(f"  建不起資料夾連結，改用複製：{'、'.join(copied_instead)}")
         for name in skipped:
@@ -386,11 +409,11 @@ def sync_skills(env, agents, rec, profile=None):
     # 沒接上的 agent 的資料夾裡還有 OmniKit 之前放的（例如舊版給 Antigravity 裝在 ~/.agents/skills、這台沒有 Codex）：
     # 不更新也不刪，說一聲；disconnect（uninstall.ps1）會一起拿掉
     for key, names in rec["skills"].items():
-        if key in env.skill_dirs and key not in skill_targets(agents):
+        if key in env.skill_dirs and key not in skill_targets(agents, env):
             folder = env.skill_dirs[key][0]
             left = [n for n in names if present(folder / n)]
             if left:
-                lines.append(f"skills：{folder} 還有 OmniKit 之前放的 {len(left)} 個 skill，只有 {NAMES[key]} 會讀，"
+                lines.append(f"skills：{folder} 還有 OmniKit 之前放的 {len(left)} 個 skill，只有 {label_of(key)} 會讀，"
                              f"它沒有接上，所以沒有更新也沒有刪；用不到可以自己刪")
     return lines
 
@@ -915,7 +938,7 @@ def connect(env, profile=None, agents=None, ask=None):
     plan = settle(env, agents, rec, ask)  # 有衝突的 server 留在 plan.conflicts，寫入時略過
     rec["agents"] = list(agents)
     lines = profiles.apply(env.data, env.state, env.rules, wanted=profile, agents=agents, take_over=True,
-                           skillshare_config=env.skillshare / "config.yaml")
+                           skillshare_config=env.skillshare / "config.yaml", claude_extra=env.claude_extra_rules)
     lines += sync_skills(env, agents, rec, profile)
     lines += apply_mcp(env, agents, rec, plan)
     save_record(env, rec)
@@ -1053,6 +1076,8 @@ def disconnect(env):
             lines.append(f"MCP：{NAMES[agent]} 的 {'、'.join(kept)} 在 OmniKit 寫入之後被改過，當成你的設定，沒有拿掉")
     lines += profiles.disconnect_block(env.rules["codex"])
     lines += profiles.disconnect_block(env.rules["antigravity"])
+    for path in env.claude_extra_rules:  # ~/.claude/CLAUDE.md 由 uninstall.ps1 處理
+        lines += profiles.disconnect_block(path)
     lines += release_skillshare(env)
     if env.record_file.exists():
         retry(env.record_file.unlink)
@@ -1546,6 +1571,24 @@ def selftest():
               read_servers(env3, "claude-code")["devtools"]["command"] == "mine"
               and profiles.BEGIN in profiles.text(home3 / ".claude" / "CLAUDE.md")
               and load_record(env3)["mcp_keep"]["claude-code"] == ["devtools"])
+
+        # 其他 Claude 設定目錄（T3 Code 的多帳號）：規則區塊與 skills 也接上，disconnect 一起拿掉
+        home4, state4 = tmp / "home4", tmp / "state4"
+        put(home4 / ".claude" / "CLAUDE.md", "# 我的\n")
+        kai = home4 / ".claude-kai"
+        put(kai / "skills" / "synced" / "x.txt", "Claude 自己同步的\n")
+        env4 = Env(home=home4, repo=repo, state=state4, skillshare=tmp / "none", which=lambda _: None, claude_homes=[kai])
+        edition.set_edition(state4, "colleague")
+        connect(env4, agents=["claude-code"], ask=lambda c: "mine")
+        names4 = [n for n in skill_names(repo / "engine" / "skills") if n not in profiles.skipped_skills(env4.data, state4, "default")]
+        check("其他 Claude 設定目錄：CLAUDE.md 放受管區塊，skills 也連進去，原本的 skills 不動",
+              profiles.text(kai / "CLAUDE.md").startswith(profiles.BEGIN)
+              and all(present(kai / "skills" / n) for n in names4) and (kai / "skills" / "synced" / "x.txt").exists()
+              and sorted(load_record(env4)["skills"][extra_key(kai)]) == sorted(names4))
+        disconnect(env4)
+        check("其他 Claude 設定目錄：disconnect 拿掉區塊與 skills，原本的留著",
+              not (kai / "CLAUDE.md").exists() and not any(present(kai / "skills" / n) for n in names4)
+              and (kai / "skills" / "synced" / "x.txt").exists())
         for d in readonly:
             writable(d)
 

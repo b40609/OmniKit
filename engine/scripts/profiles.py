@@ -22,6 +22,8 @@ profile 放在兩個地方，同名時 repo 外的優先：
 
 接上的方式（只接 agents.py 記錄裡的 agent，記在 %LOCALAPPDATA%\\omnikit\\agents.json）：
 - Claude Code：~/.claude/CLAUDE.md 開頭的受管區塊 import 底線與 profile 兩份，改完開新 session 就生效。
+  其他 Claude 設定目錄（CLAUDE_CONFIG_DIR、T3 Code 每個 Claude 實例的 homePath）的 CLAUDE.md 也放同一個區塊，
+  不然那些帳號只讀自己目錄的 CLAUDE.md，完全讀不到 OmniKit 規則（claude_homes）。
 - Codex：不支援 import，~/.codex/AGENTS.md 開頭的受管區塊放兩份接在一起的內容；原本的規則留在區塊外，
   照常生效。舊版整份換掉的（開頭是產生標記），同步時換成只有區塊，規則內容一樣。
 - Antigravity：~/.gemini/GEMINI.md 開頭的受管區塊，內容跟 Codex 一樣。
@@ -257,6 +259,43 @@ def connect_claude(claude_md, block):
     return write(claude_md, with_block(old, block))
 
 
+def expand_home(value, home):
+    value = value.strip()
+    if value == "~" or value.startswith(("~/", "~\\")):
+        return home / value[2:] if len(value) > 1 else home
+    return Path(os.path.expandvars(value))
+
+
+def claude_homes(home=HOME, environ=None, t3_settings=None):
+    """~/.claude 以外、這台實際在用的 Claude 設定目錄（CLAUDE_CONFIG_DIR）。Claude Code 從
+    $CLAUDE_CONFIG_DIR/CLAUDE.md 讀使用者規則，不會回頭讀 ~/.claude/CLAUDE.md；所以多帳號（例如 T3 Code
+    每個 Claude 實例一個 homePath）的目錄都要放受管區塊，不然那個帳號完全讀不到 OmniKit 規則。
+    來源：這個行程的 CLAUDE_CONFIG_DIR、T3 Code 設定裡 Claude 實例的 homePath。只回已存在的目錄。"""
+    environ = os.environ if environ is None else environ
+    t3_settings = home / ".t3" / "userdata" / "settings.json" if t3_settings is None else t3_settings
+    found = []
+    if environ.get("CLAUDE_CONFIG_DIR", "").strip():
+        found.append(expand_home(environ["CLAUDE_CONFIG_DIR"], home))
+    try:
+        instances = json.loads(text(t3_settings)).get("providerInstances") or {}
+    except (OSError, ValueError, AttributeError):
+        instances = {}
+    for inst in instances.values() if isinstance(instances, dict) else []:
+        if not isinstance(inst, dict) or inst.get("driver") != "claudeAgent":
+            continue
+        path = (inst.get("config") or {}).get("homePath") if isinstance(inst.get("config"), dict) else None
+        if isinstance(path, str) and path.strip():
+            found.append(expand_home(path, home))
+    default = os.path.normcase(str((home / ".claude").resolve()))
+    seen, homes = {default}, []
+    for p in found:
+        key = os.path.normcase(str(p.resolve()))
+        if key not in seen and p.is_dir():
+            seen.add(key)
+            homes.append(p)
+    return homes
+
+
 def content_block(content):
     return f"{BEGIN}\n{content.rstrip()}\n{END}"
 
@@ -311,8 +350,13 @@ def disconnect_block(path):
     return lines
 
 
-def apply(data, state, paths=None, wanted=None, agents=None, take_over=False, skillshare_config=SKILLSHARE_CONFIG):
-    """接上 profile，回傳要印給使用者看的訊息。take_over：第一次接上（install），可以接手並備份原本的規則。"""
+def apply(data, state, paths=None, wanted=None, agents=None, take_over=False, skillshare_config=SKILLSHARE_CONFIG,
+          claude_extra=None):
+    """接上 profile，回傳要印給使用者看的訊息。take_over：第一次接上（install），可以接手並備份原本的規則。
+    claude_extra：~/.claude 以外也要放受管區塊的 CLAUDE.md（其他 Claude 帳號的設定目錄）；
+    沒給而且用的是這台的真實路徑（paths 沒給）時，用 claude_homes() 找。"""
+    if claude_extra is None:
+        claude_extra = [h / "CLAUDE.md" for h in claude_homes()] if paths is None else []
     paths = paths or RULES
     name, fallback = resolve(data, state, wanted)
     if wanted:
@@ -323,8 +367,12 @@ def apply(data, state, paths=None, wanted=None, agents=None, take_over=False, sk
     write(state / "rules" / "AGENTS.md", content)
     done, notes = [], []
     if "claude-code" in agents:
-        connect_claude(paths["claude-code"], claude_block(data, state, name))
-        done.append(NAMES["claude-code"])
+        block = claude_block(data, state, name)
+        connect_claude(paths["claude-code"], block)
+        for extra in claude_extra:
+            connect_claude(extra, block)
+        done.append(NAMES["claude-code"] + (f"（另外 {len(claude_extra)} 個設定目錄：{'、'.join(str(p.parent) for p in claude_extra)}）"
+                                            if claude_extra else ""))
     if "codex" in agents:
         legacy = skillshare_config.exists() and CODEX_EXTRA.search(text(skillshare_config)) is not None
         status, saved = connect_codex(paths["codex"], content, take_over, legacy)
@@ -647,6 +695,35 @@ def selftest():
         check("repo 裡的 profile：產生標記照舊", compose(data, state, "default").splitlines()[0]
               == f"{HEADER}data/rules/baseline.md + data/profiles/default/AGENTS.md -->")
         check("找不到時說兩個位置", "data/profiles/nope" in str(fails_with(lambda: resolve(data, state, "nope"))))
+
+        # 其他 Claude 設定目錄：CLAUDE_CONFIG_DIR 與 T3 Code 的 Claude 實例 homePath
+        chome = tmp / "chome"
+        for d in (".claude", ".claude-kai", ".claude-retis", "env-claude"):
+            (chome / d).mkdir(parents=True)
+        t3 = chome / ".t3" / "userdata" / "settings.json"
+        write(t3, json.dumps({"providerInstances": {
+            "claudeAgent": {"driver": "claudeAgent"},
+            "kai": {"driver": "claudeAgent", "config": {"homePath": "~/.claude-kai"}},
+            "retis": {"driver": "claudeAgent", "config": {"homePath": str(chome / ".claude-retis")}},
+            "same": {"driver": "claudeAgent", "config": {"homePath": "~/.claude"}},
+            "gone": {"driver": "claudeAgent", "config": {"homePath": "~/.claude-gone"}},
+            "agy": {"driver": "antigravity", "config": {"homePath": "~/.claude-agy"}}}}))
+        homes = claude_homes(chome, {"CLAUDE_CONFIG_DIR": str(chome / "env-claude")})
+        check("claude_homes：CLAUDE_CONFIG_DIR 與 T3 的 Claude 實例都找到；~/.claude、不存在的、非 Claude 的不算",
+              [h.name for h in homes] == ["env-claude", ".claude-kai", ".claude-retis"])
+        check("claude_homes：沒有 T3 設定也沒有環境變數就是空的", claude_homes(tmp / "nohome", {}) == [])
+        write(t3, "{壞掉")
+        check("claude_homes：T3 設定壞掉不會失敗", claude_homes(chome, {}) == [])
+        extra = [h / "CLAUDE.md" for h in homes]
+        write(extra[1], "# Kai 自己的規則\n")
+        lines = apply(data, state, paths, agents=["claude-code"], claude_extra=extra, skillshare_config=legacy_config)
+        block = claude_block(data, state, chosen(state) or DEFAULT)
+        check("其他 Claude 設定目錄也放同一個受管區塊，原本的內容留著",
+              all(text(p).startswith(block) for p in extra) and text(extra[1]).endswith("# Kai 自己的規則\n")
+              and "另外 3 個設定目錄" in lines[0])
+        check("其他 Claude 設定目錄：拿掉區塊時，只剩區塊的刪掉、有自己內容的留著",
+              bool(disconnect_block(extra[0])) and not extra[0].exists()
+              and bool(disconnect_block(extra[1])) and text(extra[1]) == "# Kai 自己的規則\n")
 
         # Claude Code 的 import 遇到空白就斷掉：使用者名稱有空白時，repo 與 profile 的路徑都有空白
         sdata, sstate = tmp / "王 小明 的 資料夾" / "data", tmp / "王 小明 的 資料夾" / "state"
