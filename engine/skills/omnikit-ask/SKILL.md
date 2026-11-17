@@ -7,7 +7,7 @@ description: 問法庫：使用者卡住、不知道怎麼跟 agent 開口，或
 
 使用者卡住時，缺的通常不是措辭，是這四樣之一：agent 看不到的資訊、判斷好壞的標準、做事的方法、驗證的方式。這份問法庫依情境寫出該補哪一樣、用哪個機制。
 
-72 個情境來自 2026-11-17 的調研（官方文件、社群的 skill 合集、人類專業的做法）。2026-11-17 用 `claude plugin eval` 挑 11 條做過有它與沒它的對照（`docs/reviews/2026-11-17-ask-eval.md`）；使用者自己的實測還沒做。每一條的依據寫在條目裡；來源與核對狀態在 `SOURCES.md`。
+72 個情境來自 2026-11-17 的調研（官方文件、社群的 skill 合集、人類專業的做法）。2026-11-17 挑 11 條做過有它與沒它的對照：Claude Code（`docs/reviews/2026-11-17-ask-eval.md`）與 Antigravity 的 Gemini 4 Hydrogen、Gemini 3.8 Flash（`docs/reviews/2026-11-17-ask-eval-gemini.md`）；使用者自己的實測還沒做。每一條的依據寫在條目裡；來源與核對狀態在 `SOURCES.md`。
 
 ## 怎麼用
 

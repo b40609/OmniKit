@@ -27,13 +27,29 @@ Claude Code（Windows PowerShell）：
 Copy-Item -Recurse OmniKit\engine\skills\omnikit-ask "$env:USERPROFILE\.claude\skills\omnikit-ask"
 ```
 
-Codex 或 Antigravity（共用 `~/.agents/skills`）：
+Codex（`~/.agents/skills`）：
 
 ```powershell
 Copy-Item -Recurse OmniKit\engine\skills\omnikit-ask "$env:USERPROFILE\.agents\skills\omnikit-ask"
 ```
 
-裝完開新的對話，說「我不知道怎麼問：〔狀況〕」，它應該叫用問法庫。沒叫用就記一筆「沒被叫用」，然後改用明確的叫法：Claude Code 打 `/omnikit-ask 〔狀況〕`；其他 agent 說「用 omnikit-ask 這個 skill：〔狀況〕」。
+Antigravity（`~/.gemini/config/skills`；它不讀 `~/.agents/skills`，2026-11-17 實測與官方文件都是這樣）：
+
+```powershell
+Copy-Item -Recurse OmniKit\engine\skills\omnikit-ask "$env:USERPROFILE\.gemini\config\skills\omnikit-ask"
+```
+
+想少打字，`ok`（選單入口）也一起複製，路徑同上，把 `omnikit-ask` 換成 `ok`。
+
+裝完開新的對話，說「我不知道怎麼問：〔狀況〕」，它應該叫用問法庫。沒叫用就記一筆「沒被叫用」，然後改用明確的叫法：
+
+| agent | 直接講狀況 | 跳出選單挑 |
+|---|---|---|
+| Claude Code | `/omnikit-ask 〔狀況〕` 或 `/ok ask 〔狀況〕` | `/ok ask` |
+| Codex | `$omnikit-ask 〔狀況〕` 或 `$ok ask 〔狀況〕` | `$ok ask` |
+| Antigravity | `/omnikit-ask 〔狀況〕` 或 `/ok ask 〔狀況〕` | `/ok ask` |
+
+只打 `/ok`（Codex 是 `$ok`）會列出 OmniKit 的主選單（問法庫、交接、調研、分派、設定）。`/ok`、`/ok ask` 在 Claude Code 與 Antigravity 都實測過（2026-11-17）；Codex 的 `$ok` 照官方文件寫，還沒實測。
 
 第一次用時，agent 可能會問能不能讀 skill 資料夾裡的檔案（各類情境分開存放）。選「一律允許」。不允許它也會回答，但只有索引層級的內容。
 
