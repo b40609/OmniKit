@@ -18,6 +18,12 @@
     {"id": "autocompact", "added": "2026-11-17", "agents": ["claude"],
      "text": "小提示：同一件事做很久時用量會越滾越大。/autocompact 400k 讓對話超過 400k 就自動壓縮（沒設的話要到約 967k）。"},
     {"id": "verify", "added": "2026-11-17", "agents": ["claude", "codex"],
-     "text": "小提示：交辦時講清楚「怎樣算做完」與要跑的檢查指令，並要它附上實際輸出。這是官方列的最有效做法之一。"}
+     "text": "小提示：交辦時講清楚「怎樣算做完」與要跑的檢查指令，並要它附上實際輸出。這是官方列的最有效做法之一。"},
+    {"id": "btw", "added": "2026-11-17", "agents": ["claude", "codex"],
+     "text": "小提示：做到一半想問個無關的小問題，打 /btw 〔問題〕，它在旁邊回答，不會塞進主對話。"},
+    {"id": "help-command", "added": "2026-11-17", "agents": ["claude"],
+     "text": "小提示：不確定某個指令是做什麼的，打 /help 〔指令名〕 看用法，不會真的執行它。"},
+    {"id": "codex-import", "added": "2026-11-17", "agents": ["codex"],
+     "text": "小提示：原本用 Claude Code 的話，在 Codex 打 /import，可以把設定、這個專案與最近的對話帶過來。"}
   ]
 }

@@ -39,6 +39,18 @@
 - https://learn.chatgpt.com/docs/developer-commands?surface=cli （Codex 的 `/plan`、`/review`、`/init`、`/status`、`/goal`、`codex resume`、`codex fork`；這一頁沒有完整的斜線指令表）
 - https://geminicli.com/docs/reference/commands/ （Gemini CLI 的指令）
 
+### 2026-11-17 第二輪（補 Codex、Antigravity，加 11-10 之後的更新紀錄）
+
+子代理（Sonnet 5.5）查，主控抽查 6 條一手證據都對得上。完整報告留在本機的對話筆記，沒有進 repo。
+
+- https://github.com/openai/codex/blob/rust-v0.168.0/codex-rs/tui/src/slash_command.rs （Codex 的 `/new`、`/clear`、`/btw`／`/side`、`/fork`、`/import`、`/recap`、`/usage`；沒有 rewind、undo、help）
+- https://learn.chatgpt.com/docs/developer-commands?surface=cli （Codex：輸入框空的時候連按兩次 Esc 改上一則訊息）
+- 本機 `codex --help`、`codex doctor --help`（`codex doctor` 診斷安裝、設定、登入）；https://github.com/openai/codex/releases 的 0.168.0、0.169.0
+- https://antigravity.google/docs/cli/reference.md 、`docs/slash-commands.md`、`docs/commands/{btw,goal,learn,antigravity-guide}.md`、`docs/cli/commands/{effort,usage,context,changelog}.md`、`docs/rules.md`、`docs/build-plugins.md`、`docs/changelog.md`（Antigravity 欄）
+- https://github.com/google-gemini/gemini-cli 的 `docs/reference/commands.md`、`docs/reference/configuration.md`（`model.compressionThreshold`、`thinkingLevel`／`thinkingBudget`）、`docs/hooks/reference.md`（`AfterAgent`）
+- https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md 的 2.1.322 到 2.1.326（`/help <command>`、`/doctor` 邊跑邊回報；沒有指令改名或移除）
+- 還是查不到：Antigravity 自動壓縮的門檻、`/compact` 在 CLI 指令表沒列（changelog 1.3.5 有）；Gemini CLI 的 extensions 能包哪些東西；Antigravity IDE 專屬的 rewind、btw、compact。
+
 社群與研究，確認存在：
 
 - mattpocock/skills：`grill-me`、`retro`、`triage`、`pr`、`improve-codebase-architecture`、`handoff`（路徑存在；`retro` 的原文讀過）
