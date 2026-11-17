@@ -351,11 +351,13 @@ def profile_skips(env, profile=None):
 
 def sync_skills(env, agents, rec, profile=None):
     profile_name, skip = profile_skips(env, profile)
-    names = [n for n in skill_names(env.skills_src) if n not in skip]
+    every = skill_names(env.skills_src)
+    names = [n for n in every if n not in skip]
     lines = []
-    if skip:
-        why = "、".join(dict.fromkeys(skip.values()))
-        lines.append(f"skills：profile {profile_name} 選了{why}，不裝 {'、'.join(sorted(skip))}")
+    shown = [n for n in skip if n in every]  # repo 裡有的才列
+    if shown:
+        why = "、".join(dict.fromkeys(skip[n] for n in shown))
+        lines.append(f"skills：profile {profile_name} 選了{why}，不裝 {'、'.join(shown)}")
     for key in skill_targets(agents):
         folder, mode = env.skill_dirs[key]
         folder.mkdir(parents=True, exist_ok=True)
@@ -1290,6 +1292,7 @@ def selftest():
         # 訪談第 5 題答「不要」（answers.json 的 evaluate_tools 是 false）：不裝 omnikit-eval。
         # 訪談產生的 profile 存在 repo 外（state/profiles，FR-38）
         put(src / "omnikit-eval" / "SKILL.md", "---\nname: omnikit-eval\n---\n")
+        put(src / "ok-eval" / "SKILL.md", "---\nname: ok-eval\n---\n")  # 打 /ok 時列得到的捷徑，跟著一起裝或不裝
         put(state / "profiles" / "bob" / "AGENTS.md", "# bob\n")
         bob_answers = state / "profiles" / "bob" / "answers.json"
         put(bob_answers, json.dumps({"name": "bob", "evaluate_tools": False}))
@@ -1304,6 +1307,8 @@ def selftest():
               not present(claude_eval) and not present(codex_eval) and not present(agy_eval) and is_link(claude_alpha)
               and all("omnikit-eval" not in rec["skills"][a] for a in AGENTS)
               and any("不裝 omnikit-eval" in line for line in lines))
+        check("捷徑 ok-eval 跟著不裝，訊息一起列", not present(home / ".claude" / "skills" / "ok-eval")
+              and not present(agy_skills / "ok-eval") and any("不裝 omnikit-eval、ok-eval" in line for line in lines))
         sync(env, mcp=False)
         check("之後的同步（git hook）照選的 profile，不會裝回來", not present(claude_eval) and not present(codex_eval)
               and not present(agy_eval))
@@ -1320,6 +1325,7 @@ def selftest():
         check("換回手寫的 profile（沒有 answers.json）：omnikit-eval 裝回來",
               is_link(claude_eval) and (codex_eval / MARKER).exists() and (agy_eval / MARKER).exists())
         shutil.rmtree(src / "omnikit-eval")
+        shutil.rmtree(src / "ok-eval")
         sync(env, mcp=False)
 
         put(servers_yaml, "servers:\n  devtools:\n    command: cmd\n    args: [/c, node, y.js]\n"
