@@ -21,7 +21,9 @@ CODEX_HOME、T3 Code 每個實例的 homePath）就完全讀不到預設目錄�
 T3 Code 的 Antigravity 實例比較特別：每個實例的設定目錄是 ~/.t3/userdata/providers/antigravity/<sha256(實例 id)>，
 走 ACP 模式，不讀任何規則檔（GEMINI.md、hooks.json 都不載入；只吃 T3 在 session/new 傳的 systemPrompt），
 T3 也刻意讓它的 mcp_config.json 保持空的（有 MCP 或 hooks 的實例，T3 會停用它的文字生成）。
-所以這類目錄 writable=False：列出來讓 doctor 回報，不寫任何檔案。
+所以這類目錄 writable=False、instance=實例 id：不寫目錄裡的檔，改由 t3_acp.py 把實例的 Binary path 指到
+OmniKit 的轉接程式（acp_shim.py），開新對話時帶入規則。T3 剛加的實例可能還沒建目錄，也照樣列出來；
+settings.json 沒列的預設實例（id 是 antigravity，T3 自己補的）也算。
 
 用法：uv run engine/scripts/homes.py          列出找到的設定目錄
       uv run engine/scripts/homes.py --selftest
@@ -53,7 +55,8 @@ class Found:
     agent: str
     path: Path
     source: str  # 在哪裡找到的，給人看
-    writable: bool = True  # False：這種目錄不讀規則檔（T3 的 Antigravity），只回報
+    writable: bool = True  # False：這種目錄不讀規則檔（T3 的 Antigravity），不寫目錄裡的檔
+    instance: str | None = None  # T3 Code 的 Antigravity 實例 id（t3_acp.py 用它接上轉接程式）
 
     @property
     def key(self):
@@ -80,14 +83,36 @@ def canonical(path):
         return path.absolute()
 
 
+T3_DEFAULT_ANTIGRAVITY = "antigravity"
+
+
 def t3_instances(home):
-    """T3 Code 的 providerInstances；沒裝或設定壞掉就是空的。"""
+    """T3 Code 的 providerInstances，加上 T3 自己補的預設 Antigravity 實例：settings.json 沒列，T3 也會用
+    {"driver": "antigravity"} 開一個 id 是 antigravity 的（server.asar 的 deriveProviderInstanceConfigMap；
+    內建 driver 只有 ACP Registry 沒有預設實例）。T3 只存跟預設不同的設定，還沒改過設定就沒有 settings.json，
+    這時看 ~/.t3/userdata/environment-id 判斷有沒有跑過 T3。沒裝或設定壞掉就是空的（T3 讀不懂設定時也只用預設）。"""
+    userdata = home / ".t3" / "userdata"
     try:
-        doc = json.loads((home / ".t3" / "userdata" / "settings.json").read_text(encoding="utf-8"))
-        instances = doc.get("providerInstances") or {}
-    except (OSError, ValueError, AttributeError):
+        doc = json.loads((userdata / "settings.json").read_text(encoding="utf-8-sig"))
+    except FileNotFoundError:
+        if not (userdata / "environment-id").is_file():
+            return {}
+        doc = {}
+    except (OSError, ValueError):
         return {}
-    return instances if isinstance(instances, dict) else {}
+    instances = doc.get("providerInstances", {}) if isinstance(doc, dict) else None
+    if instances is None and isinstance(doc, dict):
+        instances = {}
+    if not isinstance(instances, dict):  # 格式不對：T3 也讀不懂、只用預設，OmniKit 不碰
+        return {}
+    if T3_DEFAULT_ANTIGRAVITY in instances:
+        return instances
+    return {**instances, T3_DEFAULT_ANTIGRAVITY: {"driver": "antigravity"}}
+
+
+def t3_antigravity_dir(home, iid):
+    """T3 Code 給 Antigravity 實例的設定目錄（GEMINI_HOME）：providers/antigravity/<sha256(實例 id)>。"""
+    return home / ".t3" / "userdata" / "providers" / "antigravity" / hashlib.sha256(str(iid).encode("utf-8")).hexdigest()
 
 
 def from_t3(home):
@@ -102,8 +127,7 @@ def from_t3(home):
         config = inst.get("config") if isinstance(inst.get("config"), dict) else {}
         source = f"T3 Code 的 {iid} 實例"
         if agent == "antigravity":
-            digest = hashlib.sha256(str(iid).encode("utf-8")).hexdigest()
-            out.append(Found(agent, home / ".t3" / "userdata" / "providers" / "antigravity" / digest, source, False))
+            out.append(Found(agent, t3_antigravity_dir(home, iid), source, False, str(iid)))
         elif isinstance(config.get("homePath"), str) and config["homePath"].strip():
             out.append(Found(agent, expand_home(config["homePath"], home), source))
     return out
@@ -135,9 +159,9 @@ def discover(home=HOME, environ=None):
     for f in found:
         path = canonical(f.path)
         name = os.path.normcase(str(path))
-        if name not in seen and path.is_dir():
+        if name not in seen and (path.is_dir() or f.instance):
             seen.add(name)
-            out.append(Found(f.agent, path, f.source, f.writable))
+            out.append(Found(f.agent, path, f.source, f.writable, f.instance))
     return out
 
 
@@ -180,10 +204,21 @@ def selftest():
         agy.mkdir(parents=True)
         found = discover(h, {"CLAUDE_CONFIG_DIR": str(h / "envclaude"), "CODEX_HOME": str(h / ".codex")})
         names = [(f.agent, f.path.name, f.writable) for f in found]
+        agy2, agy0 = hashlib.sha256(b"agy2").hexdigest(), hashlib.sha256(b"antigravity").hexdigest()
         check("環境變數、T3、掃描都找到，依序；預設目錄、不存在的、沒有特徵檔的、不認得的 driver 不算",
               names == [("claude-code", "envclaude", True), ("claude-code", ".claude-kai", True),
-                        ("claude-code", ".claude-retis", True), ("antigravity", agy.name, False),
+                        ("claude-code", ".claude-retis", True), ("antigravity", agy.name, False), ("antigravity", agy2, False),
+                        ("antigravity", agy0, False),
                         ("claude-code", ".claude-work", True), ("claude-code", "a", True), ("codex", ".codex-work", True)])
+        check("T3 的 Antigravity 實例記實例 id；T3 還沒建目錄的、T3 自己補的預設實例（antigravity）也列",
+              [f.instance for f in found if f.agent == "antigravity"] == ["agy", "agy2", "antigravity"]
+              and all(f.instance is None for f in found if f.agent != "antigravity"))
+        bare = h / "bare"
+        (bare / ".t3" / "userdata").mkdir(parents=True)
+        never_ran = t3_instances(bare)
+        (bare / ".t3" / "userdata" / "environment-id").write_text("x", encoding="utf-8")
+        check("T3 裝了但還沒有 settings.json：沒跑過 T3 不算；跑過（有 environment-id）就有預設的 antigravity 實例",
+              never_ran == {} and t3_instances(bare) == {"antigravity": {"driver": "antigravity"}})
         check("T3 的 .claude-kai 沒有 .claude.json 也算（啟動器明講用它）；掃描到同一個不重複",
               sum(1 for f in found if f.path.name == ".claude-kai") == 1)
         check("來源寫清楚", found[0].source == "環境變數 CLAUDE_CONFIG_DIR" and found[1].source == "T3 Code 的 kai 實例")
@@ -208,7 +243,7 @@ def main():
     if not found:
         print("只有預設的設定目錄（~/.claude、~/.codex、~/.gemini）")
     for f in found:
-        note = "" if f.writable else "（ACP 模式不讀規則檔，只回報）"
+        note = "" if f.writable else "（ACP 模式不讀規則檔，由 t3_acp.py 接上轉接程式）"
         print(f"{f.agent}\t{f.path}\t{f.source}{note}")
     return 0
 

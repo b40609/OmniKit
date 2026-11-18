@@ -5,7 +5,8 @@
 #   data/mcp/：把 MCP server 同步到接上的 agent
 #   engine/skills/：同步 skills（Claude 用連結，內容改動本來就會反映；Codex 與 Antigravity 用複製品，要重新複製）
 #   data/profiles/：也同步 skills（訪談答案決定裝哪些，例如不評估工具就不裝 omnikit-eval）
-#   agents.py、homes.py：skills 與 MCP 都重新同步（新找到的設定目錄也一起接上）
+#   agents.py、homes.py、t3_acp.py、acp_shim.py：skills 與 MCP 都重新同步（新找到的設定目錄也一起接上；
+#     T3 Code 的 Antigravity 轉接程式也一起更新）
 #   data/harness/、claude_allow.py、session_nudge.py、home_watch.py：把權限規則、開新對話提醒與設定目錄檢查補進
 #     Claude Code 的使用者設定
 #   codex_hooks.py、claude_allow.py、session_nudge.py：把開新對話提醒補進 Codex 的 config.toml
@@ -54,8 +55,8 @@ fi
 
 skills=0
 mcp=0
-printf '%s\n' "$changed" | grep -qE '^(engine/skills/|data/profiles/|engine/scripts/(agents|profiles|homes)\.py$)' && skills=1
-printf '%s\n' "$changed" | grep -qE '^(data/mcp/|engine/scripts/(agents|homes)\.py$)' && mcp=1
+printf '%s\n' "$changed" | grep -qE '^(engine/skills/|data/profiles/|engine/scripts/(agents|profiles|homes|t3_acp|acp_shim)\.py$)' && skills=1
+printf '%s\n' "$changed" | grep -qE '^(data/mcp/|engine/scripts/(agents|homes|t3_acp|acp_shim)\.py$)' && mcp=1
 if [ $skills = 1 ] && [ $mcp = 1 ]; then
   run "skills 與 MCP 同步" engine/scripts/agents.py sync
 elif [ $skills = 1 ]; then

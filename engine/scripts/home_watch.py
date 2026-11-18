@@ -5,10 +5,10 @@
 """Claude Code 的 SessionStart hook：這台多了新的 agent 設定目錄，就在背景把 OmniKit 接上去。
 
 安裝時（install.ps1 → agents.py connect）會接上當時找得到的每個設定目錄（homes.py）；之後才新增的帳號
-（T3 Code 加一個 Claude 實例、開一個 ~/.claude-work、設了 CODEX_HOME）不會自己出現在記錄裡。
+（T3 Code 加一個 Claude 或 Antigravity 實例、開一個 ~/.claude-work、設了 CODEX_HOME）不會自己出現在記錄裡。
 這支在每次開新對話時比對：homes.py 現在找得到的，跟 agents.json 記的 homes 不一樣，就在背景跑
-agents.py sync（規則、skills、MCP、權限規則與 hook 都會接上），並用 systemMessage 說一聲。
-新帳號自己的第一段對話讀不到（它的設定目錄這時才建立），下一段就讀得到。
+agents.py sync（規則、skills、MCP、權限規則與 hook 都會接上；T3 的 Antigravity 實例接上轉接程式），
+並用 systemMessage 說一聲。新帳號自己的第一段對話讀不到（它的設定目錄這時才建立），下一段就讀得到。
 
 不擋開新對話：只做比對（讀 agents.json、T3 設定、看幾個資料夾在不在），要接才另開背景行程。
 同一組新目錄 6 小時內只試一次；背景同步的輸出留在 %LOCALAPPDATA%\\omnikit\\home_watch.log。
@@ -48,7 +48,8 @@ def pending(state, found):
     if not isinstance(known, list):  # 舊版記錄沒有 homes：其他 Claude 設定目錄當時有放 skills
         known = [k for k in rec.get("skills") or {} if "@" in k]
     known = {os.path.normcase(k) for k in known}
-    return [f for f in found if f.writable and f.agent in agents and os.path.normcase(f.key) not in known]
+    # T3 的 Antigravity 實例不寫目錄裡的檔，但要接上轉接程式（t3_acp.py），也算
+    return [f for f in found if (f.writable or f.instance) and f.agent in agents and os.path.normcase(f.key) not in known]
 
 
 def due(state, keys, now):
@@ -90,8 +91,8 @@ def check(state=STATE, home=homes.HOME, environ=None, now=None, popen=subprocess
     state.mkdir(parents=True, exist_ok=True)
     (state / "home_watch.json").write_text(json.dumps({"keys": keys, "at": now}, ensure_ascii=False), encoding="utf-8")
     start_sync(state, popen)
-    where = "、".join(f"{f.path}（{f.source}）" for f in new)
-    return (f"OmniKit：找到還沒接上的設定目錄 {where}，已在背景接上（規則、skills、MCP、hook）；"
+    where = "、".join(f.source if f.instance else f"{f.path}（{f.source}）" for f in new)
+    return (f"OmniKit：找到還沒接上的設定目錄 {where}，已在背景接上；"
             f"那個帳號下一段對話起就讀得到 OmniKit。過程記在 {state / 'home_watch.log'}")
 
 
@@ -133,6 +134,19 @@ def selftest():
             "claude-code": [], f"claude-code@{(h / '.claude-kai').resolve()}": [],
             f"claude-code@{(h / '.claude-new').resolve()}": []}}), encoding="utf-8")
         ok("舊版記錄沒有 homes：用 skills 的 key 判斷", check(state, h, {}, 99999, fake) is None)
+        t3 = h / ".t3" / "userdata" / "settings.json"
+        t3.parent.mkdir(parents=True)
+        t3.write_text(json.dumps({"providerInstances": {"agy_new": {"driver": "antigravity"}}}), encoding="utf-8")
+        agy = homes.key("antigravity", homes.canonical(homes.t3_antigravity_dir(h, "agy_new")))
+        agy0 = homes.key("antigravity", homes.canonical(homes.t3_antigravity_dir(h, "antigravity")))  # T3 自己補的預設實例
+        (state / "agents.json").write_text(json.dumps({"agents": ["claude-code", "antigravity"], "homes": [
+            kai, homes.key("claude-code", (h / ".claude-new").resolve())]}), encoding="utf-8")
+        msg = check(state, h, {}, 99999, fake)
+        ok("T3 新增的 Antigravity 實例（目錄還沒建）、T3 自己補的預設實例也算：背景 sync 接上轉接程式，訊息寫實例名稱",
+           msg is not None and "T3 Code 的 agy_new 實例" in msg and "T3 Code 的 antigravity 實例" in msg and len(calls) == 3)
+        (state / "agents.json").write_text(json.dumps({"agents": ["claude-code", "antigravity"], "homes": [
+            kai, homes.key("claude-code", (h / ".claude-new").resolve()), agy, agy0]}), encoding="utf-8")
+        ok("T3 的 Antigravity 實例記過了：不動", check(state, h, {}, 99999 + RETRY + 1, fake) is None)
         (state / "agents.json").write_text("{壞掉", encoding="utf-8")
         ok("agents.json 壞掉：不動", check(state, h, {}, 99999, fake) is None)
     print("home_watch selftest", "FAIL" if fails else "OK")

@@ -7,7 +7,8 @@ OmniKit 移除：把 install.ps1 對這台電腦做的改動還原，可以重�
    新版的受管區塊交給下一步的 agents.py。
 3. agents.py disconnect：拿掉 OmniKit 的 skills（連結與複製品）與 MCP server（三邊都是，其他設定目錄也是），
    原地拿掉 ~/.codex/AGENTS.md、~/.gemini/GEMINI.md 與其他設定目錄的受管區塊（只剩區塊就還原安裝前的備份），
-   清掉舊版 skillshare 設定裡 OmniKit 的部分，刪掉 agents.json。
+   T3 Code 的 Antigravity 實例：還指到 OmniKit 轉接程式的 Binary path 拿掉（回到 T3 自動選），
+   刪掉 ~/.omnikit/acp 裡的轉接程式；清掉舊版 skillshare 設定裡 OmniKit 的部分，刪掉 agents.json。
    同名但不是 OmniKit 的 skill 與 MCP server 不碰；OmniKit 寫入之後被使用者改過的 MCP server 也留著。
 4. 刪掉 %LOCALAPPDATA%\omnikit 裡接好的規則（rules\AGENTS.md）、profile 選擇（profile.json）、
    版本（edition.json）與免問核准的同意紀錄（consent.json）。

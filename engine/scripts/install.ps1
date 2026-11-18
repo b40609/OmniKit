@@ -26,7 +26,9 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
      有 .claude.json 的 ~/.claude-*、~/.codex-* 等）：Claude 的 CLAUDE.md、Codex 的 AGENTS.md 也放同一個區塊，
      MCP 也寫進去，Claude 的 skills 也連進去。agent 只讀自己設定目錄的規則，不放就讀不到。
      安裝之後才新增的帳號：開新對話時 home_watch.py 發現，就在背景接上（也可以跑 agents.py sync）。
-     T3 Code 的 Antigravity 實例走 ACP 模式、不讀規則檔，接不上；doctor 會列出來。
+     T3 Code 的 Antigravity 實例走 ACP 模式、不讀規則檔：把實例的 Binary path 指到 OmniKit 的轉接程式
+     （~/.omnikit/acp/omnikit-acp.cmd，engine/scripts/t3_acp.py 與 acp_shim.py），
+     開新對話時帶入 ~/.gemini/GEMINI.md；你自己設了 Binary path 的實例不動，doctor 會列出來。
    - skills：engine/skills 連到 ~/.claude/skills；複製到 ~/.agents/skills 給 Codex，複製到
      ~/.gemini/config/skills 給 Antigravity（它的全域 skill 只讀這裡，不跟隨資料夾連結）。
    - MCP：data/mcp/servers.yaml 寫進三邊的設定，只動 OmniKit 管的欄位。agents.json 記每個 server 寫入時的
@@ -447,6 +449,9 @@ function Show-InstallPlan {
     $verb = if ((Get-FileText $ClaudeMd) -match $BlockPattern) { '更新' } else { '在開頭加上' }
     $plan += "  ~/.claude/CLAUDE.md：$($verb)受管區塊，import 底線與 profile；其他內容不動"
     $plan += "  其他設定目錄（CLAUDE_CONFIG_DIR、CODEX_HOME、T3 Code 的實例、~/.claude-* 等，見 homes.py）：規則一樣放受管區塊、MCP 一樣寫，Claude 的 skills 一樣連進去"
+  }
+  if ($agents -contains 'antigravity' -and (Test-Path (Join-Path $env:USERPROFILE '.t3\userdata\settings.json'))) {
+    $plan += "  T3 Code 的 Antigravity 實例：Binary path 指到 OmniKit 的轉接程式（$(Join-Path $env:USERPROFILE '.omnikit\acp\omnikit-acp.cmd')），開新對話時帶入 GEMINI.md；你自己設了 Binary path 的不動"
   }
   if ($agents -contains 'codex') {
     $legacy = (Get-FileText $SkillshareConfig) -match '(?m)^\s*- name: rules-codex\s*$'

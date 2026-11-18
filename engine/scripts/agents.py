@@ -32,7 +32,8 @@ git hook 與 agent 在背景同步時常失敗。支援的 agent 固定是這三
 - Claude Code（CLAUDE_CONFIG_DIR、T3 Code 的 homePath、~/.claude-* 等）：規則區塊、skills 連結、
   MCP（<目錄>/.claude.json，claude 指令帶 CLAUDE_CONFIG_DIR）、權限規則與 hook（claude_allow.py）
 - Codex（CODEX_HOME 等）：規則區塊（<目錄>/AGENTS.md）、MCP（<目錄>/config.toml）；skills 在 ~/.agents/skills，共用
-- T3 Code 的 Antigravity 實例：ACP 模式不讀規則檔，不寫，doctor 會回報
+- T3 Code 的 Antigravity 實例：ACP 模式不讀規則檔；t3_acp.py 把實例的 Binary path 指到 OmniKit 的轉接程式
+  （acp_shim.py，放在 ~/.omnikit/acp），開新對話時帶入 ~/.gemini/GEMINI.md
 記錄的 key 是 <agent>@<目錄>。install 時接上當時找得到的；之後新增的，sync 會接上
 （home_watch.py 在開新對話時發現新的目錄就在背景跑 sync）。
 
@@ -72,6 +73,7 @@ import codex_hooks  # noqa: E402  讀寫 config.toml 時保留原本的換行
 import edition  # noqa: E402  維護者版或同事版，以及免問核准的個人同意
 import homes  # noqa: E402  這台每個 agent 在用的設定目錄
 import profiles  # noqa: E402
+import t3_acp  # noqa: E402  T3 Code 的 Antigravity 實例接上轉接程式
 import validate  # noqa: E402
 from fsretry import flaky, hold, retry  # noqa: E402  防毒短暫鎖住檔案時等一下再試（FR-34）
 
@@ -186,8 +188,9 @@ def detect(env):
         found.append("claude-code")
     if (h / ".codex").is_dir() or which("codex"):
         found.append("codex")
-    if (h / ".gemini" / "config").is_dir() or (h / ".gemini" / "antigravity").is_dir() or which("agy") or which("antigravity"):
-        found.append("antigravity")
+    if (h / ".gemini" / "config").is_dir() or (h / ".gemini" / "antigravity").is_dir() or which("agy") or which("antigravity") \
+            or any(isinstance(i, dict) and i.get("driver") == "antigravity" for i in homes.t3_instances(h).values()):
+        found.append("antigravity")  # 只裝了 T3 Code 也算：T3 內建 Antigravity，規則要寫進 ~/.gemini 給轉接程式帶
     return found
 
 
@@ -996,10 +999,24 @@ def connect(env, profile=None, agents=None, ask=None):
                            skillshare_config=env.skillshare / "config.yaml", **extra_rules(env, agents))
     lines += sync_skills(env, agents, rec, profile)
     lines += apply_mcp(env, agents, rec, plan)
-    rec["homes"] = [k for k, _, _ in env.extra_homes(agents)]
+    t3_lines, t3_keys = connect_t3(env, agents)
+    lines += t3_lines
+    rec["homes"] = [k for k, _, _ in env.extra_homes(agents)] + t3_keys
     save_record(env, rec)
     lines += release_skillshare(env)
     return lines
+
+
+def connect_t3(env, agents):
+    """T3 Code 的 Antigravity 實例：Binary path 指到 OmniKit 的轉接程式（t3_acp.py）。回傳（訊息, 處理過的實例 key）。
+    出錯只印一行，規則、skills 與 MCP 照常；下次 sync 再試。"""
+    if "antigravity" not in agents:
+        return [], []
+    try:
+        # uv：PATH 上的，沒有就用正在跑這支的那個（uv run 會設 UV）
+        return t3_acp.apply(env.home, t3_acp.acp_dir(env.home), env.which("uv") or os.environ.get("UV"))
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
+        return [f"T3 Code 的 Antigravity：沒接上轉接程式（{e}），下次 sync 再試"], []
 
 
 def extra_rules(env, agents):
@@ -1043,7 +1060,9 @@ def sync(env, skills=True, mcp=True, ask=None):
         lines += sync_skills(env, rec["agents"], rec)
     if mcp:
         lines += apply_mcp(env, rec["agents"], rec, plan)
-    rec["homes"] = [k for k, _, _ in env.extra_homes(rec["agents"])]
+    t3_lines, t3_keys = connect_t3(env, rec["agents"])
+    lines += t3_lines
+    rec["homes"] = [k for k, _, _ in env.extra_homes(rec["agents"])] + t3_keys
     save_record(env, rec)
     return lines
 
@@ -1173,6 +1192,7 @@ def disconnect(env):
         + [h / rules_of[a] for a, h in recorded if a in rules_of]
     for path in dict.fromkeys(extra):  # ~/.claude/CLAUDE.md 由 uninstall.ps1 處理
         lines += profiles.disconnect_block(path)
+    lines += t3_acp.remove(env.home, t3_acp.acp_dir(env.home))
     lines += release_skillshare(env)
     if env.record_file.exists():
         retry(env.record_file.unlink)
@@ -1722,6 +1742,28 @@ def selftest():
         check("disconnect：其他 Codex 設定目錄的 MCP 拿掉，使用者的設定留著",
               "devtools" not in read_servers(env5, extra_key(cx, "codex"))
               and tomllib.loads(profiles.text(cx / "config.toml"))["model"] == "o")
+
+        # T3 Code 的 Antigravity 實例：connect 把 Binary path 指到轉接程式，homes 記實例的 key；disconnect 改回來
+        home6, state6 = tmp / "home6", tmp / "state6"
+        put(home6 / ".gemini" / "GEMINI.md", "# 我的\n")
+        t3_settings = home6 / ".t3" / "userdata" / "settings.json"
+        put(t3_settings, json.dumps({"providerInstances": {"antigravity": {"driver": "antigravity", "enabled": True}}}, indent=2) + "\n")
+        env6 = Env(home=home6, repo=repo, state=state6, skillshare=tmp / "none", which=lambda _: None)
+        edition.set_edition(state6, "maintainer")
+        lines = connect(env6, agents=["antigravity"], ask=lambda c: "mine")
+        key6 = t3_acp.instance_key(home6, "antigravity")
+        if sys.platform == "win32":
+            check("T3 的 Antigravity 實例：connect 把 Binary path 指到轉接程式，homes 記實例的 key",
+                  read_json(t3_settings)["providerInstances"]["antigravity"]["config"]["binaryPath"]
+                  == str(home6 / ".omnikit" / "acp" / t3_acp.LAUNCHER)
+                  and load_record(env6)["homes"] == [key6] and (home6 / ".omnikit" / "acp" / t3_acp.SHIM).is_file())
+            disconnect(env6)
+            check("T3 的 Antigravity 實例：disconnect 改回 T3 自動選，轉接程式刪掉",
+                  "config" not in read_json(t3_settings)["providerInstances"]["antigravity"] and not (home6 / ".omnikit" / "acp").exists())
+        else:
+            check("T3 的 Antigravity 實例：Windows 以外說明不支援，設定不動",
+                  any("只支援 Windows" in line for line in lines) and load_record(env6)["homes"] == [key6]
+                  and "config" not in read_json(t3_settings)["providerInstances"]["antigravity"])
 
         # claude 指令改哪個設定目錄：預設的拿掉 CLAUDE_CONFIG_DIR，其他的指過去
         os.environ["CLAUDE_CONFIG_DIR"] = str(tmp / "some-session")

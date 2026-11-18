@@ -253,7 +253,8 @@ flowchart LR
 | 舊版的 skillshare | 以前用 skillshare 接的電腦，重跑 `install.ps1` 會改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分；skillshare 本身不刪 |
 | npm 全域套件 | 安裝 `data/mcp/packages.txt` 指定的固定版本 |
 | `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪；同事版只補你同意過的工具。在 `hooks.Stop` 加上開新對話提醒（`engine/scripts/session_nudge.py`），在 `hooks.SessionStart` 加上設定目錄檢查（`engine/scripts/home_watch.py`：發現新帳號的設定目錄就在背景接上） |
-| 其他設定目錄 | 多帳號或啟動器另外指定的設定目錄（`CLAUDE_CONFIG_DIR`、`CODEX_HOME`、T3 Code 每個實例的 homePath、有 `.claude.json` 的 `~/.claude-*` 等，`engine/scripts/homes.py` 找）：規則區塊、MCP、Claude 的 skills、權限規則與 hook 都跟預設目錄一樣寫。T3 Code 的 Antigravity 實例不讀規則檔，`doctor.py` 會列出來 |
+| 其他設定目錄 | 多帳號或啟動器另外指定的設定目錄（`CLAUDE_CONFIG_DIR`、`CODEX_HOME`、T3 Code 每個實例的 homePath、有 `.claude.json` 的 `~/.claude-*` 等，`engine/scripts/homes.py` 找）：規則區塊、MCP、Claude 的 skills、權限規則與 hook 都跟預設目錄一樣寫 |
+| `~/.t3/userdata/settings.json`、`~/.omnikit/acp/` | T3 Code 的 Antigravity 實例走 ACP 模式，不讀 `GEMINI.md`。把每個實例的 Binary path（`config.binaryPath`）設成 OmniKit 的轉接程式 `omnikit-acp.cmd`，它跑 T3 自己裝的 server，開新對話時把 `~/.gemini/GEMINI.md` 帶進系統提示（`engine/scripts/t3_acp.py`、`acp_shim.py`）。T3 自己補的預設實例（`antigravity`，設定檔沒列）也接上；只改沒設的，你自己設了 Binary path 的不動，`doctor.py` 會列出來。設定後 T3 會重建那個實例，開著的 Antigravity 對話會斷一次。只裝 T3 沒裝 Antigravity CLI 也算有 Antigravity。移除時改回 T3 自動選。目前只支援 Windows。轉接程式不放 `%LOCALAPPDATA%`：從 Claude 桌面版這類 MSIX 封裝的 app 裡安裝時，AppData 底下新建的檔會被轉存到那個 app 的私人位置，T3 看不到 |
 | 這個 repo | 維護者版：`core.hooksPath` 指到 `.githooks`，commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、skills、MCP、權限、提醒 hook 時自動同步。同事版不設 git hook |
 | `%LOCALAPPDATA%\omnikit\install-record.json` | 安裝紀錄：記下這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，移除時只動這些 |
 
