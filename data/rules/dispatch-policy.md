@@ -20,9 +20,11 @@ policy_version: 1
 model_classes:
   claude-opus:      {model: claude-opus-5-5,   driver: claudeAgent, default_thinking: medium, max_thinking: max}
   claude-sonnet:    {model: claude-sonnet-5-5, driver: claudeAgent, default_thinking: high,   max_thinking: max}
-  gemini-pro:       {model: gemini-4-hydrogen, driver: antigravity, default_thinking: high,   max_thinking: xhigh, forbid_thinking: [low]}
-  gemini-flash:     {model: gemini-3.8-flash,  driver: antigravity, default_thinking: high,   max_thinking: high}
+  gemini-pro:       {model: gemini-4-hydrogen, driver: antigravity, default_thinking: high,   max_thinking: xhigh, forbid_thinking: [low, medium]}
+  gemini-flash:     {model: gemini-3.8-flash,  driver: antigravity, default_thinking: high,   max_thinking: high,  forbid_thinking: [low, medium]}
   antigravity-opus: {model: claude-opus-5-5,   driver: antigravity, default_thinking: high,   max_thinking: high}
+# 2026-11-18 ryan 定案：所有 Gemini 模型的調用，思考程度永遠是 high 或更高（gemini-pro、gemini-flash 都禁用 low、medium；
+#   dispatch.py check 與 run.py agy 會擋）。
 # 背景數據（第三方來源都待驗證）：
 # - Gemini 4 Hydrogen 對 3.8 Flash：Artificial Analysis 指數 high 51 對 31；xhigh 54 但 token 約 2 倍；medium 41、low 27
 #   （low 比 Flash 還低，所以禁用 low）。難的寫程式工作階段 71.6% 對 42.2%（bito.ai，在 Claude Code harness 跑；
@@ -121,7 +123,7 @@ channels:
     use: >-
       從 Claude Code、Codex 等任何 agent 派給 Antigravity 的模型（Hydrogen、Flash、Antigravity 的 Opus），前景或背景都可以。
       用 omnikit-dispatch skill 的 run.py agy --class <類別> --thinking <程度> --brief-file <任務說明>；
-      思考程度寫進模型代號（gemini-4-hydrogen-xhigh），只寫 gemini-4-hydrogen 會落到 medium。
+      思考程度寫進模型代號（gemini-4-hydrogen-xhigh），只寫 gemini-4-hydrogen 會落到 medium，違反 Gemini 至少 high 的規則，一定要帶程度。
       要指定別的 Antigravity 帳號（ava、kai）時改用 t3_cli。
     note: >-
       2026-11-16 用 agy 1.5.9 實測：xhigh 確實生效（log 印 resolved to gemini-4-hydrogen-xhigh，思考 token 約 high 的 2 到 3 倍）；
@@ -148,7 +150,8 @@ channels:
     thinking: >-
       t3 v0.1.10 沒有設定思考程度的參數（上游 main 的文件有 --option effort=...，要等 T3 更新）。要設思考程度就改走
       t3_thread_launch 管道（T3 MCP）。只能用 CLI 時，Antigravity 的模型照 delegate_task 的做法把程度寫進模型代號
-      （gemini-4-hydrogen-xhigh）；【待驗證】代號帶程度經 t3 thread start 生效，是 2026-11-16 的實測，只測過 Hydrogen。
+      （gemini-4-hydrogen-xhigh）；Gemini 一定要帶 -high 以上，不帶就不知道後端用哪一級。【待驗證】代號帶程度經 t3 thread start 生效，
+      是 2026-11-16 的實測，只測過 Hydrogen；Flash 的 gemini-3.8-flash-high 還沒實測，要確定程度就改走 t3_thread_launch 或 agy_cli。
     settle: >-
       v0.1.10 沒有 settle 子指令。主控有 T3 MCP 就用 t3_thread_organize 結案（見 t3_thread_launch）；沒有就在回報裡
       列出對話 id 與標題，請使用者在 T3 結案。
@@ -186,7 +189,7 @@ channels:
       再 codex mcp login t3【待驗證：Codex 還沒實測】。omnikit-capabilities 的清點會列出哪些 agent 已經登記、授權。
     thinking: >-
       t3_thread_launch 的 modelSelection.options 是陣列，例如 [{id: "thinking_level", value: "high"}]。id 依 provider 不同：
-      claudeAgent 系列用 effort（low、medium、high、xhigh、max、ultrathink），antigravity 用 thinking_level（low、medium、high）；
+      claudeAgent 系列用 effort（low、medium、high、xhigh、max、ultrathink），antigravity 用 thinking_level（low、medium、high；Gemini 只能用 high，見 model_classes）；
       實際可用的值以 orchestrator_capabilities 查到的為準（2026-11-18 實測）。
       【待驗證】antigravity_ava、antigravity_kai 在 capabilities 裡的模型清單是空的；帶 thinking_level high 開 gemini-3.8-flash
       會被接受也能跑完，但 t3_thread_read 沒有回傳 options，在 Gemini 端有沒有生效還不知道。
