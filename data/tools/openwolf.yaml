@@ -1,0 +1,14 @@
+id: openwolf
+name: OpenWolf
+kind: cli
+slots:
+- memory
+status: pending
+url: https://github.com/cytostack/openwolf
+works_with:
+- claude
+- codex
+sources:
+- omnikit-research 調研（2026-11-18 停止條件試用 T1）
+notes: ★2,402，AGPL-3.0，v2.5.3（2026-10-19，之後沒有 push），2026-11-18 第 0 層通過。跨 Claude Code、Codex、OpenCode 的可攜專案記憶，附 token 計算（調研摘要，待驗證）。對上 M2。AGPL 只影響散布：若之後放進 OmniKit marketplace，要附原始碼。同槽位已有 claude-mem（這台在用）與 beads 等待評估，沒有明顯更好的理由前排在 deja-vu 之後。2026-11-18 記進收件匣，同日移進名冊。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+added: '2026-11-18'

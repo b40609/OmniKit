@@ -1,0 +1,15 @@
+id: open-design
+name: OpenDesign（nexu-io）
+kind: app
+slots:
+- frontend-design
+- web-pages
+status: pending
+url: https://github.com/nexu-io/open-design
+works_with:
+- claude
+- codex
+sources:
+- 使用者提出
+notes: ★108,215，Apache-2.0，2026-11-18 sweep.py verify。設計工作台（桌面 app 加本機 daemon，Windows x64 有安裝檔），自己不帶 agent，叫用機器上的 Claude Code、Codex、Antigravity 等產生單頁 HTML 原型、簡報、影片，每次都讀 DESIGN.md 當品牌規範，附 151 套設計系統；也能用 `od mcp install <agent>` 反過來給 agent 叫。定位是 Claude Design 的開源替代，跟 claude-design 卡同一類；跟 unslop、taste-skill 不同：那兩個是在既有程式碼裡改畫面的 skill，OpenDesign 是另開一個工作台先出原型再交給 agent 改程式。疑慮：README 寫「安全與可靠性遙測一律開啟」（產品分析要同意才開）；README 首段在推它的付費雲端點數；README 有寫給 agent 的指示（要求讀它的 AGENTS.md），評估時已忽略。沒實測。可能有用的情境是 F2（決定前端怎麼呈現）與 WP1（官網、形象頁）；要判定得跑第 2 層，跟 taste-skill 在 WP1 盲選。第 0 層 `--scan` 2026-11-18 跑了一個多小時沒掃完（範本與 skill 上百個），手動停掉、沒有結果，安裝前要重跑。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+added: '2026-11-18'

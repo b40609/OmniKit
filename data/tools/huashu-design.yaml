@@ -1,0 +1,15 @@
+id: huashu-design
+name: Huashu Design（花叔）
+kind: skill
+slots:
+- web-pages
+- frontend-design
+status: pending
+url: https://github.com/alchaincyf/huashu-design
+works_with:
+- claude
+- codex
+sources:
+- Ultra Lab 開源工具精選
+notes: ★29,792，MIT，v3.3.0（2026-11-10），2026-11-18 sweep.py verify 與第 0 層（沒加 --scan）。裝進 agent 的設計 skill：一句話產生網頁、App 原型、可編輯的 PPTX、動畫與資訊圖，先給六個候選方向挑三個（repo 說明，簡體中文）。跟 taste-skill（web-pages）、Open Design 同一類。11-17 的 T3 對話把它歸在 Ultra Lab 清單裡「設計、行銷，不用看」，這次重評改記待評估：它是 skill 形式、跨 agent，直接對上 WP1 與 F2。沒實測，裝之前要先跑 layer0 --scan。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+added: '2026-11-18'

@@ -1,0 +1,14 @@
+id: deja-vu
+name: deja-vu
+kind: cli
+slots:
+- memory
+status: pending
+url: https://github.com/vshulcz/deja-vu
+works_with:
+- claude
+- codex
+sources:
+- Awesome-Agent-Harness
+notes: ★1,615，MIT，v0.24.2（2026-11-12），2026-11-18 第 0 層通過。Go 單檔、不呼叫 LLM：搜尋多家 coding agent 的對話紀錄、交接到另一個 agent、compaction 之後救回脈絡（README 說法，待驗證）。對上 M1（換 agent 接手不用重講）與 M2（compaction 後還記得）。OmniKit 決定「讀紀錄不跨 agent、不自己寫解析」，它是現成的替代。會讀這台所有 agent 的紀錄，裝之前要掃描並確認它不往外送資料。2026-11-17 記進收件匣，2026-11-18 移進名冊。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+added: '2026-11-18'

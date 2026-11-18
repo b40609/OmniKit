@@ -1,0 +1,14 @@
+id: entire-cli
+name: Entire CLI
+kind: cli
+slots:
+- memory
+status: pending
+url: https://github.com/entireio/cli
+works_with:
+- claude
+- codex
+sources:
+- omnikit-research 調研（2026-11-18 停止條件試用 T1）
+notes: ★5,343，MIT，v0.13.4（2026-11-13），2026-11-18 第 0 層通過。掛在 git 流程上，把 agent 對話跟 commit 一起存、建索引，之後能從 commit 找回當時的對話（調研摘要，README 沒細讀，待驗證）。對上 M1；跟 deja-vu 的差別是綁 commit，不是讀各家紀錄。2026-11-18 記進收件匣，同日移進名冊。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+added: '2026-11-18'

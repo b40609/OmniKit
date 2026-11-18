@@ -1,0 +1,16 @@
+id: lightpanda
+name: Lightpanda Browser
+kind: cli
+slots:
+- browser
+status: rejected
+url: https://github.com/lightpanda-io/browser
+works_with:
+- claude
+- codex
+decided_at: '2026-11-18'
+reason: 'U1 要在 Windows 上讓 agent 看畫面與 console 錯誤：Lightpanda 沒有 Windows 原生執行檔（只能裝在 WSL 或 Docker），而且沒有繪製引擎，截圖只回佔位內容（README「No graphical rendering engine」、`--dump png` 是 text-only rendering），兩項都過不了。換不掉現在的 Claude 內建瀏覽器與 chrome-devtools-mcp。'
+sources:
+- 使用者提出
+notes: ★42,205，AGPL-3.0，v1.0.4（2026-11-13），2026-11-18 sweep.py verify 與第 0 層；第 0 層通過，`--scan` 沒找到 skill（MCP server 與執行檔沒有掃，layer0 只掃 skill）。Zig 從頭寫的無頭瀏覽器，給 Puppeteer、Playwright 走 CDP，內建 MCP（stdio 或 HTTP）、`lightpanda agent` 與 Markdown 輸出；skill 另放在 lightpanda-io/agent-skill。預設送使用遙測，要設 LIGHTPANDA_DISABLE_TELEMETRY=true 才關。「比 Chromium 快 9 倍、記憶體少 16 倍」是官方自己的基準，待驗證。它的強項是大量抓頁面轉 Markdown（web-sources 那一類），但同類的 h4ckf0r0day/obscura（★36,291，Apache-2.0）與 lexmount/moli（★23,987，Apache-2.0）README 都寫有 Windows 版與頁面繪製、截圖，要試這類引擎先看那兩個（都還沒實測）。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+added: '2026-11-18'

@@ -7,11 +7,12 @@
 
 - 2026-11-15｜Claude Code Setup｜github.com/anthropics/claude-plugins-official（plugins/claude-code-setup）｜專案層自動化（名冊還沒有這個槽位）｜官方，依專案檔建議 hook、skill、subagent、MCP、plugin 各 1 到 2 個；唯讀；跟 OmniKit 幾乎不重疊
 - 2026-11-15｜mcp-graveyard、skill-graveyard、mcp-usage｜（套件頁，見成熟度提案）｜使用統計｜只管 Claude Code 的「找沒在用」，品質沒驗證
-- 2026-11-17｜deja-vu｜github.com/vshulcz/deja-vu｜交接、讀紀錄（名冊沒有這個槽位）｜跨 46 家 agent 的對話搜尋、交接、壓縮後救回；Go 單檔、不呼叫 LLM；可取代自己寫的紀錄解析，沒實測
-- 2026-11-17｜mcp-scanner｜github.com/cisco-ai-defense/mcp-scanner｜第 0 層掃描｜跟現在用的 skill-scanner 同一家，補 MCP server 的掃描；Apache-2.0
+- 2026-11-17｜mcp-scanner｜github.com/cisco-ai-defense/mcp-scanner｜第 0 層掃描｜跟現在用的 skill-scanner 同一家，補 MCP server 的掃描；Apache-2.0。2026-11-18 重評：Lightpanda、OpenDesign、REA 都帶 MCP server，layer0 --scan 只掃 skill、MCP 那一半沒掃到，凍結結束後優先補
 - 2026-11-17｜Ultra Lab 開源工具精選｜ultralab.tw/picks｜雷達來源｜台灣團隊、46 個、有「我們跑過」標記、每週一寄漲星前十；跟名冊重疊 17 個
 - 2026-11-17｜Awesome-Agent-Harness｜github.com/Gloriaameng/Awesome-Agent-Harness｜調研來源｜harness 綜述加 34 個系統的證據矩陣，截到 2026-10-13
-- 2026-11-17｜features-overview 觸發表｜code.claude.com/docs/en/features-overview｜起手清單、對照表｜官方「什麼症狀加什麼」；12-01 雷達補進去
-- 2026-11-18｜entire CLI｜github.com/entireio/cli｜交接、讀紀錄｜★5,343，把 agent 對話跟 commit 一起建索引；見 data/evals/2026-11-18-research-stop-trial.md
-- 2026-11-18｜cli-continues｜github.com/yigitkonur/cli-continues｜交接｜★1,606，讀 16 種 CLI 的對話紀錄產生交接文件；可對照 omnikit-handoff
-- 2026-11-18｜openwolf｜github.com/cytostack/openwolf｜記憶｜★2,401，AGPL-3.0，跨 Claude Code、Codex、OpenCode 的可攜專案記憶
+- 2026-11-18｜Obscura｜github.com/h4ckf0r0day/obscura｜browser、web-sources｜★36,291、Apache-2.0；Lightpanda 同類，README 寫有 Windows 版與頁面繪製、截圖；沒實測
+- 2026-11-18｜Moli｜github.com/lexmount/moli｜browser、web-sources｜★23,987、Apache-2.0；Rust 無頭瀏覽器，README 寫支援 Windows、可截圖、有 WebMCP；沒實測
+- 2026-11-18｜Open CoDesign｜github.com/OpenCoworkAI/open-codesign｜frontend-design｜★8,238、MIT；另一個開源 Claude Design 替代，自帶 agent 的 Electron app、沒有 CLI；OpenDesign 的對照
+- 2026-11-18｜ui-ux-pro-max-skill｜github.com/nextlevelbuilder/ui-ux-pro-max-skill｜frontend-design｜★151,129、MIT；跨 10 多家 agent 的 UI 設計 skill，名冊還沒有卡；來源 data/evals/2026-11-18-tool-reeval/design-research.md
+- 2026-11-18｜hallmark｜github.com/Nutlope/hallmark｜frontend-design、web-pages｜★57,218、MIT；50 套主題加真瀏覽器審查（/hallmark audit）；名冊還沒有卡
+- 2026-11-18｜emilkowalski/skills、google-labs-code/design.md｜github.com/emilkowalski/skills、github.com/google-labs-code/design.md｜frontend-design｜★57,894、★28,937；動效細節 skill 與 DESIGN.md 官方格式加 linter；OpenDesign 讀的就是 DESIGN.md

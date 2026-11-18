@@ -1,0 +1,1591 @@
+{
+ "created": "2026-11-18",
+ "groups": [
+  {
+   "group": "headless browser engine",
+   "channels": {
+    "seed": {
+     "names": [
+      "lightpanda-io/browser",
+      "h4ckf0r0day/obscura",
+      "lexmount/moli",
+      "jo-inc/camofox-browser",
+      "steel-dev/steel-browser",
+      "browserless/browserless",
+      "vercel-labs/agent-browser",
+      "browserbase/stagehand",
+      "browser-use/browser-use",
+      "microsoft/playwright-mcp",
+      "ChromeDevTools/chrome-devtools-mcp"
+     ],
+     "errors": []
+    },
+    "github-topic": {
+     "names": [
+      "cloakhq/cloakbrowser",
+      "ariya/phantomjs",
+      "oss-invisible/playwright",
+      "proxyshard/shardbrowser",
+      "cutetailbud/ff-ruyijs",
+      "ovobrowsersupport/ovobrowser",
+      "tiliondev/fortress",
+      "vakra-dev/reader",
+      "gosub-io/gosub-engine",
+      "fenbrowser/fenbrowser"
+     ],
+     "errors": [],
+     "hits": 40
+    },
+    "github-keyword": {
+     "names": [
+      "koloss777/nokk",
+      "albertobarrago/telemaco"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "alialfredji/lightpanda-browser"
+     ],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [
+      "terry2010/surfbird",
+      "yutuknown/headless-engine"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 14
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "project-oxi/oxibrowser",
+      "polymit/phantom-engine",
+      "cloudflare/kitesurf"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "cloudflare/kitesurf",
+      "chrome-headless-shell"
+     ],
+     "errors": []
+    },
+    "related": {
+     "names": [
+      "scrapinghub/splash",
+      "casperjs/casperjs",
+      "knq/chromedp",
+      "atroche/rust-headless-chrome",
+      "browser-use/browser-harness",
+      "leeguooooo/chrome-use",
+      "unlikefraction/silicon-browser",
+      "nickshirobokov/openoperator",
+      "sgavrl/hermes-plugin-obscura",
+      "lynxx39/alveria-browser"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "ai agent browser automation",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "skyvern-ai/skyvern",
+      "citrolabs/ego-lite",
+      "jackwener/opencli",
+      "tencent/browserskill",
+      "agentrhq/webcmd",
+      "browserable/browserable"
+     ],
+     "errors": [],
+     "hits": 36
+    },
+    "github-keyword": {
+     "names": [
+      "ntegrals/openbrowser",
+      "browser-act/skills",
+      "magnitudedev/browser-agent",
+      "vibheksoni/stealth-browser-mcp",
+      "hyperbrowserai/hyperagent",
+      "browserwing/browserwing",
+      "platonai/browser4"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "microsoft/playwright-cli"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "brainfiber/viyv-browser"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "achiya-automation/safari-mcp",
+      "youneslaaroussi/marionette",
+      "marinabox/marinabox",
+      "kachilu-inc/kachilu-browser",
+      "actionbook/actionbook"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "producthunt": {
+     "names": [
+      "browser-use/browser-use",
+      "lexmount/moli",
+      "browserless/browserless",
+      "browserbase/stagehand",
+      "nottelabs/notte",
+      "skyvern-ai/skyvern"
+     ],
+     "errors": []
+    },
+    "web-en": {
+     "names": [
+      "alejandroqh/browser39",
+      "jae-jae/fetcher-mcp",
+      "browsermcp/mcp"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "無頭瀏覽器 AI agent",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "botswin/BotBrowser"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-zh": {
+     "names": [
+      "pinchtab/pinchtab",
+      "daijro/camoufox",
+      "Bin-Huang/camoufox-cli",
+      "WhiteNightShadow/camoufox-reverse-mcp",
+      "cloakbrowser-mcp"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "stealth headless browser",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "autoscrape-labs/pydoll",
+      "oss-invisible/playwright_mcp",
+      "clearcotelabs/clearcote-browser",
+      "dondai44423/bladebro"
+     ],
+     "errors": [],
+     "hits": 43
+    },
+    "github-keyword": {
+     "names": [
+      "bablosoft/browser-with-fingerprints"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 11
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 4
+    },
+    "exa": {
+     "names": [
+      "clark-labs-inc/clark-browser"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "ultrafunkamsterdam/nodriver",
+      "Kaliiiiiiiiii-Vinyzu/patchright",
+      "Kaliiiiiiiiii-Vinyzu/patchright-python",
+      "cdpdriver/zendriver"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "browser mcp server",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 59
+    },
+    "github-keyword": {
+     "names": [
+      "hangwin/mcp-chrome",
+      "epiral/bb-browser",
+      "executeautomation/mcp-playwright",
+      "browserbase/mcp-server-browserbase",
+      "anomalyco/browse",
+      "kontext-security/browser-use-mcp-server",
+      "mozilla/firefox-mcp",
+      "merajmehrabi/puppeteer-mcp-server",
+      "jumodada/drissionpage-mcp-server"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "ticktockbent/charlotte",
+      "redf0x1/camofox-mcp",
+      "ykshah1309/stealth-agent-browser-mcp",
+      "codeiva4u/brave-real-browser-mcp-server",
+      "sailaoda/concurrent-browser-mcp",
+      "tushar49/bidi-browser-mcp"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "shaun0927/openchrome"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "ofershap/real-browser-mcp",
+      "maestrojeong/mcp-patchright"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "NETWORK101/headlessdev",
+      "kevinwatt/playwright-fetch-mcp",
+      "DebugBase/glance",
+      "Ryn-Mic/ai-browser-tester"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "headless browser markdown",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "fairjm/md-fetch",
+      "scasella/safarimarkdown",
+      "dengian/web-to-markdown",
+      "io-oi-ai/web2md"
+     ],
+     "errors": [],
+     "hits": 58
+    },
+    "github-keyword": {
+     "names": [
+      "dicklesworthstone/markdown_web_browser",
+      "alqemist-labs/agent_ferrum",
+      "hokupod/sitepanda",
+      "27painter/dsh-moli",
+      "pardnchiu/go-browser"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "firede/agent-fetch"
+     ],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 14
+    },
+    "hn": {
+     "names": [
+      "lightfeed/extractor"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "sidney/playwright-markdown-mcp"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "KultMember6Banger/kloakt",
+      "amarbel-llc/chrest",
+      "jkudish/jev-browser",
+      "TheSethRose/Fetch-Browser",
+      "epicsagas/obscura-plugin",
+      "Curzibn/mcp-bisheng",
+      "cosinusalpha/webctl"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "lightweight browser engine",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "plasmate-labs/plasmate"
+     ],
+     "errors": [],
+     "hits": 26
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 12
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "skift-org/vaev",
+      "akhil-chaturvedi/inoda-browser"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "KernelErr/CatPaw",
+      "ivanUri/koko-core",
+      "yfedoseev/browser_oxide",
+      "justrach/kuri"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "coding agent browser cli",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "vdutts7/glidercli",
+      "aipexstudio/browser-cli",
+      "schickling/chromeless",
+      "adieuadieu/serverless-chrome"
+     ],
+     "errors": [],
+     "hits": 23
+    },
+    "github-keyword": {
+     "names": [
+      "keon/browser-control",
+      "captivus/chrome-agent",
+      "szymdzum/browser-debugger-cli",
+      "puffinsoft/peek-cli"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "cashew-labs/libretto",
+      "refreshdotdev/web-eval-agent"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "runablehq/mini-browser",
+      "koltyakov/browser-bridge",
+      "steel-dev/cli"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "mehmetnadir/cdpilot",
+      "barockok/brojev",
+      "pengelbrecht/chrome-debug-skill",
+      "ItSuhsko14/browser-cli",
+      "NatiCha/bunwv",
+      "juanheyns/gstack-browse",
+      "iFurySt/open-browser-use",
+      "lexmount/browser-cli"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "accessibility tree browser agent",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "go-rod/rod",
+      "skyvern-ai/rustwright",
+      "siddzzzz/tarsier"
+     ],
+     "errors": [],
+     "hits": 40
+    },
+    "github-keyword": {
+     "names": [
+      "varun-patkar/chromepilot",
+      "hu-qi/qwebbridge"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 18
+    },
+    "npm": {
+     "names": [
+      "vercel-labs/next-browser"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 14
+    },
+    "hn": {
+     "names": [
+      "reworkd/tarsier"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "paipaipai666/nexus-browser-mcp"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "rickardp/browser-control",
+      "Fusengine/fuse-browser",
+      "oil-oil/my-browser",
+      "hamr0/mcprune",
+      "quantmew/agent-browser-mcp"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "headless chrome automation",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "googlechrome/rendertron",
+      "vibesurf-ai/vibesurf",
+      "michaljach/opencode-browser",
+      "tsaijamey/frago"
+     ],
+     "errors": [],
+     "hits": 58
+    },
+    "github-keyword": {
+     "names": [
+      "rubycdp/ferrum",
+      "microlinkhq/browserless",
+      "rebrowser/rebrowser-patches"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 17
+    },
+    "npm": {
+     "names": [
+      "sawyerhood/dev-browser"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 14
+    },
+    "hn": {
+     "names": [
+      "imprvhub/mcp-browser-agent"
+     ],
+     "errors": [],
+     "hits": 18
+    },
+    "exa": {
+     "names": [
+      "rust-headless-chrome/rust-headless-chrome"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "mattsse/chromiumoxide",
+      "g1879/DrissionPage"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "browser sandbox ai agent",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "browseroperator/browser-operator-core",
+      "ai-xiaodao/ai-browser-mcp"
+     ],
+     "errors": [],
+     "hits": 24
+    },
+    "github-keyword": {
+     "names": [
+      "open-gitagent/clawless",
+      "leaningtech/browsercode",
+      "zzzgydi/verge-browser"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "remorses/playwriter",
+      "vercel-labs/dev3000"
+     ],
+     "errors": [],
+     "hits": 18
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "vercel-labs/remote-agent-browser"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "kernel/kernel-images"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "瀏覽器 MCP Claude Code",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "helloios2014/chrome-pilot-mcp"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-zh": {
+     "names": [
+      "eurafaeldecarvalho/browser-scraper"
+     ],
+     "errors": []
+    }
+   }
+  }
+ ],
+ "stars": {
+  "achiya-automation/safari-mcp": {
+   "stars": 244,
+   "checked": "2026-11-18"
+  },
+  "actionbook/actionbook": {
+   "stars": 1631,
+   "checked": "2026-11-18"
+  },
+  "agentrhq/webcmd": {
+   "stars": 2782,
+   "checked": "2026-11-18"
+  },
+  "albertobarrago/telemaco": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "alejandroqh/browser39": {
+   "stars": 95,
+   "checked": "2026-11-18"
+  },
+  "alialfredji/lightpanda-browser": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "ariya/phantomjs": {
+   "stars": 29410,
+   "checked": "2026-11-18"
+  },
+  "atroche/rust-headless-chrome": {
+   "stars": 29,
+   "checked": "2026-11-18"
+  },
+  "bin-huang/camoufox-cli": {
+   "stars": 362,
+   "checked": "2026-11-18"
+  },
+  "botswin/botbrowser": {
+   "stars": 2666,
+   "checked": "2026-11-18"
+  },
+  "brainfiber/viyv-browser": {
+   "stars": 0,
+   "checked": "2026-11-18",
+   "error": "gh: Not Found (HTTP 404)"
+  },
+  "browser-act/skills": {
+   "stars": 6374,
+   "checked": "2026-11-18"
+  },
+  "browser-use/browser-harness": {
+   "stars": 19142,
+   "checked": "2026-11-18"
+  },
+  "browser-use/browser-use": {
+   "stars": 121385,
+   "checked": "2026-11-18"
+  },
+  "browserable/browserable": {
+   "stars": 1215,
+   "checked": "2026-11-18"
+  },
+  "browserbase/stagehand": {
+   "stars": 26086,
+   "checked": "2026-11-18"
+  },
+  "browserless/browserless": {
+   "stars": 13945,
+   "checked": "2026-11-18"
+  },
+  "browsermcp/mcp": {
+   "stars": 7379,
+   "checked": "2026-11-18"
+  },
+  "browserwing/browserwing": {
+   "stars": 1424,
+   "checked": "2026-11-18"
+  },
+  "casperjs/casperjs": {
+   "stars": 7152,
+   "checked": "2026-11-18"
+  },
+  "chromedevtools/chrome-devtools-mcp": {
+   "stars": 58138,
+   "checked": "2026-11-18"
+  },
+  "citrolabs/ego-lite": {
+   "stars": 23497,
+   "checked": "2026-11-18"
+  },
+  "cloakhq/cloakbrowser": {
+   "stars": 32966,
+   "checked": "2026-11-18"
+  },
+  "cloudflare/kitesurf": {
+   "stars": 2324,
+   "checked": "2026-11-18"
+  },
+  "cutetailbud/ff-ruyijs": {
+   "stars": 1460,
+   "checked": "2026-11-18"
+  },
+  "daijro/camoufox": {
+   "stars": 13386,
+   "checked": "2026-11-18"
+  },
+  "fenbrowser/fenbrowser": {
+   "stars": 43,
+   "checked": "2026-11-18"
+  },
+  "gosub-io/gosub-engine": {
+   "stars": 3699,
+   "checked": "2026-11-18"
+  },
+  "h4ckf0r0day/obscura": {
+   "stars": 36292,
+   "checked": "2026-11-18"
+  },
+  "hyperbrowserai/hyperagent": {
+   "stars": 1611,
+   "checked": "2026-11-18"
+  },
+  "jackwener/opencli": {
+   "stars": 31158,
+   "checked": "2026-11-18"
+  },
+  "jae-jae/fetcher-mcp": {
+   "stars": 1089,
+   "checked": "2026-11-18"
+  },
+  "jo-inc/camofox-browser": {
+   "stars": 12363,
+   "checked": "2026-11-18"
+  },
+  "kachilu-inc/kachilu-browser": {
+   "stars": 40,
+   "checked": "2026-11-18"
+  },
+  "knq/chromedp": {
+   "stars": 13373,
+   "checked": "2026-11-18"
+  },
+  "koloss777/nokk": {
+   "stars": 29,
+   "checked": "2026-11-18"
+  },
+  "leeguooooo/chrome-use": {
+   "stars": 258,
+   "checked": "2026-11-18"
+  },
+  "lexmount/moli": {
+   "stars": 23987,
+   "checked": "2026-11-18"
+  },
+  "lightpanda-io/browser": {
+   "stars": 42206,
+   "checked": "2026-11-18"
+  },
+  "lynxx39/alveria-browser": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "magnitudedev/browser-agent": {
+   "stars": 4140,
+   "checked": "2026-11-18"
+  },
+  "marinabox/marinabox": {
+   "stars": 143,
+   "checked": "2026-11-18"
+  },
+  "microsoft/playwright-cli": {
+   "stars": 15281,
+   "checked": "2026-11-18"
+  },
+  "microsoft/playwright-mcp": {
+   "stars": 39835,
+   "checked": "2026-11-18"
+  },
+  "nickshirobokov/openoperator": {
+   "stars": 25,
+   "checked": "2026-11-18"
+  },
+  "nottelabs/notte": {
+   "stars": 2066,
+   "checked": "2026-11-18"
+  },
+  "ntegrals/openbrowser": {
+   "stars": 9590,
+   "checked": "2026-11-18"
+  },
+  "oss-invisible/playwright": {
+   "stars": 2597,
+   "checked": "2026-11-18"
+  },
+  "ovobrowsersupport/ovobrowser": {
+   "stars": 1253,
+   "checked": "2026-11-18"
+  },
+  "pinchtab/pinchtab": {
+   "stars": 10589,
+   "checked": "2026-11-18"
+  },
+  "platonai/browser4": {
+   "stars": 1186,
+   "checked": "2026-11-18"
+  },
+  "polymit/phantom-engine": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "project-oxi/oxibrowser": {
+   "stars": 49,
+   "checked": "2026-11-18"
+  },
+  "proxyshard/shardbrowser": {
+   "stars": 1542,
+   "checked": "2026-11-18"
+  },
+  "scrapinghub/splash": {
+   "stars": 4192,
+   "checked": "2026-11-18"
+  },
+  "sgavrl/hermes-plugin-obscura": {
+   "stars": 49,
+   "checked": "2026-11-18"
+  },
+  "skyvern-ai/skyvern": {
+   "stars": 23438,
+   "checked": "2026-11-18"
+  },
+  "steel-dev/steel-browser": {
+   "stars": 7981,
+   "checked": "2026-11-18"
+  },
+  "tencent/browserskill": {
+   "stars": 10543,
+   "checked": "2026-11-18"
+  },
+  "terry2010/surfbird": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "tiliondev/fortress": {
+   "stars": 804,
+   "checked": "2026-11-18"
+  },
+  "unlikefraction/silicon-browser": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "vakra-dev/reader": {
+   "stars": 575,
+   "checked": "2026-11-18"
+  },
+  "vercel-labs/agent-browser": {
+   "stars": 52507,
+   "checked": "2026-11-18"
+  },
+  "vibheksoni/stealth-browser-mcp": {
+   "stars": 3376,
+   "checked": "2026-11-18"
+  },
+  "whitenightshadow/camoufox-reverse-mcp": {
+   "stars": 575,
+   "checked": "2026-11-18"
+  },
+  "youneslaaroussi/marionette": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "yutuknown/headless-engine": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "27painter/dsh-moli": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "akhil-chaturvedi/inoda-browser": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "alqemist-labs/agent_ferrum": {
+   "stars": 30,
+   "checked": "2026-11-18"
+  },
+  "amarbel-llc/chrest": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "anomalyco/browse": {
+   "stars": 892,
+   "checked": "2026-11-18"
+  },
+  "autoscrape-labs/pydoll": {
+   "stars": 7143,
+   "checked": "2026-11-18"
+  },
+  "bablosoft/browser-with-fingerprints": {
+   "stars": 245,
+   "checked": "2026-11-18"
+  },
+  "browserbase/mcp-server-browserbase": {
+   "stars": 3399,
+   "checked": "2026-11-18"
+  },
+  "cdpdriver/zendriver": {
+   "stars": 1482,
+   "checked": "2026-11-18"
+  },
+  "clark-labs-inc/clark-browser": {
+   "stars": 142,
+   "checked": "2026-11-18"
+  },
+  "clearcotelabs/clearcote-browser": {
+   "stars": 268,
+   "checked": "2026-11-18"
+  },
+  "codeiva4u/brave-real-browser-mcp-server": {
+   "stars": 0,
+   "checked": "2026-11-18",
+   "error": "gh: Not Found (HTTP 404)"
+  },
+  "cosinusalpha/webctl": {
+   "stars": 419,
+   "checked": "2026-11-18"
+  },
+  "curzibn/mcp-bisheng": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "debugbase/glance": {
+   "stars": 159,
+   "checked": "2026-11-18"
+  },
+  "dengian/web-to-markdown": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "dicklesworthstone/markdown_web_browser": {
+   "stars": 191,
+   "checked": "2026-11-18"
+  },
+  "dondai44423/bladebro": {
+   "stars": 359,
+   "checked": "2026-11-18"
+  },
+  "epicsagas/obscura-plugin": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "epiral/bb-browser": {
+   "stars": 6266,
+   "checked": "2026-11-18"
+  },
+  "executeautomation/mcp-playwright": {
+   "stars": 5681,
+   "checked": "2026-11-18"
+  },
+  "fairjm/md-fetch": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "firede/agent-fetch": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "hangwin/mcp-chrome": {
+   "stars": 12554,
+   "checked": "2026-11-18"
+  },
+  "hokupod/sitepanda": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "io-oi-ai/web2md": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "ivanuri/koko-core": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "jkudish/jev-browser": {
+   "stars": 373,
+   "checked": "2026-11-18"
+  },
+  "jumodada/drissionpage-mcp-server": {
+   "stars": 482,
+   "checked": "2026-11-18"
+  },
+  "justrach/kuri": {
+   "stars": 369,
+   "checked": "2026-11-18"
+  },
+  "kaliiiiiiiiii-vinyzu/patchright": {
+   "stars": 5211,
+   "checked": "2026-11-18"
+  },
+  "kaliiiiiiiiii-vinyzu/patchright-python": {
+   "stars": 1603,
+   "checked": "2026-11-18"
+  },
+  "kernelerr/catpaw": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "kevinwatt/playwright-fetch-mcp": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "kontext-security/browser-use-mcp-server": {
+   "stars": 850,
+   "checked": "2026-11-18"
+  },
+  "kultmember6banger/kloakt": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "lightfeed/extractor": {
+   "stars": 322,
+   "checked": "2026-11-18"
+  },
+  "maestrojeong/mcp-patchright": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "merajmehrabi/puppeteer-mcp-server": {
+   "stars": 491,
+   "checked": "2026-11-18"
+  },
+  "mozilla/firefox-mcp": {
+   "stars": 581,
+   "checked": "2026-11-18"
+  },
+  "network101/headlessdev": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "ofershap/real-browser-mcp": {
+   "stars": 59,
+   "checked": "2026-11-18"
+  },
+  "oss-invisible/playwright_mcp": {
+   "stars": 869,
+   "checked": "2026-11-18"
+  },
+  "pardnchiu/go-browser": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "plasmate-labs/plasmate": {
+   "stars": 40,
+   "checked": "2026-11-18"
+  },
+  "redf0x1/camofox-mcp": {
+   "stars": 128,
+   "checked": "2026-11-18"
+  },
+  "ryn-mic/ai-browser-tester": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "sailaoda/concurrent-browser-mcp": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "scasella/safarimarkdown": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "shaun0927/openchrome": {
+   "stars": 237,
+   "checked": "2026-11-18"
+  },
+  "sidney/playwright-markdown-mcp": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "skift-org/vaev": {
+   "stars": 309,
+   "checked": "2026-11-18"
+  },
+  "thesethrose/fetch-browser": {
+   "stars": 24,
+   "checked": "2026-11-18"
+  },
+  "ticktockbent/charlotte": {
+   "stars": 183,
+   "checked": "2026-11-18"
+  },
+  "tushar49/bidi-browser-mcp": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "ultrafunkamsterdam/nodriver": {
+   "stars": 4943,
+   "checked": "2026-11-18"
+  },
+  "yfedoseev/browser_oxide": {
+   "stars": 129,
+   "checked": "2026-11-18"
+  },
+  "ykshah1309/stealth-agent-browser-mcp": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "adieuadieu/serverless-chrome": {
+   "stars": 2888,
+   "checked": "2026-11-18"
+  },
+  "aipexstudio/browser-cli": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "barockok/brojev": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "captivus/chrome-agent": {
+   "stars": 310,
+   "checked": "2026-11-18"
+  },
+  "cashew-labs/libretto": {
+   "stars": 912,
+   "checked": "2026-11-18"
+  },
+  "ifuryst/open-browser-use": {
+   "stars": 426,
+   "checked": "2026-11-18"
+  },
+  "itsuhsko14/browser-cli": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "juanheyns/gstack-browse": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "keon/browser-control": {
+   "stars": 3161,
+   "checked": "2026-11-18"
+  },
+  "koltyakov/browser-bridge": {
+   "stars": 31,
+   "checked": "2026-11-18"
+  },
+  "lexmount/browser-cli": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "mehmetnadir/cdpilot": {
+   "stars": 33,
+   "checked": "2026-11-18"
+  },
+  "naticha/bunwv": {
+   "stars": 219,
+   "checked": "2026-11-18"
+  },
+  "pengelbrecht/chrome-debug-skill": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "puffinsoft/peek-cli": {
+   "stars": 125,
+   "checked": "2026-11-18"
+  },
+  "refreshdotdev/web-eval-agent": {
+   "stars": 1231,
+   "checked": "2026-11-18"
+  },
+  "runablehq/mini-browser": {
+   "stars": 185,
+   "checked": "2026-11-18"
+  },
+  "schickling/chromeless": {
+   "stars": 13211,
+   "checked": "2026-11-18"
+  },
+  "steel-dev/cli": {
+   "stars": 33,
+   "checked": "2026-11-18"
+  },
+  "szymdzum/browser-debugger-cli": {
+   "stars": 186,
+   "checked": "2026-11-18"
+  },
+  "vdutts7/glidercli": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "fusengine/fuse-browser": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "go-rod/rod": {
+   "stars": 7159,
+   "checked": "2026-11-18"
+  },
+  "hamr0/mcprune": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "hu-qi/qwebbridge": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "oil-oil/my-browser": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "paipaipai666/nexus-browser-mcp": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "quantmew/agent-browser-mcp": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "reworkd/tarsier": {
+   "stars": 1771,
+   "checked": "2026-11-18"
+  },
+  "rickardp/browser-control": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "siddzzzz/tarsier": {
+   "stars": 33,
+   "checked": "2026-11-18"
+  },
+  "skyvern-ai/rustwright": {
+   "stars": 958,
+   "checked": "2026-11-18"
+  },
+  "varun-patkar/chromepilot": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "vercel-labs/next-browser": {
+   "stars": 204,
+   "checked": "2026-11-18"
+  },
+  "ai-xiaodao/ai-browser-mcp": {
+   "stars": 55,
+   "checked": "2026-11-18"
+  },
+  "browseroperator/browser-operator-core": {
+   "stars": 514,
+   "checked": "2026-11-18"
+  },
+  "eurafaeldecarvalho/browser-scraper": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "g1879/drissionpage": {
+   "stars": 12579,
+   "checked": "2026-11-18"
+  },
+  "googlechrome/rendertron": {
+   "stars": 5949,
+   "checked": "2026-11-18"
+  },
+  "helloios2014/chrome-pilot-mcp": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "imprvhub/mcp-browser-agent": {
+   "stars": 43,
+   "checked": "2026-11-18"
+  },
+  "kernel/kernel-images": {
+   "stars": 1140,
+   "checked": "2026-11-18"
+  },
+  "leaningtech/browsercode": {
+   "stars": 166,
+   "checked": "2026-11-18"
+  },
+  "mattsse/chromiumoxide": {
+   "stars": 1437,
+   "checked": "2026-11-18"
+  },
+  "michaljach/opencode-browser": {
+   "stars": 121,
+   "checked": "2026-11-18"
+  },
+  "microlinkhq/browserless": {
+   "stars": 1845,
+   "checked": "2026-11-18"
+  },
+  "open-gitagent/clawless": {
+   "stars": 546,
+   "checked": "2026-11-18"
+  },
+  "rebrowser/rebrowser-patches": {
+   "stars": 1465,
+   "checked": "2026-11-18"
+  },
+  "remorses/playwriter": {
+   "stars": 4102,
+   "checked": "2026-11-18"
+  },
+  "rubycdp/ferrum": {
+   "stars": 2071,
+   "checked": "2026-11-18"
+  },
+  "rust-headless-chrome/rust-headless-chrome": {
+   "stars": 2961,
+   "checked": "2026-11-18"
+  },
+  "sawyerhood/dev-browser": {
+   "stars": 6740,
+   "checked": "2026-11-18"
+  },
+  "tsaijamey/frago": {
+   "stars": 113,
+   "checked": "2026-11-18"
+  },
+  "vercel-labs/dev3000": {
+   "stars": 1598,
+   "checked": "2026-11-18"
+  },
+  "vercel-labs/remote-agent-browser": {
+   "stars": 186,
+   "checked": "2026-11-18"
+  },
+  "vibesurf-ai/vibesurf": {
+   "stars": 484,
+   "checked": "2026-11-18"
+  },
+  "zzzgydi/verge-browser": {
+   "stars": 28,
+   "checked": "2026-11-18"
+  }
+ }
+}

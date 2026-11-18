@@ -1,0 +1,13 @@
+id: cli-continues
+name: cli-continues
+kind: cli
+slots:
+- memory
+status: rejected
+url: https://github.com/yigitkonur/cli-continues
+decided_at: '2026-11-18'
+reason: 最後 push 是 2026-05-07，半年沒更新、也沒有發行版；功能（讀各家 CLI 紀錄、產生交接文件）被 deja-vu 涵蓋，而 deja-vu 這週還在發版。
+sources:
+- omnikit-research 調研（2026-11-18 停止條件試用 T1）
+notes: ★1,607，MIT，2026-11-18 sweep.py verify 與第 0 層（門檻沒擋，因為未滿一年）。讀 16 種 CLI 的對話紀錄、產生交接文件給另一個 agent 接手。2026-11-18 記進收件匣時沒注意到停滯，重評時才發現。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+added: '2026-11-18'

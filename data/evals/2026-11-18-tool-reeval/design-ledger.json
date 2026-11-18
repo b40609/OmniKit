@@ -1,0 +1,2206 @@
+{
+ "created": "2026-11-18",
+ "groups": [
+  {
+   "group": "coding agent 前端設計 原型",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 40
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [
+      "voltagent/awesome-design-md"
+     ],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "anthropics/skills"
+     ],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "jason904/ui-skill-lab",
+      "bryfar/buildev"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "related": {
+     "names": [
+      "alchaincyf/huashu-design",
+      "opencoworkai/open-codesign",
+      "voltagent/awesome-design-md",
+      "bergside/awesome-design-skills",
+      "bergside/typeui"
+     ],
+     "errors": []
+    },
+    "web-zh": {
+     "names": [
+      "nexu-io/open-design",
+      "opencoworkai/open-codesign",
+      "alchaincyf/huashu-design",
+      "pbakaus/impeccable",
+      "leonxlnx/taste-skill",
+      "kgoedecke/doop",
+      "zseven-w/openpencil",
+      "onlook-dev/onlook",
+      "simonliu-ai-product/open-design-frame",
+      "superdesigndev/superdesign",
+      "superdesigndev/superdesign-skill",
+      "feimacode/open-design-agent-kit",
+      "nextlevelbuilder/ui-ux-pro-max-skill",
+      "emilkowalski/skills",
+      "shripunta/generate-design-md",
+      "bergside/design-md-figma",
+      "spacezephyr/brand-design-md",
+      "heydamir/unslop"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "frontend design agent skill",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "joeseesun/qiaomu-design",
+      "ilm-alan/frontend-design",
+      "funboy322/avoid-ai-design",
+      "alexiseverage/aesthetic-frontend-skills",
+      "pymodel/designer-skill",
+      "moddingflow/better-design",
+      "dhananjaym182/ai-ui-design-skills",
+      "leostehlik/no-slop-ui",
+      "boburxd/broom-design",
+      "xiaomao8090/toothpick-skill",
+      "surya17155/replica"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [
+      "oil-oil/oil-ui",
+      "superdesigndev/superdesign-skill",
+      "educlopez/ui-craft",
+      "arvindrk/extract-design-system",
+      "madebymustafa/design-taste",
+      "dembrandt/dembrandt-skills",
+      "ormus-solutions/libreuiux-claude-code",
+      "akseolabs-seo/cinematic-ui",
+      "ihlamury/design-skills",
+      "pymodel/niblet-skill-mcp",
+      "agricidaniel/gogh",
+      "aladicf/better-web-ui",
+      "arumwu/design-md-skill",
+      "master5d/claude-design-skills",
+      "s1gmamale1/apple-design-skills"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "google-labs-code/stitch-skills",
+      "julianoczkowski/designer-skills"
+     ],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [
+      "alexalexalex222/frontend-design-loop-mcp"
+     ],
+     "errors": [],
+     "hits": 4
+    },
+    "hn": {
+     "names": [
+      "krishna-modi12/frontend-design-pro"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "pgraeff/frontend-design-pro-agent-skill",
+      "gral-digital/frontend-skill",
+      "seance1723/uxcraft",
+      "evangelinensy/design-agent-setup"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "nutlope/hallmark",
+      "miqdadbadjuber/anti-slop",
+      "pbakaus/impeccable",
+      "anthropics/skills",
+      "leonxlnx/taste-skill",
+      "heydamir/unslop"
+     ],
+     "errors": []
+    },
+    "producthunt": {
+     "names": [
+      "kgoedecke/doop",
+      "onlook-dev/onlook"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "design system prototype canvas",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "open-pencil/open-pencil",
+      "bergside/design-md-chrome",
+      "marvkr/better-design",
+      "jangtrinh/design-os-studio",
+      "heyimjames/tela",
+      "manavarya09/moldui",
+      "ilya-makarov-dev/reframe",
+      "nexu-io/agentic-design",
+      "bluzir/claude-code-design",
+      "yizhiyanhua-ai/fireworks-design",
+      "sunil-dsb/design.md",
+      "maxritter/open-claude-design",
+      "pandemonium-research/opendesign",
+      "ar27111994/penpot-mcp",
+      "openfig-org/openfig-cli"
+     ],
+     "errors": [],
+     "hits": 63
+    },
+    "github-keyword": {
+     "names": [
+      "joaodobread/opencode-canvas",
+      "meyeroppelt/claude-design-local",
+      "angrycaptain19/canvas-prototyper"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "bil0000/design",
+      "openclaw-metis/cc-designer",
+      "resciencelab/super-prototyping"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 3
+    },
+    "exa": {
+     "names": [
+      "bil0000/skema-skill",
+      "tutti-os/vibe-design",
+      "itspatmorgan/design-studio"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "related": {
+     "names": [
+      "dammyjay93/interface-design",
+      "owl-listener/designer-skills",
+      "bitjaru/styleseed",
+      "google-labs-code/design.md",
+      "yuvrajangadsingh/brandmd",
+      "muluk-m/design-distill",
+      "jonthebeef/superdesign-mcp-claude-code",
+      "owl-listener/designpowers",
+      "saifyxpro/ui-ux-design-pro-skill"
+     ],
+     "errors": []
+    },
+    "web-en": {
+     "names": [
+      "zseven-w/openpencil",
+      "simonliu-ai-product/open-design-frame",
+      "kgoedecke/doop",
+      "nexu-io/open-design",
+      "opencoworkai/open-codesign"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "anti-slop ui design",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "agiwhitelist/auteur",
+      "smokeeaasd/flawless-ui-ux",
+      "wholiver/swiftui-design-skill"
+     ],
+     "errors": [],
+     "hits": 53
+    },
+    "github-keyword": {
+     "names": [
+      "teddiesloco/vibe-design-harness",
+      "steph-ux/web-design-enhancer",
+      "dragoon0x/everything-design-taste",
+      "payoss/uiux-high-taste-skill",
+      "taewooopark/uiforge",
+      "codewithasnari/nongeneric",
+      "claudiusararu/unslop-ui-skill",
+      "wwewtech/anti-slop-design",
+      "h3nryprod01/design-taste"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "skills-sh": {
+     "names": [
+      "appllama/appllama-skills",
+      "mengto/skills",
+      "uizze/uizze",
+      "kesslerio/ultimate-frontend-design-skill",
+      "sergekostenchuk/ui-ux-agent-skill-system",
+      "victorbenazzi/ui-anti-slop-codex",
+      "prathameshagrawal/design-anti-slop",
+      "antfu/design"
+     ],
+     "errors": [],
+     "hits": 18
+    },
+    "npm": {
+     "names": [
+      "immamdouhaboammar/anti-slop-engineering",
+      "blacurrant/claude-design-engineer"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "cschuman/design-antislop",
+      "georgehanu/slop-proof-ui"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "related": {
+     "names": [
+      "freshtechbro/claudedesignskills",
+      "kylezantos/design-motion-principles",
+      "bencium/bencium-marketplace"
+     ],
+     "errors": []
+    },
+    "web-en": {
+     "names": [
+      "vanszs/antislopui",
+      "codeswithroh/tastemaker",
+      "jhuse25/anti-slop-design-skills"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "design-md",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "dembrandt/dembrandt",
+      "kwakseongjae/oh-my-design",
+      "voltagent/official-design-md",
+      "scroobius-pip/fudge-design-md",
+      "educlopez/design-bites",
+      "caesiumy/ko-design-md",
+      "hirokaji/jp-ui-contracts",
+      "byadityaraj/designmd",
+      "hasi98/designpull",
+      "gabelul/stitch-kit",
+      "friedbeef1/design-arc",
+      "albertzhangz10/design-system-skill",
+      "bergside/design-md-firefox",
+      "josephbadigar/design-md",
+      "freptar0/design-guard",
+      "ifuryst/design.md",
+      "deepelementlab/openstyle",
+      "luciferdono/stitch-pro-mcp"
+     ],
+     "errors": [],
+     "hits": 34
+    },
+    "github-keyword": {
+     "names": [
+      "kzhrknt/awesome-design-md-jp",
+      "railly/tinte",
+      "paidax01/web-to-design-md",
+      "hu-uh/awesome-design-md"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "ibelick/ui-skills",
+      "wearescientist/awesome-design-md"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "fce/design-md",
+      "benoitpetit/design-md-generator",
+      "thenavidm/design-md-generator",
+      "varunsat/design.md-generator",
+      "webdesignhot/design-md",
+      "immamdouhaboammar/vibe-design-md-architect"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "jasonhnd/design-md-generator",
+      "design-token-kit/design-token-kit",
+      "ibelick/ui-skills"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "design engineering ui",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "lemonface0309/charles-skills",
+      "ds-spec/detent-ui",
+      "jubscodes/get-shit-pretty",
+      "jangtrinh/design-os",
+      "dragoon0x/taste-skills",
+      "hhx465453939/agent-taste-seed-system",
+      "deeflect/mies",
+      "mariocasanovacf/justesse",
+      "arez-xd/ux-ui-design-taste"
+     ],
+     "errors": [],
+     "hits": 31
+    },
+    "github-keyword": {
+     "names": [
+      "kosta4a/tactile-design",
+      "tidyfactor/styler",
+      "notsointresting/design-inspiration-mcp"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 4
+    },
+    "skills-sh": {
+     "names": [
+      "tasteskill/tasteskill",
+      "dannyjpwilliams/ui-sound-design-skill",
+      "agentsorg/design-engineering",
+      "farming-labs/design-eng-skills"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "gauderp/paperclip-frontend-skills"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "related": {
+     "names": [
+      "dominikmartn/nothing-design-skill",
+      "athevon/genjutsu",
+      "oil-oil/draw-ui",
+      "oalanicolas/claude-design-premium",
+      "diego3g/craft",
+      "yzfly/awesome-design-html",
+      "jamesrochabrun/easel",
+      "evidence-codes/loom",
+      "shawnchee/frontend-god-mode",
+      "manavarya09/design-extract",
+      "plugin87/ux-ui-agent-skills",
+      "zanwei/design-dna",
+      "nateherkai/scroll-craft",
+      "dickwu/apple-design-skill",
+      "op7418/dsh-guizang-design",
+      "dominikmartn/hue",
+      "anxforever/stylekit",
+      "insane0777/awwwards-mcp",
+      "xiaopu-ai/web-design",
+      "carmahhawwari/ui-design-brain",
+      "itsssssjack/power-design"
+     ],
+     "errors": []
+    },
+    "web-en": {
+     "names": [
+      "dannyjpwilliams/design-engineer-skill",
+      "nlook-service/design-from-code"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "ui generator prototype",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "grillsdev/grills",
+      "gojodennis/openkombai",
+      "aiatelie/ai-atelie",
+      "orangecold/design-to-html",
+      "nick3/vibe-design-skills"
+     ],
+     "errors": [],
+     "hits": 37
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "gustavosilveira23/claude-design-skills",
+      "rshankras/claude-code-apple-skills",
+      "hu-qi/design-artifact-generator",
+      "wire-dsl/wire-dsl"
+     ],
+     "errors": [],
+     "hits": 15
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 18
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "related": {
+     "names": [
+      "jakubkrehel/make-interfaces-feel-better",
+      "hamen/material-3-skill",
+      "0xdesign/design-plugin",
+      "s0xdk/refactoring-ui-skill",
+      "ericzakariasson/scandinavian-design",
+      "mobbin/skills",
+      "maxbogo/yc-web-design-strategy-skill"
+     ],
+     "errors": []
+    },
+    "web-en": {
+     "names": [
+      "nexu-io/open-design",
+      "opencoworkai/open-codesign",
+      "kgoedecke/doop",
+      "oil-oil/oil-ui",
+      "emilkowalski/skills"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "ai design workspace",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "oil-oil/dsh-oil-ui",
+      "3x-haust/oh-my-design",
+      "duoasa/duoasa-skill"
+     ],
+     "errors": [],
+     "hits": 22
+    },
+    "github-keyword": {
+     "names": [
+      "bestagentkits/design-studio-ai"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 2
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "manalkaff/opendesign",
+      "prototyperai/prototyper-ui"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "Claude Design 開源 替代",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "ummydev/codexdesign",
+      "ummydev/design-md",
+      "ummydev/pretty-ui",
+      "nexu-io/open-design",
+      "opencoworkai/open-codesign",
+      "kgoedecke/doop",
+      "pbakaus/impeccable",
+      "alchaincyf/huashu-design",
+      "onlook-dev/onlook"
+     ],
+     "errors": [],
+     "hits": 46
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 18
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-zh": {
+     "names": [
+      "jakubkrehel/skills",
+      "originaleric/dig-ui-skill",
+      "ceorkm/mobile-app-ui-design",
+      "nexu-io/open-design",
+      "alchaincyf/huashu-design",
+      "opencoworkai/open-codesign",
+      "kgoedecke/doop"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "codex ui ux skill",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "skydashnet/material-design-3-ui-skill",
+      "vmc-inner-circle/k-style-ui-ux",
+      "touchine-ojo/ojo-design-skills"
+     ],
+     "errors": [],
+     "hits": 57
+    },
+    "github-keyword": {
+     "names": [
+      "thiientv/godmode",
+      "gustavo-henriq/antislop-ui-ux-skill",
+      "linyi-ui/ui-motion-skill",
+      "seokwoooo/lucian-uxui",
+      "richardzhengquan/swiftui-native-design-skill"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [
+      "bandersnatch0x/design-playbook",
+      "zjsthmjialin/commercial-ui-ux-codex-skill",
+      "ryuxdsgn/design-intelligence",
+      "michengai/dsh-codex-ui"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "willblack2006/ux-engineer-skill",
+      "omrajguru05/human-centered-interface-design",
+      "blue-1ms/grounded-ui",
+      "mrfacecheck/viewwright"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "hursh-shah/codex-design-skill",
+      "pbakaus/impeccable",
+      "leonxlnx/taste-skill",
+      "anthropics/skills",
+      "oil-oil/oil-ui",
+      "jakubkrehel/skills",
+      "ilm-alan/frontend-design"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "html prototype design skill",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "plannotator/effective-html",
+      "innei/ryugi",
+      "shuaimxu/happyhands",
+      "ninefortyonestudio/uxnote",
+      "lisuiwen/ai-html-annotation",
+      "ion-design/design-crit",
+      "marcosnovo/unslop-design",
+      "lin96008-maxlin/prototype-html-editor",
+      "swiftyjunnos/design-ui-prototypes"
+     ],
+     "errors": [],
+     "hits": 43
+    },
+    "github-keyword": {
+     "names": [
+      "zeroz-lab/cc-design",
+      "jiji262/claude-design-skill",
+      "iamzifei/james-design",
+      "peixl/ifq-design-skills",
+      "mason0510/codex-design-skill",
+      "joicyzhang/interaction-design-skill",
+      "shellking/prototype-design-skill"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "bradfrost/skills",
+      "adobe/skills",
+      "lintendo/axhub-skills",
+      "ryanthedev/design-for-ai"
+     ],
+     "errors": [],
+     "hits": 18
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "clawlabz/hifi-design",
+      "chocpink123/prototype-previewer-skill",
+      "rirote-global/distinctive-ui",
+      "myttttttt/html-annotated-preview",
+      "uxKero/badesign-skill",
+      "uxKero/kero-stack",
+      "staurus86/global-design-skill",
+      "designedbysom/accessibility-linter",
+      "Jakeintech/claude-ios-skills"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "vibe coding ui design",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "digitaldonusum/vibebreaker",
+      "riverenpaw2708/vibe-resp-skill",
+      "aakashdhar/vibe-skill",
+      "alexandre-lpz/avant-garde",
+      "insane0777/awwwards-mcp",
+      "inspoai-studio/inspoai-studio",
+      "underdogynino/styledex",
+      "raysvitla/refs"
+     ],
+     "errors": [],
+     "hits": 80
+    },
+    "github-keyword": {
+     "names": [
+      "avivgerz-hue/unslop",
+      "zhaiyateng/dsh-design-skills",
+      "devpnal/design-system-is-all-you-need",
+      "therolento/devibify",
+      "wadezhao23/vibe-design-skins",
+      "achref23illi/ui-redesign",
+      "frozenmoon/ui-design-workflow",
+      "iamaanahmad/polished-ui-skills",
+      "vimself/frontend-product-from-zero",
+      "playbooktv/rayden-ui-design-skill",
+      "omid-io/vibe-ui-suite"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 2
+    },
+    "skills-sh": {
+     "names": [
+      "ara-mkr/claude-artisan",
+      "ziguishian/premium-ui-builder-skill",
+      "niceshare/design-lab-prompts-skill",
+      "sevq1993-cyber/web-design-motion-skill-family"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "leo-softr/softr-vibe-coding-block-claude-skill",
+      "21st-dev/21st-extension"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "monkeyui-dev/vibe-to-ui"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "protovibe-studio/protovibe-studio",
+      "alibaba-damo-academy/yugoo-design",
+      "designdifferently/design-differently-skill",
+      "lcsxu/zero-slop"
+     ],
+     "errors": []
+    }
+   }
+  }
+ ],
+ "stars": {
+  "agricidaniel/gogh": {
+   "stars": 70,
+   "checked": "2026-11-18"
+  },
+  "akseolabs-seo/cinematic-ui": {
+   "stars": 112,
+   "checked": "2026-11-18"
+  },
+  "aladicf/better-web-ui": {
+   "stars": 53,
+   "checked": "2026-11-18"
+  },
+  "alchaincyf/huashu-design": {
+   "stars": 29792,
+   "checked": "2026-11-18"
+  },
+  "alexalexalex222/frontend-design-loop-mcp": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "alexiseverage/aesthetic-frontend-skills": {
+   "stars": 58,
+   "checked": "2026-11-18"
+  },
+  "angrycaptain19/canvas-prototyper": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "anthropics/skills": {
+   "stars": 196968,
+   "checked": "2026-11-18"
+  },
+  "ar27111994/penpot-mcp": {
+   "stars": 31,
+   "checked": "2026-11-18"
+  },
+  "arumwu/design-md-skill": {
+   "stars": 53,
+   "checked": "2026-11-18"
+  },
+  "arvindrk/extract-design-system": {
+   "stars": 290,
+   "checked": "2026-11-18"
+  },
+  "bergside/awesome-design-skills": {
+   "stars": 3716,
+   "checked": "2026-11-18"
+  },
+  "bergside/design-md-chrome": {
+   "stars": 3191,
+   "checked": "2026-11-18"
+  },
+  "bergside/design-md-figma": {
+   "stars": 159,
+   "checked": "2026-11-18"
+  },
+  "bergside/typeui": {
+   "stars": 2263,
+   "checked": "2026-11-18"
+  },
+  "bil0000/design": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "bil0000/skema-skill": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "bitjaru/styleseed": {
+   "stars": 1023,
+   "checked": "2026-11-18"
+  },
+  "bluzir/claude-code-design": {
+   "stars": 110,
+   "checked": "2026-11-18"
+  },
+  "boburxd/broom-design": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "bryfar/buildev": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "dammyjay93/interface-design": {
+   "stars": 5997,
+   "checked": "2026-11-18"
+  },
+  "dembrandt/dembrandt-skills": {
+   "stars": 196,
+   "checked": "2026-11-18"
+  },
+  "dhananjaym182/ai-ui-design-skills": {
+   "stars": 25,
+   "checked": "2026-11-18"
+  },
+  "educlopez/ui-craft": {
+   "stars": 465,
+   "checked": "2026-11-18"
+  },
+  "emilkowalski/skills": {
+   "stars": 57889,
+   "checked": "2026-11-18"
+  },
+  "evangelinensy/design-agent-setup": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "feimacode/open-design-agent-kit": {
+   "stars": 1147,
+   "checked": "2026-11-18"
+  },
+  "funboy322/avoid-ai-design": {
+   "stars": 163,
+   "checked": "2026-11-18"
+  },
+  "google-labs-code/design.md": {
+   "stars": 28937,
+   "checked": "2026-11-18"
+  },
+  "google-labs-code/stitch-skills": {
+   "stars": 10261,
+   "checked": "2026-11-18"
+  },
+  "gral-digital/frontend-skill": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "heydamir/unslop": {
+   "stars": 18010,
+   "checked": "2026-11-18"
+  },
+  "heyimjames/tela": {
+   "stars": 30,
+   "checked": "2026-11-18"
+  },
+  "ihlamury/design-skills": {
+   "stars": 108,
+   "checked": "2026-11-18"
+  },
+  "ilm-alan/frontend-design": {
+   "stars": 174,
+   "checked": "2026-11-18"
+  },
+  "ilya-makarov-dev/reframe": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "itspatmorgan/design-studio": {
+   "stars": 171,
+   "checked": "2026-11-18"
+  },
+  "jangtrinh/design-os-studio": {
+   "stars": 97,
+   "checked": "2026-11-18"
+  },
+  "jason904/ui-skill-lab": {
+   "stars": 144,
+   "checked": "2026-11-18"
+  },
+  "joaodobread/opencode-canvas": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "joeseesun/qiaomu-design": {
+   "stars": 691,
+   "checked": "2026-11-18"
+  },
+  "jonthebeef/superdesign-mcp-claude-code": {
+   "stars": 76,
+   "checked": "2026-11-18"
+  },
+  "julianoczkowski/designer-skills": {
+   "stars": 611,
+   "checked": "2026-11-18"
+  },
+  "kgoedecke/doop": {
+   "stars": 2133,
+   "checked": "2026-11-18"
+  },
+  "krishna-modi12/frontend-design-pro": {
+   "stars": 14,
+   "checked": "2026-11-18"
+  },
+  "leonxlnx/taste-skill": {
+   "stars": 118071,
+   "checked": "2026-11-18"
+  },
+  "leostehlik/no-slop-ui": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "madebymustafa/design-taste": {
+   "stars": 228,
+   "checked": "2026-11-18"
+  },
+  "manavarya09/moldui": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "marvkr/better-design": {
+   "stars": 586,
+   "checked": "2026-11-18"
+  },
+  "master5d/claude-design-skills": {
+   "stars": 42,
+   "checked": "2026-11-18"
+  },
+  "maxritter/open-claude-design": {
+   "stars": 43,
+   "checked": "2026-11-18"
+  },
+  "meyeroppelt/claude-design-local": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "miqdadbadjuber/anti-slop": {
+   "stars": 9464,
+   "checked": "2026-11-18"
+  },
+  "moddingflow/better-design": {
+   "stars": 52,
+   "checked": "2026-11-18"
+  },
+  "muluk-m/design-distill": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "nextlevelbuilder/ui-ux-pro-max-skill": {
+   "stars": 151122,
+   "checked": "2026-11-18"
+  },
+  "nexu-io/agentic-design": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "nexu-io/open-design": {
+   "stars": 108218,
+   "checked": "2026-11-18"
+  },
+  "nutlope/hallmark": {
+   "stars": 57209,
+   "checked": "2026-11-18"
+  },
+  "oil-oil/oil-ui": {
+   "stars": 3509,
+   "checked": "2026-11-18"
+  },
+  "onlook-dev/onlook": {
+   "stars": 27256,
+   "checked": "2026-11-18"
+  },
+  "open-pencil/open-pencil": {
+   "stars": 9924,
+   "checked": "2026-11-18"
+  },
+  "openclaw-metis/cc-designer": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "opencoworkai/open-codesign": {
+   "stars": 8238,
+   "checked": "2026-11-18"
+  },
+  "openfig-org/openfig-cli": {
+   "stars": 28,
+   "checked": "2026-11-18"
+  },
+  "ormus-solutions/libreuiux-claude-code": {
+   "stars": 126,
+   "checked": "2026-11-18"
+  },
+  "owl-listener/designer-skills": {
+   "stars": 3411,
+   "checked": "2026-11-18"
+  },
+  "owl-listener/designpowers": {
+   "stars": 259,
+   "checked": "2026-11-18"
+  },
+  "pandemonium-research/opendesign": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "pbakaus/impeccable": {
+   "stars": 112553,
+   "checked": "2026-11-18"
+  },
+  "pgraeff/frontend-design-pro-agent-skill": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "pymodel/designer-skill": {
+   "stars": 53,
+   "checked": "2026-11-18"
+  },
+  "pymodel/niblet-skill-mcp": {
+   "stars": 93,
+   "checked": "2026-11-18"
+  },
+  "resciencelab/super-prototyping": {
+   "stars": 94,
+   "checked": "2026-11-18"
+  },
+  "s1gmamale1/apple-design-skills": {
+   "stars": 40,
+   "checked": "2026-11-18"
+  },
+  "saifyxpro/ui-ux-design-pro-skill": {
+   "stars": 103,
+   "checked": "2026-11-18"
+  },
+  "seance1723/uxcraft": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "shripunta/generate-design-md": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "simonliu-ai-product/open-design-frame": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "spacezephyr/brand-design-md": {
+   "stars": 117,
+   "checked": "2026-11-18"
+  },
+  "sunil-dsb/design.md": {
+   "stars": 74,
+   "checked": "2026-11-18"
+  },
+  "superdesigndev/superdesign": {
+   "stars": 7621,
+   "checked": "2026-11-18"
+  },
+  "superdesigndev/superdesign-skill": {
+   "stars": 1024,
+   "checked": "2026-11-18"
+  },
+  "surya17155/replica": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "tutti-os/vibe-design": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "voltagent/awesome-design-md": {
+   "stars": 128059,
+   "checked": "2026-11-18"
+  },
+  "xiaomao8090/toothpick-skill": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "yizhiyanhua-ai/fireworks-design": {
+   "stars": 108,
+   "checked": "2026-11-18"
+  },
+  "yuvrajangadsingh/brandmd": {
+   "stars": 74,
+   "checked": "2026-11-18"
+  },
+  "zseven-w/openpencil": {
+   "stars": 7275,
+   "checked": "2026-11-18"
+  },
+  "agiwhitelist/auteur": {
+   "stars": 1053,
+   "checked": "2026-11-18"
+  },
+  "antfu/design": {
+   "stars": 89,
+   "checked": "2026-11-18"
+  },
+  "appllama/appllama-skills": {
+   "stars": 5228,
+   "checked": "2026-11-18"
+  },
+  "bencium/bencium-marketplace": {
+   "stars": 501,
+   "checked": "2026-11-18"
+  },
+  "blacurrant/claude-design-engineer": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "claudiusararu/unslop-ui-skill": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "codeswithroh/tastemaker": {
+   "stars": 555,
+   "checked": "2026-11-18"
+  },
+  "codewithasnari/nongeneric": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "cschuman/design-antislop": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "dragoon0x/everything-design-taste": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "freshtechbro/claudedesignskills": {
+   "stars": 1388,
+   "checked": "2026-11-18"
+  },
+  "georgehanu/slop-proof-ui": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "h3nryprod01/design-taste": {
+   "stars": 98,
+   "checked": "2026-11-18"
+  },
+  "immamdouhaboammar/anti-slop-engineering": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "jhuse25/anti-slop-design-skills": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "kesslerio/ultimate-frontend-design-skill": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "kylezantos/design-motion-principles": {
+   "stars": 1603,
+   "checked": "2026-11-18"
+  },
+  "mengto/skills": {
+   "stars": 7697,
+   "checked": "2026-11-18"
+  },
+  "payoss/uiux-high-taste-skill": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "prathameshagrawal/design-anti-slop": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "sergekostenchuk/ui-ux-agent-skill-system": {
+   "stars": 36,
+   "checked": "2026-11-18"
+  },
+  "smokeeaasd/flawless-ui-ux": {
+   "stars": 248,
+   "checked": "2026-11-18"
+  },
+  "steph-ux/web-design-enhancer": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "taewooopark/uiforge": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "teddiesloco/vibe-design-harness": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "uizze/uizze": {
+   "stars": 116,
+   "checked": "2026-11-18"
+  },
+  "vanszs/antislopui": {
+   "stars": 35,
+   "checked": "2026-11-18"
+  },
+  "victorbenazzi/ui-anti-slop-codex": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "wholiver/swiftui-design-skill": {
+   "stars": 213,
+   "checked": "2026-11-18"
+  },
+  "wwewtech/anti-slop-design": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "albertzhangz10/design-system-skill": {
+   "stars": 43,
+   "checked": "2026-11-18"
+  },
+  "benoitpetit/design-md-generator": {
+   "stars": 0,
+   "checked": "2026-11-18",
+   "error": "gh: Not Found (HTTP 404)"
+  },
+  "bergside/design-md-firefox": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "byadityaraj/designmd": {
+   "stars": 77,
+   "checked": "2026-11-18"
+  },
+  "caesiumy/ko-design-md": {
+   "stars": 79,
+   "checked": "2026-11-18"
+  },
+  "deepelementlab/openstyle": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "dembrandt/dembrandt": {
+   "stars": 4040,
+   "checked": "2026-11-18"
+  },
+  "design-token-kit/design-token-kit": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "educlopez/design-bites": {
+   "stars": 93,
+   "checked": "2026-11-18"
+  },
+  "fce/design-md": {
+   "stars": 0,
+   "checked": "2026-11-18",
+   "error": "gh: Not Found (HTTP 404)"
+  },
+  "freptar0/design-guard": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "friedbeef1/design-arc": {
+   "stars": 43,
+   "checked": "2026-11-18"
+  },
+  "gabelul/stitch-kit": {
+   "stars": 49,
+   "checked": "2026-11-18"
+  },
+  "hasi98/designpull": {
+   "stars": 55,
+   "checked": "2026-11-18"
+  },
+  "hirokaji/jp-ui-contracts": {
+   "stars": 77,
+   "checked": "2026-11-18"
+  },
+  "hu-uh/awesome-design-md": {
+   "stars": 482,
+   "checked": "2026-11-18"
+  },
+  "ibelick/ui-skills": {
+   "stars": 11177,
+   "checked": "2026-11-18"
+  },
+  "ifuryst/design.md": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "immamdouhaboammar/vibe-design-md-architect": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "jasonhnd/design-md-generator": {
+   "stars": 18,
+   "checked": "2026-11-18"
+  },
+  "josephbadigar/design-md": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "kwakseongjae/oh-my-design": {
+   "stars": 593,
+   "checked": "2026-11-18"
+  },
+  "kzhrknt/awesome-design-md-jp": {
+   "stars": 1017,
+   "checked": "2026-11-18"
+  },
+  "luciferdono/stitch-pro-mcp": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "paidax01/web-to-design-md": {
+   "stars": 449,
+   "checked": "2026-11-18"
+  },
+  "railly/tinte": {
+   "stars": 631,
+   "checked": "2026-11-18"
+  },
+  "scroobius-pip/fudge-design-md": {
+   "stars": 124,
+   "checked": "2026-11-18"
+  },
+  "thenavidm/design-md-generator": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "varunsat/design.md-generator": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "voltagent/official-design-md": {
+   "stars": 533,
+   "checked": "2026-11-18"
+  },
+  "wearescientist/awesome-design-md": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "webdesignhot/design-md": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "agentsorg/design-engineering": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "arez-xd/ux-ui-design-taste": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "athevon/genjutsu": {
+   "stars": 816,
+   "checked": "2026-11-18"
+  },
+  "dannyjpwilliams/design-engineer-skill": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "dannyjpwilliams/ui-sound-design-skill": {
+   "stars": 47,
+   "checked": "2026-11-18"
+  },
+  "deeflect/mies": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "diego3g/craft": {
+   "stars": 204,
+   "checked": "2026-11-18"
+  },
+  "dominikmartn/nothing-design-skill": {
+   "stars": 2888,
+   "checked": "2026-11-18"
+  },
+  "dragoon0x/taste-skills": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "ds-spec/detent-ui": {
+   "stars": 104,
+   "checked": "2026-11-18"
+  },
+  "evidence-codes/loom": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "farming-labs/design-eng-skills": {
+   "stars": 24,
+   "checked": "2026-11-18"
+  },
+  "gauderp/paperclip-frontend-skills": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "hhx465453939/agent-taste-seed-system": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "jamesrochabrun/easel": {
+   "stars": 171,
+   "checked": "2026-11-18"
+  },
+  "jangtrinh/design-os": {
+   "stars": 37,
+   "checked": "2026-11-18"
+  },
+  "jubscodes/get-shit-pretty": {
+   "stars": 57,
+   "checked": "2026-11-18"
+  },
+  "kosta4a/tactile-design": {
+   "stars": 100,
+   "checked": "2026-11-18"
+  },
+  "lemonface0309/charles-skills": {
+   "stars": 185,
+   "checked": "2026-11-18"
+  },
+  "mariocasanovacf/justesse": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "nlook-service/design-from-code": {
+   "stars": 21,
+   "checked": "2026-11-18"
+  },
+  "notsointresting/design-inspiration-mcp": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "oalanicolas/claude-design-premium": {
+   "stars": 281,
+   "checked": "2026-11-18"
+  },
+  "oil-oil/draw-ui": {
+   "stars": 564,
+   "checked": "2026-11-18"
+  },
+  "shawnchee/frontend-god-mode": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "tasteskill/tasteskill": {
+   "stars": 0,
+   "checked": "2026-11-18",
+   "error": "gh: Not Found (HTTP 404)"
+  },
+  "tidyfactor/styler": {
+   "stars": 121,
+   "checked": "2026-11-18"
+  },
+  "yzfly/awesome-design-html": {
+   "stars": 195,
+   "checked": "2026-11-18"
+  },
+  "0xdesign/design-plugin": {
+   "stars": 785,
+   "checked": "2026-11-18"
+  },
+  "aiatelie/ai-atelie": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "anxforever/stylekit": {
+   "stars": 857,
+   "checked": "2026-11-18"
+  },
+  "carmahhawwari/ui-design-brain": {
+   "stars": 909,
+   "checked": "2026-11-18"
+  },
+  "dickwu/apple-design-skill": {
+   "stars": 3536,
+   "checked": "2026-11-18"
+  },
+  "dominikmartn/hue": {
+   "stars": 921,
+   "checked": "2026-11-18"
+  },
+  "ericzakariasson/scandinavian-design": {
+   "stars": 420,
+   "checked": "2026-11-18"
+  },
+  "gojodennis/openkombai": {
+   "stars": 24,
+   "checked": "2026-11-18"
+  },
+  "grillsdev/grills": {
+   "stars": 103,
+   "checked": "2026-11-18"
+  },
+  "gustavosilveira23/claude-design-skills": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "hamen/material-3-skill": {
+   "stars": 1593,
+   "checked": "2026-11-18"
+  },
+  "hu-qi/design-artifact-generator": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "insane0777/awwwards-mcp": {
+   "stars": 839,
+   "checked": "2026-11-18"
+  },
+  "itsssssjack/power-design": {
+   "stars": 777,
+   "checked": "2026-11-18"
+  },
+  "jakubkrehel/make-interfaces-feel-better": {
+   "stars": 4137,
+   "checked": "2026-11-18"
+  },
+  "manavarya09/design-extract": {
+   "stars": 5147,
+   "checked": "2026-11-18"
+  },
+  "maxbogo/yc-web-design-strategy-skill": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "mobbin/skills": {
+   "stars": 74,
+   "checked": "2026-11-18"
+  },
+  "nateherkai/scroll-craft": {
+   "stars": 5214,
+   "checked": "2026-11-18"
+  },
+  "nick3/vibe-design-skills": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "op7418/dsh-guizang-design": {
+   "stars": 963,
+   "checked": "2026-11-18"
+  },
+  "orangecold/design-to-html": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "plugin87/ux-ui-agent-skills": {
+   "stars": 3192,
+   "checked": "2026-11-18"
+  },
+  "rshankras/claude-code-apple-skills": {
+   "stars": 898,
+   "checked": "2026-11-18"
+  },
+  "s0xdk/refactoring-ui-skill": {
+   "stars": 703,
+   "checked": "2026-11-18"
+  },
+  "wire-dsl/wire-dsl": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "xiaopu-ai/web-design": {
+   "stars": 823,
+   "checked": "2026-11-18"
+  },
+  "zanwei/design-dna": {
+   "stars": 2139,
+   "checked": "2026-11-18"
+  },
+  "3x-haust/oh-my-design": {
+   "stars": 213,
+   "checked": "2026-11-18"
+  },
+  "bestagentkits/design-studio-ai": {
+   "stars": 232,
+   "checked": "2026-11-18"
+  },
+  "duoasa/duoasa-skill": {
+   "stars": 154,
+   "checked": "2026-11-18"
+  },
+  "manalkaff/opendesign": {
+   "stars": 269,
+   "checked": "2026-11-18"
+  },
+  "oil-oil/dsh-oil-ui": {
+   "stars": 260,
+   "checked": "2026-11-18"
+  },
+  "prototyperai/prototyper-ui": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "bandersnatch0x/design-playbook": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "blue-1ms/grounded-ui": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "ceorkm/mobile-app-ui-design": {
+   "stars": 566,
+   "checked": "2026-11-18"
+  },
+  "gustavo-henriq/antislop-ui-ux-skill": {
+   "stars": 51,
+   "checked": "2026-11-18"
+  },
+  "hursh-shah/codex-design-skill": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "jakubkrehel/skills": {
+   "stars": 12346,
+   "checked": "2026-11-18"
+  },
+  "linyi-ui/ui-motion-skill": {
+   "stars": 50,
+   "checked": "2026-11-18"
+  },
+  "michengai/dsh-codex-ui": {
+   "stars": 303,
+   "checked": "2026-11-18"
+  },
+  "mrfacecheck/viewwright": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "omrajguru05/human-centered-interface-design": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "originaleric/dig-ui-skill": {
+   "stars": 230,
+   "checked": "2026-11-18"
+  },
+  "richardzhengquan/swiftui-native-design-skill": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "ryuxdsgn/design-intelligence": {
+   "stars": 161,
+   "checked": "2026-11-18"
+  },
+  "seokwoooo/lucian-uxui": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "skydashnet/material-design-3-ui-skill": {
+   "stars": 334,
+   "checked": "2026-11-18"
+  },
+  "thiientv/godmode": {
+   "stars": 100,
+   "checked": "2026-11-18"
+  },
+  "touchine-ojo/ojo-design-skills": {
+   "stars": 192,
+   "checked": "2026-11-18"
+  },
+  "ummydev/codexdesign": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "ummydev/design-md": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "ummydev/pretty-ui": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "vmc-inner-circle/k-style-ui-ux": {
+   "stars": 406,
+   "checked": "2026-11-18"
+  },
+  "willblack2006/ux-engineer-skill": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "zjsthmjialin/commercial-ui-ux-codex-skill": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "adobe/skills": {
+   "stars": 332,
+   "checked": "2026-11-18"
+  },
+  "bradfrost/skills": {
+   "stars": 64,
+   "checked": "2026-11-18"
+  },
+  "chocpink123/prototype-previewer-skill": {
+   "stars": 32,
+   "checked": "2026-11-18"
+  },
+  "clawlabz/hifi-design": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "designedbysom/accessibility-linter": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "iamzifei/james-design": {
+   "stars": 39,
+   "checked": "2026-11-18"
+  },
+  "innei/ryugi": {
+   "stars": 529,
+   "checked": "2026-11-18"
+  },
+  "ion-design/design-crit": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "jakeintech/claude-ios-skills": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "jiji262/claude-design-skill": {
+   "stars": 220,
+   "checked": "2026-11-18"
+  },
+  "joicyzhang/interaction-design-skill": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "lin96008-maxlin/prototype-html-editor": {
+   "stars": 27,
+   "checked": "2026-11-18"
+  },
+  "lintendo/axhub-skills": {
+   "stars": 148,
+   "checked": "2026-11-18"
+  },
+  "lisuiwen/ai-html-annotation": {
+   "stars": 28,
+   "checked": "2026-11-18"
+  },
+  "marcosnovo/unslop-design": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "mason0510/codex-design-skill": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "myttttttt/html-annotated-preview": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "ninefortyonestudio/uxnote": {
+   "stars": 53,
+   "checked": "2026-11-18"
+  },
+  "peixl/ifq-design-skills": {
+   "stars": 28,
+   "checked": "2026-11-18"
+  },
+  "plannotator/effective-html": {
+   "stars": 4247,
+   "checked": "2026-11-18"
+  },
+  "rirote-global/distinctive-ui": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "ryanthedev/design-for-ai": {
+   "stars": 332,
+   "checked": "2026-11-18"
+  },
+  "shellking/prototype-design-skill": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "shuaimxu/happyhands": {
+   "stars": 515,
+   "checked": "2026-11-18"
+  },
+  "staurus86/global-design-skill": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "swiftyjunnos/design-ui-prototypes": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "uxkero/badesign-skill": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "uxkero/kero-stack": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "zeroz-lab/cc-design": {
+   "stars": 831,
+   "checked": "2026-11-18"
+  },
+  "21st-dev/21st-extension": {
+   "stars": 141,
+   "checked": "2026-11-18"
+  },
+  "aakashdhar/vibe-skill": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "achref23illi/ui-redesign": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "alexandre-lpz/avant-garde": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "alibaba-damo-academy/yugoo-design": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "ara-mkr/claude-artisan": {
+   "stars": 84,
+   "checked": "2026-11-18"
+  },
+  "avivgerz-hue/unslop": {
+   "stars": 61,
+   "checked": "2026-11-18"
+  },
+  "designdifferently/design-differently-skill": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "devpnal/design-system-is-all-you-need": {
+   "stars": 19,
+   "checked": "2026-11-18"
+  },
+  "digitaldonusum/vibebreaker": {
+   "stars": 41,
+   "checked": "2026-11-18"
+  },
+  "frozenmoon/ui-design-workflow": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "iamaanahmad/polished-ui-skills": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "inspoai-studio/inspoai-studio": {
+   "stars": 42,
+   "checked": "2026-11-18"
+  },
+  "lcsxu/zero-slop": {
+   "stars": 14,
+   "checked": "2026-11-18"
+  },
+  "leo-softr/softr-vibe-coding-block-claude-skill": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "monkeyui-dev/vibe-to-ui": {
+   "stars": 40,
+   "checked": "2026-11-18"
+  },
+  "niceshare/design-lab-prompts-skill": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "omid-io/vibe-ui-suite": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "playbooktv/rayden-ui-design-skill": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "protovibe-studio/protovibe-studio": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "raysvitla/refs": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "riverenpaw2708/vibe-resp-skill": {
+   "stars": 29,
+   "checked": "2026-11-18"
+  },
+  "sevq1993-cyber/web-design-motion-skill-family": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "therolento/devibify": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "underdogynino/styledex": {
+   "stars": 14,
+   "checked": "2026-11-18"
+  },
+  "vimself/frontend-product-from-zero": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "wadezhao23/vibe-design-skins": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "zhaiyateng/dsh-design-skills": {
+   "stars": 27,
+   "checked": "2026-11-18"
+  },
+  "ziguishian/premium-ui-builder-skill": {
+   "stars": 34,
+   "checked": "2026-11-18"
+  }
+ }
+}
