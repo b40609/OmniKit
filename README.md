@@ -134,7 +134,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 終端機跑 `uv run engine/scripts/agents.py status`，可以看到這台接上了哪些 agent、OmniKit 管了哪些 skills 與 MCP。
 
-逐項檢查跑 `uv run engine/scripts/doctor.py`：規則區塊、skills、MCP、權限規則與提醒 hook 都還在、跟寫入時一樣，再用各 agent 自己的清單確認 MCP 已啟用；查不到的標「未知」，不算通過。加 `--preflight` 一併跑安裝前檢查。
+逐項檢查跑 `uv run engine/scripts/doctor.py`：規則區塊、skills、MCP、權限規則與 hook 都還在、跟寫入時一樣，這台每個 agent 設定目錄（多帳號、T3 Code 的實例）都接上了，再用各 agent 自己的清單確認 MCP 已啟用；查不到的標「未知」，不算通過。加 `--preflight` 一併跑安裝前檢查。
 
 ### 安裝前後差在哪
 
@@ -251,7 +251,8 @@ flowchart LR
 | `%LOCALAPPDATA%\omnikit\` | `profiles\<名稱>\` 是訪談產生的 profile（個人資料，不在 repo 裡；移除時也不刪）；`profile.json` 記這台選的 profile；`edition.json` 記這台是維護者版還是同事版；`consent.json` 記你同意了哪些工具免問；`agents.json` 記接上了哪些 agent、OmniKit 管了哪些 skills，以及每個 MCP server 寫入時的雜湊（判斷有沒有被改過）；`rules\AGENTS.md` 是底線與 profile 接在一起的內容（移除時比對用） |
 | 舊版的 skillshare | 以前用 skillshare 接的電腦，重跑 `install.ps1` 會改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分；skillshare 本身不刪 |
 | npm 全域套件 | 安裝 `data/mcp/packages.txt` 指定的固定版本 |
-| `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪；同事版只補你同意過的工具。在 `hooks.Stop` 加上開新對話提醒（`engine/scripts/session_nudge.py`） |
+| `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪；同事版只補你同意過的工具。在 `hooks.Stop` 加上開新對話提醒（`engine/scripts/session_nudge.py`），在 `hooks.SessionStart` 加上設定目錄檢查（`engine/scripts/home_watch.py`：發現新帳號的設定目錄就在背景接上） |
+| 其他設定目錄 | 多帳號或啟動器另外指定的設定目錄（`CLAUDE_CONFIG_DIR`、`CODEX_HOME`、T3 Code 每個實例的 homePath、有 `.claude.json` 的 `~/.claude-*` 等，`engine/scripts/homes.py` 找）：規則區塊、MCP、Claude 的 skills、權限規則與 hook 都跟預設目錄一樣寫。T3 Code 的 Antigravity 實例不讀規則檔，`doctor.py` 會列出來 |
 | 這個 repo | 維護者版：`core.hooksPath` 指到 `.githooks`，commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、skills、MCP、權限、提醒 hook 時自動同步。同事版不設 git hook |
 | `%LOCALAPPDATA%\omnikit\install-record.json` | 安裝紀錄：記下這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，移除時只動這些 |
 

@@ -28,7 +28,16 @@ git hook 與 agent 在背景同步時常失敗。支援的 agent 固定是這三
     規則、skills 與其他 server 照常寫。用 resolve 決定要用誰的設定
   - 免問核准的欄位（Codex 的 default_tools_approval_mode）：同事版要本人同意才寫（approvals，見 edition.py）
 
-接上了哪些 agent、管了哪些 skills 與 MCP server，記在 %LOCALAPPDATA%\\omnikit\\agents.json；
+其他設定目錄（多帳號、啟動器另外指定的，homes.py 找）：
+- Claude Code（CLAUDE_CONFIG_DIR、T3 Code 的 homePath、~/.claude-* 等）：規則區塊、skills 連結、
+  MCP（<目錄>/.claude.json，claude 指令帶 CLAUDE_CONFIG_DIR）、權限規則與 hook（claude_allow.py）
+- Codex（CODEX_HOME 等）：規則區塊（<目錄>/AGENTS.md）、MCP（<目錄>/config.toml）；skills 在 ~/.agents/skills，共用
+- T3 Code 的 Antigravity 實例：ACP 模式不讀規則檔，不寫，doctor 會回報
+記錄的 key 是 <agent>@<目錄>。install 時接上當時找得到的；之後新增的，sync 會接上
+（home_watch.py 在開新對話時發現新的目錄就在背景跑 sync）。
+
+接上了哪些 agent、管了哪些 skills 與 MCP server、接上了哪些其他設定目錄（homes），
+記在 %LOCALAPPDATA%\\omnikit\\agents.json；
 同步只動記錄裡的 agent，移除時只拿掉 OmniKit 的東西，同名但不是 OmniKit 的不碰。
 
 用法：
@@ -61,6 +70,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import claude_allow  # noqa: E402  Claude Code 的免問權限規則
 import codex_hooks  # noqa: E402  讀寫 config.toml 時保留原本的換行
 import edition  # noqa: E402  維護者版或同事版，以及免問核准的個人同意
+import homes  # noqa: E402  這台每個 agent 在用的設定目錄
 import profiles  # noqa: E402
 import validate  # noqa: E402
 from fsretry import flaky, hold, retry  # noqa: E402  防毒短暫鎖住檔案時等一下再試（FR-34）
@@ -87,7 +97,8 @@ class Env:
     state: Path
     skillshare: Path  # 舊版用的 %APPDATA%\skillshare
     claude_cli: list | None = None  # claude 指令；None 表示直接改 ~/.claude.json
-    claude_homes: list = field(default_factory=list)  # ~/.claude 以外的 Claude 設定目錄（profiles.claude_homes）
+    claude_homes: list = field(default_factory=list)  # ~/.claude 以外的 Claude 設定目錄（homes.py）
+    codex_homes: list = field(default_factory=list)  # ~/.codex 以外的 Codex 設定目錄（homes.py）
     which: object = shutil.which
 
     @property
@@ -112,6 +123,15 @@ class Env:
         return [h / "CLAUDE.md" for h in self.claude_homes]
 
     @property
+    def codex_extra_rules(self):
+        return [h / "AGENTS.md" for h in self.codex_homes]
+
+    def extra_homes(self, agents):
+        """接上的 agent 的其他設定目錄：[(key, agent, 目錄)]。"""
+        pairs = [("claude-code", h) for h in self.claude_homes] + [("codex", h) for h in self.codex_homes]
+        return [(extra_key(h, a), a, h) for a, h in pairs if a in agents]
+
+    @property
     def skill_dirs(self):
         """每個 agent 的全域 skills 資料夾與放法；key 跟 agent 名稱一樣，也是 agents.json 的 skills 記錄的 key。"""
         return {"claude-code": (self.home / ".claude" / "skills", "link"),
@@ -132,13 +152,18 @@ class Env:
         return self.home / ".gemini" / "config" / "mcp_config.json"
 
 
-def extra_key(home):
-    """其他 Claude 設定目錄在 skill_dirs 與 agents.json 的 key：claude-code@<目錄>。"""
-    return f"claude-code@{home}"
+def extra_key(home, agent="claude-code"):
+    """其他設定目錄在 skill_dirs 與 agents.json 的 key：<agent>@<目錄>。"""
+    return homes.key(agent, home)
 
 
 def agent_of(key):
     return key.split("@", 1)[0]
+
+
+def home_of(key):
+    """key 是其他設定目錄的：那個目錄；預設的：None。"""
+    return Path(key.split("@", 1)[1]) if "@" in key else None
 
 
 def label_of(key):
@@ -147,9 +172,11 @@ def label_of(key):
 
 def real_env():
     claude = shutil.which("claude")
+    found = homes.discover()
     return Env(home=Path.home(), repo=profiles.ROOT, state=profiles.STATE,
                skillshare=Path(os.environ.get("APPDATA", Path.home())) / "skillshare",
-               claude_cli=[claude] if claude else None, claude_homes=profiles.claude_homes())
+               claude_cli=[claude] if claude else None, claude_homes=homes.extra("claude-code", found=found),
+               codex_homes=homes.extra("codex", found=found))
 
 
 def detect(env):
@@ -356,10 +383,11 @@ def place_skill(src_dir, dest, mode, env, recorded=()):
 
 
 def skill_targets(agents, env=None):
-    """要放 skills 的 key；Claude Code 接上時，其他 Claude 設定目錄也放（env 有給才算）。"""
+    """要放 skills 的 key；Claude Code 接上時，其他 Claude 設定目錄也放（env 有給才算）。
+    Codex 的其他設定目錄不用：Codex 的使用者 skills 在 ~/.agents/skills，不跟著 CODEX_HOME。"""
     keys = [a for a in AGENTS if a in agents]
-    if env is not None and "claude-code" in agents:
-        keys += [extra_key(h) for h in env.claude_homes]
+    if env is not None:
+        keys += [k for k, a, _ in env.extra_homes(agents) if k in env.skill_dirs]
     return keys
 
 
@@ -494,48 +522,73 @@ def read_json(path):
         raise SystemExit(f"{path} 不是合法的 JSON，沒有改")
 
 
-def run_cli(cmd):
+def mcp_targets(env, agents):
+    """要寫 MCP 的 key：每個接上的 agent 的預設設定，加上它的其他設定目錄。"""
+    return [a for a in AGENTS if a in agents] + [k for k, _, _ in env.extra_homes(agents)]
+
+
+def mcp_file(env, key):
+    home = home_of(key)
+    if agent_of(key) == "claude-code":
+        return home / ".claude.json" if home else env.claude_json
+    if agent_of(key) == "codex":
+        return home / "config.toml" if home else env.codex_toml
+    return env.gemini_mcp
+
+
+def claude_env(key):
+    """claude 指令要改哪個設定目錄：預設的拿掉 CLAUDE_CONFIG_DIR（在其他帳號的對話裡跑也不會寫錯地方），
+    其他設定目錄的指過去（user scope 的 MCP 就寫進 <目錄>/.claude.json）。"""
+    environ = {k: v for k, v in os.environ.items() if k != "CLAUDE_CONFIG_DIR"}
+    if home_of(key):
+        environ["CLAUDE_CONFIG_DIR"] = str(home_of(key))
+    return environ
+
+
+def run_cli(cmd, environ=None):
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
+                           env=environ)
     except (OSError, subprocess.TimeoutExpired) as e:
         raise SystemExit(f"{' '.join(cmd[-5:-2])} 無法執行：{e}")
     if r.returncode != 0:
         raise SystemExit(f"{' '.join(cmd[-5:-2])} 失敗（exit {r.returncode}）：{(r.stderr or r.stdout).strip()}")
 
 
-def read_servers(env, agent):
-    if agent == "claude-code":
-        return read_json(env.claude_json).get("mcpServers", {})
-    if agent == "codex":
-        text, _ = codex_hooks.read(env.codex_toml)
+def read_servers(env, key):
+    """key：agent（預設的設定）或 <agent>@<目錄>（其他設定目錄）。"""
+    path = mcp_file(env, key)
+    if agent_of(key) == "codex":
+        text, _ = codex_hooks.read(path)
         try:
             return tomllib.loads(text).get("mcp_servers", {})
         except tomllib.TOMLDecodeError as e:
-            raise SystemExit(f"{env.codex_toml} 不是合法的 TOML（{e}），沒有改")
-    return read_json(env.gemini_mcp).get("mcpServers", {})
+            raise SystemExit(f"{path} 不是合法的 TOML（{e}），沒有改")
+    return read_json(path).get("mcpServers", {})
 
 
 # 寫入：ops 是 {名稱: (設定, 要換掉的欄位)}；設定是 None 表示移除。要不要寫由 plan_mcp 決定，這裡只照做
 
-def claude_apply(env, ops):
+def claude_apply(env, ops, key="claude-code"):
     if not ops:
         return []
-    current = read_servers(env, "claude-code")
+    path, current = mcp_file(env, key), read_servers(env, key)
     for name, (cfg, drop) in sorted(ops.items()):
         entry = None if cfg is None else merged(current.get(name), cfg, drop)
         if env.claude_cli:
             if name in current:
-                run_cli([*env.claude_cli, "mcp", "remove", "-s", "user", name])
+                run_cli([*env.claude_cli, "mcp", "remove", "-s", "user", name], claude_env(key))
             if entry is not None:
-                run_cli([*env.claude_cli, "mcp", "add-json", "-s", "user", name, json.dumps(entry, ensure_ascii=False)])
+                run_cli([*env.claude_cli, "mcp", "add-json", "-s", "user", name, json.dumps(entry, ensure_ascii=False)],
+                        claude_env(key))
         else:
-            doc = read_json(env.claude_json)
+            doc = read_json(path)
             servers = doc.setdefault("mcpServers", {})
             if entry is None:
                 servers.pop(name, None)
             else:
                 servers[name] = entry
-            profiles.write(env.claude_json, json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
+            profiles.write(path, json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
     return sorted(ops)
 
 
@@ -645,10 +698,10 @@ def codex_update(text, name, cfg, drop):
     return "\n".join(lines)
 
 
-def codex_apply(env, ops):
+def codex_apply(env, ops, key="codex"):
     if not ops:
         return []
-    path = env.codex_toml
+    path = mcp_file(env, key)
     text, newline = codex_hooks.read(path)
     try:
         old = tomllib.loads(text)
@@ -687,8 +740,8 @@ def codex_apply(env, ops):
     return sorted(ops)
 
 
-def gemini_apply(env, ops):
-    path = env.gemini_mcp
+def gemini_apply(env, ops, key="antigravity"):
+    path = mcp_file(env, key)
     doc = read_json(path)
     had_bom = path.exists() and path.read_bytes().startswith(b"\xef\xbb\xbf")
     servers = doc.setdefault("mcpServers", {})
@@ -707,7 +760,7 @@ WRITERS = {"claude-code": claude_apply, "codex": codex_apply, "antigravity": gem
 
 @dataclass
 class Conflict:
-    agent: str
+    agent: str  # 寫入的對象：agent，或 <agent>@<目錄>（其他設定目錄）
     name: str
     why: str
     keys: list  # 不同的欄位，只列名稱
@@ -716,11 +769,12 @@ class Conflict:
 
 @dataclass
 class McpPlan:
-    wanted: dict  # agent → {名稱: OmniKit 要的設定}
-    ops: dict  # agent → {名稱: (設定或 None, 要換掉的欄位)}
-    ledger: dict  # agent → 寫完之後的帳本
-    keep: dict  # agent → [使用者選了自己管的名稱]
-    adopted: dict  # agent → [同名而且設定一樣，改由 OmniKit 管的名稱]
+    # key 是寫入的對象：agent，或 <agent>@<目錄>（其他設定目錄，見 mcp_targets）
+    wanted: dict  # key → {名稱: OmniKit 要的設定}
+    ops: dict  # key → {名稱: (設定或 None, 要換掉的欄位)}
+    ledger: dict  # key → 寫完之後的帳本
+    keep: dict  # key → [使用者選了自己管的名稱]
+    adopted: dict  # key → [同名而且設定一樣，改由 OmniKit 管的名稱]
     conflicts: list
 
 
@@ -731,15 +785,16 @@ def plan_mcp(env, agents, rec):
     servers = load_servers(env)
     allowed = edition.approver(env.state, env.repo)
     plan = McpPlan({}, {}, {}, {}, {}, [])
-    for agent in agents:
+    for target in mcp_targets(env, agents):
+        agent = agent_of(target)
         wanted = {n: desired(s, agent, allowed(n)) for n, s in servers.items() if SHORT[agent] in s["targets"]}
-        current = read_servers(env, agent)
-        ledger = rec["mcp"].get(agent, {})
-        keep = [n for n in rec["mcp_keep"].get(agent, []) if n in wanted]
+        current = read_servers(env, target)
+        ledger = rec["mcp"].get(target, {})
+        keep = [n for n in rec["mcp_keep"].get(target, []) if n in wanted]
         ops, new, adopted = {}, {}, []
 
-        def conflict(name, why, keys, managed):
-            plan.conflicts.append(Conflict(agent, name, why, keys, sorted(managed)))
+        def conflict(name, why, keys, managed, target=target, ledger=ledger, new=new):
+            plan.conflicts.append(Conflict(target, name, why, keys, sorted(managed)))
             if name in ledger:
                 new[name] = ledger[name]  # 帳本照舊，等使用者決定
 
@@ -778,8 +833,8 @@ def plan_mcp(env, agents, rec):
                 conflict(name, "servers.yaml 拿掉了，但 OmniKit 寫入之後被改過", [], entry["keys"])
             else:
                 ops[name] = (None, set())
-        plan.wanted[agent], plan.ops[agent], plan.ledger[agent] = wanted, ops, new
-        plan.keep[agent], plan.adopted[agent] = keep, adopted
+        plan.wanted[target], plan.ops[target], plan.ledger[target] = wanted, ops, new
+        plan.keep[target], plan.adopted[target] = keep, adopted
     return plan
 
 
@@ -806,7 +861,7 @@ def report(conflicts):
     """有衝突的 server 略過不動，其他照常寫；這裡列出略過了哪些、怎麼決定。"""
     lines = ["MCP：下面有衝突的 server 這次略過沒動（規則、skills 與其他 server 照常）："]
     for c in conflicts:
-        lines.append(f"  - {NAMES[c.agent]} 的 {c.name}：{c.why}" + (f"（不同的欄位：{'、'.join(c.keys)}）" if c.keys else ""))
+        lines.append(f"  - {label_of(c.agent)} 的 {c.name}：{c.why}" + (f"（不同的欄位：{'、'.join(c.keys)}）" if c.keys else ""))
     lines += ["  要決定用誰的設定，擇一執行：",
               f"  改用 OmniKit 的設定（data/mcp/servers.yaml）：{RESOLVE} --use-omnikit",
               f"  保留你的設定，OmniKit 之後不再管它：{RESOLVE} --keep-mine"]
@@ -815,7 +870,7 @@ def report(conflicts):
 
 def ask_conflict(c):
     """互動時逐一問；直接按 Enter 表示先不處理。"""
-    print(f"MCP：{NAMES[c.agent]} 的 {c.name}：{c.why}" + (f"（不同的欄位：{'、'.join(c.keys)}）" if c.keys else ""))
+    print(f"MCP：{label_of(c.agent)} 的 {c.name}：{c.why}" + (f"（不同的欄位：{'、'.join(c.keys)}）" if c.keys else ""))
     print("  1) 改用 OmniKit 的設定（data/mcp/servers.yaml）")
     print("  2) 保留你的設定，OmniKit 之後不再管它")
     try:
@@ -843,16 +898,16 @@ def settle(env, agents, rec, ask=None):
 
 def apply_mcp(env, agents, rec, plan):
     lines = []
-    for agent in agents:
-        changed = WRITERS[agent](env, plan.ops[agent])
-        rec["mcp"][agent] = plan.ledger[agent]
-        rec["mcp_keep"][agent] = plan.keep[agent]
+    for key in mcp_targets(env, agents):
+        changed = WRITERS[agent_of(key)](env, plan.ops[key], key)
+        rec["mcp"][key] = plan.ledger[key]
+        rec["mcp_keep"][key] = plan.keep[key]
         state = f"（更新：{'、'.join(changed)}）" if changed else "（已是最新）"
-        lines.append(f"MCP：{NAMES[agent]} {'、'.join(sorted(plan.wanted[agent])) or '（沒有）'}{state}")
-        if plan.adopted[agent]:
-            lines.append(f"  同名而且設定一樣，改由 OmniKit 管：{'、'.join(plan.adopted[agent])}")
-        if plan.keep[agent]:
-            lines.append(f"  你選了自己管，OmniKit 沒動：{'、'.join(plan.keep[agent])}")
+        lines.append(f"MCP：{label_of(key)} {'、'.join(sorted(plan.wanted[key])) or '（沒有）'}{state}")
+        if plan.adopted[key]:
+            lines.append(f"  同名而且設定一樣，改由 OmniKit 管：{'、'.join(plan.adopted[key])}")
+        if plan.keep[key]:
+            lines.append(f"  你選了自己管，OmniKit 沒動：{'、'.join(plan.keep[key])}")
     if plan.conflicts:
         lines += report(plan.conflicts)
     return lines
@@ -938,24 +993,57 @@ def connect(env, profile=None, agents=None, ask=None):
     plan = settle(env, agents, rec, ask)  # 有衝突的 server 留在 plan.conflicts，寫入時略過
     rec["agents"] = list(agents)
     lines = profiles.apply(env.data, env.state, env.rules, wanted=profile, agents=agents, take_over=True,
-                           skillshare_config=env.skillshare / "config.yaml", claude_extra=env.claude_extra_rules)
+                           skillshare_config=env.skillshare / "config.yaml", **extra_rules(env, agents))
     lines += sync_skills(env, agents, rec, profile)
     lines += apply_mcp(env, agents, rec, plan)
+    rec["homes"] = [k for k, _, _ in env.extra_homes(agents)]
     save_record(env, rec)
     lines += release_skillshare(env)
     return lines
+
+
+def extra_rules(env, agents):
+    """profiles.apply 的其他設定目錄參數：只給接上了的 agent。"""
+    return {"claude_extra": env.claude_extra_rules if "claude-code" in agents else [],
+            "codex_extra": env.codex_extra_rules if "codex" in agents else []}
+
+
+def known_homes(rec):
+    """記錄裡接上過的其他設定目錄。舊版沒記 homes：那時只有 Claude 的，有放 skills 的就是。"""
+    if isinstance(rec.get("homes"), list):
+        return rec["homes"]
+    return [k for k in rec["skills"] if "@" in k]
+
+
+def attach_homes(env, rec):
+    """接上這次才找到的其他設定目錄：規則區塊（可以接手原本的規則，先備份）、Claude 的權限規則與 hook。
+    skills 與 MCP 由 sync 照常處理（目標本來就包含所有找得到的設定目錄）。回傳（訊息, 新的 key）。"""
+    agents = rec["agents"]
+    known = {os.path.normcase(k) for k in known_homes(rec)}
+    new = [(k, a, h) for k, a, h in env.extra_homes(agents) if os.path.normcase(k) not in known]
+    if not new:
+        return [], []
+    rules_of = {"claude-code": "CLAUDE.md", "codex": "AGENTS.md"}
+    lines = [f"找到新的設定目錄，接上 OmniKit：{'、'.join(label_of(k) for k, _, _ in new)}"]
+    lines += profiles.apply(env.data, env.state, env.rules, agents=agents, skillshare_config=env.skillshare / "config.yaml",
+                            new_extra=[h / rules_of[a] for _, a, h in new], **extra_rules(env, agents))
+    if any(a == "claude-code" for _, a, _ in new):
+        lines += claude_allow.apply(env.home / ".claude" / "settings.json", env.state / "install-record.json",
+                                    env.state, env.repo, extra_settings=[h / "settings.json" for h in env.claude_homes])
+    return lines, [k for k, _, _ in new]
 
 
 def sync(env, skills=True, mcp=True, ask=None):
     rec = load_record(env)
     if not rec["agents"]:
         return ["這台還沒用新的方式接上 agent（沒有 agents.json），skills 與 MCP 沒有同步：重跑 install.ps1"]
+    lines, _ = attach_homes(env, rec)
     plan = settle(env, rec["agents"], rec, ask) if mcp else None
-    lines = []
     if skills:
         lines += sync_skills(env, rec["agents"], rec)
     if mcp:
         lines += apply_mcp(env, rec["agents"], rec, plan)
+    rec["homes"] = [k for k, _, _ in env.extra_homes(rec["agents"])]
     save_record(env, rec)
     return lines
 
@@ -966,17 +1054,17 @@ def resolve_conflict(env, name, choice, agent=None):
     rec = load_record(env)
     agents = rec["agents"] or detect(env)
     plan = plan_mcp(env, agents, rec)
-    hits = [c for c in plan.conflicts if c.name == name and agent in (None, c.agent)]
+    hits = [c for c in plan.conflicts if c.name == name and agent in (None, agent_of(c.agent))]
     if choice == "omnikit":
-        hits += [Conflict(a, name, "你選了自己管", [], managed_keys(plan.wanted[a][name]))
-                 for a in agents if name in plan.keep[a] and agent in (None, a)]
+        hits += [Conflict(k, name, "你選了自己管", [], managed_keys(plan.wanted[k][name]))
+                 for k in mcp_targets(env, agents) if name in plan.keep[k] and agent in (None, agent_of(k))]
     if not hits:
         return [f"MCP：{name} 沒有衝突，不用處理"]
     for c in hits:
         choose(env, rec, c, choice)
     save_record(env, rec)
     how = "改用 OmniKit 的設定" if choice == "omnikit" else "保留你的設定，OmniKit 之後不管它"
-    lines = [f"MCP：{NAMES[c.agent]} 的 {name} {how}" for c in hits]
+    lines = [f"MCP：{label_of(c.agent)} 的 {name} {how}" for c in hits]
     if not rec["agents"]:
         return lines + ["這台還沒接上 agent：重跑 install.ps1 就會套用"]
     return lines + sync(env, skills=False)  # 其他還沒解決的衝突一樣略過並列出來
@@ -1057,11 +1145,14 @@ def disconnect(env):
             lines.append(f"skills：從 {folder} 拿掉 {'、'.join(removed)}")
     servers = load_servers(env)
     allowed = edition.approver(env.state, env.repo)
-    for agent in agents:
-        current = read_servers(env, agent)
-        if agent in rec["mcp"]:
+    # 接上過、目錄還在的其他設定目錄也要拿（這次可能找不到了，例如環境變數沒設）
+    targets = mcp_targets(env, agents) + [k for k in rec["mcp"] if home_of(k) and home_of(k).is_dir()]
+    for key in dict.fromkeys(targets):
+        agent = agent_of(key)
+        current = read_servers(env, key)
+        if key in rec["mcp"]:
             # 帳本裡的才拿掉；OmniKit 寫入之後被改過的，已經是使用者的設定，留著
-            ledger = rec["mcp"][agent]
+            ledger = rec["mcp"][key]
             drop = {n for n, e in ledger.items() if n in current and (e is None or digest(current[n], e["keys"]) == e["sha256"])}
             kept = sorted(n for n in ledger if n in current and n not in drop)
         else:
@@ -1069,14 +1160,18 @@ def disconnect(env):
             drop = {n for n, s in servers.items()
                     if SHORT[agent] in s["targets"] and same(current.get(n), desired(s, agent, allowed(n)))}
             kept = []
-        changed = WRITERS[agent](env, {n: (None, set()) for n in drop})
+        changed = WRITERS[agent](env, {n: (None, set()) for n in drop}, key)
         if changed:
-            lines.append(f"MCP：從 {NAMES[agent]} 拿掉 {'、'.join(changed)}")
+            lines.append(f"MCP：從 {label_of(key)} 拿掉 {'、'.join(changed)}")
         if kept:
-            lines.append(f"MCP：{NAMES[agent]} 的 {'、'.join(kept)} 在 OmniKit 寫入之後被改過，當成你的設定，沒有拿掉")
+            lines.append(f"MCP：{label_of(key)} 的 {'、'.join(kept)} 在 OmniKit 寫入之後被改過，當成你的設定，沒有拿掉")
     lines += profiles.disconnect_block(env.rules["codex"])
     lines += profiles.disconnect_block(env.rules["antigravity"])
-    for path in env.claude_extra_rules:  # ~/.claude/CLAUDE.md 由 uninstall.ps1 處理
+    rules_of = {"claude-code": "CLAUDE.md", "codex": "AGENTS.md"}
+    recorded = [(agent_of(k), home_of(k)) for k in known_homes(rec) if home_of(k)]
+    extra = [h / "CLAUDE.md" for h in env.claude_homes] + [h / "AGENTS.md" for h in env.codex_homes] \
+        + [h / rules_of[a] for a, h in recorded if a in rules_of]
+    for path in dict.fromkeys(extra):  # ~/.claude/CLAUDE.md 由 uninstall.ps1 處理
         lines += profiles.disconnect_block(path)
     lines += release_skillshare(env)
     if env.record_file.exists():
@@ -1585,10 +1680,57 @@ def selftest():
               profiles.text(kai / "CLAUDE.md").startswith(profiles.BEGIN)
               and all(present(kai / "skills" / n) for n in names4) and (kai / "skills" / "synced" / "x.txt").exists()
               and sorted(load_record(env4)["skills"][extra_key(kai)]) == sorted(names4))
+        check("其他 Claude 設定目錄：MCP 寫進 <目錄>/.claude.json，帳本與 homes 用 <agent>@<目錄> 記",
+              read_servers(env4, extra_key(kai)).get("devtools", {}).get("command") == "cmd"
+              and extra_key(kai) in load_record(env4)["mcp"] and load_record(env4)["homes"] == [extra_key(kai)])
         disconnect(env4)
-        check("其他 Claude 設定目錄：disconnect 拿掉區塊與 skills，原本的留著",
+        check("其他 Claude 設定目錄：disconnect 拿掉區塊、skills 與 MCP，原本的留著",
               not (kai / "CLAUDE.md").exists() and not any(present(kai / "skills" / n) for n in names4)
-              and (kai / "skills" / "synced" / "x.txt").exists())
+              and (kai / "skills" / "synced" / "x.txt").exists() and "devtools" not in read_servers(env4, extra_key(kai)))
+
+        # 安裝之後才多出來的設定目錄（新的 Claude 帳號、CODEX_HOME）：sync 就接上，不用重跑 install
+        home5, state5 = tmp / "home5", tmp / "state5"
+        put(home5 / ".claude" / "CLAUDE.md", "# 我的\n")
+        put(home5 / ".codex" / "AGENTS.md", "# 我的 Codex\n")
+        env5 = Env(home=home5, repo=repo, state=state5, skillshare=tmp / "none", which=lambda _: None)
+        edition.set_edition(state5, "maintainer")
+        connect(env5, agents=["claude-code", "codex"], ask=lambda c: "mine")
+        check("沒有其他設定目錄：homes 記成空的", load_record(env5)["homes"] == [])
+        work, cx = home5 / ".claude-work", home5 / ".codex-work"
+        put(cx / "AGENTS.md", "# 這個帳號原本的\n")
+        put(cx / "config.toml", 'model = "o"\n')
+        env5.claude_homes, env5.codex_homes = [work], [cx]
+        work.mkdir()
+        lines = sync(env5)
+        settings5 = read_json(work / "settings.json")
+        check("sync 接上新的 Claude 設定目錄：規則區塊、skills、MCP、權限規則與 hook",
+              profiles.text(work / "CLAUDE.md").startswith(profiles.BEGIN)
+              and all(present(work / "skills" / n) for n in ("alpha", "beta"))
+              and "devtools" in read_servers(env5, extra_key(work))
+              and any(claude_allow.is_ours(h, claude_allow.WATCH) for g in settings5["hooks"]["SessionStart"] for h in g["hooks"])
+              and any("找到新的設定目錄" in line for line in lines))
+        check("sync 接上新的 Codex 設定目錄：規則區塊接手（原本的備份、留在區塊外），MCP 寫進它的 config.toml",
+              profiles.BLOCK.search(profiles.text(cx / "AGENTS.md")) is not None
+              and profiles.text(cx / "AGENTS.md").endswith("# 這個帳號原本的\n") and (cx / "AGENTS.md.pre-omnikit").exists()
+              and read_servers(env5, extra_key(cx, "codex"))["devtools"]["command"] == "cmd"
+              and tomllib.loads(profiles.text(cx / "config.toml"))["model"] == "o"
+              and sorted(load_record(env5)["homes"]) == sorted([extra_key(work), extra_key(cx, "codex")]))
+        profiles.write(cx / "AGENTS.md", "# 我把區塊拿掉了\n")
+        sync(env5)
+        check("已經接上過的設定目錄：使用者拿掉區塊就不加回去", profiles.text(cx / "AGENTS.md") == "# 我把區塊拿掉了\n")
+        disconnect(env5)
+        check("disconnect：其他 Codex 設定目錄的 MCP 拿掉，使用者的設定留著",
+              "devtools" not in read_servers(env5, extra_key(cx, "codex"))
+              and tomllib.loads(profiles.text(cx / "config.toml"))["model"] == "o")
+
+        # claude 指令改哪個設定目錄：預設的拿掉 CLAUDE_CONFIG_DIR，其他的指過去
+        os.environ["CLAUDE_CONFIG_DIR"] = str(tmp / "some-session")
+        try:
+            check("claude 指令：預設的不帶 CLAUDE_CONFIG_DIR（在其他帳號的對話裡跑也不會寫錯地方）",
+                  "CLAUDE_CONFIG_DIR" not in claude_env("claude-code")
+                  and claude_env(extra_key(kai))["CLAUDE_CONFIG_DIR"] == str(kai))
+        finally:
+            del os.environ["CLAUDE_CONFIG_DIR"]
         for d in readonly:
             writable(d)
 

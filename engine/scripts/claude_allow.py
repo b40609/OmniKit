@@ -2,10 +2,11 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的 permissions.allow，
-並在 hooks.Stop 註冊開新對話提醒（session_nudge.py）。
-其他 Claude 設定目錄（CLAUDE_CONFIG_DIR、T3 Code 每個 Claude 實例的 homePath）的 settings.json 也一樣寫，
-紀錄放在安裝紀錄的 claude_extra（以設定檔路徑分開記）。
+"""把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的 permissions.allow，並註冊 OmniKit 的 hook：
+- hooks.Stop：開新對話提醒（session_nudge.py）
+- hooks.SessionStart：設定目錄檢查（home_watch.py）：這台多了新的 agent 設定目錄（新帳號、新的 T3 實例）就在背景接上
+其他 Claude 設定目錄（CLAUDE_CONFIG_DIR、T3 Code 每個 Claude 實例的 homePath 等，見 homes.py）的 settings.json
+也一樣寫，紀錄放在安裝紀錄的 claude_extra（以設定檔路徑分開記）。
 
 免問核准要誰同意，看這台是哪一版（edition.py）：
 - 維護者版：清單裡的規則全部補上，那是維護者自己同意過的。
@@ -34,7 +35,12 @@ from fsretry import flaky, retry  # noqa: E402  防毒短暫鎖住檔案時等�
 ROOT = Path(__file__).resolve().parents[2]
 RECORD = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "omnikit" / "install-record.json"
 NUDGE = "session_nudge.py"
+WATCH = "home_watch.py"
+# OmniKit 註冊的 Claude Code hook：(事件, 腳本, 逾時秒數)
+HOOKS = (("Stop", NUDGE, 10), ("SessionStart", WATCH, 15))
+SCRIPTS = [script for _, script, _ in HOOKS]
 GRANT = "uv run engine/scripts/agents.py approvals --grant <名稱>"
+LATEST = "Claude 的權限規則與 OmniKit 的 hook 已是最新。"
 
 
 def load(path: Path) -> dict:
@@ -54,45 +60,65 @@ def rules(repo: Path = ROOT) -> list:
     return [s for s in (line.strip() for line in lines) if s and not s.startswith("#")]
 
 
+def is_ours(hook: dict, script: str) -> bool:
+    return script in hook.get("command", "")
+
+
 def is_nudge(hook: dict) -> bool:
-    return NUDGE in hook.get("command", "")
+    return is_ours(hook, NUDGE)
+
+
+def hook_command(script: str) -> str:
+    """hook 的指令。Claude Code 在 Windows 上用 Git Bash 跑 hook；OmniKit 的 git hooks 本來就需要
+    Git for Windows。Codex 用 PowerShell 跑，codex_hooks.py 會在前面加上 `&`"""
+    uv = Path(os.environ.get("UV") or shutil.which("uv")).as_posix()
+    return f'"{uv}" run --quiet --script "{(ROOT / "engine" / "scripts" / script).as_posix()}"'
 
 
 def nudge_command() -> str:
-    """提醒 hook 的指令。Claude Code 在 Windows 上用 Git Bash 跑 hook；OmniKit 的 git hooks 本來就需要
-    Git for Windows。Codex 用 PowerShell 跑，codex_hooks.py 會在前面加上 `&`"""
-    uv = Path(os.environ.get("UV") or shutil.which("uv")).as_posix()
-    return f'"{uv}" run --quiet --script "{(ROOT / "engine" / "scripts" / NUDGE).as_posix()}"'
+    return hook_command(NUDGE)
 
 
-def add_nudge_hook(settings: dict) -> bool:
-    """註冊或更新提醒 hook；回傳是否有改動。uv 或 repo 換位置時，重跑就會改成新路徑。"""
-    command = nudge_command()
-    stop = settings.setdefault("hooks", {}).setdefault("Stop", [])
-    ours = [h for group in stop for h in group.get("hooks", []) if is_nudge(h)]
+def add_hook(settings: dict, event: str, script: str, timeout: int) -> bool:
+    """註冊或更新一個 hook；回傳是否有改動。uv 或 repo 換位置時，重跑就會改成新路徑。"""
+    command = hook_command(script)
+    groups = settings.setdefault("hooks", {}).setdefault(event, [])
+    ours = [h for group in groups for h in group.get("hooks", []) if is_ours(h, script)]
     if ours and all(h["command"] == command for h in ours):
         return False
     for h in ours:
         h["command"] = command
     if not ours:
-        stop.append({"hooks": [{"type": "command", "command": command, "timeout": 10}]})
+        groups.append({"hooks": [{"type": "command", "command": command, "timeout": timeout}]})
     return True
 
 
-def remove_nudge_hook(settings: dict) -> bool:
+def add_hooks(settings: dict) -> bool:
+    changed = False
+    for event, script, timeout in HOOKS:
+        changed = add_hook(settings, event, script, timeout) or changed
+    return changed
+
+
+def remove_hooks(settings: dict, scripts) -> bool:
+    """拿掉這些腳本的 hook；回傳是否有改動。事件或整個 hooks 變空的就一起拿掉。"""
     hooks = settings.get("hooks", {})
-    stop = hooks.get("Stop", [])
-    kept = [{**g, "hooks": [h for h in g.get("hooks", []) if not is_nudge(h)]} for g in stop]
-    kept = [g for g in kept if g["hooks"]]
-    if kept == stop:
-        return False
-    if kept:
-        hooks["Stop"] = kept
-    else:
-        del hooks["Stop"]
-    if not hooks:
+    changed = False
+    for event in [e for e, _, _ in HOOKS if e in hooks]:
+        groups = hooks[event]
+        kept = [{**g, "hooks": [h for h in g.get("hooks", []) if not any(is_ours(h, s) for s in scripts)]}
+                for g in groups]
+        kept = [g for g in kept if g["hooks"]]
+        if kept == groups:
+            continue
+        changed = True
+        if kept:
+            hooks[event] = kept
+        else:
+            del hooks[event]
+    if changed and not hooks:
         del settings["hooks"]
-    return True
+    return changed
 
 
 def drop_allow(settings: dict, drop: set) -> None:
@@ -117,10 +143,11 @@ def uninstall_one(settings_path: Path, entry: dict) -> list:
     try:
         settings = load(settings_path)
     except ValueError:
-        return [f"{settings_path} 不是合法的 JSON，沒有動；請自己拿掉 {', '.join(sorted(ours))} 與 hooks.Stop 裡的 {NUDGE}"]
+        return [f"{settings_path} 不是合法的 JSON，沒有動；"
+                f"請自己拿掉 {', '.join(sorted(ours))} 與 hooks 裡的 {'、'.join(SCRIPTS)}"]
     allow = settings.get("permissions", {}).get("allow", [])
     removed = [r for r in allow if r in ours]
-    hook_removed = bool(entry.get("claude_hooks")) and remove_nudge_hook(settings)
+    hook_removed = bool(entry.get("claude_hooks")) and remove_hooks(settings, entry["claude_hooks"])
     if not (removed or hook_removed):
         return []
     if removed:
@@ -134,7 +161,7 @@ def uninstall_one(settings_path: Path, entry: dict) -> list:
     if removed:
         lines.append(f"已移除 Claude 的權限規則（{settings_path}）：{', '.join(removed)}")
     if hook_removed:
-        lines.append(f"已移除開新對話提醒 hook（{settings_path}）")
+        lines.append(f"已移除 OmniKit 的 hook（{settings_path}）")
     return lines
 
 
@@ -142,13 +169,13 @@ def uninstall(settings_path: Path, record: dict) -> int:
     lines = uninstall_one(settings_path, record)
     for path, entry in extra_entries(record).items():
         lines += uninstall_one(Path(path), entry)
-    for line in lines or ["沒有要移除的 Claude 權限規則或提醒 hook。"]:
+    for line in lines or ["沒有要移除的 Claude 權限規則或 hook。"]:
         print(line)
     return 0
 
 
 def apply_one(settings_path: Path, entry: dict, listed: list, wanted: list):
-    """把規則與提醒 hook 寫進一個 settings.json；entry 是這個檔案的紀錄（原地更新）。
+    """把規則與 OmniKit 的 hook 寫進一個 settings.json；entry 是這個檔案的紀錄（原地更新）。
     回傳（加了的, 拿掉的, hook 有沒有改）。"""
     settings = load(settings_path)
     allow = settings.get("permissions", {}).get("allow", [])
@@ -160,7 +187,7 @@ def apply_one(settings_path: Path, entry: dict, listed: list, wanted: list):
         settings.setdefault("permissions", {}).setdefault("allow", []).extend(added)
     if withdrawn:
         drop_allow(settings, set(withdrawn))
-    hooked = add_nudge_hook(settings)
+    hooked = add_hooks(settings)
     if added or withdrawn or hooked:
         save(settings_path, settings)
     recorded.extend(r for r in added if r not in recorded)
@@ -168,13 +195,13 @@ def apply_one(settings_path: Path, entry: dict, listed: list, wanted: list):
     if not entry["claude_allow"]:
         del entry["claude_allow"]
     if hooked:
-        entry["claude_hooks"] = [NUDGE]
+        entry["claude_hooks"] = SCRIPTS
     return added, withdrawn, hooked
 
 
 def apply(settings_path: Path, record_path: Path, state: Path, repo: Path = ROOT, git=edition.hooks_path,
           extra_settings=()) -> list:
-    """補上這台可以寫的權限規則、註冊提醒 hook；回傳要印的訊息。
+    """補上這台可以寫的權限規則、註冊 OmniKit 的 hook；回傳要印的訊息。
     extra_settings：其他 Claude 設定目錄的 settings.json（profiles.claude_homes），一樣寫。"""
     record = load(record_path)
     before = json.dumps(record, sort_keys=True)
@@ -199,7 +226,7 @@ def apply(settings_path: Path, record_path: Path, state: Path, repo: Path = ROOT
         if added:
             changed.append(f"已加入 Claude 的權限規則{where}：{', '.join(added)}")
         if hooked:
-            changed.append(f"已註冊開新對話提醒 hook（Stop）{where}")
+            changed.append(f"已註冊 OmniKit 的 hook（Stop 開新對話提醒、SessionStart 設定目錄檢查）{where}")
     if "claude_extra" in record:
         record["claude_extra"] = {p: e for p, e in record["claude_extra"].items() if e}
         if not record["claude_extra"]:
@@ -207,7 +234,7 @@ def apply(settings_path: Path, record_path: Path, state: Path, repo: Path = ROOT
     if json.dumps(record, sort_keys=True) != before:
         save(record_path, record)
     if not changed:
-        return ["Claude 的權限規則與提醒 hook 已是最新。", *lines]
+        return [LATEST, *lines]
     return [*[c for c in changed if not c.startswith("已註冊")], *lines, *[c for c in changed if c.startswith("已註冊")]]
 
 
@@ -241,8 +268,24 @@ def selftest() -> int:
               and any(is_nudge(h) for g in load(settings)["hooks"]["Stop"] for h in g["hooks"]))
         check("同事版、還沒問過：權限規則都不加，提醒怎麼同意",
               allow == ["Bash(ls)"] and any("還沒問過你" in line and "chrome_devtools、other" in line for line in lines))
-        check("同事版：提醒 hook 照樣註冊，其他設定不動",
-              any(is_nudge(h) for g in load(settings)["hooks"]["Stop"] for h in g["hooks"]) and load(settings)["model"] == "x")
+        check("同事版：提醒 hook 與設定目錄檢查 hook 照樣註冊，其他設定不動",
+              any(is_nudge(h) for g in load(settings)["hooks"]["Stop"] for h in g["hooks"])
+              and any(is_ours(h, WATCH) for g in load(settings)["hooks"]["SessionStart"] for h in g["hooks"])
+              and load(settings)["model"] == "x")
+
+        # 舊版只註冊了提醒 hook（紀錄是 [NUDGE]）：重跑補上設定目錄檢查，紀錄也跟著補
+        old = tmp / "old" / "settings.json"
+        save(old, {"hooks": {"Stop": [{"hooks": [{"type": "command", "command": nudge_command(), "timeout": 10}]}],
+                             "SessionStart": [{"hooks": [{"type": "command", "command": "mine.sh"}]}]}})
+        old_entry = {"claude_hooks": [NUDGE]}
+        _, _, hooked = apply_one(old, old_entry, [], [])
+        check("舊版升級：補上 SessionStart 的設定目錄檢查，使用者自己的 SessionStart hook 留著",
+              hooked and old_entry["claude_hooks"] == SCRIPTS
+              and [h["command"] for g in load(old)["hooks"]["SessionStart"] for h in g["hooks"]][0] == "mine.sh"
+              and any(is_ours(h, WATCH) for g in load(old)["hooks"]["SessionStart"] for h in g["hooks"]))
+        uninstall_one(old, {"claude_hooks": [NUDGE]})
+        check("舊版紀錄只有 NUDGE：移除時只拿掉提醒 hook",
+              "Stop" not in load(old)["hooks"] and len(load(old)["hooks"]["SessionStart"]) == 2)
 
         edition.record(state, "chrome_devtools", True)
         edition.record(state, "other", False)
@@ -250,7 +293,7 @@ def selftest() -> int:
         check("同意 chrome_devtools：只加它，不要的 other 不加也不再提醒",
               load(settings)["permissions"]["allow"] == ["Bash(ls)", "mcp__chrome_devtools"]
               and load(record)["claude_allow"] == ["mcp__chrome_devtools"] and not any("還沒問過" in line for line in lines))
-        check("重跑：已是最新", run()[0] == "Claude 的權限規則與提醒 hook 已是最新。")
+        check("重跑：已是最新", run()[0] == LATEST)
 
         edition.record(state, "chrome_devtools", False)
         allow = load(settings)["permissions"]["allow"]
@@ -288,9 +331,10 @@ def selftest() -> int:
               load(kai)["permissions"]["allow"] == ["Bash(git status)", "mcp__chrome_devtools", "mcp__other__click"]
               and any(is_nudge(h) for g in load(kai)["hooks"]["Stop"] for h in g["hooks"])
               and entry.get("claude_allow") == ["mcp__chrome_devtools", "mcp__other__click"]
-              and entry.get("claude_hooks") == [NUDGE] and any(".claude-kai" in line for line in lines))
+              and any(is_ours(h, WATCH) for g in load(kai)["hooks"]["SessionStart"] for h in g["hooks"])
+              and entry.get("claude_hooks") == SCRIPTS and any(".claude-kai" in line for line in lines))
         check("其他設定目錄：重跑已是最新",
-              apply(settings, record2, state, repo, no_git, extra_settings=[kai])[0] == "Claude 的權限規則與提醒 hook 已是最新。")
+              apply(settings, record2, state, repo, no_git, extra_settings=[kai])[0] == LATEST)
         uninstall(settings, load(record2))
         check("其他設定目錄：移除時只拿掉 OmniKit 加的，使用者的留著",
               load(kai) == {"permissions": {"allow": ["Bash(git status)"]}})

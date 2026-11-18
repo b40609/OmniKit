@@ -12,7 +12,10 @@
 - 規則：~/.claude/CLAUDE.md、~/.codex/AGENTS.md、~/.gemini/GEMINI.md 的受管區塊，跟這台選的 profile 產生的一樣。
 - skills：記錄裡的每個 skill 都在；連結指向 repo，複製品的雜湊跟 repo 一樣。
 - MCP：帳本裡的每個 server 都在，OmniKit 管的欄位雜湊跟寫入時一樣（被改過就用 agents.py resolve 決定）。
-- 免問核准與提醒 hook：記錄裡的 Claude 權限規則還在 ~/.claude/settings.json；兩邊的提醒 hook 有註冊。
+- 免問核准與 hook：記錄裡的 Claude 權限規則還在 ~/.claude/settings.json；提醒 hook（Stop）與設定目錄檢查
+  （SessionStart）有註冊；Codex 的提醒 hook 有註冊。
+- 設定目錄：這台找得到的其他設定目錄（homes.py：多帳號、T3 Code 的實例、CLAUDE_CONFIG_DIR、CODEX_HOME…）
+  都接上了；上面各項也逐一檢查那些目錄。T3 Code 的 Antigravity 實例讀不到 OmniKit 規則，列成失敗。
 agent 自己的清單：
 - MCP：claude mcp list（會順便測連線）、codex mcp list --json、agy mcp list。
 - skills：三個 agent 都沒有列出 skill 的指令，記「未知」；檔案在不在由寫入檢查確認。
@@ -35,6 +38,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import agents  # noqa: E402
 import claude_allow  # noqa: E402
+import homes  # noqa: E402
 import profiles  # noqa: E402
 
 OK, FAIL, UNKNOWN = "ok", "fail", "unknown"
@@ -59,8 +63,10 @@ def check_rules(env, rec):
         return [row("規則", profiles.NAMES.get(a, a), "受管區塊", UNKNOWN, str(e.code)) for a in rec["agents"]]
     out = []
     targets = [(a, env.rules[a], profiles.NAMES[a]) for a in rec["agents"]]
-    if "claude-code" in rec["agents"]:  # 其他 Claude 設定目錄（T3 Code 的多帳號）也要有區塊
+    if "claude-code" in rec["agents"]:  # 其他設定目錄（多帳號、啟動器指定的）也要有區塊
         targets += [("claude-code", p, agents.label_of(agents.extra_key(p.parent))) for p in env.claude_extra_rules]
+    if "codex" in rec["agents"]:
+        targets += [("codex", p, agents.label_of(agents.extra_key(p.parent, "codex"))) for p in env.codex_extra_rules]
     for agent, path, label in targets:
         want = (profiles.claude_block(env.data, env.state, name) if agent == "claude-code"
                 else profiles.content_block(profiles.compose(env.data, env.state, name)))
@@ -103,8 +109,8 @@ def check_skills(env, rec):
 
 def check_mcp(env, rec):
     out = []
-    for agent, ledger in rec["mcp"].items():
-        label = profiles.NAMES.get(agent, agent)
+    for agent, ledger in rec["mcp"].items():  # agent 或 <agent>@<目錄>（其他設定目錄）
+        label = agents.label_of(agent) if agents.agent_of(agent) in profiles.NAMES else agent
         try:
             current = agents.read_servers(env, agent)
         except SystemExit as e:
@@ -140,14 +146,39 @@ def check_harness(home, record_path):
         for rule in entry.get("claude_allow", []):
             out.append(row("權限", label, rule, OK if rule in allow else FAIL,
                            "在 permissions.allow" if rule in allow else "記錄有、設定裡沒有：重跑 install.ps1"))
-        if entry.get("claude_hooks"):
-            hooked = any(claude_allow.is_nudge(h) for g in settings.get("hooks", {}).get("Stop", []) for h in g.get("hooks", []))
-            out.append(row("hook", label, "開新對話提醒", OK if hooked else FAIL, "" if hooked else "Stop hook 不見了：重跑 install.ps1"))
+        names = {claude_allow.NUDGE: "開新對話提醒", claude_allow.WATCH: "設定目錄檢查"}
+        for event, script, _ in claude_allow.HOOKS:
+            if script not in (entry.get("claude_hooks") or []):
+                continue
+            hooked = any(claude_allow.is_ours(h, script) for g in settings.get("hooks", {}).get(event, []) for h in g.get("hooks", []))
+            out.append(row("hook", label, names[script], OK if hooked else FAIL,
+                           "" if hooked else f"{event} hook 不見了：重跑 install.ps1"))
     if record.get("codex_hooks"):
         toml = home / ".codex" / "config.toml"
         hooked = toml.exists() and bool(CODEX_NUDGE.search(toml.read_text(encoding="utf-8", errors="replace")))
         out.append(row("hook", "Codex", "開新對話提醒", OK if hooked else FAIL,
                        "要在 Codex 的 /hooks 信任後才會執行" if hooked else "config.toml 裡沒有：重跑 install.ps1"))
+    return out
+
+
+def check_homes(rec, found):
+    """這台找得到的其他設定目錄（homes.py）都接上了沒有。新帳號在安裝之後才出現時，
+    開一段新的 Claude Code 對話（home_watch.py）或跑 agents.py sync 就會接上。"""
+    out = []
+    known = {os.path.normcase(k) for k in agents.known_homes(rec)}
+    for f in found:
+        label = agents.label_of(f.key)
+        if not f.writable:
+            out.append(row("設定目錄", label, f.source, FAIL,
+                           "T3 Code 的 Antigravity 實例走 ACP 模式，不讀 GEMINI.md 與 hooks.json，讀不到 OmniKit 規則；"
+                           "skills 由 T3 從 ~/.gemini 連過去，讀得到。只能由 T3 在開新對話時帶入規則"))
+        elif f.agent not in rec["agents"]:
+            continue
+        elif os.path.normcase(f.key) in known:
+            out.append(row("設定目錄", label, f.source, OK, "已接上"))
+        else:
+            out.append(row("設定目錄", label, f.source, FAIL,
+                           "還沒接上：跑 uv run engine/scripts/agents.py sync（開一段新的 Claude Code 對話也會在背景接上）"))
     return out
 
 
@@ -247,8 +278,10 @@ def installed_repo(env, rec):
     return None
 
 
-def collect(env, record_path, lists=True, pre=False, run=subprocess.run, which=shutil.which):
+def collect(env, record_path, lists=True, pre=False, run=subprocess.run, which=shutil.which, found=None):
+    """found：homes.discover() 的結果；沒給就照 env.home 找（測試用的 home 不看這個行程的環境變數）。"""
     rec = agents.load_record(env)
+    found = homes.discover(env.home, None if env.home == homes.HOME else {}) if found is None else found
     if not rec["agents"]:
         return [row("記錄", "", "agents.json", FAIL, "這台還沒接上 OmniKit（沒有 agents.json）：跑 install.ps1")]
     rows = []
@@ -257,6 +290,7 @@ def collect(env, record_path, lists=True, pre=False, run=subprocess.run, which=s
         rows.append(row("記錄", "", "repo", OK, f"這台接的是 {repo}，以它為準比對（doctor 是從 {env.repo} 執行的）"))
         env = dataclasses.replace(env, repo=repo)
     rows += check_rules(env, rec) + check_skills(env, rec) + check_mcp(env, rec) + check_harness(env.home, record_path)
+    rows += check_homes(rec, found)
     if lists:
         rows += agent_lists(rec, run, which)
     if pre:
@@ -369,6 +403,19 @@ def selftest():
         check("從別的 checkout 執行：以安裝時的 repo 為準", moved[0]["item"] == "repo"
               and next(r for r in moved if r["area"] == "skills" and r["agent"] == "Claude Code")["status"] == OK)
         check("還沒接上：直接說要跑 install.ps1", collect(empty, tmp / "none.json", lists=False)[0]["status"] == FAIL)
+
+        # 其他設定目錄：接上的通過；安裝後才出現的、T3 的 Antigravity 實例列成失敗；沒接上的 agent 不管
+        kai, work, cx = home / ".claude-kai", home / ".claude-work", home / ".codex-x"
+        found = [homes.Found("claude-code", kai, "T3 Code 的 kai 實例"), homes.Found("claude-code", work, "掃描 ~/.claude-*"),
+                 homes.Found("antigravity", home / "agy", "T3 Code 的 antigravity 實例", False),
+                 homes.Found("codex", cx, "環境變數 CODEX_HOME")]
+        rows = check_homes({"agents": ["claude-code"], "skills": {}, "homes": [agents.extra_key(kai)]}, found)
+        status = {r["item"]: r["status"] for r in rows}
+        check("設定目錄：接上的通過，新出現的與 T3 的 Antigravity 實例失敗，沒接上的 agent 不列",
+              status == {"T3 Code 的 kai 實例": OK, "掃描 ~/.claude-*": FAIL, "T3 Code 的 antigravity 實例": FAIL}
+              and "agents.py sync" in next(r["detail"] for r in rows if r["item"] == "掃描 ~/.claude-*"))
+        check("設定目錄：舊版記錄沒有 homes，用 skills 的 key 判斷",
+              check_homes({"agents": ["claude-code"], "skills": {agents.extra_key(kai): []}}, found[:1])[0]["status"] == OK)
 
         def fake_pwsh(cmd, **kw):
             return subprocess.CompletedProcess(cmd, 1, stdout='[{"name":"git","ok":true},{"name":"npm","ok":false}]', stderr="")

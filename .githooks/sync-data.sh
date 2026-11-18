@@ -5,8 +5,9 @@
 #   data/mcp/：把 MCP server 同步到接上的 agent
 #   engine/skills/：同步 skills（Claude 用連結，內容改動本來就會反映；Codex 與 Antigravity 用複製品，要重新複製）
 #   data/profiles/：也同步 skills（訪談答案決定裝哪些，例如不評估工具就不裝 omnikit-eval）
-#   agents.py：skills 與 MCP 都重新同步
-#   data/harness/、claude_allow.py、session_nudge.py：把權限規則與開新對話提醒補進 Claude Code 的使用者設定
+#   agents.py、homes.py：skills 與 MCP 都重新同步（新找到的設定目錄也一起接上）
+#   data/harness/、claude_allow.py、session_nudge.py、home_watch.py：把權限規則、開新對話提醒與設定目錄檢查補進
+#     Claude Code 的使用者設定
 #   codex_hooks.py、claude_allow.py、session_nudge.py：把開新對話提醒補進 Codex 的 config.toml
 # 只有維護者版會自動同步。同事版不設 git hook；萬一還是跑到這裡，也只提醒、不改任何設定（edition.py）
 # linked worktree（例如 .claude/worktrees/ 底下）也不同步：worktree 共用主 repo 的 core.hooksPath，
@@ -53,8 +54,8 @@ fi
 
 skills=0
 mcp=0
-printf '%s\n' "$changed" | grep -qE '^(engine/skills/|data/profiles/|engine/scripts/(agents|profiles)\.py$)' && skills=1
-printf '%s\n' "$changed" | grep -qE '^(data/mcp/|engine/scripts/agents\.py$)' && mcp=1
+printf '%s\n' "$changed" | grep -qE '^(engine/skills/|data/profiles/|engine/scripts/(agents|profiles|homes)\.py$)' && skills=1
+printf '%s\n' "$changed" | grep -qE '^(data/mcp/|engine/scripts/(agents|homes)\.py$)' && mcp=1
 if [ $skills = 1 ] && [ $mcp = 1 ]; then
   run "skills 與 MCP 同步" engine/scripts/agents.py sync
 elif [ $skills = 1 ]; then
@@ -63,11 +64,11 @@ elif [ $mcp = 1 ]; then
   run "MCP 同步" engine/scripts/agents.py sync --mcp
 fi
 
-if printf '%s\n' "$changed" | grep -qE '^(data/harness/|engine/scripts/(claude_allow|session_nudge)\.py$)'; then
+if printf '%s\n' "$changed" | grep -qE '^(data/harness/|engine/scripts/(claude_allow|session_nudge|home_watch)\.py$)'; then
   if "$uv" run --quiet engine/scripts/claude_allow.py >/dev/null 2>&1; then
-    echo "OmniKit：已同步 Claude 的權限規則與開新對話提醒"
+    echo "OmniKit：已同步 Claude 的權限規則與 OmniKit 的 hook"
   else
-    echo "OmniKit：claude_allow.py 失敗，Claude 的權限規則與開新對話提醒可能還是舊的" >&2
+    echo "OmniKit：claude_allow.py 失敗，Claude 的權限規則與 OmniKit 的 hook 可能還是舊的" >&2
   fi
 fi
 

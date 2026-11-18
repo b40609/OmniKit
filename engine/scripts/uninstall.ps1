@@ -5,13 +5,14 @@ OmniKit 移除：把 install.ps1 對這台電腦做的改動還原，可以重�
    （CLAUDE.md.pre-omnikit）就還原，沒有就刪掉這個空檔。
 2. Codex：舊版整份換掉的 ~/.codex/AGENTS.md 回到接上 OmniKit 之前的樣子（有備份就還原）；
    新版的受管區塊交給下一步的 agents.py。
-3. agents.py disconnect：拿掉 OmniKit 的 skills（連結與複製品）與 MCP server（三邊都是），
-   原地拿掉 ~/.codex/AGENTS.md 與 ~/.gemini/GEMINI.md 的受管區塊（只剩區塊就還原安裝前的備份），
+3. agents.py disconnect：拿掉 OmniKit 的 skills（連結與複製品）與 MCP server（三邊都是，其他設定目錄也是），
+   原地拿掉 ~/.codex/AGENTS.md、~/.gemini/GEMINI.md 與其他設定目錄的受管區塊（只剩區塊就還原安裝前的備份），
    清掉舊版 skillshare 設定裡 OmniKit 的部分，刪掉 agents.json。
    同名但不是 OmniKit 的 skill 與 MCP server 不碰；OmniKit 寫入之後被使用者改過的 MCP server 也留著。
 4. 刪掉 %LOCALAPPDATA%\omnikit 裡接好的規則（rules\AGENTS.md）、profile 選擇（profile.json）、
    版本（edition.json）與免問核准的同意紀錄（consent.json）。
-5. 權限與提醒 hook：從 ~/.claude/settings.json 拿掉安裝紀錄裡、由 OmniKit 加的規則與 Stop hook；
+5. 權限與 hook：從 ~/.claude/settings.json（與其他 Claude 設定目錄的）拿掉安裝紀錄裡、由 OmniKit 加的規則、
+   Stop hook 與 SessionStart hook；
    從 ~/.codex/config.toml 拿掉 OmniKit 加的 Stop hook。
 6. git hook：這個 repo 不再使用 .githooks。
 7. 沒加 -KeepTools 時：移除安裝紀錄裡、由 OmniKit 裝的 npm 套件與工具（uv、gh、gitleaks；
@@ -117,8 +118,8 @@ if ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile) -or $hasEditionState
   $plan += '刪除接好的規則、profile 選擇、版本與免問核准的同意紀錄（%LOCALAPPDATA%\omnikit）'
 }
 if ($record['claude_allow']) { $plan += "從 ~/.claude/settings.json 拿掉權限規則：$($record['claude_allow'] -join ', ')" }
-if ($record['claude_hooks']) { $plan += '從 ~/.claude/settings.json 拿掉開新對話提醒 hook' }
-if ($record['claude_extra']) { $plan += "其他 Claude 設定目錄的 settings.json 也拿掉 OmniKit 加的權限規則與提醒 hook：$(@($record['claude_extra'][0].PSObject.Properties.Name) -join '、')" }
+if ($record['claude_hooks']) { $plan += '從 ~/.claude/settings.json 拿掉 OmniKit 的 hook（開新對話提醒、設定目錄檢查）' }
+if ($record['claude_extra']) { $plan += "其他 Claude 設定目錄的 settings.json 也拿掉 OmniKit 加的權限規則與 hook：$(@($record['claude_extra'][0].PSObject.Properties.Name) -join '、')" }
 if ($record['codex_hooks']) { $plan += '從 ~/.codex/config.toml 拿掉開新對話提醒 hook' }
 if ($hooksOn) { $plan += '這個 repo 不再使用 .githooks' }
 if (-not $KeepTools) {
@@ -218,7 +219,7 @@ function Remove-ClaudePermissions {
   if (-not ($record['claude_allow'] -or $record['claude_hooks'] -or $record['claude_extra'])) { return }
   $uv = Get-Uv
   if (-not $uv) {
-    Write-Warning "找不到 uv，請自己從 ~/.claude/settings.json 拿掉：$($record['claude_allow'] -join ', ') 與 hooks.Stop 裡的 session_nudge.py"
+    Write-Warning "找不到 uv，請自己從 ~/.claude/settings.json 拿掉：$($record['claude_allow'] -join ', ')、hooks.Stop 裡的 session_nudge.py 與 hooks.SessionStart 裡的 home_watch.py"
     return
   }
   $r = Invoke-UvRun $uv @('run', '--quiet', (Join-Path $Repo 'engine\scripts\claude_allow.py'), '--uninstall')
