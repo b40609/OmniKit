@@ -3,7 +3,7 @@
 範圍有兩批：
 
 1. T3 對話「Agent 工具與資源對 OmniKit 的參考價值」（threadId `c1b3c179-887a-4296-acbc-db8fdd355c26`，Kai 帳號的 Opus，2026-11-17 到 11-18，866 筆活動）提過的每個工具與資源。對話用 `t3_thread_read` 從頭讀到尾，報告檔讀了 `2026-11-17-links-review.md`、`A-prompt-audit.md`（都在 `~/.t3/scratch/2026-11-17-https-ultralab-tw-picks-https-dd355c26/`）；P3 與停止條件試用的結果讀 repo 裡的 `data/evals/2026-11-18-product-research-P3.md`、`data/evals/2026-11-18-research-stop-trial.md`。
-2. 使用者新看到的 Lightpanda Browser、REA、OpenDesign。
+2. 使用者新看到的 Lightpanda Browser、REA、OpenDesign，以及後來加的 Claude-BugHunter。
 
 做法：照 `omnikit-eval` 的第 0、1 層重做，不沿用原對話的結論。星數、授權、最後 push 都是 2026-11-18 用 `sweep.py verify` 或 `layer0.py` 實測。沒跑第 2 層，所以「採用」都只是建議，要換工具得跑第 2 層。同類工具的飽和調研見第 4 節。
 
@@ -59,13 +59,14 @@
 | alchaincyf/huashu-design | 一句話產生網頁、原型、PPTX 的設計 skill | ★29,792、MIT、v3.3.0 | 歸在「設計、行銷，不用看」 | **觀察** | skill 形式、跨 agent，直接對上 WP1 與 F2；是 taste-skill 的正面對手 | 若第 2 層勝出，可能取代 taste-skill（web-pages） |
 | Toonflow | Ultra Lab 清單裡的影片工具 | 找不到確定的 repo | 不用看 | 不收 | 沒查到一手來源 | 無 |
 
-### 2.2 三個新工具
+### 2.2 新提出的工具
 
 | 工具 | 一句話 | 現況（2026-11-18） | 建議 | 理由 | 換掉什麼 |
 |---|---|---|---|---|---|
 | **Lightpanda Browser**（lightpanda-io/browser） | Zig 從頭寫的無頭瀏覽器，CDP、內建 MCP、Markdown 輸出 | ★42,205、AGPL-3.0、v1.0.4（11-13） | **不採用**（卡片 `rejected`） | U1 要在 Windows 上讓 agent 看畫面：它沒有 Windows 原生執行檔（只能 WSL 或 Docker），而且不繪製頁面，截圖只有佔位內容；預設送遙測 | 換不掉 Claude 內建瀏覽器與 chrome-devtools-mcp。要這類輕量引擎，先看同類的 Obscura、Moli（第 4 節） |
 | **REA**（morluto/rea） | 一個 CLI 加 MCP，讓 agent 逆向 APK、.NET、Electron、原生程式 | ★467,233、MIT、rea-agents 6.9.0（11-12） | **採用（維持現任）** | 名冊裡已經是 X1 的預設；這次沒找到更好的。`layer0 --scan` 有 1 個 HIGH，出在維護者發版用的 `.agents/skills/rea-changelog-update/SKILL.md:120`（重抓 PR 內文再跑檢查），npm 套件不含這個 skill，判定誤判。同名的其他「REA」：Meta 的 REA 是內部的 ML 實驗 agent，不能下載；ThemeHackers/REAA 是 ★1 的不同專案。REA 的 README 也提醒有仿冒，只從 GitHub、rea.tools、npm 的 rea-agents 安裝 | 無；只差版本要不要跟上 6.9.0 |
 | **OpenDesign**（nexu-io/open-design） | 設計工作台：叫用你已有的 coding agent，依 DESIGN.md 產生原型、簡報、影片 | ★108,215、Apache-2.0 | **觀察**（卡片 `pending`） | 跟 unslop、taste-skill 不是同一種東西：那兩個在既有程式碼裡改畫面；OpenDesign 另開工作台先出原型。比較的對象是 claude-design（Claude Design）。疑慮：安全遙測一律開、首段推付費點數、要裝桌面 app 加 daemon | 不換 unslop（工具介面）；可能跟 taste-skill 競爭 WP1，要第 2 層盲選才知道 |
+| **Claude-BugHunter**（elementalsouls/Claude-BugHunter） | 授權滲透測試、bug bounty、紅隊用的 skill 包（83 個 skill、15 個指令、Burp MCP） | ★10,362、MIT、v2.1（06-05），11-18 仍有 push | **不採用**（卡片 `rejected`，放在 review 槽位以便比較） | 名字有 bug，但抓的是別人網站的資安漏洞，不是審自己 repo 的 diff。ryan 沒有授權攻擊外部目標的情境；R1 是交叉審 diff，現有的 /code-review、/security-review、Codex /review 才對得上。`layer0 --scan` 有 15 個 CRITICAL、12 個 HIGH，多半是攻擊教材裡的 payload 範例（第 6 節）。README 也提醒 Anthropic 的即時資安防護會擋這類請求或把模型切回舊版。同名的 mbijon/bughunter（★1）才是整個 repo 掃程式 bug 的 plugin，但用的人太少、4 月後沒更新，不建卡 | 不換 |
 
 ## 3. 跟原對話結論不同的地方
 
@@ -111,9 +112,26 @@
 
 `gh search repos rea` 依星數排第一的就是 morluto/rea（★467,231），沒有其他做 agent 工具的同名專案。網頁搜尋另找到 Meta 的 REA（內部 ML 實驗 agent，不能下載）與 ThemeHackers/REAA（★1，不同專案）。沒有另外做逆向工具的飽和調研：REA 是現任，這次的問題只是「使用者說的是不是它」。
 
+### 4.4 Claude-BugHunter
+
+用 `gh search repos`（「Claude-BugHunter」「claude bughunter」）和兩組網頁搜尋確認身分。正主是 elementalsouls/Claude-BugHunter（★10,362）；GitHub 上其他同名 repo 都是它的 fork 或鏡像（vishvacyber ★3、sseshachala ★2、haxshadow ★2、0xultronprime/ULTRON-PRIME-BugHunter ★0、rizkrisk ★0 等），不用分開評。
+
+名字裡有 bug，但跟名冊的審查工具不是同一件事：
+
+| 工具 | 抓什麼 | 對上 R1（交叉審 diff）嗎 |
+|---|---|---|
+| Claude Code `/code-review`、`/security-review`（內建） | 這次改動的正確性與安全問題 | 對上，是現任答案 |
+| Codex `/review`（內建） | 同上，跨家交叉審 | 對上 |
+| codex-security（名冊 pending） | OpenAI 的資安審查 plugin | 部分 |
+| elementalsouls/Claude-BugHunter | 別人網站、企業外網的可利用漏洞，產出 bug bounty 報告 | 不對上 |
+| mbijon/bughunter（★1，MIT） | 整個 repo 的行為 bug（Haiku 掃、Opus 複審，報告附重現步驟），掃描 3 個 skill 都只有 INFO | 補得上「整個 repo 掃一遍」，但只有 1 顆星、2026-04-23 後沒更新，不建卡 |
+| 其他叫 bug-hunter／bug-hunt 的 skill（sickn33/agentic-awesome-skills ★49,929 合集裡的一支、chrisallenlane/claude-swe-workflows ★21 等） | 除錯流程 | 沒評，作者都不同，別跟這個搞混 |
+
+這題沒做審查工具的飽和調研：使用者問的是「這個工具」，答案是它不屬於審查槽位。要找更好的審查工具，得另外開一題。
+
 ## 5. 收件匣與名冊的變動
 
-- 新卡：`lightpanda`（rejected）、`open-design`（pending）、`huashu-design`（pending）、`deja-vu`（pending）、`entire-cli`（pending）、`openwolf`（pending）、`cli-continues`（rejected）。
+- 新卡：`lightpanda`（rejected）、`open-design`（pending）、`huashu-design`（pending）、`deja-vu`（pending）、`entire-cli`（pending）、`openwolf`（pending）、`cli-continues`（rejected）、`claude-bughunter`（rejected）。
 - 收件匣：deja-vu、entire CLI、cli-continues、openwolf 移進名冊；features-overview 已完成，刪掉；mcp-scanner 補一句重評；新增 Obscura、Moli、Open CoDesign、ui-ux-pro-max-skill、hallmark、emilkowalski/skills 與 design.md。
 - `rea`：notes 補上這次的掃描與版本，狀態與版本沒動（升版在第 1 節問）。
 - 沒改：`gpt-researcher`、`local-deep-research`（等你決定）。
@@ -128,9 +146,11 @@
 - OpenDesign 的遙測實際送什麼，沒讀程式碼。
 - **OpenDesign 的 `layer0 --scan` 沒跑完**：repo 裡有上百個設計範本與 skill，逐一掃了一個多小時還沒結束，2026-11-18 手動停掉，沒有結果。要試用前得重跑（建議只掃它實際會裝的 skill 資料夾，或在背景跑整晚）。Lightpanda 的掃描跑完但「沒有 skill」，等於沒掃到東西（見 mcp-scanner 那列）。
 - 兩份同類調研都在 12 組上限停下、沒有飽和（第 4 節）。
+- Claude-BugHunter 的 skill 數各來源說法不一（README 開頭 83、搜尋結果與舊文 51 到 82）；以 2026-11-18 的 README 為準。
+- Claude-BugHunter 的 `layer0 --scan`（2026-11-18）：83 個 skill 中 15 個 CRITICAL、12 個 HIGH、1 個 MEDIUM、55 個 INFO。看過片段，命中的幾乎都是攻擊教材裡的 payload 範例（SQL 注入、XSS、`; rm -rf /` 檔名注入、find -exec 抽 APK 字串、講 Codecov 事件的 `curl | bash`、Jenkins 憑證外洩手法），不是安裝時會自動執行的程式；但這也表示裝了之後，agent 會照這些 skill 對目標送攻擊流量。沒有逐個 skill 讀完整程式碼。判定不影響「不採用」，因為理由是情境對不上。
 
 ## 來源
 
 - T3 對話：https://app.t3.codes/threads/0847f0dd-f941-4d6a-8b23-fda04fe00a52/c1b3c179-887a-4296-acbc-db8fdd355c26
-- https://github.com/lightpanda-io/browser 、https://github.com/nexu-io/open-design 、https://github.com/morluto/rea （README 用 `gh api repos/<repo>/readme` 讀，2026-11-18）
+- https://github.com/lightpanda-io/browser 、https://github.com/nexu-io/open-design 、https://github.com/morluto/rea 、https://github.com/elementalsouls/Claude-BugHunter 、https://github.com/mbijon/bughunter （README 用 `gh api repos/<repo>/readme` 讀，2026-11-18）
 - 星數、授權、最後 push：`sweep.py verify`、`layer0.py`，2026-11-18

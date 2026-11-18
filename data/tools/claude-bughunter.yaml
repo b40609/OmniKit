@@ -1,0 +1,16 @@
+id: claude-bughunter
+name: Claude-BugHunter（elementalsouls）
+kind: collection
+slots:
+- review
+status: rejected
+reason: 用途是授權的外部滲透測試、bug bounty 與紅隊（打別人的網站、VPN、M365），不是審自己 repo 的 diff；ryan 沒有這類情境，R1（交叉審 diff）由 /code-review、/security-review、Codex /review 負責，它換不掉也補不上。有授權資安工作的使用者再另外評。
+decided_at: '2026-11-18'
+url: https://github.com/elementalsouls/Claude-BugHunter
+works_with:
+- claude
+- codex
+sources:
+- 使用者提出
+notes: ★10,362，MIT，最後 push 2026-11-18，最新發行版 v2.1（2026-06-05），2026-11-18 sweep.py verify。作者 Sachin Sharma。Claude Code plugin（也能用 install 腳本複製到 Codex、Antigravity、OpenCode、Hermes 的 skill 資料夾），README 寫 83 個 skill、15 個斜線指令、681 份公開 HackerOne 報告整理出的攻擊手法，另有 cbh CLI、hunt 腳手架與 Burp MCP。範圍是網路上的外部攻擊面（XSS、SSRF、IDOR、OAuth、企業 VPN 與 M365 的 CVE 鏈），內網 AD、C2、規避防毒刻意不做。README 自己提醒 Anthropic 的即時資安防護會擋或把 Opus 5 切回舊模型，建議走 Cyber Verification Program。同名的不要搞混：mbijon/bughunter（★1，MIT，整個 repo 掃程式 bug 的 Claude Code plugin，Haiku 掃、Opus 複審，2026-04-23 後沒更新）才是抓程式 bug 的，但用的人太少；GitHub 上其他 Claude-BugHunter 都是這個專案的 fork 或鏡像（★0 到 ★3）。2026-11-18 layer0 --scan：83 個 skill 中 15 個 CRITICAL、12 個 HIGH、1 個 MEDIUM、55 個 INFO。看過片段，命中的幾乎都是攻擊教材裡的 payload 範例（SQL 注入、XSS、`; rm -rf /` 檔名注入、find -exec 抽 APK 字串、講 Codecov 事件的 `curl | bash`、Jenkins 憑證外洩手法），不是安裝時會自動執行的程式；但這也表示裝了之後，agent 會照這些 skill 對目標送攻擊流量。沒有逐個 skill 讀完整程式碼。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+added: '2026-11-18'
