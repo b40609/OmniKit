@@ -512,7 +512,16 @@ def make_workspace(arm: str, rules: pathlib.Path | None) -> pathlib.Path:
 
 
 def fired(run) -> bool:
-    return "omnikit-ask" in json.dumps(run["tools"], ensure_ascii=False)
+    """真的讀了 omnikit-ask 資料夾裡的檔才算叫用。
+
+    只看工具參數裡的路徑：列目錄、Test-Path 或名稱相近的資料夾（omnikit-ask-eval-…）不算。
+    2026-11-18 拿 861 筆舊結果比對，跟舊的「出現字串就算」只差這兩種，共 2 筆。
+    """
+    for tool in run["tools"]:
+        for value in (tool.get("rawInput") or {}).values():
+            if isinstance(value, str) and "omnikit-ask/" in value.replace("\\", "/"):
+                return True
+    return False
 
 
 def save(run, out_dir):
