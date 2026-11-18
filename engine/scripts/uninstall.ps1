@@ -119,9 +119,9 @@ if ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile) -or $hasEditionState
   $plan += '刪除接好的規則、profile 選擇、版本與免問核准的同意紀錄（%LOCALAPPDATA%\omnikit）'
 }
 if ($record['claude_allow']) { $plan += "從 ~/.claude/settings.json 拿掉權限規則：$($record['claude_allow'] -join ', ')" }
-if ($record['claude_hooks']) { $plan += '從 ~/.claude/settings.json 拿掉 OmniKit 的 hook（開新對話提醒、設定目錄檢查）' }
+if ($record['claude_hooks']) { $plan += '從 ~/.claude/settings.json 拿掉 OmniKit 的 hook（開新對話提醒、說做不到查證、設定目錄檢查）' }
 if ($record['claude_extra']) { $plan += "其他 Claude 設定目錄的 settings.json 也拿掉 OmniKit 加的權限規則與 hook：$(@($record['claude_extra'][0].PSObject.Properties.Name) -join '、')" }
-if ($record['codex_hooks']) { $plan += '從 ~/.codex/config.toml 拿掉開新對話提醒 hook' }
+if ($record['codex_hooks']) { $plan += '從 ~/.codex/config.toml 拿掉 OmniKit 的 Stop hook（開新對話提醒、說做不到查證）' }
 if ($hooksOn) { $plan += '這個 repo 不再使用 .githooks' }
 if (-not $KeepTools) {
   if ($npmPackages) { $plan += "移除 npm 全域套件：$($npmPackages -join ', ')" }
@@ -220,7 +220,7 @@ function Remove-ClaudePermissions {
   if (-not ($record['claude_allow'] -or $record['claude_hooks'] -or $record['claude_extra'])) { return }
   $uv = Get-Uv
   if (-not $uv) {
-    Write-Warning "找不到 uv，請自己從 ~/.claude/settings.json 拿掉：$($record['claude_allow'] -join ', ')、hooks.Stop 裡的 session_nudge.py 與 hooks.SessionStart 裡的 home_watch.py"
+    Write-Warning "找不到 uv，請自己從 ~/.claude/settings.json 拿掉：$($record['claude_allow'] -join ', ')、hooks.Stop 裡的 session_nudge.py、claim_check.py 與 hooks.SessionStart 裡的 home_watch.py"
     return
   }
   $r = Invoke-UvRun $uv @('run', '--quiet', (Join-Path $Repo 'engine\scripts\claude_allow.py'), '--uninstall')
@@ -231,7 +231,7 @@ function Remove-CodexHook {
   if (-not $record['codex_hooks']) { return }
   $uv = Get-Uv
   if (-not $uv) {
-    Write-Warning '找不到 uv，請自己從 ~/.codex/config.toml 拿掉 OmniKit 加的 [[hooks.Stop]]（session_nudge.py）'
+    Write-Warning '找不到 uv，請自己從 ~/.codex/config.toml 拿掉 OmniKit 加的 [[hooks.Stop]]（session_nudge.py、claim_check.py）'
     return
   }
   $r = Invoke-UvRun $uv @('run', '--quiet', (Join-Path $Repo 'engine\scripts\codex_hooks.py'), '--uninstall')

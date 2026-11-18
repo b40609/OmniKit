@@ -2,7 +2,8 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""在 Codex 的 ~/.codex/config.toml 註冊開新對話提醒（session_nudge.py）的 Stop hook。
+"""在 Codex 的 ~/.codex/config.toml 註冊 OmniKit 的 Stop hook：開新對話提醒（session_nudge.py）與
+說做不到查證（claim_check.py）。每支各寫成一段 [[hooks.Stop]]，可以分開加、分開拿掉。
 
 寫進 config.toml 而不是 hooks.json：同一層兩種都有時 Codex 每次啟動都會警告，
 而 config.toml 常已有別的工具寫的 [hooks]。Python 沒有保留格式的 TOML 寫入器（tomlkit 會重排表格），
@@ -11,7 +12,7 @@
 
 Codex 在 Windows 上用 `pwsh -NoProfile -Command <command>` 跑 hook，所以指令前面要加 PowerShell 的 `&`。
 Codex 的新 hook 或改過的 hook 要使用者信任後才會執行（CLI 輸入 /hooks，桌面版在設定的 Hooks），
-這裡不代為信任。安裝紀錄記 codex_hooks；--uninstall 只在紀錄裡有時才移除。
+這裡不代為信任。安裝紀錄的 codex_hooks 記加了哪幾支；--uninstall 只移除紀錄裡有的。
 
 用法：uv run engine/scripts/codex_hooks.py [--config <config.toml>] [--record <install-record.json>] [--uninstall]
 """
@@ -25,11 +26,19 @@ import tempfile
 import tomllib
 from pathlib import Path
 
-from claude_allow import NUDGE, RECORD, is_nudge, load, nudge_command, save
+from claude_allow import CLAIM, HOOK_NAMES, NUDGE, RECORD, hook_command, is_ours, load, save
 from fsretry import flaky, retry  # 防毒短暫鎖住檔案時等一下再試（FR-34）
 
-MARK = "# OmniKit：開新對話提醒（install.ps1 加入、uninstall.ps1 移除）"
-COMMAND_LINE = re.compile(r"^command\s*=.*" + re.escape(NUDGE) + r".*$", re.M)
+SCRIPTS = (NUDGE, CLAIM)  # OmniKit 在 Codex 註冊的 Stop hook，照這個順序寫
+MARKS = {script: f"# OmniKit：{HOOK_NAMES[script]}（install.ps1 加入、uninstall.ps1 移除）" for script in SCRIPTS}
+MARK = MARKS[NUDGE]
+
+
+def command_line(script: str):
+    return re.compile(r"^command\s*=.*" + re.escape(script) + r".*$", re.M)
+
+
+COMMAND_LINE = command_line(NUDGE)
 HEADER = re.compile(r"^\s*\[")
 GROUP = re.compile(r"^\s*\[\[\s*hooks\.Stop\s*\]\]\s*$")
 PARTS = re.compile(r'"([^"]+)" run --quiet --script "([^"]+)"')
@@ -50,10 +59,10 @@ def stop_groups(doc: dict) -> list:
     return doc.get("hooks", {}).get("Stop", [])
 
 
-def without_nudge(doc: dict) -> dict:
-    """預期的移除結果：拿掉提醒 hook，變空的 group、Stop、hooks 一併拿掉。"""
+def without(doc: dict, script: str = NUDGE) -> dict:
+    """預期的移除結果：拿掉這支 hook，變空的 group、Stop、hooks 一併拿掉。"""
     doc = copy.deepcopy(doc)
-    groups = [{**g, "hooks": [h for h in g.get("hooks", []) if not is_nudge(h)]} for g in stop_groups(doc)]
+    groups = [{**g, "hooks": [h for h in g.get("hooks", []) if not is_ours(h, script)]} for g in stop_groups(doc)]
     groups = [g for g in groups if g["hooks"]]
     if groups:
         doc["hooks"]["Stop"] = groups
@@ -70,41 +79,42 @@ def checked(new: str, expected: dict) -> str:
     return new
 
 
-def add(text: str, command: str) -> str | None:
+def add(text: str, command: str, script: str = NUDGE) -> str | None:
     """回傳改好的內容；已是最新就回傳 None。uv 不見了或 repo 換位置時，只換掉 command 那一行。"""
     doc = tomllib.loads(text)
-    ours = [h for g in stop_groups(doc) for h in g.get("hooks", []) if is_nudge(h)]
+    ours = [h for g in stop_groups(doc) for h in g.get("hooks", []) if is_ours(h, script)]
     if ours and all(h.get("command") == command or still_valid(h.get("command", ""), command) for h in ours):
         return None
     expected = copy.deepcopy(doc)
     if ours:
         for g in stop_groups(expected):
             for h in g.get("hooks", []):
-                if is_nudge(h):
+                if is_ours(h, script):
                     h["command"] = command
-        return checked(COMMAND_LINE.sub(lambda _: f"command = {toml_str(command)}", text), expected)
+        return checked(command_line(script).sub(lambda _: f"command = {toml_str(command)}", text), expected)
     expected.setdefault("hooks", {}).setdefault("Stop", []).append(
         {"hooks": [{"type": "command", "command": command, "timeout": 10}]})
-    block = f'{MARK}\n[[hooks.Stop]]\n\n[[hooks.Stop.hooks]]\ntype = "command"\ncommand = {toml_str(command)}\ntimeout = 10\n'
+    block = f'{MARKS[script]}\n[[hooks.Stop]]\n\n[[hooks.Stop.hooks]]\ntype = "command"\ncommand = {toml_str(command)}\ntimeout = 10\n'
     return checked((text.rstrip("\n") + "\n\n" if text.strip() else "") + block, expected)
 
 
-def remove(text: str) -> str | None:
-    """拿掉提醒 hook 所在的 [[hooks.Stop.hooks]] 表；group 因此變空就連 [[hooks.Stop]] 標頭一起拿掉。"""
+def remove(text: str, script: str = NUDGE) -> str | None:
+    """拿掉這支 hook 所在的 [[hooks.Stop.hooks]] 表；group 因此變空就連 [[hooks.Stop]] 標頭一起拿掉。"""
     doc = tomllib.loads(text)
-    if not any(is_nudge(h) for g in stop_groups(doc) for h in g.get("hooks", [])):
+    if not any(is_ours(h, script) for g in stop_groups(doc) for h in g.get("hooks", [])):
         return None
-    expected = without_nudge(doc)
+    expected = without(doc, script)
     lines = text.split("\n")
-    cmd = next((i for i, line in enumerate(lines) if COMMAND_LINE.match(line)), None)
+    pattern = command_line(script)
+    cmd = next((i for i, line in enumerate(lines) if pattern.match(line)), None)
     if cmd is None:
-        raise ValueError("找不到提醒 hook 的 command 那一行")
+        raise ValueError(f"找不到 {script} 的 command 那一行")
     start = max(i for i in range(cmd) if HEADER.match(lines[i]))
     end = next((i for i in range(cmd + 1, len(lines)) if HEADER.match(lines[i])), len(lines))
     while end - 1 > cmd and (not lines[end - 1].strip() or lines[end - 1].lstrip().startswith("#")):
         end -= 1  # 後面的空行與下一個表上方的註解留給下一個表
     # 候選：連同最近的 [[hooks.Stop]] 標頭（與上方的 OmniKit 註解）一起拿掉；或只拿掉 hooks 表
-    drops = [set(range(start, end)) | {g} | ({g - 1} if g and lines[g - 1] == MARK else set())
+    drops = [set(range(start, end)) | {g} | ({g - 1} if g and lines[g - 1] == MARKS[script] else set())
              for g in range(start - 1, -1, -1) if GROUP.match(lines[g])]
     drops.append(set(range(start, end)))
     for drop in drops:
@@ -118,7 +128,7 @@ def remove(text: str) -> str | None:
             return checked(new, expected)
         except (ValueError, tomllib.TOMLDecodeError):
             continue
-    raise ValueError("找不到能安全拿掉提醒 hook 的寫法")
+    raise ValueError(f"找不到能安全拿掉 {script} 的寫法")
 
 
 def read(path: Path) -> tuple[str, str]:
@@ -157,6 +167,16 @@ def selftest() -> int:
         raise AssertionError("inline 寫法應該失敗")
     except tomllib.TOMLDecodeError:
         pass
+    # 兩支 OmniKit hook（提醒與說做不到查證）各一段：分開加、分開拿掉，順序不影響
+    claim = cmd.replace(NUDGE, CLAIM)
+    both = add(ours, claim, CLAIM)
+    assert MARKS[CLAIM] in both and add(both, claim, CLAIM) is None and add(both, cmd) is None
+    assert len(stop_groups(tomllib.loads(both))) == 2
+    assert remove(both, CLAIM) == ours and remove(remove(both), CLAIM) == base
+    only_claim = remove(both)
+    assert MARK not in only_claim and MARKS[CLAIM] in only_claim
+    assert [h["command"] for g in stop_groups(tomllib.loads(only_claim)) for h in g["hooks"]] == [claim]
+    assert remove(base, CLAIM) is None
     # 防毒短暫鎖住 config.toml（FR-34）：等一下再試，寫進去的內容與換行照原本的
     with tempfile.TemporaryDirectory() as tmp:
         config = Path(tmp) / "config.toml"
@@ -182,36 +202,53 @@ def main() -> int:
     try:
         return apply(args)
     except (ValueError, tomllib.TOMLDecodeError) as e:
-        print(f"沒有改動 {args.config}：{e}。請手動處理 [[hooks.Stop]] 裡的 {NUDGE}。", file=sys.stderr)
+        print(f"沒有改動 {args.config}：{e}。請手動處理 [[hooks.Stop]] 裡的 {'、'.join(SCRIPTS)}。", file=sys.stderr)
         return 1
+
+
+def names(scripts) -> str:
+    return "、".join(HOOK_NAMES[s] for s in scripts)
 
 
 def apply(args: argparse.Namespace) -> int:
     record = load(args.record)
     text, newline = read(args.config)
     if args.uninstall:
-        new = remove(text) if record.get("codex_hooks") else None
-        if new is None:
-            print("沒有要移除的 Codex 提醒 hook。")
+        recorded = record.get("codex_hooks") or []
+        # 舊版的紀錄只有提醒 hook；認不得的內容也當成提醒 hook
+        wanted = [s for s in SCRIPTS if s in recorded] or ([NUDGE] if recorded else [])
+        removed = []
+        for script in wanted:
+            new = remove(text, script)
+            if new is not None:
+                text = new
+                removed.append(script)
+        if not removed:
+            print("沒有要移除的 Codex hook。")
             return 0
-        if new:
-            write(args.config, new, newline)
+        if text:
+            write(args.config, text, newline)
         else:
             args.config.unlink()  # 裝之前沒有這個檔，只剩 OmniKit 加的那段
-        print("已移除 Codex 的開新對話提醒 hook")
+        print(f"已移除 Codex 的 hook：{names(removed)}")
         return 0
 
     if not args.config.parent.exists():
-        print("沒有 Codex 的設定資料夾，略過 Codex 的提醒 hook。")
+        print("沒有 Codex 的設定資料夾，略過 Codex 的 hook。")
         return 0
-    new = add(text, "& " + nudge_command())
-    if new is None:
-        print("Codex 的提醒 hook 已是最新。")
+    added = []
+    for script in SCRIPTS:
+        new = add(text, "& " + hook_command(script), script)
+        if new is not None:
+            text = new
+            added.append(script)
+    if not added:
+        print("Codex 的 OmniKit hook 已是最新。")
         return 0
-    write(args.config, new, newline)
-    record["codex_hooks"] = [NUDGE]
+    write(args.config, text, newline)
+    record["codex_hooks"] = list(dict.fromkeys([*(record.get("codex_hooks") or []), *added]))
     save(args.record, record)
-    print("已註冊 Codex 的開新對話提醒 hook（Stop）。Codex 要信任後才會執行：CLI 輸入 /hooks，桌面版到設定的 Hooks。")
+    print(f"已註冊或更新 Codex 的 Stop hook：{names(added)}。Codex 要信任後才會執行：CLI 輸入 /hooks，桌面版到設定的 Hooks。")
     return 0
 
 

@@ -151,6 +151,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 | `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡；「每週彙整」是維護者評估工具用的 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval`，Codex 輸入 `$omnikit-eval`。Codex 與 Antigravity 用的是複製品，skill 改完要 commit 才會更新 |
 | `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 已加進免問清單，Codex 設成自動核准，兩邊都不會跳權限確認；Antigravity 照它自己的權限設定 |
 | 開新對話提醒 | 每回合結束時檢查一次：這段對話第一次成功 `git push`、或累計第 1、3、9、27… 次自動壓縮，就跳一行提醒你考慮開新對話；任務還沒做完的話，跟 agent 說「交接」。不看 token 數（各模型上限不同，自動壓縮才是 agent 自己判斷滿了）。提醒本身不會自己換對話 | Claude Code 裝好就生效；由別的對話開出來的子對話不提醒，做完看收尾的狀態就好。Codex 的新 hook 要先信任才會跑，CLI 輸入 `/hooks`、桌面版到設定的 Hooks 按信任；OmniKit 搬位置或原本那支 uv 不在了，指令會改，要再信任一次 |
+| 說做不到查證 | 每回合結束時看 agent 的最後一則回覆：自己說「做不到、沒有工具、沒辦法、請你手動做、還不能」，整則又沒附查證（能力清點、`--help`、文件網址、檔案:行號、實際的錯誤輸出），就擋回去一次，要它先照 `omnikit-capabilities` 查完再回答。轉述別人、引用規則、程式碼與錯誤訊息裡的字、條件句與問句、本來就要你做的事（登入核准、付款、拍板）不擋；第二次收尾一定放行，不會卡住。誤判率實測見 `data/evals/2026-11-18-claim-check-hook.md` | Claude Code 裝好就生效（每個 Claude 設定目錄都接）；Codex 一樣要先在 `/hooks` 信任。暫時關掉：設環境變數 `OMNIKIT_CLAIM_CHECK=off` |
 | git hooks（只有維護者版） | 只作用在 OmniKit repo：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、MCP、權限時自動同步。同事版不設 | 跟 agent 無關 |
 
 開新的 session 試試看：
@@ -248,11 +249,11 @@ flowchart LR
 | `~/.claude/skills` | `engine/skills` 的每個 skill 用資料夾連結接上，改完馬上生效 |
 | `~/.agents/skills` | Codex 的：`engine/skills` 的每個 skill 複製一份，裡面的 `.omnikit.json` 記來源；同名但不是 OmniKit 的不碰 |
 | `~/.gemini/config/skills` | Antigravity 的（App、IDE 與 CLI 共用）：一樣複製一份、帶 `.omnikit.json`，因為 Antigravity 不跟隨資料夾連結。它不讀 `~/.agents/skills`（`.agents/skills` 只在專案資料夾裡有效） |
-| `~/.claude.json`、`~/.codex/config.toml`、`~/.gemini/config/mcp_config.json` | 寫入 `data/mcp/servers.yaml` 的 MCP server，只動這些 server 裡 OmniKit 管的欄位；你加的欄位（例如停用）與 Codex 的工具核准紀錄都留著。被你改過、被你移除，或同名但不是 OmniKit 的，那個 server 略過不動，見 [MCP 有衝突時](#mcp-有衝突時)。Claude 用 `claude mcp add-json`；Codex 寫入前驗證其他設定沒被動到；Antigravity 不寫 BOM（它讀到 BOM 會整份失敗）。`config.toml` 結尾另加一段 `[[hooks.Stop]]` 開新對話提醒 |
+| `~/.claude.json`、`~/.codex/config.toml`、`~/.gemini/config/mcp_config.json` | 寫入 `data/mcp/servers.yaml` 的 MCP server，只動這些 server 裡 OmniKit 管的欄位；你加的欄位（例如停用）與 Codex 的工具核准紀錄都留著。被你改過、被你移除，或同名但不是 OmniKit 的，那個 server 略過不動，見 [MCP 有衝突時](#mcp-有衝突時)。Claude 用 `claude mcp add-json`；Codex 寫入前驗證其他設定沒被動到；Antigravity 不寫 BOM（它讀到 BOM 會整份失敗）。`config.toml` 結尾另加兩段 `[[hooks.Stop]]`：開新對話提醒與說做不到查證 |
 | `%LOCALAPPDATA%\omnikit\` | `profiles\<名稱>\` 是訪談產生的 profile（個人資料，不在 repo 裡；移除時也不刪）；`profile.json` 記這台選的 profile；`edition.json` 記這台是維護者版還是同事版；`consent.json` 記你同意了哪些工具免問；`agents.json` 記接上了哪些 agent、OmniKit 管了哪些 skills，以及每個 MCP server 寫入時的雜湊（判斷有沒有被改過）；`rules\AGENTS.md` 是底線與 profile 接在一起的內容（移除時比對用） |
 | 舊版的 skillshare | 以前用 skillshare 接的電腦，重跑 `install.ps1` 會改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分；skillshare 本身不刪 |
 | npm 全域套件 | 安裝 `data/mcp/packages.txt` 指定的固定版本 |
-| `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪；同事版只補你同意過的工具。在 `hooks.Stop` 加上開新對話提醒（`engine/scripts/session_nudge.py`），在 `hooks.SessionStart` 加上設定目錄檢查（`engine/scripts/home_watch.py`：發現新帳號的設定目錄就在背景接上） |
+| `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪；同事版只補你同意過的工具。在 `hooks.Stop` 加上開新對話提醒（`engine/scripts/session_nudge.py`）與說做不到查證（`engine/scripts/claim_check.py`），在 `hooks.SessionStart` 加上設定目錄檢查（`engine/scripts/home_watch.py`：發現新帳號的設定目錄就在背景接上） |
 | 其他設定目錄 | 多帳號或啟動器另外指定的設定目錄（`CLAUDE_CONFIG_DIR`、`CODEX_HOME`、T3 Code 每個實例的 homePath、有 `.claude.json` 的 `~/.claude-*` 等，`engine/scripts/homes.py` 找）：規則區塊、MCP、Claude 的 skills、權限規則與 hook 都跟預設目錄一樣寫 |
 | `~/.t3/userdata/settings.json`、`~/.omnikit/acp/` | T3 Code 的 Antigravity 實例走 ACP 模式，不讀 `GEMINI.md`。把每個實例的 Binary path（`config.binaryPath`）設成 OmniKit 的轉接程式 `omnikit-acp.cmd`，它跑 T3 自己裝的 server，開新對話時把 `~/.gemini/GEMINI.md` 帶進系統提示（`engine/scripts/t3_acp.py`、`acp_shim.py`）。T3 自己補的預設實例（`antigravity`，設定檔沒列）也接上；只改沒設的，你自己設了 Binary path 的不動，`doctor.py` 會列出來。設定後 T3 會重建那個實例，開著的 Antigravity 對話會斷一次。只裝 T3 沒裝 Antigravity CLI 也算有 Antigravity。移除時改回 T3 自動選。目前只支援 Windows。轉接程式不放 `%LOCALAPPDATA%`：從 Claude 桌面版這類 MSIX 封裝的 app 裡安裝時，AppData 底下新建的檔會被轉存到那個 app 的私人位置，T3 看不到 |
 | 這個 repo | 維護者版：`core.hooksPath` 指到 `.githooks`，commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、skills、MCP、權限、提醒 hook 時自動同步。同事版不設 git hook |
@@ -598,7 +599,7 @@ data/                        資料：fork 後換成你的
   evals/                     實測紀錄
 engine/                      引擎：不用改
   schema/                    名冊與槽位的 JSON Schema
-  scripts/                   安裝、接上三個 agent、掃描、使用統計、個人週報、建議、規則檔的大小與內容、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒
+  scripts/                   安裝、接上三個 agent、掃描、使用統計、個人週報、建議、規則檔的大小與內容、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒、說做不到查證
   site/                      看板的樣式與程式，以及匯出的架構地圖（map.html）
   skills/omnikit-setup/      訪談建立個人 profile 的 skill
   skills/omnikit-ask/        問法庫與官方功能對照的 skill（每個人都有）

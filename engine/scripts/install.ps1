@@ -36,8 +36,9 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
    - 舊版用 skillshare 接的，改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分（skillshare 本身不刪）。
 5. 免問核准：Claude Code 的權限規則（data/harness/claude-allow.txt，只增不刪）與 Codex 的
    default_tools_approval_mode。維護者版照 data 寫入；同事版每個工具先問，本人同意了才寫入（預設否）。
-   另外在 Claude Code 與 Codex 註冊開新對話提醒的 Stop hook（session_nudge.py）；
-   Codex 要使用者在 /hooks 信任後才會執行。Claude Code 再註冊 SessionStart 的設定目錄檢查（home_watch.py）。
+   另外在 Claude Code 與 Codex 註冊兩個 Stop hook：開新對話提醒（session_nudge.py）與說做不到查證
+   （claim_check.py：回覆說做不到卻沒附查證時擋回去一次）；Codex 要使用者在 /hooks 信任後才會執行。
+   Claude Code 再註冊 SessionStart 的設定目錄檢查（home_watch.py）。
 6. git hook，只有維護者版：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、skills、MCP 或權限規則時，
    自動同步。同事版不設 git hook，pull 不會改任何設定；要套用更新就重跑 install.ps1（先用 -WhatIf 預覽）。
 7. 檢查 OmniKit repo 的 git 身分，只有維護者版。
@@ -356,11 +357,11 @@ function Grant-ClaudePermissions {
   if ($r.Code -ne 0) { throw "claude_allow.py 失敗（exit $($r.Code)）" }
 }
 
-# Codex 的開新對話提醒 hook；TOML 交給 Python 改，寫入前會驗證沒動到其他設定。
-# 只是提醒，失敗時警告就好，不擋後面的步驟
+# Codex 的 Stop hook（開新對話提醒、說做不到查證）；TOML 交給 Python 改，寫入前會驗證沒動到其他設定。
+# 失敗時警告就好，不擋後面的步驟
 function Register-CodexHook {
   $r = Invoke-UvRun (Get-Uv) @('run', '--quiet', (Join-Path $Repo 'engine\scripts\codex_hooks.py'))
-  if ($r.Code -ne 0) { Write-Warning "codex_hooks.py 失敗（exit $($r.Code)），Codex 的開新對話提醒沒有註冊" }
+  if ($r.Code -ne 0) { Write-Warning "codex_hooks.py 失敗（exit $($r.Code)），Codex 的 Stop hook 沒有註冊" }
 }
 
 # 只留下 OmniKit 的受管區塊；舊內容先備份
@@ -512,8 +513,9 @@ function Show-InstallPlan {
     $plan += "免問核准（$($approveTools -join '、')）：安裝時逐一問你，同意了才寫進 ~/.claude/settings.json 與 ~/.codex/config.toml（預設否）"
   }
   $plan += '開新對話提醒：加進 ~/.claude/settings.json 與 ~/.codex/config.toml 的 Stop hook（Codex 要到 /hooks 信任才會跑）'
+  $plan += '說做不到查證：加進同樣兩處的 Stop hook，回覆說做不到、沒有工具、請你手動做卻沒附查證時，擋回去要 agent 先查（每次最多擋一次）'
   $plan += '設定目錄檢查：加進 ~/.claude/settings.json 的 SessionStart hook，開新對話時發現新的設定目錄（新帳號）就在背景接上'
-  $plan += '其他 Claude 設定目錄的 settings.json：權限規則與兩個 hook 一樣寫'
+  $plan += '其他 Claude 設定目錄的 settings.json：權限規則與三個 hook 一樣寫'
   $hooksOn = (git -C $Repo config --get core.hooksPath) -eq '.githooks'
   if ($edition -eq 'maintainer' -and -not $hooksOn) {
     $plan += '這個 repo 改用 .githooks：commit 前掃金鑰、驗證名冊；改到規則、skills、MCP 等檔案時自動同步'

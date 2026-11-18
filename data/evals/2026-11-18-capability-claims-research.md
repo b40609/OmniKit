@@ -104,7 +104,7 @@
 
 ## 7. 沒做、列為下一步
 
-1. **用 hook 強制（Claude Code 與 Codex 的 Stop hook）**：官方說不能有例外的規則要改成 hook。可以做一支 Stop hook：最後的回覆出現「做不到、沒有工具、請你手動」這類句子，卻沒有附查證（清點、`--help`、文件網址）時，擋回去要 agent 先查。要先量誤判率（例如真的做不到、或只是在轉述別人說做不到），所以另開一條做。
+1. **用 hook 強制（Claude Code 與 Codex 的 Stop hook）**：官方說不能有例外的規則要改成 hook。可以做一支 Stop hook：最後的回覆出現「做不到、沒有工具、請你手動」這類句子，卻沒有附查證（清點、`--help`、文件網址）時，擋回去要 agent 先查。要先量誤判率（例如真的做不到、或只是在轉述別人說做不到），所以另開一條做。（2026-11-18 已做：`engine/scripts/claim_check.py`，誤判率見 [2026-11-18-claim-check-hook.md](2026-11-18-claim-check-hook.md)）
 2. **前後對照實測**：用這次的 T3 案例當題目（例如「把這個任務派給 T3 的 antigravity_kai，用 gemini-3.8-flash」），在 Claude Code、Codex、Antigravity 各跑幾次，比較新規則上線前後還會不會說做不到；照 `omnikit-ask` 的叫用測試做法。
 3. **登入 T3 的 MCP 並實測**：Claude Code 已登記 t3，只差使用者跑一次 `claude mcp login t3`；Codex 要先 `codex mcp add t3 --url http://127.0.0.1:3773/mcp` 再登入。登入之後實測 `t3_thread_launch` 帶思考程度與 `t3_thread_organize` settle，把分派政策裡的「未實測」改掉。
 4. **開局注入**：Claude Code 的 `SessionStart` command hook 與 Gemini CLI 的 `tools.discoveryCommand` 都能在開局把清點結果放進 context。這次沒做：每次開局都要多付幾百字的成本，先看規則加 skill 夠不夠（第 2 項的結果）。

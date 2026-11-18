@@ -3,7 +3,7 @@
 # dependencies = []
 # ///
 """把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的 permissions.allow，並註冊 OmniKit 的 hook：
-- hooks.Stop：開新對話提醒（session_nudge.py）
+- hooks.Stop：開新對話提醒（session_nudge.py）、說做不到查證（claim_check.py：回覆說做不到卻沒附查證時擋回去一次）
 - hooks.SessionStart：設定目錄檢查（home_watch.py）：這台多了新的 agent 設定目錄（新帳號、新的 T3 實例）就在背景接上
 其他 Claude 設定目錄（CLAUDE_CONFIG_DIR、T3 Code 每個 Claude 實例的 homePath 等，見 homes.py）的 settings.json
 也一樣寫，紀錄放在安裝紀錄的 claude_extra（以設定檔路徑分開記）。
@@ -36,8 +36,10 @@ ROOT = Path(__file__).resolve().parents[2]
 RECORD = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "omnikit" / "install-record.json"
 NUDGE = "session_nudge.py"
 WATCH = "home_watch.py"
+CLAIM = "claim_check.py"
 # OmniKit 註冊的 Claude Code hook：(事件, 腳本, 逾時秒數)
-HOOKS = (("Stop", NUDGE, 10), ("SessionStart", WATCH, 15))
+HOOKS = (("Stop", NUDGE, 10), ("SessionStart", WATCH, 15), ("Stop", CLAIM, 10))
+HOOK_NAMES = {NUDGE: "開新對話提醒", WATCH: "設定目錄檢查", CLAIM: "說做不到查證"}
 SCRIPTS = [script for _, script, _ in HOOKS]
 GRANT = "uv run engine/scripts/agents.py approvals --grant <名稱>"
 LATEST = "Claude 的權限規則與 OmniKit 的 hook 已是最新。"
@@ -104,7 +106,7 @@ def remove_hooks(settings: dict, scripts) -> bool:
     """拿掉這些腳本的 hook；回傳是否有改動。事件或整個 hooks 變空的就一起拿掉。"""
     hooks = settings.get("hooks", {})
     changed = False
-    for event in [e for e, _, _ in HOOKS if e in hooks]:
+    for event in dict.fromkeys(e for e, _, _ in HOOKS if e in hooks):
         groups = hooks[event]
         kept = [{**g, "hooks": [h for h in g.get("hooks", []) if not any(is_ours(h, s) for s in scripts)]}
                 for g in groups]
@@ -226,7 +228,7 @@ def apply(settings_path: Path, record_path: Path, state: Path, repo: Path = ROOT
         if added:
             changed.append(f"已加入 Claude 的權限規則{where}：{', '.join(added)}")
         if hooked:
-            changed.append(f"已註冊 OmniKit 的 hook（Stop 開新對話提醒、SessionStart 設定目錄檢查）{where}")
+            changed.append(f"已註冊 OmniKit 的 hook（Stop 開新對話提醒與說做不到查證、SessionStart 設定目錄檢查）{where}")
     if "claude_extra" in record:
         record["claude_extra"] = {p: e for p, e in record["claude_extra"].items() if e}
         if not record["claude_extra"]:
@@ -268,8 +270,9 @@ def selftest() -> int:
               and any(is_nudge(h) for g in load(settings)["hooks"]["Stop"] for h in g["hooks"]))
         check("同事版、還沒問過：權限規則都不加，提醒怎麼同意",
               allow == ["Bash(ls)"] and any("還沒問過你" in line and "chrome_devtools、other" in line for line in lines))
-        check("同事版：提醒 hook 與設定目錄檢查 hook 照樣註冊，其他設定不動",
+        check("同事版：提醒、說做不到查證與設定目錄檢查 hook 照樣註冊，其他設定不動",
               any(is_nudge(h) for g in load(settings)["hooks"]["Stop"] for h in g["hooks"])
+              and any(is_ours(h, CLAIM) for g in load(settings)["hooks"]["Stop"] for h in g["hooks"])
               and any(is_ours(h, WATCH) for g in load(settings)["hooks"]["SessionStart"] for h in g["hooks"])
               and load(settings)["model"] == "x")
 
@@ -283,9 +286,12 @@ def selftest() -> int:
               hooked and old_entry["claude_hooks"] == SCRIPTS
               and [h["command"] for g in load(old)["hooks"]["SessionStart"] for h in g["hooks"]][0] == "mine.sh"
               and any(is_ours(h, WATCH) for g in load(old)["hooks"]["SessionStart"] for h in g["hooks"]))
+        check("舊版升級：Stop 也補上說做不到查證", any(is_ours(h, CLAIM) for g in load(old)["hooks"]["Stop"] for h in g["hooks"]))
         uninstall_one(old, {"claude_hooks": [NUDGE]})
+        stop = [h for g in load(old)["hooks"]["Stop"] for h in g["hooks"]]
         check("舊版紀錄只有 NUDGE：移除時只拿掉提醒 hook",
-              "Stop" not in load(old)["hooks"] and len(load(old)["hooks"]["SessionStart"]) == 2)
+              not any(is_nudge(h) for h in stop) and any(is_ours(h, CLAIM) for h in stop)
+              and len(load(old)["hooks"]["SessionStart"]) == 2)
 
         edition.record(state, "chrome_devtools", True)
         edition.record(state, "other", False)
@@ -330,6 +336,7 @@ def selftest() -> int:
         check("其他設定目錄：規則與提醒 hook 也寫進去，紀錄分開記",
               load(kai)["permissions"]["allow"] == ["Bash(git status)", "mcp__chrome_devtools", "mcp__other__click"]
               and any(is_nudge(h) for g in load(kai)["hooks"]["Stop"] for h in g["hooks"])
+              and any(is_ours(h, CLAIM) for g in load(kai)["hooks"]["Stop"] for h in g["hooks"])
               and entry.get("claude_allow") == ["mcp__chrome_devtools", "mcp__other__click"]
               and any(is_ours(h, WATCH) for g in load(kai)["hooks"]["SessionStart"] for h in g["hooks"])
               and entry.get("claude_hooks") == SCRIPTS and any(".claude-kai" in line for line in lines))

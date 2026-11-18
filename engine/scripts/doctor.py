@@ -45,7 +45,7 @@ import t3_acp  # noqa: E402
 
 OK, FAIL, UNKNOWN = "ok", "fail", "unknown"
 MARK = {OK: "✓", FAIL: "✗", UNKNOWN: "？"}
-CODEX_NUDGE = re.compile(r"(?m)^command\s*=.*" + re.escape(claude_allow.NUDGE))
+CODEX_SCRIPTS = (claude_allow.NUDGE, claude_allow.CLAIM)  # OmniKit 在 Codex 註冊的 Stop hook
 
 
 def row(area, agent, item, status, detail=""):
@@ -148,18 +148,22 @@ def check_harness(home, record_path):
         for rule in entry.get("claude_allow", []):
             out.append(row("權限", label, rule, OK if rule in allow else FAIL,
                            "在 permissions.allow" if rule in allow else "記錄有、設定裡沒有：重跑 install.ps1"))
-        names = {claude_allow.NUDGE: "開新對話提醒", claude_allow.WATCH: "設定目錄檢查"}
+        names = claude_allow.HOOK_NAMES
         for event, script, _ in claude_allow.HOOKS:
             if script not in (entry.get("claude_hooks") or []):
                 continue
             hooked = any(claude_allow.is_ours(h, script) for g in settings.get("hooks", {}).get(event, []) for h in g.get("hooks", []))
             out.append(row("hook", label, names[script], OK if hooked else FAIL,
                            "" if hooked else f"{event} hook 不見了：重跑 install.ps1"))
-    if record.get("codex_hooks"):
+    recorded = record.get("codex_hooks") or []
+    if recorded:
         toml = home / ".codex" / "config.toml"
-        hooked = toml.exists() and bool(CODEX_NUDGE.search(toml.read_text(encoding="utf-8", errors="replace")))
-        out.append(row("hook", "Codex", "開新對話提醒", OK if hooked else FAIL,
-                       "要在 Codex 的 /hooks 信任後才會執行" if hooked else "config.toml 裡沒有：重跑 install.ps1"))
+        text = toml.read_text(encoding="utf-8", errors="replace") if toml.exists() else ""
+        # 舊版的紀錄只有提醒 hook；說做不到查證要紀錄裡有才檢查
+        for script in [s for s in CODEX_SCRIPTS if s == claude_allow.NUDGE or s in recorded]:
+            hooked = bool(re.search(r"(?m)^command\s*=.*" + re.escape(script), text))
+            out.append(row("hook", "Codex", claude_allow.HOOK_NAMES[script], OK if hooked else FAIL,
+                           "要在 Codex 的 /hooks 信任後才會執行" if hooked else "config.toml 裡沒有：重跑 install.ps1"))
     return out
 
 
