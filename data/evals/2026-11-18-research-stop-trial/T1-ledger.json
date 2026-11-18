@@ -1,0 +1,3203 @@
+{
+ "created": "2026-11-18",
+ "groups": [
+  {
+   "group": "coding agent 對話紀錄 交接",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 40
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [
+      "Adamchanadam/agent-handoff-kit",
+      "HildebrandYu/dsh-session-chains",
+      "@virtualorz/recap",
+      "@eagle4302/dsh-session-relay"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "ecologyxy/ChatMem",
+      "douxy1994/AI-Memory",
+      "ccassist",
+      "xmemo"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-zh": {
+     "names": [
+      "thedotmack/claude-mem",
+      "rohitg00/agentmemory",
+      "AVIDS2/memorix",
+      "ChinaCarlos/coding-memory-mcp",
+      "vshulcz/deja-vu",
+      "AgentWorkforce/relayhistory",
+      "aytzey/showagent",
+      "ay-bh/chat-history",
+      "a2cr/a2cr",
+      "polyxmedia/mnemos",
+      "44-pixels/handover-mcp",
+      "Vvkmnn/claude-historian-mcp",
+      "Vvkmnn/claude-praetorian-mcp",
+      "mantra-hq/mantra-releases",
+      "pma1999/session-bridge",
+      "danyuchn/history-find",
+      "bledden/claude-recall-plugin",
+      "raine/claude-history",
+      "astral303/rearview",
+      "jhlee0409/claude-code-history-viewer",
+      "artpar/past-conversations-mcp",
+      "stackmemoryai/stackmemory",
+      "Namache/project-moah",
+      "ycl-2004/ShareMemory",
+      "agentproto/ts",
+      "mkreyman/mcp-memory-keeper",
+      "dahshanlabs/klypix-mcp",
+      "GunitBindal/claude-transcript-exporter"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "coding agent session handoff",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "Frankie-Xu/threadport",
+      "qingsongcui/ContextCore",
+      "wilbeibi/catchup",
+      "remvisual/claude-handoff",
+      "aytzey/showagent",
+      "obrenoalvim/zero-drift",
+      "staticroostermedia-arch/engram",
+      "remembra-ai/remembra",
+      "Adamchanadam/agent-handoff-kit",
+      "cote-star/agent-chorus",
+      "AxmeAI/axme-code",
+      "wilbeibi/herdr-catchup",
+      "Capetlevrai/resume-claude-codex-grok",
+      "yuangyong/handoff-memory",
+      "vunm-io/passdown",
+      "cantona/herdr-revive",
+      "aa2246740/dsh-resume",
+      "alexei-led/resume-from"
+     ],
+     "errors": [],
+     "hits": 22
+    },
+    "github-keyword": {
+     "names": [
+      "vshulcz/deja-vu",
+      "Enderfga/claw-orchestrator",
+      "blader/baton",
+      "talayash/agentrium",
+      "zebbern/agent-collab",
+      "kartikkabadi/pi-handoff",
+      "sanirudh17/herdr-agent-handoff",
+      "ccompactor/ccompactor",
+      "handyutils/sctxx",
+      "IlyaGorsky/memory-toolkit",
+      "z2z23n0/agent-capsule",
+      "live9369/session-handoff-skill",
+      "sukamenev/baton"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "hacktivist123/agent-session-resume"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "alphaelements/handoff-mcp",
+      "default-anton/pi-handoff"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "wangjohn/agent-archive",
+      "yoloshii/ClawMem"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "TStansel/handoff",
+      "bojieli/agentswap",
+      "docs.beacon.sh",
+      "reinstate.dev",
+      "spec-weave.com",
+      "atomicagent.io"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "yigitkonur/cli-continues",
+      "akitaonrails/ai-memory",
+      "wan-huiyan/session-handoff",
+      "gitgoready/claude-codex-switch",
+      "trytofly94/handoff-compact",
+      "joeblackwaslike/anti-compact",
+      "OthmanAdi/planning-with-files",
+      "Sonovore/claude-code-handoff",
+      "sametbrr/look-again",
+      "Dicklesworthstone/coding_agent_session_search",
+      "kunwar-shah/claudex",
+      "chrzamz/sessio",
+      "kvsankar/agent-history",
+      "CooperJiang/coding-tool",
+      "specstoryai/getspecstory",
+      "kishanmundha/agent-session-inspector"
+     ],
+     "errors": []
+    },
+    "producthunt": {
+     "names": [
+      "alibaizhanov/mengram",
+      "Autoloops/greplica",
+      "wunderlabs-dev/claudebin.com",
+      "fujibee/agmsg",
+      "gemron/Termexo",
+      "session-indexer",
+      "scmd",
+      "codeyam",
+      "gps-memory",
+      "memmy-agent",
+      "contextpool",
+      "scritty",
+      "subspace-ai",
+      "resumecontext",
+      "termi-protocol",
+      "moxie-claude",
+      "vokal",
+      "mao-canvas",
+      "mpai",
+      "ccshare",
+      "mother-terminal",
+      "agenttm"
+     ],
+     "errors": []
+    },
+    "related": {
+     "names": [
+      "Gentleman-Programming/engram"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "session history search",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "jazzyalex/agent-sessions",
+      "Pratiyush/llm-wiki",
+      "tombelieber/claude-view",
+      "StayCurious-Xuan/wayfinder",
+      "vitaliyhayda/claude-transplant",
+      "valpere/session-indexer",
+      "gautamgpt1/agent-session-browser",
+      "p32929/ccheckpoints",
+      "taxueseek/session-digger",
+      "noluyorAbi/claude-code-recap",
+      "samfoy/pi-session-search",
+      "Mahiler1909/claudepath"
+     ],
+     "errors": [],
+     "hits": 40
+    },
+    "github-keyword": {
+     "names": [
+      "lovstudio/Ataru",
+      "nameforjt-afk/session-knowledge",
+      "samfoy/pi-total-recall",
+      "HizTam/codex-history-viewer",
+      "sinzin91/search-sessions",
+      "josephyaduvanshi/claude-history-manager",
+      "WSL043/dsh-chat-manager"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "affaan-m/ECC"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "PluckSlugSorrow/dsh-session-history-search",
+      "JarvusInnovations/agent-recall-axi",
+      "beowulf11/pi-scroll"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [
+      "420247jake/session-forge",
+      "BruceXcluding/session-recap",
+      "Ryrahul/session-relay",
+      "SomeNoneAI/find-my-session",
+      "dimitrihilverda/claude-session-relay",
+      "mallikcheripally/session-steward",
+      "base76-research-lab/cognos-session-memory"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "tad-hq/universal-session-viewer",
+      "jerlendds/vscode-AIsx",
+      "neilberkman/ccrider",
+      "contextify.sh",
+      "pi-netizen/claude-search",
+      "ej31/claude-session-tracker",
+      "ctxrs/ctx"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "hansard.dev",
+      "devctrl.dev",
+      "papercompute.com",
+      "withadmiral.com"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "benvenker/agent-session-search",
+      "AppachiTech/suvadu",
+      "jhammant/ClaudeHistoryMCP",
+      "oliver-kriska/scribe",
+      "chat-memory-mcp-vscode",
+      "claude-handoff-pypi"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "context compaction recovery",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "big0lives/codex-task-pointer",
+      "Elevatormusic/hermes-warm-compaction",
+      "wrg32786/aigent-os",
+      "ccompactor/ccompactor",
+      "transcendr/jevpact",
+      "andrewbakercloudscale/claude-burst",
+      "wangcangshu/codex-desktop-thread-rescue",
+      "overbit/fast-jev-compaction-opencode",
+      "lennartschoch/opencode-cache-compact",
+      "falling-ts/dsh-force-compact",
+      "john-walks-slow/dsh-clear-mind"
+     ],
+     "errors": [],
+     "hits": 21
+    },
+    "github-keyword": {
+     "names": [
+      "OthmanAdi/planning-with-files",
+      "bledden/claude-recall-plugin",
+      "Awenforever/CoDeepSeedeX",
+      "codexstar69/pi-lcm",
+      "FlineDev/Recall",
+      "turvodnik/pf-handoff",
+      "kenimo49/compact-ops",
+      "mvara-ai/precompact-hook",
+      "d0ub1e-d/codebuddy-context-recovery-patch",
+      "dxta/claude-dynamic-context-pruning",
+      "jlcolton/context-recovery-protocol",
+      "midodevelop/compact-recovery",
+      "kleosr/cursor-clijev-compaction",
+      "machinesbefree/context-bootstrap"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "jdrhyne/agent-skills"
+     ],
+     "errors": [],
+     "hits": 14
+    },
+    "npm": {
+     "names": [
+      "mksglu/context-mode",
+      "nijaru/pi-compactor",
+      "rochecompaan/pi-context-paging",
+      "snailium/dsh-command-context-trim"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "amcbstudio/mem"
+     ],
+     "errors": [],
+     "hits": 8
+    },
+    "exa": {
+     "names": [
+      "hadronmemory.com",
+      "trinity-framework-core",
+      "codeform.io",
+      "avksp/agent-lifecycle-kit",
+      "opencheckpoint.org"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "u-ichi/compact-plus",
+      "leesgit/passbaton",
+      "Dicklesworthstone/post_compact_reminder",
+      "Diluka/codex-subpath-agentsmd-hooks",
+      "WorldFlowAI/everything-claude-code",
+      "philipppohlmann/compaction"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "cross-agent memory",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "breferrari/obsidian-mind",
+      "MemMachine/MemMachine",
+      "ClaudioDrews/memory-os",
+      "omdsh-dev/dsh-mnemon",
+      "CodeAbra/iai-personal-memory-engine",
+      "okf-memory/okf-agent-memory",
+      "kitfunso/hippo-memory",
+      "0xK3vin/MegaMemory",
+      "mnemon-dev/mnemon",
+      "memvid/claude-brain",
+      "Lyellr88/marm-memory",
+      "smaramwbc/statewave-multi-agent-memory",
+      "rxthlessbeats/agent-cowork-memory",
+      "NeoLi00/memX",
+      "joshuaswarren/remnic",
+      "hyperb1iss/sibyl",
+      "synapselayer/synapse-layer",
+      "VladimirGutuev/cross-agent-memory",
+      "rainypilgrimage/persistent-memory",
+      "caura-ai/caura-long-run-fleet",
+      "caura-ai/caura-cross-fleet-gov",
+      "kuznecov-anatoliy/opencode-memories",
+      "123caiji/dsh-memory-toolkit",
+      "ly028716/dsh-memory-plugin",
+      "zzy-fxxxexxxyxxx/dsh-openclaw-memory",
+      "tarolcraze/dsh-day-memory",
+      "rogers-f/dsh-zcode-memory",
+      "jnocode/recall-memory-hermes",
+      "lucioliu/relic",
+      "pnmcguire480/cairntir",
+      "zeyu-j/centricmem-skill",
+      "holetron-lab/fleet-memory",
+      "memorysyncio/memorysync-cursor-starter"
+     ],
+     "errors": [],
+     "hits": 62
+    },
+    "github-keyword": {
+     "names": [
+      "chunxiaoxx/nautilus-compass",
+      "im4codes/imcodes",
+      "JuliusBrussee/cavemem",
+      "Dicklesworthstone/cass_memory_system",
+      "loryoncloud/memory-like-a-tree",
+      "evermind-ai/everme",
+      "rcarmo/memento",
+      "dumpling-dragon/memory-hub",
+      "michielinksee/linksee-memory",
+      "leox255/termem",
+      "huangpufan/ssot-context",
+      "agentkitai/lore",
+      "internetyev/cross-agent-memory-kit"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "basicmachines-co/basic-memory-skills",
+      "win4r/memory-lancedb-pro-skill"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "@echomem/mcp",
+      "redstone-md/Continuum",
+      "reflect-memory-mcp",
+      "coolmem",
+      "danbaileyza/recollect-mcp",
+      "@domencai/dsh-memory",
+      "littleblacktong/dsh-plugin-memory"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "metacog-ai/ledgersync",
+      "oacp.dev",
+      "lanes.sh"
+     ],
+     "errors": [],
+     "hits": 15
+    },
+    "exa": {
+     "names": [
+      "kraklabs.com/mie",
+      "crossagentmemory-pypi"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "MemPalace/mempalace",
+      "pchalasani/claude-code-tools",
+      "cdeust/Cortex",
+      "oleksiijko/pmb",
+      "indamices/cross-agent-memory",
+      "kaaustubh/project-memory-mcp",
+      "nihalnihalani/agent-memory",
+      "alfredoizdev/contextforge-mcp",
+      "memwyreai/mcp-memwyre",
+      "mikeylong/agent-memory-mcp",
+      "majiayu000/remem",
+      "yuvalsuede/memory-mcp",
+      "sharedmemory-mcp-server",
+      "es617/claude-replay"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "session continuity",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "alexgreensh/token-optimizer",
+      "Storybloq/storybloq",
+      "pqant/claude-continuity",
+      "neverinfamous/memory-journal-mcp",
+      "jungjaehoon-lifegamez/MAMA",
+      "AliceLJY/recallnest",
+      "hotalexnet/agent-checkpoint",
+      "archid21/whatsnext",
+      "sara-star-quant/presence",
+      "jovesun-lab/whetstone",
+      "anasnafees1802/continuum"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [
+      "Riley-Coyote/mnemos-mcp",
+      "0xDarkMatter/claude-mods",
+      "sshahzaiib/agy-bridge",
+      "oldskultxo/aictx",
+      "agentsea/flashbacker",
+      "Haustorium12/continuity-v2",
+      "waterside0219/session-forge",
+      "lukasz-fedor/claude-memory-template",
+      "jthack/dm-other-claudes"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "keggan-std/Engram",
+      "ymck-x/dsh-session-continuity",
+      "@ai2070/memex"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "vikcena01/ai-continuity-plugin"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "web-en": {
+     "names": [
+      "parcadei/Continuous-Claude-v3",
+      "EwanJasper/SessionRelay",
+      "Tempuskg/session-control",
+      "djannot/code-session-memory",
+      "Vopaaz/Agent-Session-Relay",
+      "stefan-jansen/coding-agent-toolkit",
+      "RA1NM4KER/agent-relay",
+      "yan5xu/code-relay",
+      "liutao773680119-cmyk/relay-dev-skills",
+      "talgolan/session-continuity",
+      "continuity-vscode",
+      "snipara"
+     ],
+     "errors": []
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    }
+   }
+  },
+  {
+   "group": "session checkpoint",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "ellmos-ai/session-checkpoint"
+     ],
+     "errors": [],
+     "hits": 1
+    },
+    "github-keyword": {
+     "names": [
+      "SiriLee/dsh-rewind",
+      "PerryLink/dsh-checkpoint-rewind",
+      "asiagenawi/claude-powernap",
+      "mqz0211/Claude-Checkpoint-Manager-CCM",
+      "skyhua0224/continuity-plane",
+      "sinzin91/claude-checkpoint"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "entireio/skills",
+      "basicmachines-co/basic-memory"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "maivand-rahmani/opencode-session-port",
+      "daniel-munoz/claude-checkpoint-mcp"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "mohshomis/ckpt",
+      "tstockham96/engram",
+      "TheJoin95/mnemosyne"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "docs.syncropel.com"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "Jyo238/checkpoint",
+      "chen-001/claudecode_checkpoints",
+      "andrepimenta/claude-code-chat",
+      "mariochasco78557/claude-code-toolkit",
+      "dstrupl/vardoger",
+      "nicknisi/sessions",
+      "dosu-ai/decant",
+      "simonw/claude-code-transcripts",
+      "tim-hua-01/cc_transcript_viewer",
+      "0smboy/agent-migration-cursor-plugin"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "coding agent transcript",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "github-keyword": {
+     "names": [
+      "Nwflower/dsh-chat-import",
+      "jo-inc/pi-reflect",
+      "Sigillion-AI/sigillion",
+      "henba1/scrubjay"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 2
+    },
+    "skills-sh": {
+     "names": [
+      "asheshgoplani/agent-deck",
+      "senlindesign/coding-wrapped"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "codexview/codexview"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "capacitor.kurrent.io"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "B33BMO/vaportrail",
+      "siegerts/agent-transcript",
+      "tmustier/pi-agent-transcripts",
+      "ianzepp/cassio",
+      "docs.otty.sh"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "ahundt/ai-session-search",
+      "Stormix/transcripts-mcp",
+      "vulcanshen/clerk",
+      "dhruv-anand-aintech/agent-session-viewer",
+      "dotneet/agent-session-view",
+      "wesm/archived-agent-session-viewer",
+      "lililib/ai-session-search",
+      "vladar107/claudescope",
+      "WiseeCarrot/claude-transcript-viewer",
+      "braincompany/sessiongrep",
+      "entireio/cli"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "session recall",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "zhaohualiuyuejun/dsh-semantic-recall",
+      "pyq1992/codex-session-recall",
+      "itsmay21/agent-recall"
+     ],
+     "errors": [],
+     "hits": 4
+    },
+    "github-keyword": {
+     "names": [
+      "raiyanyahya/recall",
+      "cwinvestments/memstack",
+      "dezgit2025/auto-memory",
+      "joseairosa/recall",
+      "hjertefolger/cortex",
+      "dcostenco/prism-coder",
+      "babarot/claude-recall",
+      "brucee/tokensaver",
+      "polinnizhong/dsh-session-workbench",
+      "qinling-melon-farmers/dsh-memoir"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "kittimzhe/dsh-session-recall",
+      "rmk40/opencode-session-recall",
+      "edwinhao/awareness"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "davegoldblatt/total-recall",
+      "recallmcp.com",
+      "recallplugin.dev",
+      "engram-ai.dev"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "buildingopen/session-recall",
+      "Davidyooo/session-recall",
+      "verve-sh/session-recall"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "samzong/Recall",
+      "pratikgajjar/recall",
+      "bluekornchips/gandalf",
+      "gitmem-dev/gitmem",
+      "purmemo-ai/purmemo-mcp",
+      "Eversmile12/sharedcontext",
+      "just-every/plugin-recall",
+      "tznthou/ccRecall",
+      "osamarehman/claude-mem",
+      "recall-agents-pypi",
+      "steroid-kit"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "session resume",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "sergeyramas/session-handoff-skill",
+      "amal-david/claude-to-codex",
+      "swarno1996/handoff-pill",
+      "1beenlee/universal-context-handoff",
+      "gj9159a/codex-restore-chat-context",
+      "ojackson08/agenthandoff",
+      "hyderhusainarastu/cross-session-agent-handoff-prompt-template",
+      "giuliastro/harness-remote",
+      "tk1777-sy/-work-journal-skill",
+      "yazcaleb/rses",
+      "luluanes/native-windows-codex-claude-keepalive",
+      "sachind6/pi-resume-harness",
+      "ymonster/cc_jsonl_fix",
+      "supersistence/warp-claude-resume",
+      "eason-22/dsh-autorestart",
+      "ivbala1/limit-resume",
+      "han719307-dotcom/task-continuity",
+      "2solarmax/pane-resume",
+      "m1ku831/codex-continue",
+      "roekdnd/dsh-restart-suite",
+      "catbusfleet-org/catbus",
+      "lpoee/opencac",
+      "didvc/web-to-cc",
+      "yigitkonur/cli-continues",
+      "wilbeibi/catchup"
+     ],
+     "errors": [],
+     "hits": 40
+    },
+    "github-keyword": {
+     "names": [
+      "kc1t/alethe-agents",
+      "jerrywu001/cc-sessions-viewer",
+      "dwsy/pi-session-manager",
+      "red-noblue/codex_relay",
+      "angristan/fast-resume",
+      "0xsero/parcels",
+      "dicklesworthstone/cross_agent_session_resumer",
+      "medivhstory/claudesessionhub",
+      "coding-by-feng/ai-agent-session-center",
+      "jazzyalex/agent-sessions",
+      "hacktivist123/agent-session-resume"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 2
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "eightfs/dsh-session-conductor",
+      "mill413/dsh-session-resume",
+      "zhoujianbin/dsh-codex-continue",
+      "axelbaumlisto/pi-fast-resume"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "virelnode/session-roam",
+      "neilberkman/ccrider",
+      "zippoxer/recall",
+      "siteboon/claudecodeui",
+      "mr8bithk/claude-terminal",
+      "clinch.sh",
+      "termem.com",
+      "termic.dev"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "ponymux.com"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "bvolpato/omnisession",
+      "Manavarya09/relay",
+      "cytostack/openwolf",
+      "openai/codex-plugin-cc",
+      "pma1999/session-bridge",
+      "AgentWorkforce/relayhistory",
+      "yigitkonur/cli-continues"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "context transfer",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "hetpatel-11/agent-hop",
+      "agentkitai/lore",
+      "lijma/fcontext",
+      "rewfa-ceo/amp",
+      "harrychih/hishare",
+      "wink305/contextpocket",
+      "elecnix/pi-claude-memory",
+      "rememora/rememora",
+      "dhilipsiva/lucy",
+      "Vinyl-Davyl/hermes",
+      "wilbeibi/catchup",
+      "yigitkonur/cli-continues"
+     ],
+     "errors": [],
+     "hits": 56
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "softaworks/agent-toolkit",
+      "dongshuyan/compass-skills"
+     ],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [
+      "sahilraut22/handoff",
+      "shivala-08/context-shifter",
+      "platman02/ctx-bridge"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "dullnote.com",
+      "hiperyon.com"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "context-transfer.vercel.app",
+      "context-transfer-protocol/ctp-spec"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "Kaseban/baton",
+      "FacuVCanale/session-bridge",
+      "MisterBrookT/codex2claude",
+      "authsec-ai/authsec-bridge",
+      "thepushkarp/handoff",
+      "who96/claude-code-context-handoff",
+      "aproto9787/codex-bridge",
+      "SeemSeam/claude_codex_bridge",
+      "ptreezh/stigmergy-CLI-Multi-Agents",
+      "relai.fyi",
+      "agentproto.sh",
+      "usespaces.dev",
+      "pma1999/session-bridge",
+      "openai/codex-plugin-cc"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "chat log handoff",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "didvc/web-to-cc"
+     ],
+     "errors": [],
+     "hits": 14
+    },
+    "github-keyword": {
+     "names": [
+      "dongsheng123132/task-passport",
+      "wang5333/ai-handoff-summary-builder",
+      "voyfur/llm-wiki-session-memory"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "mattpocock/skills",
+      "shaswat28/handoff-skill"
+     ],
+     "errors": [],
+     "hits": 8
+    },
+    "npm": {
+     "names": [
+      "dennyferra/paseo-baton"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "lippinc/catnap",
+      "crosshead.sh"
+     ],
+     "errors": [],
+     "hits": 7
+    },
+    "exa": {
+     "names": [
+      "shafiqimtiaz/ctx-handoff",
+      "abassaf/baton",
+      "ylexliao/chatbridge",
+      "vasilispapg/claude-handoff"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "davo20019/relevo",
+      "shuntaka9576/chathist",
+      "Sonovore/claude-code-handoff",
+      "jigyasudham/veto",
+      "yigitkonur/cli-continues",
+      "wilbeibi/catchup",
+      "aytzey/showagent",
+      "remvisual/claude-handoff"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "跨 agent 記憶 交接",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [
+      "draiagent/ai-to-agent-memory",
+      "kwyeh-cl/agent-memory"
+     ],
+     "errors": [],
+     "hits": 2
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [
+      "askdkc/kiokuko-dsh",
+      "frc9427liu-tech/memrot",
+      "yunfeng008/codebaton"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "ihow1/ihow-memory-standard",
+      "dunova/contextgo",
+      "jordanwei1/jiaojie-skill"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-zh": {
+     "names": [
+      "NevaMind-AI/memU",
+      "timyyf/agent-skills",
+      "memoryplugin.com",
+      "samemind",
+      "totalmemory.dev",
+      "klypix.com",
+      "snipara.com",
+      "datamcp.app",
+      "unabyss.com",
+      "harkstudio.io",
+      "akitaonrails/ai-memory",
+      "AVIDS2/memorix",
+      "rohitg00/agentmemory",
+      "FacuVCanale/session-bridge",
+      "pma1999/session-bridge"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "session migration",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "xhluca/session-migrate",
+      "totoro-qaq/dsh-plugin-bridge",
+      "chenglongli777/codex-migrate",
+      "chang-tong/dsh-unified-context",
+      "vibheksoni/session-export",
+      "agentairlift/agentairlift",
+      "larrtroffen/harnessbridge",
+      "bigwhite/cc-session-migrate",
+      "bug-gao/session-weaver",
+      "shivanshtalwar0/claude-buddy",
+      "yanzhi0922/codex-session-migrator",
+      "austinhoang8386/claude-history-windows",
+      "ikook-wang/cc-sync",
+      "llxgdtop/agent-session-migration",
+      "ahnafnafee/harness-bridge",
+      "mr-grimwig/dsh-zcode-migrate",
+      "ostiums/leftoff",
+      "liangyuan0219/session-migrator"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [
+      "agent-session-protocol/universal-session-log",
+      "vitaliyhayda/claude-transplant",
+      "xiaoyuyu6420/dsh-backup",
+      "myyimu/codex-session-transfer",
+      "tongtongtju/sessionbridge"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 2
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "devmom/dsh-session-import",
+      "hucj09/dsh-move-session"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "ingram-technologies/claude-git-sessions",
+      "avinash-jetwani/jevmem",
+      "yigitkonur/cli-continues",
+      "aviator.co/runbooks",
+      "groundtrack.dev"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "xhluca/session-migrate"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "CyrusSE/agenthop",
+      "nxxxsooo/another",
+      "Ryu0118/ctxmv",
+      "hidenori-endo/pi-session-import",
+      "kirkchinese/claude2dsh",
+      "cursor-history",
+      "@event4u/agent-switch",
+      "Kaseban/baton",
+      "wilbeibi/catchup"
+     ],
+     "errors": []
+    }
+   }
+  }
+ ],
+ "stars": {
+  "44-pixels/handover-mcp": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "a2cr/a2cr": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "adamchanadam/agent-handoff-kit": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "agentproto/ts": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "agentworkforce/relayhistory": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "artpar/past-conversations-mcp": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "astral303/rearview": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "avids2/memorix": {
+   "stars": 942,
+   "checked": "2026-11-18"
+  },
+  "ay-bh/chat-history": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "aytzey/showagent": {
+   "stars": 64,
+   "checked": "2026-11-18"
+  },
+  "bledden/claude-recall-plugin": {
+   "stars": 23,
+   "checked": "2026-11-18"
+  },
+  "chinacarlos/coding-memory-mcp": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "dahshanlabs/klypix-mcp": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "danyuchn/history-find": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "douxy1994/ai-memory": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "ecologyxy/chatmem": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "gunitbindal/claude-transcript-exporter": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "hildebrandyu/dsh-session-chains": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "jhlee0409/claude-code-history-viewer": {
+   "stars": 2324,
+   "checked": "2026-11-18"
+  },
+  "mantra-hq/mantra-releases": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "mkreyman/mcp-memory-keeper": {
+   "stars": 136,
+   "checked": "2026-11-18"
+  },
+  "namache/project-moah": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "pma1999/session-bridge": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "polyxmedia/mnemos": {
+   "stars": 24,
+   "checked": "2026-11-18"
+  },
+  "raine/claude-history": {
+   "stars": 544,
+   "checked": "2026-11-18"
+  },
+  "rohitg00/agentmemory": {
+   "stars": 30429,
+   "checked": "2026-11-18"
+  },
+  "stackmemoryai/stackmemory": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "thedotmack/claude-mem": {
+   "stars": 118002,
+   "checked": "2026-11-18"
+  },
+  "vshulcz/deja-vu": {
+   "stars": 1606,
+   "checked": "2026-11-18"
+  },
+  "vvkmnn/claude-historian-mcp": {
+   "stars": 180,
+   "checked": "2026-11-18"
+  },
+  "vvkmnn/claude-praetorian-mcp": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "ycl-2004/sharememory": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "aa2246740/dsh-resume": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "akitaonrails/ai-memory": {
+   "stars": 16069,
+   "checked": "2026-11-18"
+  },
+  "alexei-led/resume-from": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "alibaizhanov/mengram": {
+   "stars": 207,
+   "checked": "2026-11-18"
+  },
+  "alphaelements/handoff-mcp": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "autoloops/greplica": {
+   "stars": 443,
+   "checked": "2026-11-18"
+  },
+  "axmeai/axme-code": {
+   "stars": 14,
+   "checked": "2026-11-18"
+  },
+  "blader/baton": {
+   "stars": 62,
+   "checked": "2026-11-18"
+  },
+  "bojieli/agentswap": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "cantona/herdr-revive": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "capetlevrai/resume-claude-codex-grok": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "ccompactor/ccompactor": {
+   "stars": 21,
+   "checked": "2026-11-18"
+  },
+  "chrzamz/sessio": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "cooperjiang/coding-tool": {
+   "stars": 416,
+   "checked": "2026-11-18"
+  },
+  "cote-star/agent-chorus": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "default-anton/pi-handoff": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "dicklesworthstone/coding_agent_session_search": {
+   "stars": 1214,
+   "checked": "2026-11-18"
+  },
+  "enderfga/claw-orchestrator": {
+   "stars": 614,
+   "checked": "2026-11-18"
+  },
+  "frankie-xu/threadport": {
+   "stars": 123,
+   "checked": "2026-11-18"
+  },
+  "fujibee/agmsg": {
+   "stars": 1591,
+   "checked": "2026-11-18"
+  },
+  "gemron/termexo": {
+   "stars": 55,
+   "checked": "2026-11-18"
+  },
+  "gitgoready/claude-codex-switch": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "hacktivist123/agent-session-resume": {
+   "stars": 244,
+   "checked": "2026-11-18"
+  },
+  "handyutils/sctxx": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "ilyagorsky/memory-toolkit": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "joeblackwaslike/anti-compact": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "kartikkabadi/pi-handoff": {
+   "stars": 23,
+   "checked": "2026-11-18"
+  },
+  "kishanmundha/agent-session-inspector": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "kunwar-shah/claudex": {
+   "stars": 98,
+   "checked": "2026-11-18"
+  },
+  "kvsankar/agent-history": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "live9369/session-handoff-skill": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "obrenoalvim/zero-drift": {
+   "stars": 37,
+   "checked": "2026-11-18"
+  },
+  "othmanadi/planning-with-files": {
+   "stars": 28114,
+   "checked": "2026-11-18"
+  },
+  "qingsongcui/contextcore": {
+   "stars": 101,
+   "checked": "2026-11-18"
+  },
+  "remembra-ai/remembra": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "remvisual/claude-handoff": {
+   "stars": 75,
+   "checked": "2026-11-18"
+  },
+  "sametbrr/look-again": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "sanirudh17/herdr-agent-handoff": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "sonovore/claude-code-handoff": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "specstoryai/getspecstory": {
+   "stars": 1375,
+   "checked": "2026-11-18"
+  },
+  "staticroostermedia-arch/engram": {
+   "stars": 21,
+   "checked": "2026-11-18"
+  },
+  "sukamenev/baton": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "talayash/agentrium": {
+   "stars": 49,
+   "checked": "2026-11-18"
+  },
+  "trytofly94/handoff-compact": {
+   "stars": 21,
+   "checked": "2026-11-18"
+  },
+  "tstansel/handoff": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "vunm-io/passdown": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "wan-huiyan/session-handoff": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "wangjohn/agent-archive": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "wilbeibi/catchup": {
+   "stars": 83,
+   "checked": "2026-11-18"
+  },
+  "wilbeibi/herdr-catchup": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "wunderlabs-dev/claudebin.com": {
+   "stars": 71,
+   "checked": "2026-11-18"
+  },
+  "yigitkonur/cli-continues": {
+   "stars": 1605,
+   "checked": "2026-11-18"
+  },
+  "yoloshii/clawmem": {
+   "stars": 212,
+   "checked": "2026-11-18"
+  },
+  "yuangyong/handoff-memory": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "z2z23n0/agent-capsule": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "zebbern/agent-collab": {
+   "stars": 35,
+   "checked": "2026-11-18"
+  },
+  "gentleman-programming/engram": {
+   "stars": 8215,
+   "checked": "2026-11-18"
+  },
+  "420247jake/session-forge": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "affaan-m/ecc": {
+   "stars": 305555,
+   "checked": "2026-11-18"
+  },
+  "appachitech/suvadu": {
+   "stars": 130,
+   "checked": "2026-11-18"
+  },
+  "base76-research-lab/cognos-session-memory": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "benvenker/agent-session-search": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "beowulf11/pi-scroll": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "brucexcluding/session-recap": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "ctxrs/ctx": {
+   "stars": 1184,
+   "checked": "2026-11-18"
+  },
+  "dimitrihilverda/claude-session-relay": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "ej31/claude-session-tracker": {
+   "stars": 48,
+   "checked": "2026-11-18"
+  },
+  "gautamgpt1/agent-session-browser": {
+   "stars": 36,
+   "checked": "2026-11-18"
+  },
+  "hiztam/codex-history-viewer": {
+   "stars": 49,
+   "checked": "2026-11-18"
+  },
+  "jarvusinnovations/agent-recall-axi": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "jazzyalex/agent-sessions": {
+   "stars": 949,
+   "checked": "2026-11-18"
+  },
+  "jerlendds/vscode-aisx": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "jhammant/claudehistorymcp": {
+   "stars": 69,
+   "checked": "2026-11-18"
+  },
+  "josephyaduvanshi/claude-history-manager": {
+   "stars": 48,
+   "checked": "2026-11-18"
+  },
+  "lovstudio/ataru": {
+   "stars": 363,
+   "checked": "2026-11-18"
+  },
+  "mahiler1909/claudepath": {
+   "stars": 25,
+   "checked": "2026-11-18"
+  },
+  "mallikcheripally/session-steward": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "nameforjt-afk/session-knowledge": {
+   "stars": 307,
+   "checked": "2026-11-18"
+  },
+  "neilberkman/ccrider": {
+   "stars": 136,
+   "checked": "2026-11-18"
+  },
+  "noluyorabi/claude-code-recap": {
+   "stars": 30,
+   "checked": "2026-11-18"
+  },
+  "oliver-kriska/scribe": {
+   "stars": 69,
+   "checked": "2026-11-18"
+  },
+  "p32929/ccheckpoints": {
+   "stars": 35,
+   "checked": "2026-11-18"
+  },
+  "pi-netizen/claude-search": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "pluckslugsorrow/dsh-session-history-search": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "pratiyush/llm-wiki": {
+   "stars": 402,
+   "checked": "2026-11-18"
+  },
+  "ryrahul/session-relay": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "samfoy/pi-session-search": {
+   "stars": 27,
+   "checked": "2026-11-18"
+  },
+  "samfoy/pi-total-recall": {
+   "stars": 86,
+   "checked": "2026-11-18"
+  },
+  "sinzin91/search-sessions": {
+   "stars": 48,
+   "checked": "2026-11-18"
+  },
+  "somenoneai/find-my-session": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "staycurious-xuan/wayfinder": {
+   "stars": 92,
+   "checked": "2026-11-18"
+  },
+  "tad-hq/universal-session-viewer": {
+   "stars": 19,
+   "checked": "2026-11-18"
+  },
+  "taxueseek/session-digger": {
+   "stars": 34,
+   "checked": "2026-11-18"
+  },
+  "tombelieber/claude-view": {
+   "stars": 127,
+   "checked": "2026-11-18"
+  },
+  "valpere/session-indexer": {
+   "stars": 42,
+   "checked": "2026-11-18"
+  },
+  "vitaliyhayda/claude-transplant": {
+   "stars": 54,
+   "checked": "2026-11-18"
+  },
+  "wsl043/dsh-chat-manager": {
+   "stars": 45,
+   "checked": "2026-11-18"
+  },
+  "amcbstudio/mem": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "andrewbakercloudscale/claude-burst": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "avksp/agent-lifecycle-kit": {
+   "stars": 19,
+   "checked": "2026-11-18"
+  },
+  "awenforever/codeepseedex": {
+   "stars": 21,
+   "checked": "2026-11-18"
+  },
+  "big0lives/codex-task-pointer": {
+   "stars": 214,
+   "checked": "2026-11-18"
+  },
+  "codexstar69/pi-lcm": {
+   "stars": 19,
+   "checked": "2026-11-18"
+  },
+  "d0ub1e-d/codebuddy-context-recovery-patch": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "dicklesworthstone/post_compact_reminder": {
+   "stars": 55,
+   "checked": "2026-11-18"
+  },
+  "diluka/codex-subpath-agentsmd-hooks": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "dxta/claude-dynamic-context-pruning": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "elevatormusic/hermes-warm-compaction": {
+   "stars": 75,
+   "checked": "2026-11-18"
+  },
+  "falling-ts/dsh-force-compact": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "flinedev/recall": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "jdrhyne/agent-skills": {
+   "stars": 240,
+   "checked": "2026-11-18"
+  },
+  "jlcolton/context-recovery-protocol": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "john-walks-slow/dsh-clear-mind": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "kenimo49/compact-ops": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "kleosr/cursor-clijev-compaction": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "leesgit/passbaton": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "lennartschoch/opencode-cache-compact": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "machinesbefree/context-bootstrap": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "midodevelop/compact-recovery": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "mksglu/context-mode": {
+   "stars": 34240,
+   "checked": "2026-11-18"
+  },
+  "mvara-ai/precompact-hook": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "nijaru/pi-compactor": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "overbit/fast-jev-compaction-opencode": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "philipppohlmann/compaction": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "rochecompaan/pi-context-paging": {
+   "stars": 38,
+   "checked": "2026-11-18"
+  },
+  "snailium/dsh-command-context-trim": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "transcendr/jevpact": {
+   "stars": 19,
+   "checked": "2026-11-18"
+  },
+  "turvodnik/pf-handoff": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "u-ichi/compact-plus": {
+   "stars": 211,
+   "checked": "2026-11-18"
+  },
+  "wangcangshu/codex-desktop-thread-rescue": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "worldflowai/everything-claude-code": {
+   "stars": 6557,
+   "checked": "2026-11-18"
+  },
+  "wrg32786/aigent-os": {
+   "stars": 26,
+   "checked": "2026-11-18"
+  },
+  "0xk3vin/megamemory": {
+   "stars": 737,
+   "checked": "2026-11-18"
+  },
+  "123caiji/dsh-memory-toolkit": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "agentkitai/lore": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "alfredoizdev/contextforge-mcp": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "basicmachines-co/basic-memory-skills": {
+   "stars": 23,
+   "checked": "2026-11-18"
+  },
+  "breferrari/obsidian-mind": {
+   "stars": 5544,
+   "checked": "2026-11-18"
+  },
+  "caura-ai/caura-cross-fleet-gov": {
+   "stars": 72,
+   "checked": "2026-11-18"
+  },
+  "caura-ai/caura-long-run-fleet": {
+   "stars": 92,
+   "checked": "2026-11-18"
+  },
+  "cdeust/cortex": {
+   "stars": 77,
+   "checked": "2026-11-18"
+  },
+  "chunxiaoxx/nautilus-compass": {
+   "stars": 1258,
+   "checked": "2026-11-18"
+  },
+  "claudiodrews/memory-os": {
+   "stars": 1396,
+   "checked": "2026-11-18"
+  },
+  "codeabra/iai-personal-memory-engine": {
+   "stars": 923,
+   "checked": "2026-11-18"
+  },
+  "danbaileyza/recollect-mcp": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "dicklesworthstone/cass_memory_system": {
+   "stars": 466,
+   "checked": "2026-11-18"
+  },
+  "dumpling-dragon/memory-hub": {
+   "stars": 31,
+   "checked": "2026-11-18"
+  },
+  "es617/claude-replay": {
+   "stars": 862,
+   "checked": "2026-11-18"
+  },
+  "evermind-ai/everme": {
+   "stars": 82,
+   "checked": "2026-11-18"
+  },
+  "holetron-lab/fleet-memory": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "huangpufan/ssot-context": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "hyperb1iss/sibyl": {
+   "stars": 70,
+   "checked": "2026-11-18"
+  },
+  "im4codes/imcodes": {
+   "stars": 964,
+   "checked": "2026-11-18"
+  },
+  "indamices/cross-agent-memory": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "internetyev/cross-agent-memory-kit": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "jnocode/recall-memory-hermes": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "joshuaswarren/remnic": {
+   "stars": 233,
+   "checked": "2026-11-18"
+  },
+  "juliusbrussee/cavemem": {
+   "stars": 679,
+   "checked": "2026-11-18"
+  },
+  "kaaustubh/project-memory-mcp": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "kitfunso/hippo-memory": {
+   "stars": 794,
+   "checked": "2026-11-18"
+  },
+  "kuznecov-anatoliy/opencode-memories": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "leox255/termem": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "littleblacktong/dsh-plugin-memory": {
+   "stars": 39,
+   "checked": "2026-11-18"
+  },
+  "loryoncloud/memory-like-a-tree": {
+   "stars": 126,
+   "checked": "2026-11-18"
+  },
+  "lucioliu/relic": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "ly028716/dsh-memory-plugin": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "lyellr88/marm-memory": {
+   "stars": 438,
+   "checked": "2026-11-18"
+  },
+  "majiayu000/remem": {
+   "stars": 33,
+   "checked": "2026-11-18"
+  },
+  "memmachine/memmachine": {
+   "stars": 3090,
+   "checked": "2026-11-18"
+  },
+  "memorysyncio/memorysync-cursor-starter": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "mempalace/mempalace": {
+   "stars": 60597,
+   "checked": "2026-11-18"
+  },
+  "memvid/claude-brain": {
+   "stars": 585,
+   "checked": "2026-11-18"
+  },
+  "memwyreai/mcp-memwyre": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "metacog-ai/ledgersync": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "michielinksee/linksee-memory": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "mikeylong/agent-memory-mcp": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "mnemon-dev/mnemon": {
+   "stars": 720,
+   "checked": "2026-11-18"
+  },
+  "neoli00/memx": {
+   "stars": 401,
+   "checked": "2026-11-18"
+  },
+  "nihalnihalani/agent-memory": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "okf-memory/okf-agent-memory": {
+   "stars": 867,
+   "checked": "2026-11-18"
+  },
+  "oleksiijko/pmb": {
+   "stars": 291,
+   "checked": "2026-11-18"
+  },
+  "omdsh-dev/dsh-mnemon": {
+   "stars": 1030,
+   "checked": "2026-11-18"
+  },
+  "pchalasani/claude-code-tools": {
+   "stars": 2040,
+   "checked": "2026-11-18"
+  },
+  "pnmcguire480/cairntir": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "rainypilgrimage/persistent-memory": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "rcarmo/memento": {
+   "stars": 37,
+   "checked": "2026-11-18"
+  },
+  "redstone-md/continuum": {
+   "stars": 44,
+   "checked": "2026-11-18"
+  },
+  "rogers-f/dsh-zcode-memory": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "rxthlessbeats/agent-cowork-memory": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "smaramwbc/statewave-multi-agent-memory": {
+   "stars": 31,
+   "checked": "2026-11-18"
+  },
+  "synapselayer/synapse-layer": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "tarolcraze/dsh-day-memory": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "vladimirgutuev/cross-agent-memory": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "win4r/memory-lancedb-pro-skill": {
+   "stars": 47,
+   "checked": "2026-11-18"
+  },
+  "yuvalsuede/memory-mcp": {
+   "stars": 100,
+   "checked": "2026-11-18"
+  },
+  "zeyu-j/centricmem-skill": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "zzy-fxxxexxxyxxx/dsh-openclaw-memory": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "0xdarkmatter/claude-mods": {
+   "stars": 81,
+   "checked": "2026-11-18"
+  },
+  "agentsea/flashbacker": {
+   "stars": 57,
+   "checked": "2026-11-18"
+  },
+  "alexgreensh/token-optimizer": {
+   "stars": 3016,
+   "checked": "2026-11-18"
+  },
+  "aliceljy/recallnest": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "anasnafees1802/continuum": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "archid21/whatsnext": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "djannot/code-session-memory": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "ewanjasper/sessionrelay": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "haustorium12/continuity-v2": {
+   "stars": 35,
+   "checked": "2026-11-18"
+  },
+  "hotalexnet/agent-checkpoint": {
+   "stars": 14,
+   "checked": "2026-11-18"
+  },
+  "jovesun-lab/whetstone": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "jthack/dm-other-claudes": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "jungjaehoon-lifegamez/mama": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "keggan-std/engram": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "liutao773680119-cmyk/relay-dev-skills": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "lukasz-fedor/claude-memory-template": {
+   "stars": 31,
+   "checked": "2026-11-18"
+  },
+  "neverinfamous/memory-journal-mcp": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "oldskultxo/aictx": {
+   "stars": 59,
+   "checked": "2026-11-18"
+  },
+  "parcadei/continuous-claude-v3": {
+   "stars": 3951,
+   "checked": "2026-11-18"
+  },
+  "pqant/claude-continuity": {
+   "stars": 27,
+   "checked": "2026-11-18"
+  },
+  "ra1nm4ker/agent-relay": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "riley-coyote/mnemos-mcp": {
+   "stars": 168,
+   "checked": "2026-11-18"
+  },
+  "sara-star-quant/presence": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "sshahzaiib/agy-bridge": {
+   "stars": 68,
+   "checked": "2026-11-18"
+  },
+  "stefan-jansen/coding-agent-toolkit": {
+   "stars": 36,
+   "checked": "2026-11-18"
+  },
+  "storybloq/storybloq": {
+   "stars": 788,
+   "checked": "2026-11-18"
+  },
+  "talgolan/session-continuity": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "tempuskg/session-control": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "vikcena01/ai-continuity-plugin": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "vopaaz/agent-session-relay": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "waterside0219/session-forge": {
+   "stars": 33,
+   "checked": "2026-11-18"
+  },
+  "yan5xu/code-relay": {
+   "stars": 307,
+   "checked": "2026-11-18"
+  },
+  "ymck-x/dsh-session-continuity": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "0smboy/agent-migration-cursor-plugin": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "andrepimenta/claude-code-chat": {
+   "stars": 1087,
+   "checked": "2026-11-18"
+  },
+  "asiagenawi/claude-powernap": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "basicmachines-co/basic-memory": {
+   "stars": 4614,
+   "checked": "2026-11-18"
+  },
+  "chen-001/claudecode_checkpoints": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "daniel-munoz/claude-checkpoint-mcp": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "dosu-ai/decant": {
+   "stars": 75,
+   "checked": "2026-11-18"
+  },
+  "dstrupl/vardoger": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "ellmos-ai/session-checkpoint": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "entireio/skills": {
+   "stars": 240,
+   "checked": "2026-11-18"
+  },
+  "jyo238/checkpoint": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "maivand-rahmani/opencode-session-port": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "mariochasco78557/claude-code-toolkit": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "mohshomis/ckpt": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "mqz0211/claude-checkpoint-manager-ccm": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "nicknisi/sessions": {
+   "stars": 50,
+   "checked": "2026-11-18"
+  },
+  "perrylink/dsh-checkpoint-rewind": {
+   "stars": 30,
+   "checked": "2026-11-18"
+  },
+  "simonw/claude-code-transcripts": {
+   "stars": 1734,
+   "checked": "2026-11-18"
+  },
+  "sinzin91/claude-checkpoint": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "sirilee/dsh-rewind": {
+   "stars": 282,
+   "checked": "2026-11-18"
+  },
+  "skyhua0224/continuity-plane": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "thejoin95/mnemosyne": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "tim-hua-01/cc_transcript_viewer": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "tstockham96/engram": {
+   "stars": 47,
+   "checked": "2026-11-18"
+  },
+  "ahundt/ai-session-search": {
+   "stars": 81,
+   "checked": "2026-11-18"
+  },
+  "asheshgoplani/agent-deck": {
+   "stars": 1274,
+   "checked": "2026-11-18"
+  },
+  "b33bmo/vaportrail": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "braincompany/sessiongrep": {
+   "stars": 45,
+   "checked": "2026-11-18"
+  },
+  "codexview/codexview": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "dhruv-anand-aintech/agent-session-viewer": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "dotneet/agent-session-view": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "entireio/cli": {
+   "stars": 5342,
+   "checked": "2026-11-18"
+  },
+  "henba1/scrubjay": {
+   "stars": 18,
+   "checked": "2026-11-18"
+  },
+  "ianzepp/cassio": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "jo-inc/pi-reflect": {
+   "stars": 56,
+   "checked": "2026-11-18"
+  },
+  "lililib/ai-session-search": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "nwflower/dsh-chat-import": {
+   "stars": 317,
+   "checked": "2026-11-18"
+  },
+  "senlindesign/coding-wrapped": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "siegerts/agent-transcript": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "sigillion-ai/sigillion": {
+   "stars": 31,
+   "checked": "2026-11-18"
+  },
+  "stormix/transcripts-mcp": {
+   "stars": 14,
+   "checked": "2026-11-18"
+  },
+  "tmustier/pi-agent-transcripts": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "vladar107/claudescope": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "vulcanshen/clerk": {
+   "stars": 40,
+   "checked": "2026-11-18"
+  },
+  "wesm/archived-agent-session-viewer": {
+   "stars": 88,
+   "checked": "2026-11-18"
+  },
+  "wiseecarrot/claude-transcript-viewer": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "babarot/claude-recall": {
+   "stars": 64,
+   "checked": "2026-11-18"
+  },
+  "bluekornchips/gandalf": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "brucee/tokensaver": {
+   "stars": 54,
+   "checked": "2026-11-18"
+  },
+  "buildingopen/session-recall": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "cwinvestments/memstack": {
+   "stars": 433,
+   "checked": "2026-11-18"
+  },
+  "davegoldblatt/total-recall": {
+   "stars": 203,
+   "checked": "2026-11-18"
+  },
+  "davidyooo/session-recall": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "dcostenco/prism-coder": {
+   "stars": 156,
+   "checked": "2026-11-18"
+  },
+  "dezgit2025/auto-memory": {
+   "stars": 363,
+   "checked": "2026-11-18"
+  },
+  "edwinhao/awareness": {
+   "stars": 0,
+   "checked": "2026-11-18",
+   "error": "gh: Not Found (HTTP 404)"
+  },
+  "eversmile12/sharedcontext": {
+   "stars": 50,
+   "checked": "2026-11-18"
+  },
+  "gitmem-dev/gitmem": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "hjertefolger/cortex": {
+   "stars": 173,
+   "checked": "2026-11-18"
+  },
+  "itsmay21/agent-recall": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "joseairosa/recall": {
+   "stars": 179,
+   "checked": "2026-11-18"
+  },
+  "just-every/plugin-recall": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "kittimzhe/dsh-session-recall": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "osamarehman/claude-mem": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "polinnizhong/dsh-session-workbench": {
+   "stars": 47,
+   "checked": "2026-11-18"
+  },
+  "pratikgajjar/recall": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "purmemo-ai/purmemo-mcp": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "pyq1992/codex-session-recall": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "qinling-melon-farmers/dsh-memoir": {
+   "stars": 39,
+   "checked": "2026-11-18"
+  },
+  "raiyanyahya/recall": {
+   "stars": 770,
+   "checked": "2026-11-18"
+  },
+  "rmk40/opencode-session-recall": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "samzong/recall": {
+   "stars": 109,
+   "checked": "2026-11-18"
+  },
+  "tznthou/ccrecall": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "verve-sh/session-recall": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "zhaohualiuyuejun/dsh-semantic-recall": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "0xsero/parcels": {
+   "stars": 175,
+   "checked": "2026-11-18"
+  },
+  "1beenlee/universal-context-handoff": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "2solarmax/pane-resume": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "amal-david/claude-to-codex": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "angristan/fast-resume": {
+   "stars": 195,
+   "checked": "2026-11-18"
+  },
+  "axelbaumlisto/pi-fast-resume": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "bvolpato/omnisession": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "catbusfleet-org/catbus": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "coding-by-feng/ai-agent-session-center": {
+   "stars": 96,
+   "checked": "2026-11-18"
+  },
+  "cytostack/openwolf": {
+   "stars": 2401,
+   "checked": "2026-11-18"
+  },
+  "dicklesworthstone/cross_agent_session_resumer": {
+   "stars": 129,
+   "checked": "2026-11-18"
+  },
+  "didvc/web-to-cc": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "dwsy/pi-session-manager": {
+   "stars": 206,
+   "checked": "2026-11-18"
+  },
+  "eason-22/dsh-autorestart": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "eightfs/dsh-session-conductor": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "giuliastro/harness-remote": {
+   "stars": 446,
+   "checked": "2026-11-18"
+  },
+  "gj9159a/codex-restore-chat-context": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "han719307-dotcom/task-continuity": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "hyderhusainarastu/cross-session-agent-handoff-prompt-template": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "ivbala1/limit-resume": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "jerrywu001/cc-sessions-viewer": {
+   "stars": 420,
+   "checked": "2026-11-18"
+  },
+  "kc1t/alethe-agents": {
+   "stars": 1210,
+   "checked": "2026-11-18"
+  },
+  "lpoee/opencac": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "luluanes/native-windows-codex-claude-keepalive": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "m1ku831/codex-continue": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "manavarya09/relay": {
+   "stars": 41,
+   "checked": "2026-11-18"
+  },
+  "medivhstory/claudesessionhub": {
+   "stars": 104,
+   "checked": "2026-11-18"
+  },
+  "mill413/dsh-session-resume": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "mr8bithk/claude-terminal": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "ojackson08/agenthandoff": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "openai/codex-plugin-cc": {
+   "stars": 35200,
+   "checked": "2026-11-18"
+  },
+  "red-noblue/codex_relay": {
+   "stars": 200,
+   "checked": "2026-11-18"
+  },
+  "roekdnd/dsh-restart-suite": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "sachind6/pi-resume-harness": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "sergeyramas/session-handoff-skill": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "siteboon/claudecodeui": {
+   "stars": 14669,
+   "checked": "2026-11-18"
+  },
+  "supersistence/warp-claude-resume": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "swarno1996/handoff-pill": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "tk1777-sy/-work-journal-skill": {
+   "stars": 28,
+   "checked": "2026-11-18"
+  },
+  "virelnode/session-roam": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "yazcaleb/rses": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "ymonster/cc_jsonl_fix": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "zhoujianbin/dsh-codex-continue": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "zippoxer/recall": {
+   "stars": 198,
+   "checked": "2026-11-18"
+  },
+  "aproto9787/codex-bridge": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "authsec-ai/authsec-bridge": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "context-transfer-protocol/ctp-spec": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "dhilipsiva/lucy": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "dongshuyan/compass-skills": {
+   "stars": 770,
+   "checked": "2026-11-18"
+  },
+  "elecnix/pi-claude-memory": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "facuvcanale/session-bridge": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "harrychih/hishare": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "hetpatel-11/agent-hop": {
+   "stars": 36,
+   "checked": "2026-11-18"
+  },
+  "kaseban/baton": {
+   "stars": 29,
+   "checked": "2026-11-18"
+  },
+  "lijma/fcontext": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "misterbrookt/codex2claude": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "platman02/ctx-bridge": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "ptreezh/stigmergy-cli-multi-agents": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "rememora/rememora": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "rewfa-ceo/amp": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "sahilraut22/handoff": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "seemseam/claude_codex_bridge": {
+   "stars": 3630,
+   "checked": "2026-11-18"
+  },
+  "shivala-08/context-shifter": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "softaworks/agent-toolkit": {
+   "stars": 2695,
+   "checked": "2026-11-18"
+  },
+  "thepushkarp/handoff": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "vinyl-davyl/hermes": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "who96/claude-code-context-handoff": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "wink305/contextpocket": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "abassaf/baton": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "davo20019/relevo": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "dennyferra/paseo-baton": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "dongsheng123132/task-passport": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "jigyasudham/veto": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "lippinc/catnap": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "mattpocock/skills": {
+   "stars": 326806,
+   "checked": "2026-11-18"
+  },
+  "shafiqimtiaz/ctx-handoff": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "shaswat28/handoff-skill": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "shuntaka9576/chathist": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "vasilispapg/claude-handoff": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "voyfur/llm-wiki-session-memory": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "wang5333/ai-handoff-summary-builder": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "ylexliao/chatbridge": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "askdkc/kiokuko-dsh": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "draiagent/ai-to-agent-memory": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "dunova/contextgo": {
+   "stars": 28,
+   "checked": "2026-11-18"
+  },
+  "frc9427liu-tech/memrot": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "ihow1/ihow-memory-standard": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "jordanwei1/jiaojie-skill": {
+   "stars": 91,
+   "checked": "2026-11-18"
+  },
+  "kwyeh-cl/agent-memory": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "nevamind-ai/memu": {
+   "stars": 14628,
+   "checked": "2026-11-18"
+  },
+  "timyyf/agent-skills": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "yunfeng008/codebaton": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "agent-session-protocol/universal-session-log": {
+   "stars": 56,
+   "checked": "2026-11-18"
+  },
+  "agentairlift/agentairlift": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "ahnafnafee/harness-bridge": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "austinhoang8386/claude-history-windows": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "avinash-jetwani/jevmem": {
+   "stars": 153,
+   "checked": "2026-11-18"
+  },
+  "bigwhite/cc-session-migrate": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "bug-gao/session-weaver": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "chang-tong/dsh-unified-context": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "chenglongli777/codex-migrate": {
+   "stars": 87,
+   "checked": "2026-11-18"
+  },
+  "cyrusse/agenthop": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "devmom/dsh-session-import": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "hidenori-endo/pi-session-import": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "hucj09/dsh-move-session": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "ikook-wang/cc-sync": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "ingram-technologies/claude-git-sessions": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "kirkchinese/claude2dsh": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "larrtroffen/harnessbridge": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "liangyuan0219/session-migrator": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "llxgdtop/agent-session-migration": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "mr-grimwig/dsh-zcode-migrate": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "myyimu/codex-session-transfer": {
+   "stars": 28,
+   "checked": "2026-11-18"
+  },
+  "nxxxsooo/another": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "ostiums/leftoff": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "ryu0118/ctxmv": {
+   "stars": 44,
+   "checked": "2026-11-18"
+  },
+  "shivanshtalwar0/claude-buddy": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "tongtongtju/sessionbridge": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "totoro-qaq/dsh-plugin-bridge": {
+   "stars": 168,
+   "checked": "2026-11-18"
+  },
+  "vibheksoni/session-export": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "xhluca/session-migrate": {
+   "stars": 180,
+   "checked": "2026-11-18"
+  },
+  "xiaoyuyu6420/dsh-backup": {
+   "stars": 45,
+   "checked": "2026-11-18"
+  },
+  "yanzhi0922/codex-session-migrator": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  }
+ }
+}

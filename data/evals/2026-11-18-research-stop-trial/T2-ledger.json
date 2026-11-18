@@ -1,0 +1,2005 @@
+{
+ "created": "2026-11-18",
+ "groups": [
+  {
+   "group": "coding agent 對話紀錄 交接",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 40
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [
+      "@adamchanadam/agent-handoff-kit",
+      "HildebrandYu/dsh-session-chains"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "ccassist"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-zh": {
+     "names": [
+      "jhlee0409/claude-code-history-viewer",
+      "XZL-CODE/cc-codex-history-viewer",
+      "chrzamz/sessio",
+      "specstoryai/getspecstory",
+      "HizTam/codex-history-viewer",
+      "ay-bh/chat-history",
+      "pratikgajjar/recall",
+      "ccassist"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "coding agent conversation history",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "matt1398/claude-devtools",
+      "jerrywu001/cc-sessions-viewer",
+      "delexw/claude-code-trace",
+      "a7t-ai/poirot",
+      "PixelPaw-Labs/codex-trace",
+      "S40911120/recensa",
+      "tuo-lei/vibe-replay",
+      "VACInc/openclaw-tool-call-viewer",
+      "2ykwang/cview",
+      "zhuchongba-01/AgentSessionManager",
+      "wellwelwel/sessioner",
+      "thevibeworks/ccx",
+      "qiaolei81/copilot-session-viewer",
+      "HeavyBunny19C/OpenSession",
+      "Ryheff24/agentlog",
+      "karanb192/hindcast",
+      "wanderer-yk/agent-chatlens",
+      "yuluod/AllSessions",
+      "Vvkmnn/claude-historian-mcp",
+      "kuroko1t/claude-vault",
+      "jhammant/ClaudeHistoryMCP",
+      "WSL043/dsh-chat-manager",
+      "IvyYang1999/swob",
+      "vibheksoni/session-export",
+      "drewburchfield/claude-code-chat-explorer",
+      "coolcorexix/claude-grep",
+      "DazzleML/Claude-Session-Backup"
+     ],
+     "errors": [],
+     "hits": 37
+    },
+    "github-keyword": {
+     "names": [
+      "Nwflower/dsh-chat-import",
+      "zhangxj9819/agent-conversation-graph",
+      "monk1337/clicodelog",
+      "builderpepc/agent-migrator",
+      "shivamstaq/ccview",
+      "Seanium/koto",
+      "dotneet/agent-session-view",
+      "nimishgj/agentswap",
+      "frknyldz/ai-session-bridge",
+      "HeiGeAi/agent-history-rescue"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "adlternative/agent-historian"
+     ],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [
+      "adlternative/agent-historian"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "skillsynchq/txcript",
+      "Dicklesworthstone/coding_agent_session_search"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "xingkaixin/codesesh",
+      "nihen/ah"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "jazzyalex/agent-sessions",
+      "Dicklesworthstone/coding_agent_session_search",
+      "dotneet/agent-session-view",
+      "jlreyes/agent-history-skills",
+      "AgentWorkforce/relayhistory",
+      "aytzey/showagent",
+      "bvolpato/omnisession",
+      "yigitkonur/cli-continues",
+      "sukamenev/baton",
+      "aploe/claude-handoff-skill",
+      "chrichuang218/agent-handoff"
+     ],
+     "errors": []
+    },
+    "producthunt": {
+     "names": [
+      "matt1398/claude-devtools",
+      "claudebin",
+      "ccgather"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "session transcript viewer",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "jazzyalex/agent-sessions",
+      "jerrywu001/cc-sessions-viewer",
+      "a7t-ai/poirot",
+      "S40911120/recensa",
+      "karanb192/hindcast",
+      "wilbeibi/catchup",
+      "valpere/session-indexer",
+      "gautamgpt1/agent-session-browser",
+      "noluyorAbi/claude-code-recap",
+      "samfoy/pi-session-search",
+      "masonc15/codex-transcript-viewer",
+      "yfge/TalkReplay",
+      "hitmman55/claude-code-chat-viewer",
+      "tanghong123/claude-replay",
+      "phpmypython/claude-viewer",
+      "POSTTTT/agent-cli-session",
+      "alexxxtat/claude-transcript-viewer"
+     ],
+     "errors": [],
+     "hits": 41
+    },
+    "github-keyword": {
+     "names": [
+      "S40911120/recensa",
+      "masonc15/codex-transcript-viewer",
+      "tad-hq/universal-session-viewer",
+      "tim-hua-01/cc_transcript_viewer",
+      "mirekholec/copilot-debugger",
+      "hitmman55/claude-code-chat-viewer",
+      "hopp1395/cc-outline",
+      "gpolaert/trace",
+      "codesweep-ai/tracer",
+      "alexxxtat/claude-transcript-viewer",
+      "forensicdave/claude-export-viewer"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 3
+    },
+    "exa": {
+     "names": [
+      "sessionviewer.cc",
+      "ravikanchikare/cc-session-viewer"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "jhlee0409/claude-code-history-viewer",
+      "ccassist",
+      "mantra-hq/mantra-releases",
+      "ay-bh/chat-history",
+      "specstoryai/getspecstory",
+      "simonw/claude-code-transcripts",
+      "Kirushanthan03/claude-code-chat-history-viewer"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "session handoff cross-agent",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "wilbeibi/catchup",
+      "REMvisual/claude-handoff",
+      "aytzey/showagent",
+      "Vinyl-Davyl/hermes",
+      "remembra-ai/remembra",
+      "Adamchanadam/agent-handoff-kit",
+      "HaiYangBG1/BuildBeat",
+      "cote-star/agent-chorus",
+      "wilbeibi/herdr-catchup",
+      "Capetlevrai/resume-claude-codex-grok",
+      "aa2246740/dsh-resume",
+      "alexei-led/resume-from"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [
+      "wilbeibi/herdr-catchup",
+      "HarryHeYu/sessionFlow",
+      "harrychih/hishare",
+      "awithi-co/acdc",
+      "TStansel/handoff"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "AgentWorkforce/relayhistory",
+      "dennyferra/paseo-baton",
+      "kittimzhe/dsh-session-recall",
+      "azzgo/pi-xfer"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "wilbeibi/catchup",
+      "awithi-co/acdc",
+      "TStansel/handoff"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "related": {
+     "names": [
+      "axisrow/claude-devtools",
+      "alexeyv/claude-devtools",
+      "jawhnycooke/claude-devtools",
+      "powerappsdarren/claude-devtools",
+      "vince81/claude-devtools",
+      "adriencaccia/claude-devtools",
+      "huongctu/claude-devtools",
+      "cpiprint/claude-devtools",
+      "agarwalpragy/claude-devtools",
+      "dev-null-undefined/claude-devtools",
+      "hesreallyhim/awesome-claude-code",
+      "mrowrpurr-forks/coding_agent_session_search",
+      "mic92/coding_agent_session_search",
+      "silverstein/coding_agent_session_search",
+      "executiveusa/coding_agent_session_search",
+      "gmh5225/coding_agent_session_search",
+      "shuv1337/coding_agent_session_search",
+      "dicklesworthstone/scoop-bucket",
+      "dicklesworthstone/frankentui",
+      "dicklesworthstone/franken_agent_detection",
+      "dicklesworthstone/frankensqlite",
+      "dicklesworthstone/frankensearch",
+      "nsuppalan/cli-continues",
+      "pilan-ai/mnemo",
+      "Yanvi-Robotics/mnemo"
+     ],
+     "errors": []
+    },
+    "web-en": {
+     "names": [
+      "skillsynchq/txcript",
+      "xhluca/session-migrate",
+      "yigitkonur/cli-continues",
+      "Ryu0118/ctxmv",
+      "0smboy/agent-migration-cursor-plugin",
+      "wilbeibi/catchup",
+      "wilbeibi/herdr-catchup",
+      "yuzushi-dev/session-handoff"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "session export migrate",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "jhlee0409/claude-code-history-viewer",
+      "specstoryai/getspecstory",
+      "S40911120/recensa",
+      "vibheksoni/session-export",
+      "hanityx/threadlens",
+      "linfanxxxx/codex-session-exporter",
+      "Ann-Diana/codex-project-chat-exporter",
+      "MeXenon/kiro-session-export",
+      "GaoSSR/codex-export-skill",
+      "chaybits/ectype",
+      "fabiocampolim-design/claude-session-publisher",
+      "bwndlct/dsh-session-export",
+      "ZelinZhou-THU/opencode-export",
+      "zyx3721/session-exporter-skills",
+      "deveduar/vscode-copilot-export-cli",
+      "zhaoxuejie/dsh-plugin-session-export",
+      "davidqyc/session-preserve",
+      "zhyunran/dsh-session-bundle"
+     ],
+     "errors": [],
+     "hits": 40
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 9
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "Camji55/agent-handoff"
+     ],
+     "errors": [],
+     "hits": 4
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "S2thend/cursor-history"
+     ],
+     "errors": [],
+     "hits": 7
+    },
+    "exa": {
+     "names": [
+      "Sertelegger/claude-sesh-mover",
+      "yanzhi0922/codex-session-migrator",
+      "avikalpa/codex-session-tui",
+      "omdsh-dev/dsh-shuttle"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "es617/claude-replay",
+      "yfge/TalkReplay",
+      "vibheksoni/session-export",
+      "pma1999/session-bridge",
+      "ahmojo/codex-claude-transfer",
+      "grapeot/ai_session_export",
+      "ay-bh/chat-history",
+      "POSTTTT/agent-cli-session",
+      "didvc/web-to-cc",
+      "escoffier-labs/stationtrail",
+      "akoserwal/export-conversation-skill"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "agent session replay",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "tuo-lei/vibe-replay",
+      "Entelligence-AI/agentplay"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [
+      "thevibeworks/cctrace",
+      "camtrik/agent-trail"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 2
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "cosmtrek/mindwalk"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "Entelligence-AI/agentplay",
+      "MingoZhou/dsh-replay"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-zh": {
+     "names": [
+      "pma1999/session-bridge",
+      "inmzhang/transession",
+      "MisterBrookT/codex2claude",
+      "ostiums/leftoff",
+      "AaronWong1999/ccx",
+      "arghhhhh/claude-conversation-transfer",
+      "thevibeworks/ccx",
+      "jazzyalex/agent-sessions",
+      "kvsankar/agent-history",
+      "XZL-CODE/cc-codex-history-viewer",
+      "daaain/claude-code-log",
+      "es617/claude-replay",
+      "yfge/TalkReplay",
+      "furkankly/zoetrope",
+      "PrashnaLabs/agent-race",
+      "cosmtrek/mindwalk"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "claude codex chat history",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "jhlee0409/claude-code-history-viewer",
+      "specstoryai/getspecstory",
+      "s40911120/recensa",
+      "hanityx/threadlens"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [
+      "ssanaullahrais/Chat-Vault",
+      "yashagldit/Claude-Code-History-VSCode",
+      "ay-bh/chat-history",
+      "pratikgajjar/recall",
+      "SmallHorseBrother/ai-cli-chat-search",
+      "pmarreck/chatscan",
+      "cygmris/chatdex",
+      "fengerwoo/chat-history-skill",
+      "roccodaffuso/sift",
+      "Mark-Libetter/ai-conversation-hub",
+      "jiantao88/ai-history"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 4
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "pratikgajjar/recall",
+      "skillsynchq/txcript"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "xingkaixin/codesesh",
+      "bquenin/mnemonai",
+      "The-Zombie0/Codex-Claude-History-Viewer",
+      "jdinkla/ai-history",
+      "ay-bh/chat-history"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "jhlee0409/claude-code-history-viewer",
+      "monk1337/clicodelog",
+      "mantra-hq/mantra-releases",
+      "jerrywu001/cc-sessions-viewer",
+      "tyql688/sessionview",
+      "kvsankar/agent-history",
+      "specstoryai/getspecstory",
+      "HizTam/codex-history-viewer",
+      "ccassist",
+      "raine/claude-history",
+      "lef237/clauhist",
+      "FlorianBruniaux/cc-sessions",
+      "agentic-utils/ccs",
+      "contextify.sh"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "cursor chat history export",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "S2thend/cursor-history",
+      "hanityx/threadlens",
+      "S40911120/recensa",
+      "jhlee0409/claude-code-history-viewer",
+      "specstoryai/getspecstory"
+     ],
+     "errors": [],
+     "hits": 48
+    },
+    "github-keyword": {
+     "names": [
+      "thomas-pedersen/cursor-chat-browser",
+      "Nwflower/dsh-chat-import",
+      "S2thend/cursor-history",
+      "saharmor/cursor-view",
+      "S2thend/cursor-history-mcp",
+      "ay-bh/chat-history",
+      "Cedriccmh/cursor-trace-exporter",
+      "changlehu/cursor-chat-export-to-markdown",
+      "livyn-inc/cursor-chat-history-exporter",
+      "kwiscion/cursor-chat-recovery",
+      "jitrak-dev/cursor-export",
+      "the-ensemble/ai-chat-exporters",
+      "KyawZaw-cmd/Cursor-Multiple-Project-local-chat-History-Find-Export"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "jlreyes/agent-history-skills",
+      "Chendestiny/agent-session-sync"
+     ],
+     "errors": [],
+     "hits": 4
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [
+      "S2thend/cursor-history-mcp"
+     ],
+     "errors": [],
+     "hits": 12
+    },
+    "hn": {
+     "names": [
+      "S2thend/cursor-history-mcp",
+      "S2thend/cursor-history"
+     ],
+     "errors": [],
+     "hits": 3
+    },
+    "exa": {
+     "names": [
+      "iksnae/cursor-session",
+      "johnlindquist/cursor-history",
+      "S2thend/cursor-history",
+      "kwiscion/cursor-chat-recovery",
+      "mikhailsal/cursor-chronicle"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "S2thend/cursor-history",
+      "mikhailsal/cursor-chronicle",
+      "saharmor/cursor-view",
+      "thomas-pedersen/cursor-chat-browser",
+      "iksnae/cursor-session",
+      "somogyijanos/cursor-chat-export",
+      "markwroberts0/cursor-chat-recovery",
+      "M6ZeroG/cursor2md",
+      "xiaoheilong3112/cursor-chat-exporter",
+      "anasabbasdev/cursor-chat-bulk-export",
+      "dwqs/cursor-trace",
+      "abakermi/vscode-cursorchat-downloader",
+      "lohasle/AI-Conversation-Viewer",
+      "jhlee0409/claude-code-history-viewer",
+      "ay-bh/chat-history"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "gemini cli opencode session history",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "jazzyalex/agent-sessions",
+      "wilbeibi/catchup",
+      "valpere/session-indexer",
+      "gautamgpt1/agent-session-browser",
+      "noluyorabi/claude-code-recap",
+      "samfoy/pi-session-search"
+     ],
+     "errors": [],
+     "hits": 40
+    },
+    "github-keyword": {
+     "names": [
+      "youdie006/sessionwiki",
+      "seastart/aicoder-session-viewer",
+      "DnaMes/lore",
+      "Yaagik/session-recall",
+      "samanvaya5/session-query",
+      "williamfzc/ferry",
+      "itswl/agent-session-query"
+     ],
+     "errors": [],
+     "hits": 12
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "npm": {
+     "names": [
+      "joe-broadhead/opencode-history"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "contextify.sh",
+      "Dicklesworthstone/coding_agent_session_search"
+     ],
+     "errors": [],
+     "hits": 4
+    },
+    "exa": {
+     "names": [
+      "ddarmon/sesh",
+      "youdie006/sessionwiki",
+      "nicomen/saisons",
+      "Mert-coderoid/agf",
+      "agentdrive.sh"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "aytzey/showagent",
+      "yigitkonur/cli-continues",
+      "rymalia/agent-session-manager",
+      "44-pixels/handover-mcp",
+      "AgentWorkforce/relayhistory",
+      "vibheksoni/session-export",
+      "gautamgpt1/agent-session-browser",
+      "nogataka/opencode-viewer",
+      "jerrywu001/cc-sessions-viewer",
+      "rcwalter24/opencode-export",
+      "neuronalism/opencode-session-manager-cli",
+      "gowtham-sai-yadav/entangle",
+      "jazzyalex/agent-sessions"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "session backup conversation archive",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "angristan/fast-resume",
+      "samzong/Recall",
+      "ahundt/ai-session-search",
+      "PolinniZhong/dsh-session-workbench",
+      "lee-fuhr/claude-session-index",
+      "vibheksoni/session-export",
+      "bvolpato/omnisession",
+      "hxreborn/herdr-transcripts",
+      "HarryHeYu/sessionFlow",
+      "demirciAhmet/ocsearch",
+      "Augl-l/dsh-session-search",
+      "helo060228/dsh-chat-search",
+      "WangPeterXF/session-harbor",
+      "DazzleML/Claude-Session-Backup",
+      "davidqyc/session-preserve"
+     ],
+     "errors": [],
+     "hits": 48
+    },
+    "github-keyword": {
+     "names": [
+      "mienfong/dsh-session-mgr"
+     ],
+     "errors": [],
+     "hits": 2
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "mapleleo-hub/chat-share-reader"
+     ],
+     "errors": [],
+     "hits": 1
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [
+      "brucexcluding/session-recap",
+      "SomeNoneAI/find-my-session",
+      "mallikcheripally/session-steward"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "wangjohn/agent-archive"
+     ],
+     "errors": [],
+     "hits": 2
+    },
+    "exa": {
+     "names": [
+      "xxxily/convx",
+      "chunxue-ai/cc-archive",
+      "Ultroncn/dsh-archived-chats"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "Dicklesworthstone/coding_agent_session_search",
+      "youdie006/sessionwiki",
+      "bvolpato/omnisession",
+      "wangjohn/agent-archive",
+      "mallikcheripally/session-steward",
+      "jazzyalex/agent-sessions",
+      "wesm/archived-agent-session-viewer",
+      "DazzleML/Claude-Session-Backup",
+      "genspark-ai/cc-conversation-archiver",
+      "2389-research/ccvault",
+      "babarot/claude-recall",
+      "GunitBindal/claude-transcript-exporter",
+      "softagram/cc-search",
+      "coolcorexix/claude-grep",
+      "simonw/claude-code-transcripts"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "copilot cline chat history export",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "specstoryai/getspecstory",
+      "jhlee0409/claude-code-history-viewer",
+      "S40911120/recensa",
+      "hanityx/threadlens"
+     ],
+     "errors": [],
+     "hits": 41
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "T-Gojo/ContextBridgeAi"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "jhlee0409/claude-code-history-viewer",
+      "TomSchmidtDev/vscode-ai-chat-exporter",
+      "pandaxbacon/github-copilot-chat-exporter"
+     ],
+     "errors": []
+    }
+   }
+  }
+ ],
+ "stars": {
+  "ay-bh/chat-history": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "chrzamz/sessio": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "hildebrandyu/dsh-session-chains": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "hiztam/codex-history-viewer": {
+   "stars": 49,
+   "checked": "2026-11-18"
+  },
+  "jhlee0409/claude-code-history-viewer": {
+   "stars": 2324,
+   "checked": "2026-11-18"
+  },
+  "pratikgajjar/recall": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "specstoryai/getspecstory": {
+   "stars": 1375,
+   "checked": "2026-11-18"
+  },
+  "xzl-code/cc-codex-history-viewer": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "2ykwang/cview": {
+   "stars": 19,
+   "checked": "2026-11-18"
+  },
+  "a7t-ai/poirot": {
+   "stars": 215,
+   "checked": "2026-11-18"
+  },
+  "adlternative/agent-historian": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "agentworkforce/relayhistory": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "aploe/claude-handoff-skill": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "aytzey/showagent": {
+   "stars": 64,
+   "checked": "2026-11-18"
+  },
+  "builderpepc/agent-migrator": {
+   "stars": 19,
+   "checked": "2026-11-18"
+  },
+  "bvolpato/omnisession": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "chrichuang218/agent-handoff": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "coolcorexix/claude-grep": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "dazzleml/claude-session-backup": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "delexw/claude-code-trace": {
+   "stars": 391,
+   "checked": "2026-11-18"
+  },
+  "dicklesworthstone/coding_agent_session_search": {
+   "stars": 1214,
+   "checked": "2026-11-18"
+  },
+  "dotneet/agent-session-view": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "drewburchfield/claude-code-chat-explorer": {
+   "stars": 21,
+   "checked": "2026-11-18"
+  },
+  "frknyldz/ai-session-bridge": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "heavybunny19c/opensession": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "heigeai/agent-history-rescue": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "ivyyang1999/swob": {
+   "stars": 42,
+   "checked": "2026-11-18"
+  },
+  "jazzyalex/agent-sessions": {
+   "stars": 949,
+   "checked": "2026-11-18"
+  },
+  "jerrywu001/cc-sessions-viewer": {
+   "stars": 420,
+   "checked": "2026-11-18"
+  },
+  "jhammant/claudehistorymcp": {
+   "stars": 69,
+   "checked": "2026-11-18"
+  },
+  "jlreyes/agent-history-skills": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "karanb192/hindcast": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "kuroko1t/claude-vault": {
+   "stars": 74,
+   "checked": "2026-11-18"
+  },
+  "matt1398/claude-devtools": {
+   "stars": 4042,
+   "checked": "2026-11-18"
+  },
+  "monk1337/clicodelog": {
+   "stars": 49,
+   "checked": "2026-11-18"
+  },
+  "nihen/ah": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "nimishgj/agentswap": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "nwflower/dsh-chat-import": {
+   "stars": 317,
+   "checked": "2026-11-18"
+  },
+  "pixelpaw-labs/codex-trace": {
+   "stars": 120,
+   "checked": "2026-11-18"
+  },
+  "qiaolei81/copilot-session-viewer": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "ryheff24/agentlog": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "s40911120/recensa": {
+   "stars": 73,
+   "checked": "2026-11-18"
+  },
+  "seanium/koto": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "shivamstaq/ccview": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "skillsynchq/txcript": {
+   "stars": 222,
+   "checked": "2026-11-18"
+  },
+  "sukamenev/baton": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "thevibeworks/ccx": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "tuo-lei/vibe-replay": {
+   "stars": 39,
+   "checked": "2026-11-18"
+  },
+  "vacinc/openclaw-tool-call-viewer": {
+   "stars": 29,
+   "checked": "2026-11-18"
+  },
+  "vibheksoni/session-export": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "vvkmnn/claude-historian-mcp": {
+   "stars": 180,
+   "checked": "2026-11-18"
+  },
+  "wanderer-yk/agent-chatlens": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "wellwelwel/sessioner": {
+   "stars": 14,
+   "checked": "2026-11-18"
+  },
+  "wsl043/dsh-chat-manager": {
+   "stars": 45,
+   "checked": "2026-11-18"
+  },
+  "xingkaixin/codesesh": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "yigitkonur/cli-continues": {
+   "stars": 1605,
+   "checked": "2026-11-18"
+  },
+  "yuluod/allsessions": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "zhangxj9819/agent-conversation-graph": {
+   "stars": 53,
+   "checked": "2026-11-18"
+  },
+  "zhuchongba-01/agentsessionmanager": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "alexxxtat/claude-transcript-viewer": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "codesweep-ai/tracer": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "forensicdave/claude-export-viewer": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "gautamgpt1/agent-session-browser": {
+   "stars": 36,
+   "checked": "2026-11-18"
+  },
+  "gpolaert/trace": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "hitmman55/claude-code-chat-viewer": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "hopp1395/cc-outline": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "kirushanthan03/claude-code-chat-history-viewer": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "mantra-hq/mantra-releases": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "masonc15/codex-transcript-viewer": {
+   "stars": 24,
+   "checked": "2026-11-18"
+  },
+  "mirekholec/copilot-debugger": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "noluyorabi/claude-code-recap": {
+   "stars": 30,
+   "checked": "2026-11-18"
+  },
+  "phpmypython/claude-viewer": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "postttt/agent-cli-session": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "ravikanchikare/cc-session-viewer": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "samfoy/pi-session-search": {
+   "stars": 27,
+   "checked": "2026-11-18"
+  },
+  "simonw/claude-code-transcripts": {
+   "stars": 1734,
+   "checked": "2026-11-18"
+  },
+  "tad-hq/universal-session-viewer": {
+   "stars": 19,
+   "checked": "2026-11-18"
+  },
+  "tanghong123/claude-replay": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "tim-hua-01/cc_transcript_viewer": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "valpere/session-indexer": {
+   "stars": 42,
+   "checked": "2026-11-18"
+  },
+  "wilbeibi/catchup": {
+   "stars": 83,
+   "checked": "2026-11-18"
+  },
+  "yfge/talkreplay": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "0smboy/agent-migration-cursor-plugin": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "aa2246740/dsh-resume": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "adamchanadam/agent-handoff-kit": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "adriencaccia/claude-devtools": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "agarwalpragy/claude-devtools": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "alexei-led/resume-from": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "alexeyv/claude-devtools": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "awithi-co/acdc": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "axisrow/claude-devtools": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "azzgo/pi-xfer": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "capetlevrai/resume-claude-codex-grok": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "cote-star/agent-chorus": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "cpiprint/claude-devtools": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "dennyferra/paseo-baton": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "dev-null-undefined/claude-devtools": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "dicklesworthstone/franken_agent_detection": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "dicklesworthstone/frankensearch": {
+   "stars": 96,
+   "checked": "2026-11-18"
+  },
+  "dicklesworthstone/frankensqlite": {
+   "stars": 251,
+   "checked": "2026-11-18"
+  },
+  "dicklesworthstone/frankentui": {
+   "stars": 299,
+   "checked": "2026-11-18"
+  },
+  "dicklesworthstone/scoop-bucket": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "executiveusa/coding_agent_session_search": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "gmh5225/coding_agent_session_search": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "haiyangbg1/buildbeat": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "harrychih/hishare": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "harryheyu/sessionflow": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "hesreallyhim/awesome-claude-code": {
+   "stars": 58251,
+   "checked": "2026-11-18"
+  },
+  "huongctu/claude-devtools": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "jawhnycooke/claude-devtools": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "kittimzhe/dsh-session-recall": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "mic92/coding_agent_session_search": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "mrowrpurr-forks/coding_agent_session_search": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "nsuppalan/cli-continues": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "pilan-ai/mnemo": {
+   "stars": 58,
+   "checked": "2026-11-18"
+  },
+  "powerappsdarren/claude-devtools": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "remembra-ai/remembra": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "remvisual/claude-handoff": {
+   "stars": 75,
+   "checked": "2026-11-18"
+  },
+  "ryu0118/ctxmv": {
+   "stars": 44,
+   "checked": "2026-11-18"
+  },
+  "shuv1337/coding_agent_session_search": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "silverstein/coding_agent_session_search": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "tstansel/handoff": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "vince81/claude-devtools": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "vinyl-davyl/hermes": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "wilbeibi/herdr-catchup": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "xhluca/session-migrate": {
+   "stars": 180,
+   "checked": "2026-11-18"
+  },
+  "yanvi-robotics/mnemo": {
+   "stars": 58,
+   "checked": "2026-11-18"
+  },
+  "yuzushi-dev/session-handoff": {
+   "stars": 67,
+   "checked": "2026-11-18"
+  },
+  "ahmojo/codex-claude-transfer": {
+   "stars": 84,
+   "checked": "2026-11-18"
+  },
+  "akoserwal/export-conversation-skill": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "ann-diana/codex-project-chat-exporter": {
+   "stars": 14,
+   "checked": "2026-11-18"
+  },
+  "avikalpa/codex-session-tui": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "bwndlct/dsh-session-export": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "camji55/agent-handoff": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "chaybits/ectype": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "davidqyc/session-preserve": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "deveduar/vscode-copilot-export-cli": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "didvc/web-to-cc": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "es617/claude-replay": {
+   "stars": 862,
+   "checked": "2026-11-18"
+  },
+  "escoffier-labs/stationtrail": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "fabiocampolim-design/claude-session-publisher": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "gaossr/codex-export-skill": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "grapeot/ai_session_export": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "hanityx/threadlens": {
+   "stars": 61,
+   "checked": "2026-11-18"
+  },
+  "linfanxxxx/codex-session-exporter": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "mexenon/kiro-session-export": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "omdsh-dev/dsh-shuttle": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "pma1999/session-bridge": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "s2thend/cursor-history": {
+   "stars": 153,
+   "checked": "2026-11-18"
+  },
+  "sertelegger/claude-sesh-mover": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "yanzhi0922/codex-session-migrator": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "zelinzhou-thu/opencode-export": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "zhaoxuejie/dsh-plugin-session-export": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "zhyunran/dsh-session-bundle": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "zyx3721/session-exporter-skills": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "aaronwong1999/ccx": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "arghhhhh/claude-conversation-transfer": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "camtrik/agent-trail": {
+   "stars": 45,
+   "checked": "2026-11-18"
+  },
+  "cosmtrek/mindwalk": {
+   "stars": 1400,
+   "checked": "2026-11-18"
+  },
+  "daaain/claude-code-log": {
+   "stars": 1266,
+   "checked": "2026-11-18"
+  },
+  "entelligence-ai/agentplay": {
+   "stars": 370,
+   "checked": "2026-11-18"
+  },
+  "furkankly/zoetrope": {
+   "stars": 1182,
+   "checked": "2026-11-18"
+  },
+  "inmzhang/transession": {
+   "stars": 29,
+   "checked": "2026-11-18"
+  },
+  "kvsankar/agent-history": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "mingozhou/dsh-replay": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "misterbrookt/codex2claude": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "ostiums/leftoff": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "prashnalabs/agent-race": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "thevibeworks/cctrace": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "agentic-utils/ccs": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "bquenin/mnemonai": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "cygmris/chatdex": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "fengerwoo/chat-history-skill": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "florianbruniaux/cc-sessions": {
+   "stars": 14,
+   "checked": "2026-11-18"
+  },
+  "jdinkla/ai-history": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "jiantao88/ai-history": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "lef237/clauhist": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "mark-libetter/ai-conversation-hub": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "pmarreck/chatscan": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "raine/claude-history": {
+   "stars": 544,
+   "checked": "2026-11-18"
+  },
+  "roccodaffuso/sift": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "smallhorsebrother/ai-cli-chat-search": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "ssanaullahrais/chat-vault": {
+   "stars": 94,
+   "checked": "2026-11-18"
+  },
+  "the-zombie0/codex-claude-history-viewer": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "tyql688/sessionview": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "yashagldit/claude-code-history-vscode": {
+   "stars": 42,
+   "checked": "2026-11-18"
+  },
+  "abakermi/vscode-cursorchat-downloader": {
+   "stars": 24,
+   "checked": "2026-11-18"
+  },
+  "anasabbasdev/cursor-chat-bulk-export": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "cedriccmh/cursor-trace-exporter": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "changlehu/cursor-chat-export-to-markdown": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "chendestiny/agent-session-sync": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "dwqs/cursor-trace": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "iksnae/cursor-session": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "jitrak-dev/cursor-export": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "johnlindquist/cursor-history": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "kwiscion/cursor-chat-recovery": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "kyawzaw-cmd/cursor-multiple-project-local-chat-history-find-export": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "livyn-inc/cursor-chat-history-exporter": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "lohasle/ai-conversation-viewer": {
+   "stars": 40,
+   "checked": "2026-11-18"
+  },
+  "m6zerog/cursor2md": {
+   "stars": 18,
+   "checked": "2026-11-18"
+  },
+  "markwroberts0/cursor-chat-recovery": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "mikhailsal/cursor-chronicle": {
+   "stars": 24,
+   "checked": "2026-11-18"
+  },
+  "s2thend/cursor-history-mcp": {
+   "stars": 34,
+   "checked": "2026-11-18"
+  },
+  "saharmor/cursor-view": {
+   "stars": 134,
+   "checked": "2026-11-18"
+  },
+  "somogyijanos/cursor-chat-export": {
+   "stars": 247,
+   "checked": "2026-11-18"
+  },
+  "the-ensemble/ai-chat-exporters": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "thomas-pedersen/cursor-chat-browser": {
+   "stars": 516,
+   "checked": "2026-11-18"
+  },
+  "xiaoheilong3112/cursor-chat-exporter": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "44-pixels/handover-mcp": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "ddarmon/sesh": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "dnames/lore": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "gowtham-sai-yadav/entangle": {
+   "stars": 28,
+   "checked": "2026-11-18"
+  },
+  "itswl/agent-session-query": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "joe-broadhead/opencode-history": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "mert-coderoid/agf": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "neuronalism/opencode-session-manager-cli": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "nicomen/saisons": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "nogataka/opencode-viewer": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "rcwalter24/opencode-export": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "rymalia/agent-session-manager": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "samanvaya5/session-query": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "seastart/aicoder-session-viewer": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "williamfzc/ferry": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "yaagik/session-recall": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "youdie006/sessionwiki": {
+   "stars": 34,
+   "checked": "2026-11-18"
+  },
+  "2389-research/ccvault": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "ahundt/ai-session-search": {
+   "stars": 81,
+   "checked": "2026-11-18"
+  },
+  "angristan/fast-resume": {
+   "stars": 195,
+   "checked": "2026-11-18"
+  },
+  "augl-l/dsh-session-search": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "babarot/claude-recall": {
+   "stars": 64,
+   "checked": "2026-11-18"
+  },
+  "brucexcluding/session-recap": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "chunxue-ai/cc-archive": {
+   "stars": 29,
+   "checked": "2026-11-18"
+  },
+  "demirciahmet/ocsearch": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "genspark-ai/cc-conversation-archiver": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "gunitbindal/claude-transcript-exporter": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "helo060228/dsh-chat-search": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "hxreborn/herdr-transcripts": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "lee-fuhr/claude-session-index": {
+   "stars": 31,
+   "checked": "2026-11-18"
+  },
+  "mallikcheripally/session-steward": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "mapleleo-hub/chat-share-reader": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "mienfong/dsh-session-mgr": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "pandaxbacon/github-copilot-chat-exporter": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "polinnizhong/dsh-session-workbench": {
+   "stars": 47,
+   "checked": "2026-11-18"
+  },
+  "samzong/recall": {
+   "stars": 109,
+   "checked": "2026-11-18"
+  },
+  "softagram/cc-search": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "somenoneai/find-my-session": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "t-gojo/contextbridgeai": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "tomschmidtdev/vscode-ai-chat-exporter": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "ultroncn/dsh-archived-chats": {
+   "stars": 30,
+   "checked": "2026-11-18"
+  },
+  "wangjohn/agent-archive": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "wangpeterxf/session-harbor": {
+   "stars": 86,
+   "checked": "2026-11-18"
+  },
+  "wesm/archived-agent-session-viewer": {
+   "stars": 88,
+   "checked": "2026-11-18"
+  },
+  "xxxily/convx": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  }
+ }
+}

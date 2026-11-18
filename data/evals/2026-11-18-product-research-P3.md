@@ -147,7 +147,7 @@ B、C 用的是本機 qwen3:8b，A 用 Gemini 4 Hydrogen，見「要打折看的
 
 ## 下一步（建議）
 
-1. **要不要用前沿模型重跑 B、C**（要付費，使用者決定）：OpenAI 儲值或 Gemini 開 Tier 1，各跑 2 次，GPT Researcher 自己估每次約 US$1 多（待驗證）。重跑才能決定兩張卡要 `trial` 還是 `rejected`。
+1. **用前沿模型重跑 B、C**：使用者 2026-11-18 決定不付費，兩張卡維持 `pending`。原本的說明：OpenAI 儲值或 Gemini 開 Tier 1，各跑 2 次，GPT Researcher 自己估每次約 US$1 多（待驗證）。重跑才能決定兩張卡要 `trial` 還是 `rejected`。
 2. omnikit-research 用新的 `--min-stars` 停法實際跑一個新題目，看會不會太早停。
 3. Exa 試用到 11-30：A 的 221 個名字裡 Exa 貢獻 39 個（第一次找到的管道），試用結束時照 P2 的規則看。
 

@@ -1,0 +1,2379 @@
+{
+ "created": "2026-11-18",
+ "groups": [
+  {
+   "group": "coding agent 跨對話 記憶",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "OthmanAdi/planning-with-files",
+      "gastownhall/beads"
+     ],
+     "errors": [],
+     "hits": 40
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "AVIDS2/memorix",
+      "ShZhao27208/ChatMem",
+      "rohitg00/agentmemory"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-zh": {
+     "names": [
+      "thedotmack/claude-mem",
+      "polyxmedia/mnemos",
+      "ggwhite/memory-mcp",
+      "mkreyman/mcp-memory-keeper"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "claude code persistent memory",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "breferrari/obsidian-mind",
+      "vshulcz/deja-vu",
+      "mnemon-dev/mnemon",
+      "memvid/claude-brain",
+      "softcane/cc-session-recover",
+      "heyroute-ai/claude-session-restore",
+      "basedgpt/claude-code-session-recovery",
+      "vladimirgutuev/cross-agent-memory",
+      "rainypilgrimage/persistent-memory"
+     ],
+     "errors": [],
+     "hits": 60
+    },
+    "github-keyword": {
+     "names": [
+      "zilliztech/memsearch",
+      "lucasrosati/claude-code-memory-setup",
+      "JuliusBrussee/cavemem",
+      "EliaAlberti/cpr-compress-preserve-resume",
+      "GMaN1911/claude-cognitive",
+      "blader/napkin"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "raoulbia-ai/claude-recall",
+      "awrshift/agent-memory-kit"
+     ],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [
+      "contextfs/contextfs"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "TonyStef/Grov",
+      "hifriendbot/cogmemai-mcp",
+      "bernardohcrocha/persistia-for-claude-code",
+      "deepmemteam/deepmem-claude-plugin",
+      "agynio/claude-map-reduce-memory",
+      "cyrus-cai/claude-cobrain"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "FlineDev/Recall",
+      "who96/claude-code-context-handoff",
+      "u-ichi/compact-plus",
+      "Dicklesworthstone/post_compact_reminder",
+      "wrg32786/aigent-os",
+      "contextstream/claude-code",
+      "vbcherepanov/total-agent-memory",
+      "RohiRIK/OpenLtm",
+      "VeriTeknik/pluggedin-plugin",
+      "maydali28/memcp",
+      "templetwo/temple-vault",
+      "tristan-mcinnis/claude-code-agentic-semantic-memory-system-mcp",
+      "alfredoizdev/contextforge-mcp",
+      "supermemoryai/claude-supermemory"
+     ],
+     "errors": []
+    },
+    "producthunt": {
+     "names": [
+      "Mengram",
+      "CodeYam",
+      "SCMD",
+      "SuperLocalMemory",
+      "CMEM.ai",
+      "ContextPool",
+      "GPS",
+      "MemoryCustodian",
+      "PMB",
+      "RoBrain",
+      "ResumeContext",
+      "beacon.sh",
+      "Atlaso",
+      "HarnessRouter"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "session context compaction recovery",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "big0lives/codex-task-pointer",
+      "Capnjbrown/c0ntextKeeper",
+      "obrenoalvim/zero-drift",
+      "lennartschoch/opencode-cache-compact",
+      "justi/context-revive",
+      "DominicJArrow/context-continuum",
+      "wangcangshu/codex-desktop-thread-rescue"
+     ],
+     "errors": [],
+     "hits": 69
+    },
+    "github-keyword": {
+     "names": [
+      "diego-ninja/memento",
+      "kenimo49/compact-ops"
+     ],
+     "errors": [],
+     "hits": 12
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "aesirsystems/claude-breadcrumbs"
+     ],
+     "errors": [],
+     "hits": 12
+    },
+    "npm": {
+     "names": [
+      "elpapi42/pi-observational-memory",
+      "rochecompaan/pi-context-paging"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [
+      "dimitrihilverda/claude-session-relay",
+      "base76-research-lab/cognos-session-memory"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 3
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "hatawong/claude-recap",
+      "reacherwu/ContextSpindle",
+      "soolaugust/vMem",
+      "d-wwei/agent-recall",
+      "yuvalsuede/memory-mcp"
+     ],
+     "errors": []
+    },
+    "related": {
+     "names": [
+      "rlancemartin/claude-diary",
+      "davegoldblatt/total-recall",
+      "hjertefolger/cortex",
+      "amarodeabreu/claude-graph-memory",
+      "blas0/UnseveredMemory",
+      "zircote/git-notes-memory",
+      "ArtemisAI/pi-mem"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "cross-agent shared memory",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "oceanbase/powercontext",
+      "parcadei/Continuous-Claude-v3",
+      "tigerless-labs/agent-memory",
+      "grpcer/ownmem",
+      "Protocol-zero-0/compound-memory",
+      "kuitos/opencode-claude-memory",
+      "aipmandy/dna-memory",
+      "recallium-ai/recallium",
+      "mworldorg/markdown-memory",
+      "grimmerk/memsaga",
+      "memwyreai/memwyre",
+      "larikoz/eidetic",
+      "luciferforge/claude-code-memory",
+      "ychampion/claude-self-learning"
+     ],
+     "errors": [],
+     "hits": 79
+    },
+    "github-keyword": {
+     "names": [
+      "internetyev/cross-agent-memory-kit",
+      "elecnix/pi-claude-memory",
+      "ruanzhou9/shared-agent-memory"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 17
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 9
+    },
+    "exa": {
+     "names": [
+      "AideMemo"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "dan-calin/shared-agent-memory",
+      "danilofalcao/nimrod",
+      "linksee-memory",
+      "Stompy",
+      "klypix-mcp",
+      "MaxFreedomPollard/Compartment",
+      "BirdEye",
+      "Glen"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "cursor memory bank",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "alioshr/memory-bank-mcp",
+      "tacticlaunch/cursor-bank",
+      "enescingoz/roo-advanced-memory-bank",
+      "fockus/skill-memory-bank",
+      "space-cadet/memory-bank",
+      "kadiresen/context-bank",
+      "reskin-games/memorybank-plus",
+      "georgeantonopoulos/obsidian-cli-memory-bank-skill",
+      "shivansh12t/claude-code-memory-bank",
+      "pmikutel/directed-memory-bank",
+      "savagelysubtle/big-brain-memory-bank",
+      "kortexio/contextmemory",
+      "marcelluxx/ckpt",
+      "vivian254338489/agent-memory-portability-kit"
+     ],
+     "errors": [],
+     "hits": 68
+    },
+    "github-keyword": {
+     "names": [
+      "vanzan01/cursor-memory-bank",
+      "johnpeterman72/cursor_memory_riper_framework",
+      "forsonny/enhanced-cursor-memory-bank-system",
+      "dapi/memory-bank",
+      "nisargpatel1906/aethos_memory",
+      "dreamquality/cursor-qa-memory-bank"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 7
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 12
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "exa": {
+     "names": [
+      "ipenywis/aimemory"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "akitaonrails/ai-memory",
+      "ipospelov/mcp-memory-bank",
+      "dazeb/cline-mcp-memory-bank",
+      "IncomeStreamSurfer/roo-code-memory-bank-mcp-server",
+      "tuncer-byte/memory-bank-MCP",
+      "aakarsh-sasi/memory-bank-mcp",
+      "heyditto.ai"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "codex gemini cli memory",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "richenyu/codex-smart-project-memory",
+      "transportrefer/opencode-memory-plugin",
+      "ufo8mycow14/memorycore-ai-for-codex"
+     ],
+     "errors": [],
+     "hits": 53
+    },
+    "github-keyword": {
+     "names": [
+      "buildingjoshbetter/TrueMemory",
+      "alphaonedev/ai-memory-mcp",
+      "cdeust/cortex"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 2
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "jolli.ai",
+      "ContextVault",
+      "onadit.com"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "yesetr8/memento"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "Gentleman-Programming/engram",
+      "GabrielMartinMoran/mind",
+      "trailhq/Trail-Code",
+      "tickernelz/opencode-mem",
+      "supermemoryai/opencode-supermemory",
+      "clopca/open-mem",
+      "one-bit/oc-mnemoria",
+      "star-ga/mind-mem",
+      "joshuadavidthomas/opencode-agent-memory",
+      "ZeR020/opencode-mem0",
+      "LordAizen1/opencode-evermemos-plugin",
+      "aerovato/magic-compact",
+      "vectorize-io/opencode-hindsight"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "coding agent context continuity",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "ReflexioAI/claude-smart",
+      "wan-huiyan/context-baton",
+      "tethiro/mcp-claude-context-continuity"
+     ],
+     "errors": [],
+     "hits": 66
+    },
+    "github-keyword": {
+     "names": [
+      "zackbrooks84/continuum",
+      "berketpbs/anamnesis",
+      "i3T4AN/Archivist-MCP",
+      "PrashantTakale369/AgentContinuity",
+      "harryheyu/sessionflow",
+      "chrsdme/agent-context",
+      "yvniverse/contextcord"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "edisoncgh/project-memory-skill",
+      "al-hub/memcarry",
+      "xuepoo/carryctx-skills",
+      "huajiexiewenfeng/agent-global-context"
+     ],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 13
+    },
+    "exa": {
+     "names": [
+      "cubiix3/continuity",
+      "bkalyankumar/contextos"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "jmm2020/claude-session-recorder",
+      "YesMem"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "claude code episodic memory",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "cortexkit/magic-context",
+      "mex-memory/mex",
+      "0xranx/OpenContext",
+      "timgordontg/engrim"
+     ],
+     "errors": [],
+     "hits": 59
+    },
+    "github-keyword": {
+     "names": [
+      "Cantara/kcp-memory",
+      "cryptokrad/open-mem",
+      "lantisprime/episodic-memory",
+      "automattf/automatic-episodic-memory",
+      "la7yman/claude-code-memory",
+      "shushant17711/git-episodic-memory",
+      "nnooshi/claude-memory-scaffold"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 4
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 12
+    },
+    "exa": {
+     "names": [
+      "basement-interactive/claude-brain"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "mnemosyne-memory",
+      "Memory Crystal",
+      "Pensyve",
+      "AfterImage"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "precompact sessionstart hook",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "mindmuxai/brain.md",
+      "JamesShi96/project-butler",
+      "oliver-zehentleitner/keep-the-why",
+      "Frappucc1no/recall-loom",
+      "Avinash-jetwani/jevmem",
+      "familiar-md/familiar",
+      "jim4226/claude-workspace-brain"
+     ],
+     "errors": [],
+     "hits": 62
+    },
+    "github-keyword": {
+     "names": [
+      "waitdeadai/no-amnesia",
+      "offendingcommit/lossless-claude",
+      "twmoon/claude-compaction-memory",
+      "ultramcu/claude-compact-memory"
+     ],
+     "errors": [],
+     "hits": 9
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 2
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "coleam00/claude-memory-compiler",
+      "KimYx0207/claude-memory-3layer",
+      "ShaneK77/claude-continuity",
+      "MemPalace"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "windsurf cline copilot memory",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "sevaschan/copilot-memory-curator",
+      "beledarian/mcp-local-memory",
+      "endless-galaxy-studios/neuroloom-claude-plugin",
+      "focaxisdev/deja-vu",
+      "alirng/recall"
+     ],
+     "errors": [],
+     "hits": 69
+    },
+    "github-keyword": {
+     "names": [
+      "luizedupp/rememb",
+      "aitytech/agentkits-memory",
+      "jeremy8776/context-engine",
+      "firedmosquito831/working-notes"
+     ],
+     "errors": [],
+     "hits": 26
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 6
+    },
+    "skills-sh": {
+     "names": [
+      "stark-sim/memory-bank"
+     ],
+     "errors": [],
+     "hits": 4
+    },
+    "npm": {
+     "names": [
+      "afdhaa/team-memory"
+     ],
+     "errors": [],
+     "hits": 40
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [
+      "umitkavala/mindpm"
+     ],
+     "errors": [],
+     "hits": 4
+    },
+    "exa": {
+     "names": [
+      "lfrmonteiro99/memento-mcp"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "web-en": {
+     "names": [
+      "Intina47/context-sync",
+      "alfredoizdev/contextforge-mcp",
+      "sgx-labs/statelessagent",
+      "memstate-ai/memstate-mcp",
+      "PersistMemory"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "coding agent memory mcp",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "memorax-ai/memorax-code",
+      "codeabra/iai-personal-memory-engine",
+      "okf-memory/okf-agent-memory",
+      "kitfunso/hippo-memory",
+      "0xk3vin/megamemory",
+      "lyellr88/marm-memory",
+      "majiayu000/remem",
+      "axmeai/axme-code",
+      "cbunting99/enhanced-mcp-memory",
+      "dazeb/mcp-handoff-server"
+     ],
+     "errors": [],
+     "hits": 59
+    },
+    "github-keyword": {
+     "names": [
+      "campfirein/byterover-cli",
+      "riponcm/projectmem"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "adamtylerlynch/obsidian-agent-memory-skills"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "ogham-mcp/ogham-mcp",
+      "Sprintra-io/sprintra-mcp",
+      "moonx010/hive-memory",
+      "yoloshii/clawmem",
+      "thewinci/mimirs",
+      "oleksiijko/pmb",
+      "Fixhive"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "rajarshighoshal/opencode-memory",
+      "keggan-std/engram",
+      "ksym04/limpet",
+      "gingugu/gingugu",
+      "Anchor"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "ViralV00d00/claude-code-memory",
+      "hjarni/hjarni-mcp",
+      "PeterPirog/mcp-light-memory",
+      "datamcpapp/datamcp-app"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "claude code 記憶 外掛",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "eugeniughelbur/obsidian-second-brain",
+      "helloruru/claude-memory-engine",
+      "vbcherepanov/total-agent-memory",
+      "tonydzi/sqlite-graph-memory",
+      "itsjwill/claude-memory",
+      "mohamed-ashraf-elsaed/aletheia-mem",
+      "getzikra/zikra",
+      "tonycasey/lisa"
+     ],
+     "errors": [],
+     "hits": 118
+    },
+    "github-keyword": {
+     "names": [
+      "walkpod1007/lifeos-memory"
+     ],
+     "errors": [],
+     "hits": 2
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 38
+    },
+    "npm": {
+     "names": [
+      "askdkc/kiokuko",
+      "frc9427liu-tech/memrot",
+      "kitepon/throughline"
+     ],
+     "errors": [],
+     "hits": 40
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 40
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "whitedoll99/hypmem",
+      "SmallWhite-TW/ANNsmemory",
+      "mage0535/hermes-memory-installer"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "web-zh": {
+     "names": [
+      "miles990/claude-memory-hook",
+      "ncepuee/claw-memory-bridge",
+      "AGI-is-going-to-arrive/Memory-Palace",
+      "Patdolitse/piia-engram"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "developer agent recall cli",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "auriti-labs/kiro-memory",
+      "plutarch01/opencode-lcm",
+      "team-volt/codex-lcm",
+      "sh008/claude-lore",
+      "dcostenco/prism-coder",
+      "tubo2333/obsidian-knowledge-brain",
+      "ilyagorsky/memory-toolkit"
+     ],
+     "errors": [],
+     "hits": 22
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 9
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 2
+    },
+    "exa": {
+     "names": [
+      "pavelpilyak/devrecall",
+      "Xhou-J/AgentRecall-MCP",
+      "Goldentrii/AgentRecall-X",
+      "Bharath-code/recall",
+      "mnardit/agent-recall",
+      "edihasaj/recall",
+      "askrecall.dev",
+      "clauderecall.com"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "fainir/recall",
+      "joseairosa/recall",
+      "memtomem/memtomem"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "coding agent memory vault",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "galimba/agentic-memory-vault",
+      "lsc-91-69/dsh-brain-compaction"
+     ],
+     "errors": [],
+     "hits": 45
+    },
+    "github-keyword": {
+     "names": [
+      "mcncarl/agent-memory-vault",
+      "ccf/agentcairn",
+      "kursatdinc/agent-mem-vault",
+      "aliihsaad/the-vault",
+      "noelune/unified-agent-memory"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 8
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 8
+    },
+    "exa": {
+     "names": [
+      "mraza007/echovault",
+      "ozankasikci/global-agent-memory"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "SumithSB/brainvault",
+      "labyrinth-analytics/loreconvo",
+      "verbative/verbative-memory",
+      "clarilayer/clarilayer",
+      "HenryCordes/ai-brain-mcp",
+      "Context Vault",
+      "agi-memory"
+     ],
+     "errors": []
+    }
+   }
+  }
+ ],
+ "stars": {
+  "avids2/memorix": {
+   "stars": 942,
+   "checked": "2026-11-18"
+  },
+  "gastownhall/beads": {
+   "stars": 28812,
+   "checked": "2026-11-18"
+  },
+  "ggwhite/memory-mcp": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "mkreyman/mcp-memory-keeper": {
+   "stars": 136,
+   "checked": "2026-11-18"
+  },
+  "othmanadi/planning-with-files": {
+   "stars": 28116,
+   "checked": "2026-11-18"
+  },
+  "polyxmedia/mnemos": {
+   "stars": 24,
+   "checked": "2026-11-18"
+  },
+  "rohitg00/agentmemory": {
+   "stars": 30434,
+   "checked": "2026-11-18"
+  },
+  "shzhao27208/chatmem": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "thedotmack/claude-mem": {
+   "stars": 118025,
+   "checked": "2026-11-18"
+  },
+  "agynio/claude-map-reduce-memory": {
+   "stars": 29,
+   "checked": "2026-11-18"
+  },
+  "alfredoizdev/contextforge-mcp": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "awrshift/agent-memory-kit": {
+   "stars": 33,
+   "checked": "2026-11-18"
+  },
+  "basedgpt/claude-code-session-recovery": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "bernardohcrocha/persistia-for-claude-code": {
+   "stars": 144,
+   "checked": "2026-11-18"
+  },
+  "blader/napkin": {
+   "stars": 645,
+   "checked": "2026-11-18"
+  },
+  "breferrari/obsidian-mind": {
+   "stars": 5544,
+   "checked": "2026-11-18"
+  },
+  "contextfs/contextfs": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "contextstream/claude-code": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "cyrus-cai/claude-cobrain": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "deepmemteam/deepmem-claude-plugin": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "dicklesworthstone/post_compact_reminder": {
+   "stars": 55,
+   "checked": "2026-11-18"
+  },
+  "eliaalberti/cpr-compress-preserve-resume": {
+   "stars": 526,
+   "checked": "2026-11-18"
+  },
+  "flinedev/recall": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "gman1911/claude-cognitive": {
+   "stars": 451,
+   "checked": "2026-11-18"
+  },
+  "heyroute-ai/claude-session-restore": {
+   "stars": 14,
+   "checked": "2026-11-18"
+  },
+  "hifriendbot/cogmemai-mcp": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "juliusbrussee/cavemem": {
+   "stars": 679,
+   "checked": "2026-11-18"
+  },
+  "lucasrosati/claude-code-memory-setup": {
+   "stars": 1070,
+   "checked": "2026-11-18"
+  },
+  "maydali28/memcp": {
+   "stars": 18,
+   "checked": "2026-11-18"
+  },
+  "memvid/claude-brain": {
+   "stars": 585,
+   "checked": "2026-11-18"
+  },
+  "mnemon-dev/mnemon": {
+   "stars": 720,
+   "checked": "2026-11-18"
+  },
+  "rainypilgrimage/persistent-memory": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "raoulbia-ai/claude-recall": {
+   "stars": 25,
+   "checked": "2026-11-18"
+  },
+  "rohirik/openltm": {
+   "stars": 30,
+   "checked": "2026-11-18"
+  },
+  "softcane/cc-session-recover": {
+   "stars": 65,
+   "checked": "2026-11-18"
+  },
+  "templetwo/temple-vault": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "tonystef/grov": {
+   "stars": 192,
+   "checked": "2026-11-18"
+  },
+  "tristan-mcinnis/claude-code-agentic-semantic-memory-system-mcp": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "u-ichi/compact-plus": {
+   "stars": 211,
+   "checked": "2026-11-18"
+  },
+  "vbcherepanov/total-agent-memory": {
+   "stars": 77,
+   "checked": "2026-11-18"
+  },
+  "veriteknik/pluggedin-plugin": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "vladimirgutuev/cross-agent-memory": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "vshulcz/deja-vu": {
+   "stars": 1608,
+   "checked": "2026-11-18"
+  },
+  "who96/claude-code-context-handoff": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "wrg32786/aigent-os": {
+   "stars": 26,
+   "checked": "2026-11-18"
+  },
+  "zilliztech/memsearch": {
+   "stars": 2894,
+   "checked": "2026-11-18"
+  },
+  "aesirsystems/claude-breadcrumbs": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "base76-research-lab/cognos-session-memory": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "big0lives/codex-task-pointer": {
+   "stars": 214,
+   "checked": "2026-11-18"
+  },
+  "capnjbrown/c0ntextkeeper": {
+   "stars": 62,
+   "checked": "2026-11-18"
+  },
+  "d-wwei/agent-recall": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "diego-ninja/memento": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "dimitrihilverda/claude-session-relay": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "dominicjarrow/context-continuum": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "elpapi42/pi-observational-memory": {
+   "stars": 759,
+   "checked": "2026-11-18"
+  },
+  "hatawong/claude-recap": {
+   "stars": 39,
+   "checked": "2026-11-18"
+  },
+  "justi/context-revive": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "kenimo49/compact-ops": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "lennartschoch/opencode-cache-compact": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "obrenoalvim/zero-drift": {
+   "stars": 37,
+   "checked": "2026-11-18"
+  },
+  "reacherwu/contextspindle": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "rochecompaan/pi-context-paging": {
+   "stars": 38,
+   "checked": "2026-11-18"
+  },
+  "soolaugust/vmem": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "supermemoryai/claude-supermemory": {
+   "stars": 2804,
+   "checked": "2026-11-18"
+  },
+  "wangcangshu/codex-desktop-thread-rescue": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "yuvalsuede/memory-mcp": {
+   "stars": 100,
+   "checked": "2026-11-18"
+  },
+  "0xsojalsec/claude-mem": {
+   "stars": 43,
+   "checked": "2026-11-18"
+  },
+  "affaan-m/everything-claude-code": {
+   "stars": 305616,
+   "checked": "2026-11-18"
+  },
+  "affanmustafa/claude-mem": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "aider-ai/aider": {
+   "stars": 50162,
+   "checked": "2026-11-18"
+  },
+  "amarodeabreu/claude-graph-memory": {
+   "stars": 18,
+   "checked": "2026-11-18"
+  },
+  "artemisai/pi-mem": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "blas0/severance": {
+   "stars": 49,
+   "checked": "2026-11-18"
+  },
+  "blas0/unseveredmemory": {
+   "stars": 49,
+   "checked": "2026-11-18"
+  },
+  "block/goose": {
+   "stars": 56733,
+   "checked": "2026-11-18"
+  },
+  "brukcodes/agentmemory": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "bumjinkim/ai-agentmemory": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "carlrannaberg/claudekit": {
+   "stars": 764,
+   "checked": "2026-11-18"
+  },
+  "cfrs2005/claude-mem": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "cline/cline": {
+   "stars": 71732,
+   "checked": "2026-11-18"
+  },
+  "davegoldblatt/total-recall": {
+   "stars": 203,
+   "checked": "2026-11-18"
+  },
+  "deepseek-ai/deepseek-harness": {
+   "stars": 283093,
+   "checked": "2026-11-18"
+  },
+  "delta-exchange/agentmemory": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "disler/claude-code-hooks-mastery": {
+   "stars": 3988,
+   "checked": "2026-11-18"
+  },
+  "disler/claude-code-hooks-multi-agent-observability": {
+   "stars": 1571,
+   "checked": "2026-11-18"
+  },
+  "doobidoo/mcp-memory-service": {
+   "stars": 2135,
+   "checked": "2026-11-18"
+  },
+  "gannonh/memento-mcp": {
+   "stars": 427,
+   "checked": "2026-11-18"
+  },
+  "getzep/graphiti": {
+   "stars": 32901,
+   "checked": "2026-11-18"
+  },
+  "glucksberg/claude-mem": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "google-gemini/gemini-cli": {
+   "stars": 108906,
+   "checked": "2026-11-18"
+  },
+  "hammadxcm/claude-mem": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "hjertefolger/cortex": {
+   "stars": 173,
+   "checked": "2026-11-18"
+  },
+  "iii-hq/iii": {
+   "stars": 18937,
+   "checked": "2026-11-18"
+  },
+  "jillvernus/claude-mem": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "kaliyuga187/agentmemory": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "karanb192/claude-code-hooks": {
+   "stars": 587,
+   "checked": "2026-11-18"
+  },
+  "kilo-org/kilocode": {
+   "stars": 28040,
+   "checked": "2026-11-18"
+  },
+  "letta-ai/letta-code": {
+   "stars": 3865,
+   "checked": "2026-11-18"
+  },
+  "lucnik/agentmemory": {
+   "stars": 84,
+   "checked": "2026-11-18"
+  },
+  "mem0ai/mem0": {
+   "stars": 69150,
+   "checked": "2026-11-18"
+  },
+  "millersenior/agentmemory": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "mire403/claude-mem": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "moe-kyaw-aung-microsoft/claude-mem": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "moekyawaungvivov30pro-design/claude-mem": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "nexus-labs-automation/agent-observability": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "obra/episodic-memory": {
+   "stars": 506,
+   "checked": "2026-11-18"
+  },
+  "openai/codex": {
+   "stars": 135678,
+   "checked": "2026-11-18"
+  },
+  "qwenlm/qwen-code": {
+   "stars": 30734,
+   "checked": "2026-11-18"
+  },
+  "rajvardhanpatil07/agentmemory": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "rlancemartin/claude-diary": {
+   "stars": 385,
+   "checked": "2026-11-18"
+  },
+  "rohitg00/2067ab416f7bbe447c1977edaaa681e2": {
+   "stars": 0,
+   "checked": "2026-11-18",
+   "error": "gh: Not Found (HTTP 404)"
+  },
+  "roocodeinc/roo-code": {
+   "stars": 24238,
+   "checked": "2026-11-18"
+  },
+  "samvallad33/vestige": {
+   "stars": 661,
+   "checked": "2026-11-18"
+  },
+  "sheikhsajid69/agentmemory": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "stophobia/agentmemory": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "technickai/claude_telemetry": {
+   "stars": 31,
+   "checked": "2026-11-18"
+  },
+  "thedotmack/awesome-claude-code": {
+   "stars": 174,
+   "checked": "2026-11-18"
+  },
+  "threesided-studios/agent-memory": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "tinyhumansai/openhuman": {
+   "stars": 42741,
+   "checked": "2026-11-18"
+  },
+  "topoteretes/cognee": {
+   "stars": 33379,
+   "checked": "2026-11-18"
+  },
+  "trailofbits/claude-code-config": {
+   "stars": 2149,
+   "checked": "2026-11-18"
+  },
+  "zircote/git-notes-memory": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "zircote/mif": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "aipmandy/dna-memory": {
+   "stars": 102,
+   "checked": "2026-11-18"
+  },
+  "dan-calin/shared-agent-memory": {
+   "stars": 28,
+   "checked": "2026-11-18"
+  },
+  "danilofalcao/nimrod": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "elecnix/pi-claude-memory": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "grimmerk/memsaga": {
+   "stars": 23,
+   "checked": "2026-11-18"
+  },
+  "grpcer/ownmem": {
+   "stars": 427,
+   "checked": "2026-11-18"
+  },
+  "internetyev/cross-agent-memory-kit": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "kuitos/opencode-claude-memory": {
+   "stars": 80,
+   "checked": "2026-11-18"
+  },
+  "larikoz/eidetic": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "luciferforge/claude-code-memory": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "maxfreedompollard/compartment": {
+   "stars": 569,
+   "checked": "2026-11-18"
+  },
+  "memwyreai/memwyre": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "mworldorg/markdown-memory": {
+   "stars": 25,
+   "checked": "2026-11-18"
+  },
+  "oceanbase/powercontext": {
+   "stars": 1727,
+   "checked": "2026-11-18"
+  },
+  "parcadei/continuous-claude-v3": {
+   "stars": 3951,
+   "checked": "2026-11-18"
+  },
+  "protocol-zero-0/compound-memory": {
+   "stars": 264,
+   "checked": "2026-11-18"
+  },
+  "recallium-ai/recallium": {
+   "stars": 58,
+   "checked": "2026-11-18"
+  },
+  "ruanzhou9/shared-agent-memory": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "tigerless-labs/agent-memory": {
+   "stars": 4323,
+   "checked": "2026-11-18"
+  },
+  "ychampion/claude-self-learning": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "aakarsh-sasi/memory-bank-mcp": {
+   "stars": 35,
+   "checked": "2026-11-18"
+  },
+  "akitaonrails/ai-memory": {
+   "stars": 16076,
+   "checked": "2026-11-18"
+  },
+  "alioshr/memory-bank-mcp": {
+   "stars": 926,
+   "checked": "2026-11-18"
+  },
+  "dapi/memory-bank": {
+   "stars": 19,
+   "checked": "2026-11-18"
+  },
+  "dazeb/cline-mcp-memory-bank": {
+   "stars": 61,
+   "checked": "2026-11-18"
+  },
+  "dreamquality/cursor-qa-memory-bank": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "enescingoz/roo-advanced-memory-bank": {
+   "stars": 119,
+   "checked": "2026-11-18"
+  },
+  "fockus/skill-memory-bank": {
+   "stars": 33,
+   "checked": "2026-11-18"
+  },
+  "forsonny/enhanced-cursor-memory-bank-system": {
+   "stars": 36,
+   "checked": "2026-11-18"
+  },
+  "georgeantonopoulos/obsidian-cli-memory-bank-skill": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "incomestreamsurfer/roo-code-memory-bank-mcp-server": {
+   "stars": 57,
+   "checked": "2026-11-18"
+  },
+  "ipenywis/aimemory": {
+   "stars": 85,
+   "checked": "2026-11-18"
+  },
+  "ipospelov/mcp-memory-bank": {
+   "stars": 77,
+   "checked": "2026-11-18"
+  },
+  "johnpeterman72/cursor_memory_riper_framework": {
+   "stars": 50,
+   "checked": "2026-11-18"
+  },
+  "kadiresen/context-bank": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "kortexio/contextmemory": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "marcelluxx/ckpt": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "nisargpatel1906/aethos_memory": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "pmikutel/directed-memory-bank": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "reskin-games/memorybank-plus": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "savagelysubtle/big-brain-memory-bank": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "shivansh12t/claude-code-memory-bank": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "space-cadet/memory-bank": {
+   "stars": 18,
+   "checked": "2026-11-18"
+  },
+  "tacticlaunch/cursor-bank": {
+   "stars": 208,
+   "checked": "2026-11-18"
+  },
+  "tuncer-byte/memory-bank-mcp": {
+   "stars": 101,
+   "checked": "2026-11-18"
+  },
+  "vanzan01/cursor-memory-bank": {
+   "stars": 3055,
+   "checked": "2026-11-18"
+  },
+  "vivian254338489/agent-memory-portability-kit": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "aerovato/magic-compact": {
+   "stars": 180,
+   "checked": "2026-11-18"
+  },
+  "alphaonedev/ai-memory-mcp": {
+   "stars": 57,
+   "checked": "2026-11-18"
+  },
+  "buildingjoshbetter/truememory": {
+   "stars": 385,
+   "checked": "2026-11-18"
+  },
+  "cdeust/cortex": {
+   "stars": 77,
+   "checked": "2026-11-18"
+  },
+  "clopca/open-mem": {
+   "stars": 29,
+   "checked": "2026-11-18"
+  },
+  "gabrielmartinmoran/mind": {
+   "stars": 206,
+   "checked": "2026-11-18"
+  },
+  "gentleman-programming/engram": {
+   "stars": 8215,
+   "checked": "2026-11-18"
+  },
+  "joshuadavidthomas/opencode-agent-memory": {
+   "stars": 364,
+   "checked": "2026-11-18"
+  },
+  "lordaizen1/opencode-evermemos-plugin": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "one-bit/oc-mnemoria": {
+   "stars": 21,
+   "checked": "2026-11-18"
+  },
+  "richenyu/codex-smart-project-memory": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "star-ga/mind-mem": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "supermemoryai/opencode-supermemory": {
+   "stars": 1666,
+   "checked": "2026-11-18"
+  },
+  "tickernelz/opencode-mem": {
+   "stars": 1871,
+   "checked": "2026-11-18"
+  },
+  "trailhq/trail-code": {
+   "stars": 11324,
+   "checked": "2026-11-18"
+  },
+  "transportrefer/opencode-memory-plugin": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "ufo8mycow14/memorycore-ai-for-codex": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "vectorize-io/opencode-hindsight": {
+   "stars": 0,
+   "checked": "2026-11-18",
+   "error": "gh: Not Found (HTTP 404)"
+  },
+  "yesetr8/memento": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "zer020/opencode-mem0": {
+   "stars": 14,
+   "checked": "2026-11-18"
+  },
+  "al-hub/memcarry": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "berketpbs/anamnesis": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "bkalyankumar/contextos": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "chrsdme/agent-context": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "cubiix3/continuity": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "edisoncgh/project-memory-skill": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "harryheyu/sessionflow": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "huajiexiewenfeng/agent-global-context": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "i3t4an/archivist-mcp": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "jmm2020/claude-session-recorder": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "prashanttakale369/agentcontinuity": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "reflexioai/claude-smart": {
+   "stars": 796,
+   "checked": "2026-11-18"
+  },
+  "tethiro/mcp-claude-context-continuity": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "wan-huiyan/context-baton": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "xuepoo/carryctx-skills": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "yvniverse/contextcord": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "zackbrooks84/continuum": {
+   "stars": 26,
+   "checked": "2026-11-18"
+  },
+  "0xranx/opencontext": {
+   "stars": 1286,
+   "checked": "2026-11-18"
+  },
+  "automattf/automatic-episodic-memory": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "basement-interactive/claude-brain": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "cantara/kcp-memory": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "cortexkit/magic-context": {
+   "stars": 2532,
+   "checked": "2026-11-18"
+  },
+  "cryptokrad/open-mem": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "la7yman/claude-code-memory": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "lantisprime/episodic-memory": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "mex-memory/mex": {
+   "stars": 1796,
+   "checked": "2026-11-18"
+  },
+  "nnooshi/claude-memory-scaffold": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "shushant17711/git-episodic-memory": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "timgordontg/engrim": {
+   "stars": 305,
+   "checked": "2026-11-18"
+  },
+  "avinash-jetwani/jevmem": {
+   "stars": 153,
+   "checked": "2026-11-18"
+  },
+  "coleam00/claude-memory-compiler": {
+   "stars": 1321,
+   "checked": "2026-11-18"
+  },
+  "familiar-md/familiar": {
+   "stars": 33,
+   "checked": "2026-11-18"
+  },
+  "frappucc1no/recall-loom": {
+   "stars": 153,
+   "checked": "2026-11-18"
+  },
+  "jamesshi96/project-butler": {
+   "stars": 377,
+   "checked": "2026-11-18"
+  },
+  "jim4226/claude-workspace-brain": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "kimyx0207/claude-memory-3layer": {
+   "stars": 33,
+   "checked": "2026-11-18"
+  },
+  "mindmuxai/brain.md": {
+   "stars": 721,
+   "checked": "2026-11-18"
+  },
+  "offendingcommit/lossless-claude": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "oliver-zehentleitner/keep-the-why": {
+   "stars": 240,
+   "checked": "2026-11-18"
+  },
+  "shanek77/claude-continuity": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "twmoon/claude-compaction-memory": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "ultramcu/claude-compact-memory": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "waitdeadai/no-amnesia": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "afdhaa/team-memory": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "aitytech/agentkits-memory": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "alirng/recall": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "beledarian/mcp-local-memory": {
+   "stars": 62,
+   "checked": "2026-11-18"
+  },
+  "endless-galaxy-studios/neuroloom-claude-plugin": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "firedmosquito831/working-notes": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "focaxisdev/deja-vu": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "intina47/context-sync": {
+   "stars": 190,
+   "checked": "2026-11-18"
+  },
+  "jeremy8776/context-engine": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "lfrmonteiro99/memento-mcp": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "luizedupp/rememb": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "memstate-ai/memstate-mcp": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "sevaschan/copilot-memory-curator": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "sgx-labs/statelessagent": {
+   "stars": 24,
+   "checked": "2026-11-18"
+  },
+  "stark-sim/memory-bank": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "umitkavala/mindpm": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "0xk3vin/megamemory": {
+   "stars": 737,
+   "checked": "2026-11-18"
+  },
+  "adamtylerlynch/obsidian-agent-memory-skills": {
+   "stars": 55,
+   "checked": "2026-11-18"
+  },
+  "axmeai/axme-code": {
+   "stars": 14,
+   "checked": "2026-11-18"
+  },
+  "campfirein/byterover-cli": {
+   "stars": 4945,
+   "checked": "2026-11-18"
+  },
+  "cbunting99/enhanced-mcp-memory": {
+   "stars": 33,
+   "checked": "2026-11-18"
+  },
+  "codeabra/iai-personal-memory-engine": {
+   "stars": 923,
+   "checked": "2026-11-18"
+  },
+  "datamcpapp/datamcp-app": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "dazeb/mcp-handoff-server": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "gingugu/gingugu": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "hjarni/hjarni-mcp": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "keggan-std/engram": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "kitfunso/hippo-memory": {
+   "stars": 794,
+   "checked": "2026-11-18"
+  },
+  "ksym04/limpet": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "lyellr88/marm-memory": {
+   "stars": 438,
+   "checked": "2026-11-18"
+  },
+  "majiayu000/remem": {
+   "stars": 33,
+   "checked": "2026-11-18"
+  },
+  "memorax-ai/memorax-code": {
+   "stars": 2156,
+   "checked": "2026-11-18"
+  },
+  "moonx010/hive-memory": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "ogham-mcp/ogham-mcp": {
+   "stars": 116,
+   "checked": "2026-11-18"
+  },
+  "okf-memory/okf-agent-memory": {
+   "stars": 867,
+   "checked": "2026-11-18"
+  },
+  "oleksiijko/pmb": {
+   "stars": 291,
+   "checked": "2026-11-18"
+  },
+  "peterpirog/mcp-light-memory": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "rajarshighoshal/opencode-memory": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "riponcm/projectmem": {
+   "stars": 883,
+   "checked": "2026-11-18"
+  },
+  "sprintra-io/sprintra-mcp": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "thewinci/mimirs": {
+   "stars": 30,
+   "checked": "2026-11-18"
+  },
+  "viralv00d00/claude-code-memory": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "yoloshii/clawmem": {
+   "stars": 212,
+   "checked": "2026-11-18"
+  },
+  "agi-is-going-to-arrive/memory-palace": {
+   "stars": 316,
+   "checked": "2026-11-18"
+  },
+  "askdkc/kiokuko": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "eugeniughelbur/obsidian-second-brain": {
+   "stars": 5368,
+   "checked": "2026-11-18"
+  },
+  "frc9427liu-tech/memrot": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "getzikra/zikra": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "helloruru/claude-memory-engine": {
+   "stars": 133,
+   "checked": "2026-11-18"
+  },
+  "itsjwill/claude-memory": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "kitepon/throughline": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "mage0535/hermes-memory-installer": {
+   "stars": 208,
+   "checked": "2026-11-18"
+  },
+  "miles990/claude-memory-hook": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "mohamed-ashraf-elsaed/aletheia-mem": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "ncepuee/claw-memory-bridge": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "patdolitse/piia-engram": {
+   "stars": 166,
+   "checked": "2026-11-18"
+  },
+  "smallwhite-tw/annsmemory": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "tonycasey/lisa": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "tonydzi/sqlite-graph-memory": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "walkpod1007/lifeos-memory": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "whitedoll99/hypmem": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "auriti-labs/kiro-memory": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "bharath-code/recall": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "dcostenco/prism-coder": {
+   "stars": 156,
+   "checked": "2026-11-18"
+  },
+  "edihasaj/recall": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "fainir/recall": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "goldentrii/agentrecall-x": {
+   "stars": 376,
+   "checked": "2026-11-18"
+  },
+  "ilyagorsky/memory-toolkit": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "joseairosa/recall": {
+   "stars": 179,
+   "checked": "2026-11-18"
+  },
+  "memtomem/memtomem": {
+   "stars": 26,
+   "checked": "2026-11-18"
+  },
+  "mnardit/agent-recall": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "pavelpilyak/devrecall": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "plutarch01/opencode-lcm": {
+   "stars": 76,
+   "checked": "2026-11-18"
+  },
+  "sh008/claude-lore": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "team-volt/codex-lcm": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "tubo2333/obsidian-knowledge-brain": {
+   "stars": 101,
+   "checked": "2026-11-18"
+  },
+  "xhou-j/agentrecall-mcp": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "aliihsaad/the-vault": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "ccf/agentcairn": {
+   "stars": 77,
+   "checked": "2026-11-18"
+  },
+  "clarilayer/clarilayer": {
+   "stars": 71,
+   "checked": "2026-11-18"
+  },
+  "galimba/agentic-memory-vault": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "henrycordes/ai-brain-mcp": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "kursatdinc/agent-mem-vault": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "labyrinth-analytics/loreconvo": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "lsc-91-69/dsh-brain-compaction": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "mcncarl/agent-memory-vault": {
+   "stars": 347,
+   "checked": "2026-11-18"
+  },
+  "mraza007/echovault": {
+   "stars": 150,
+   "checked": "2026-11-18"
+  },
+  "noelune/unified-agent-memory": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "ozankasikci/global-agent-memory": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "sumithsb/brainvault": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "verbative/verbative-memory": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  }
+ }
+}
