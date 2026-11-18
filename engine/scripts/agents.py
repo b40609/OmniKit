@@ -1034,7 +1034,7 @@ def approvals(env, ask=None, grant=(), revoke=()):
         return lines
     if "claude-code" in agents:
         lines += claude_allow.apply(env.home / ".claude" / "settings.json", env.state / "install-record.json",
-                                    env.state, env.repo)
+                                    env.state, env.repo, extra_settings=[h / "settings.json" for h in env.claude_homes])
     if not rec["agents"]:
         return lines + ["這台還沒接上 agent：重跑 install.ps1 就會套用"]
     return lines + sync(env, skills=False)

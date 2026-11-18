@@ -126,18 +126,23 @@ def check_mcp(env, rec):
 def check_harness(home, record_path):
     out = []
     record = claude_allow.load(record_path) if record_path.exists() else {}
-    settings_path = home / ".claude" / "settings.json"
-    try:
-        settings = claude_allow.load(settings_path)
-    except ValueError:
-        return [row("權限", "Claude Code", "settings.json", UNKNOWN, f"{settings_path} 不是合法的 JSON")]
-    allow = settings.get("permissions", {}).get("allow", [])
-    for rule in record.get("claude_allow", []):
-        out.append(row("權限", "Claude Code", rule, OK if rule in allow else FAIL,
-                       "在 permissions.allow" if rule in allow else "記錄有、設定裡沒有：重跑 install.ps1"))
-    if record.get("claude_hooks"):
-        hooked = any(claude_allow.is_nudge(h) for g in settings.get("hooks", {}).get("Stop", []) for h in g.get("hooks", []))
-        out.append(row("hook", "Claude Code", "開新對話提醒", OK if hooked else FAIL, "" if hooked else "Stop hook 不見了：重跑 install.ps1"))
+    targets = [(home / ".claude" / "settings.json", record, "Claude Code")]
+    # 其他 Claude 設定目錄（T3 Code 的多帳號）：各自的 settings.json 與紀錄
+    targets += [(Path(p), e, agents.label_of(agents.extra_key(Path(p).parent)))
+                for p, e in claude_allow.extra_entries(record).items()]
+    for settings_path, entry, label in targets:
+        try:
+            settings = claude_allow.load(settings_path)
+        except ValueError:
+            out.append(row("權限", label, "settings.json", UNKNOWN, f"{settings_path} 不是合法的 JSON"))
+            continue
+        allow = settings.get("permissions", {}).get("allow", [])
+        for rule in entry.get("claude_allow", []):
+            out.append(row("權限", label, rule, OK if rule in allow else FAIL,
+                           "在 permissions.allow" if rule in allow else "記錄有、設定裡沒有：重跑 install.ps1"))
+        if entry.get("claude_hooks"):
+            hooked = any(claude_allow.is_nudge(h) for g in settings.get("hooks", {}).get("Stop", []) for h in g.get("hooks", []))
+            out.append(row("hook", label, "開新對話提醒", OK if hooked else FAIL, "" if hooked else "Stop hook 不見了：重跑 install.ps1"))
     if record.get("codex_hooks"):
         toml = home / ".codex" / "config.toml"
         hooked = toml.exists() and bool(CODEX_NUDGE.search(toml.read_text(encoding="utf-8", errors="replace")))

@@ -504,6 +504,7 @@ function Show-InstallPlan {
     $plan += "免問核准（$($approveTools -join '、')）：安裝時逐一問你，同意了才寫進 ~/.claude/settings.json 與 ~/.codex/config.toml（預設否）"
   }
   $plan += '開新對話提醒：加進 ~/.claude/settings.json 與 ~/.codex/config.toml 的 Stop hook（Codex 要到 /hooks 信任才會跑）'
+  $plan += '其他 Claude 設定目錄（T3 Code 的 Claude 實例 homePath）的 settings.json：權限規則與提醒 hook 一樣寫'
   $hooksOn = (git -C $Repo config --get core.hooksPath) -eq '.githooks'
   if ($edition -eq 'maintainer' -and -not $hooksOn) {
     $plan += '這個 repo 改用 .githooks：commit 前掃金鑰、驗證名冊；改到規則、skills、MCP 等檔案時自動同步'

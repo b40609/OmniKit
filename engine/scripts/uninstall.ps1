@@ -118,6 +118,7 @@ if ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile) -or $hasEditionState
 }
 if ($record['claude_allow']) { $plan += "從 ~/.claude/settings.json 拿掉權限規則：$($record['claude_allow'] -join ', ')" }
 if ($record['claude_hooks']) { $plan += '從 ~/.claude/settings.json 拿掉開新對話提醒 hook' }
+if ($record['claude_extra']) { $plan += "其他 Claude 設定目錄的 settings.json 也拿掉 OmniKit 加的權限規則與提醒 hook：$(@($record['claude_extra'][0].PSObject.Properties.Name) -join '、')" }
 if ($record['codex_hooks']) { $plan += '從 ~/.codex/config.toml 拿掉開新對話提醒 hook' }
 if ($hooksOn) { $plan += '這個 repo 不再使用 .githooks' }
 if (-not $KeepTools) {
@@ -214,7 +215,7 @@ function Remove-ProfileState {
 }
 
 function Remove-ClaudePermissions {
-  if (-not ($record['claude_allow'] -or $record['claude_hooks'])) { return }
+  if (-not ($record['claude_allow'] -or $record['claude_hooks'] -or $record['claude_extra'])) { return }
   $uv = Get-Uv
   if (-not $uv) {
     Write-Warning "找不到 uv，請自己從 ~/.claude/settings.json 拿掉：$($record['claude_allow'] -join ', ') 與 hooks.Stop 裡的 session_nudge.py"
