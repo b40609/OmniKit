@@ -80,12 +80,15 @@ ENDPOINTS = [{
     "gives": "t3_thread_launch 開對話可帶思考程度（modelSelection.options）、t3_thread_organize 可以 settle、"
              "t3_thread_read／t3_thread_wait 讀結果",
     "connect": {
-        "Claude Code": ("claude", "claude mcp add --transport http t3 {url}，再 claude mcp login t3"),
+        # 2026-11-18 實測通過：login 要互動式終端機（Bash 工具會回 this isn't an interactive terminal）
+        "Claude Code": ("claude", "claude mcp add --scope user --transport http t3 {url}，再請使用者在終端機分頁跑 "
+                                  "claude mcp login t3（要 Sign-in code 時用 t3 auth pairing create --ttl 10m，預設 scope）"),
         "Codex": ("codex", "codex mcp add t3 --url {url}，再 codex mcp login t3"),
     },
     # 已登記但可能還沒登入：怎麼看、怎麼登入
     "login": {
-        "Claude Code": "claude mcp list 看 t3 是不是 Needs authentication，是的話 claude mcp login t3",
+        "Claude Code": "claude mcp list 看 t3 是不是 Needs authentication，是的話請使用者在終端機分頁跑 claude mcp login t3"
+                       "（每個 CLAUDE_CONFIG_DIR 各一次，有效 30 天）",
         "Codex": "codex mcp list 看 t3 有沒有登入，沒有的話 codex mcp login t3",
     },
 }]

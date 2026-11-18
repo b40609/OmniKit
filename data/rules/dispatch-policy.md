@@ -131,8 +131,8 @@ channels:
       結果一律由主控讀檔、跑測試驗收。用的是 antigravity 實例（ryan 帳號）。
   t3_cli:
     use: >-
-      不在 T3 裡（主控是 Claude Code、Codex、Antigravity）也能開 T3 對話：用 T3 Code 的本機 t3 thread CLI。
-      使用者要指定 T3 上的帳號實例或模型（例如 antigravity_kai 加 gemini-3.8-flash）、想在 T3 側邊欄看到那條對話、
+      不在 T3 裡、這個 agent 還沒授權 T3 的 MCP 時，用 T3 Code 的本機 t3 thread CLI 開 T3 對話。
+      已經接上 T3 MCP 的，優先用 t3_thread_launch 管道（能設思考程度、能自己結案）。使用者要指定 T3 上的帳號實例或模型（例如 antigravity_kai 加 gemini-3.8-flash）、想在 T3 側邊欄看到那條對話、
       要開在獨立 worktree，或要派給 T3 才有的帳號實例時用它。不要因為這裡沒有 delegate_task、t3_thread_launch 這類
       MCP 工具就回答「沒辦法派給 T3」。
     how: >-
@@ -145,29 +145,20 @@ channels:
       --wait 等到做完並印出回覆：結束碼 1 是執行失敗、2 是對話在等人回答。
       其他：t3 thread show <id> --json 看狀態與最新訊息；t3 thread send <id> "<訊息>" --wait 追問；t3 thread list --json 列出對話。
     thinking: >-
-      要指定思考程度（含 Claude 的 effort）：接 T3 的 MCP（見 note），用 t3_thread_launch 開對話、modelSelection.options
-      帶程度（上游原始碼 packages/contracts/src/modelSelection.ts 的 options，2026-11-18 查證；可以這樣做，未實測）。
-      只用 CLI 時：t3 v0.1.10 沒有設定思考程度的參數（上游 main 的文件有 --option effort=...，要等 T3 更新）；Antigravity
-      的模型照 delegate_task 的做法把程度寫進模型代號（gemini-4-hydrogen-xhigh）。【待驗證】代號帶程度經 t3 thread start 生效，
-      是 2026-11-16 的實測，只測過 Hydrogen。
+      t3 v0.1.10 沒有設定思考程度的參數（上游 main 的文件有 --option effort=...，要等 T3 更新）。要設思考程度就改走
+      t3_thread_launch 管道（T3 MCP）。只能用 CLI 時，Antigravity 的模型照 delegate_task 的做法把程度寫進模型代號
+      （gemini-4-hydrogen-xhigh）；【待驗證】代號帶程度經 t3 thread start 生效，是 2026-11-16 的實測，只測過 Hydrogen。
     settle: >-
-      接了 T3 的 MCP 就用 t3_thread_organize（action settle、給 threadId）自己結案（上游原始碼
-      apps/server/src/mcp/toolkits/thread/tools.ts，外部 agent 可用，2026-11-18 查證；可以這樣做，未實測）。
-      只用 CLI 時：v0.1.10 沒有 settle 子指令，主控收完結果後在回報裡列出對話 id 與標題，請使用者在 T3 結案。
+      v0.1.10 沒有 settle 子指令。主控有 T3 MCP 就用 t3_thread_organize 結案（見 t3_thread_launch）；沒有就在回報裡
+      列出對話 id 與標題，請使用者在 T3 結案。
     vs: >-
       和其他管道的分工：同供應商、不需要指定帳號、不用在 T3 看到的，用原生子代理（最省事、結果直接回主線）；
       要 Antigravity 模型而且要看思考 token、在背景跑、或不想經過 T3 伺服器的，用 agy_cli（固定 antigravity 實例）；
-      要指定 T3 上的帳號實例（antigravity_kai、claudeAgent_2…）、要在 T3 側邊欄看到或之後用 send 接著問的，用 t3_cli。
-      主控本身就在 T3 裡時，仍用 delegate_task。
+      要指定 T3 上的帳號實例（antigravity_kai、claudeAgent_2…）、要在 T3 側邊欄看到的：接了 T3 MCP 用 t3_thread_launch，
+      沒接用 t3_cli。主控本身就在 T3 裡時，仍用 delegate_task。
     note: >-
       2026-11-18 實測（t3 v0.1.10）：t3 thread start . "只回 OK" --provider antigravity_kai --model gemini-3.8-flash --wait --json
       回傳 {"status":"completed","reply":"OK"}，不用登入。
-      接 T3 的 MCP（外部 agent 拿到 t3_thread_launch、t3_thread_wait、t3_thread_read、t3_thread_organize）：照上游
-      pingdotgg/t3code 的 docs/user/outside-agents.md（2026-11-18 用 gh api 讀過原文），Claude Code 用
-      claude mcp add --transport http t3 http://127.0.0.1:3773/mcp 再 claude mcp login t3；Codex 用 codex mcp add t3 --url ...
-      再 codex mcp login t3。登入會開瀏覽器，要使用者核准一次。外部 agent 呼叫 delegate_task 會回錯，要改用 t3_thread_launch。
-      2026-11-18 這台的狀況：端點開著（GET 回 401 並附 OAuth 的 resource_metadata）；Claude Code 已登記 t3，
-      claude mcp list 顯示 Needs authentication（只差使用者跑一次 claude mcp login t3）；Codex 還沒登記；實際呼叫還沒實測。omnikit-capabilities 的清點會列出目前哪些 agent 登記了。
   delegate_task:
     use: 在 T3 裡跨供應商（Gemini／Antigravity）、要獨立 worktree、要指定別的帳號實例（providerInstanceId）
     thinking: >-
@@ -180,7 +171,26 @@ channels:
       現行規則：delegate_task 不能指定別的專案。【待驗證】T3 的 delegate_task 參數裡有 target.projectId，
       實際能不能把子任務開在別的專案還沒實測，驗證前照現行規則。
   t3_thread_launch:
-    use: 跨專案的工作，開在那個專案裡（T3 裡的 MCP 工具；不在 T3 裡就用 t3_cli，project 參數填那個專案的路徑）
+    use: >-
+      T3 的 MCP 工具（t3_thread_launch、t3_thread_wait、t3_thread_read、t3_thread_organize）。T3 外的 Claude Code、Codex
+      接上 T3 MCP 之後，要指定 T3 的帳號實例與模型、要設思考程度、要自己結案時優先用它，比 t3_cli 完整；
+      跨專案的工作也用它，開在那個專案裡。外部 agent 呼叫 delegate_task 會回錯，要用 t3_thread_launch。
+    how: >-
+      接法（2026-11-18 在這台用 Claude Code 實測通過）：claude mcp add --scope user --transport http t3 http://127.0.0.1:3773/mcp，
+      再 claude mcp login t3。login 要在互動式終端機跑（agent 的 Bash 工具會回 this isn't an interactive terminal，改用終端機分頁）。
+      核准頁要 Sign-in code 時用 t3 auth pairing create --ttl 10m 產生，要用預設 scope（只給 orchestration 兩個 scope 的碼
+      不能核准 Full access）。瀏覽器跳到 localhost callback 連不上時，把完整網址貼回終端機的 paste the redirect URL。
+      核准一次有效 30 天；每個 CLAUDE_CONFIG_DIR（以及 Codex 的每個 CODEX_HOME）都要各做一次，要使用者核准。
+      Codex 照上游 pingdotgg/t3code 的 docs/user/outside-agents.md 用 codex mcp add t3 --url http://127.0.0.1:3773/mcp
+      再 codex mcp login t3【待驗證：Codex 還沒實測】。omnikit-capabilities 的清點會列出哪些 agent 已經登記、授權。
+    thinking: >-
+      t3_thread_launch 的 modelSelection.options 是陣列，例如 [{id: "thinking_level", value: "high"}]。id 依 provider 不同：
+      claudeAgent 系列用 effort（low、medium、high、xhigh、max、ultrathink），antigravity 用 thinking_level（low、medium、high）；
+      實際可用的值以 orchestrator_capabilities 查到的為準（2026-11-18 實測）。
+      【待驗證】antigravity_ava、antigravity_kai 在 capabilities 裡的模型清單是空的；帶 thinking_level high 開 gemini-3.8-flash
+      會被接受也能跑完，但 t3_thread_read 沒有回傳 options，在 Gemini 端有沒有生效還不知道。
+    settle: >-
+      t3_thread_organize 帶 action settle 與 threadId，再用 t3_thread_read 回讀確認 settled 是 true（2026-11-18 實測）。
 
 # 本週 Claude 用量（給 high 級的 80% 條件用）。
 usage_signal:

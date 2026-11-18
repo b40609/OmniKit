@@ -660,6 +660,10 @@ def selftest():
     ok("共用層有 t3_cli 管道：寫明在 PowerShell 呼叫 t3 thread start、--provider 用實例 key、沒有 settle 子指令",
        "t3 thread start" in t3.get("how", "") and "PowerShell" in t3.get("how", "") and "--provider" in t3.get("how", "")
        and "settle" in t3.get("settle", "") and set(pol["channels"]) == set(CHANNELS))
+    mcp = (pol.get("channels") or {}).get("t3_thread_launch") or {}
+    ok("t3_thread_launch 管道寫明 T3 外怎麼接 MCP、思考程度用 modelSelection.options、settle 後回讀 settled",
+       "claude mcp login t3" in mcp.get("how", "") and "modelSelection.options" in mcp.get("thinking", "")
+       and "settled" in mcp.get("settle", ""))
     shown = show_text(resolved(pol, ryan, "claude"), "ryan", True, None, pol)
     ok("show 的輸出列出每個管道，包含 t3_cli", all(f"  {c}：" in shown for c in CHANNELS))
     drift = json.loads(json.dumps(pol))
