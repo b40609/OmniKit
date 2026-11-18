@@ -1,0 +1,1843 @@
+{
+ "kind": "multiturn",
+ "arms": [
+  "global",
+  "without"
+ ],
+ "account": "kai",
+ "model": "gemini-3.8-flash-high",
+ "sim_model": "sonnet",
+ "runs_per_case": 2,
+ "finished": "2026-11-18T18:43:03",
+ "conversations": 52,
+ "errors": 0,
+ "skipped": 0,
+ "stopped_on_quota": false,
+ "rules": "C:\\Users\\user\\.gemini\\GEMINI.md",
+ "overall": {
+  "global": {
+   "runs": 26,
+   "errors": 0,
+   "fixed": 26,
+   "fix_rate": 1.0,
+   "agent_turns": 2.04,
+   "turns_when_fixed": 2.04,
+   "corrections": 0.38,
+   "user_turns": 1.04,
+   "fired": 21,
+   "fired_first": 21,
+   "pass_all_k": "13/13"
+  },
+  "without": {
+   "runs": 26,
+   "errors": 0,
+   "fixed": 26,
+   "fix_rate": 1.0,
+   "agent_turns": 1.92,
+   "turns_when_fixed": 1.92,
+   "corrections": 0.42,
+   "user_turns": 0.92,
+   "fired": 0,
+   "fired_first": 0,
+   "pass_all_k": "13/13"
+  }
+ },
+ "by_category": {
+  "agent": {
+   "global": {
+    "runs": 6,
+    "errors": 0,
+    "fixed": 6,
+    "fix_rate": 1.0,
+    "agent_turns": 1.67,
+    "turns_when_fixed": 1.67,
+    "corrections": 0.33,
+    "user_turns": 0.67,
+    "fired": 5,
+    "fired_first": 5
+   },
+   "without": {
+    "runs": 6,
+    "errors": 0,
+    "fixed": 6,
+    "fix_rate": 1.0,
+    "agent_turns": 1.67,
+    "turns_when_fixed": 1.67,
+    "corrections": 0.33,
+    "user_turns": 0.67,
+    "fired": 0,
+    "fired_first": 0
+   }
+  },
+  "arch": {
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 0.5,
+    "user_turns": 1.0,
+    "fired": 0,
+    "fired_first": 0
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 0.0,
+    "user_turns": 1.0,
+    "fired": 0,
+    "fired_first": 0
+   }
+  },
+  "debug": {
+   "global": {
+    "runs": 10,
+    "errors": 0,
+    "fixed": 10,
+    "fix_rate": 1.0,
+    "agent_turns": 1.8,
+    "turns_when_fixed": 1.8,
+    "corrections": 0.1,
+    "user_turns": 0.8,
+    "fired": 8,
+    "fired_first": 8
+   },
+   "without": {
+    "runs": 10,
+    "errors": 0,
+    "fixed": 10,
+    "fix_rate": 1.0,
+    "agent_turns": 1.4,
+    "turns_when_fixed": 1.4,
+    "corrections": 0.0,
+    "user_turns": 0.4,
+    "fired": 0,
+    "fired_first": 0
+   }
+  },
+  "req": {
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 4.0,
+    "turns_when_fixed": 4.0,
+    "corrections": 1.5,
+    "user_turns": 3.0,
+    "fired": 2,
+    "fired_first": 2
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 5.0,
+    "turns_when_fixed": 5.0,
+    "corrections": 3.0,
+    "user_turns": 4.0,
+    "fired": 0,
+    "fired_first": 0
+   }
+  },
+  "ui": {
+   "global": {
+    "runs": 4,
+    "errors": 0,
+    "fixed": 4,
+    "fix_rate": 1.0,
+    "agent_turns": 2.25,
+    "turns_when_fixed": 2.25,
+    "corrections": 0.5,
+    "user_turns": 1.25,
+    "fired": 4,
+    "fired_first": 4
+   },
+   "without": {
+    "runs": 4,
+    "errors": 0,
+    "fixed": 4,
+    "fix_rate": 1.0,
+    "agent_turns": 1.5,
+    "turns_when_fixed": 1.5,
+    "corrections": 0.25,
+    "user_turns": 0.5,
+    "fired": 0,
+    "fired_first": 0
+   }
+  },
+  "ux": {
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 0.5,
+    "user_turns": 1.0,
+    "fired": 2,
+    "fired_first": 2
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 3.0,
+    "turns_when_fixed": 3.0,
+    "corrections": 1.0,
+    "user_turns": 2.0,
+    "fired": 0,
+    "fired_first": 0
+   }
+  }
+ },
+ "rows": [
+  {
+   "case": "agent-notdone",
+   "category": "agent",
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 1.0,
+    "user_turns": 1.0,
+    "fired": 2,
+    "fired_first": 2,
+    "all_fixed": true
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 1.0,
+    "user_turns": 1.0,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   }
+  },
+  {
+   "case": "agent-selfreview",
+   "category": "agent",
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 1.0,
+    "turns_when_fixed": 1.0,
+    "corrections": 0.0,
+    "user_turns": 0.0,
+    "fired": 1,
+    "fired_first": 1,
+    "all_fixed": true
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 1.0,
+    "turns_when_fixed": 1.0,
+    "corrections": 0.0,
+    "user_turns": 0.0,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   }
+  },
+  {
+   "case": "agent-stuck-loop",
+   "category": "agent",
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 0.0,
+    "user_turns": 1.0,
+    "fired": 2,
+    "fired_first": 2,
+    "all_fixed": true
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 0.0,
+    "user_turns": 1.0,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   }
+  },
+  {
+   "case": "arch-db-migration",
+   "category": "arch",
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 0.5,
+    "user_turns": 1.0,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 0.0,
+    "user_turns": 1.0,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   }
+  },
+  {
+   "case": "debug-env-diff",
+   "category": "debug",
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 1.5,
+    "turns_when_fixed": 1.5,
+    "corrections": 0.0,
+    "user_turns": 0.5,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 1.0,
+    "turns_when_fixed": 1.0,
+    "corrections": 0.0,
+    "user_turns": 0.0,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   }
+  },
+  {
+   "case": "debug-error-output",
+   "category": "debug",
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.5,
+    "turns_when_fixed": 2.5,
+    "corrections": 0.5,
+    "user_turns": 1.5,
+    "fired": 2,
+    "fired_first": 2,
+    "all_fixed": true
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 0.0,
+    "user_turns": 1.0,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   }
+  },
+  {
+   "case": "debug-flaky",
+   "category": "debug",
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 0.0,
+    "user_turns": 1.0,
+    "fired": 2,
+    "fired_first": 2,
+    "all_fixed": true
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 1.5,
+    "turns_when_fixed": 1.5,
+    "corrections": 0.0,
+    "user_turns": 0.5,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   }
+  },
+  {
+   "case": "debug-recur",
+   "category": "debug",
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 1.0,
+    "turns_when_fixed": 1.0,
+    "corrections": 0.0,
+    "user_turns": 0.0,
+    "fired": 2,
+    "fired_first": 2,
+    "all_fixed": true
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 1.0,
+    "turns_when_fixed": 1.0,
+    "corrections": 0.0,
+    "user_turns": 0.0,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   }
+  },
+  {
+   "case": "debug-side-effect",
+   "category": "debug",
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 0.0,
+    "user_turns": 1.0,
+    "fired": 2,
+    "fired_first": 2,
+    "all_fixed": true
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 1.5,
+    "turns_when_fixed": 1.5,
+    "corrections": 0.0,
+    "user_turns": 0.5,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   }
+  },
+  {
+   "case": "req-unclear",
+   "category": "req",
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 4.0,
+    "turns_when_fixed": 4.0,
+    "corrections": 1.5,
+    "user_turns": 3.0,
+    "fired": 2,
+    "fired_first": 2,
+    "all_fixed": true
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 5.0,
+    "turns_when_fixed": 5.0,
+    "corrections": 3.0,
+    "user_turns": 4.0,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   }
+  },
+  {
+   "case": "ui-missing-states",
+   "category": "ui",
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.5,
+    "turns_when_fixed": 2.5,
+    "corrections": 1.0,
+    "user_turns": 1.5,
+    "fired": 2,
+    "fired_first": 2,
+    "all_fixed": true
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 1.5,
+    "turns_when_fixed": 1.5,
+    "corrections": 0.0,
+    "user_turns": 0.5,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   }
+  },
+  {
+   "case": "ui-vague",
+   "category": "ui",
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 0.0,
+    "user_turns": 1.0,
+    "fired": 2,
+    "fired_first": 2,
+    "all_fixed": true
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 1.5,
+    "turns_when_fixed": 1.5,
+    "corrections": 0.5,
+    "user_turns": 0.5,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   }
+  },
+  {
+   "case": "ux-technical-copy",
+   "category": "ux",
+   "global": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 2.0,
+    "turns_when_fixed": 2.0,
+    "corrections": 0.5,
+    "user_turns": 1.0,
+    "fired": 2,
+    "fired_first": 2,
+    "all_fixed": true
+   },
+   "without": {
+    "runs": 2,
+    "errors": 0,
+    "fixed": 2,
+    "fix_rate": 1.0,
+    "agent_turns": 3.0,
+    "turns_when_fixed": 3.0,
+    "corrections": 1.0,
+    "user_turns": 2.0,
+    "fired": 0,
+    "fired_first": 0,
+    "all_fixed": true
+   }
+  }
+ ],
+ "runs": [
+  {
+   "case": "agent-notdone",
+   "arm": "global",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 1,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 465,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "correction"
+   ],
+   "symptoms": [
+    "購物車總額跟發票對不起來（顯示 3,327）",
+    ""
+   ]
+  },
+  {
+   "case": "agent-notdone",
+   "arm": "global",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 1,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 346,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "correction"
+   ],
+   "symptoms": [
+    "購物車總額跟發票對不起來（顯示 3,325）",
+    ""
+   ]
+  },
+  {
+   "case": "agent-notdone",
+   "arm": "without",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 1,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 507,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "correction"
+   ],
+   "symptoms": [
+    "購物車總額跟發票對不起來（顯示 3,327）",
+    ""
+   ]
+  },
+  {
+   "case": "agent-notdone",
+   "arm": "without",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 1,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 449,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "correction"
+   ],
+   "symptoms": [
+    "購物車總額跟發票對不起來（顯示 3,327）",
+    ""
+   ]
+  },
+  {
+   "case": "agent-selfreview",
+   "arm": "global",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 196,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "agent-selfreview",
+   "arm": "global",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 181,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "agent-selfreview",
+   "arm": "without",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 277,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "agent-selfreview",
+   "arm": "without",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 210,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "agent-stuck-loop",
+   "arm": "global",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 239,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "重連有時候還是要等超過 30 秒",
+    ""
+   ]
+  },
+  {
+   "case": "agent-stuck-loop",
+   "arm": "global",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 238,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "重連有時候還是要等超過 30 秒",
+    ""
+   ]
+  },
+  {
+   "case": "agent-stuck-loop",
+   "arm": "without",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 311,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "重連有時候還是要等超過 30 秒",
+    ""
+   ]
+  },
+  {
+   "case": "agent-stuck-loop",
+   "arm": "without",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 207,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "重連有時候還是要等超過 30 秒",
+    ""
+   ]
+  },
+  {
+   "case": "arch-db-migration",
+   "arm": "global",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 1,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 494,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "correction"
+   ],
+   "symptoms": [
+    "資料表裡還是沒有 first_name、last_name",
+    ""
+   ]
+  },
+  {
+   "case": "arch-db-migration",
+   "arm": "global",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 416,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "資料表裡還是沒有 first_name、last_name",
+    ""
+   ]
+  },
+  {
+   "case": "arch-db-migration",
+   "arm": "without",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 510,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "資料表裡還是沒有 first_name、last_name",
+    ""
+   ]
+  },
+  {
+   "case": "arch-db-migration",
+   "arm": "without",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 1,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 420,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "answer"
+   ],
+   "symptoms": [
+    "資料表裡還是沒有 first_name、last_name",
+    ""
+   ]
+  },
+  {
+   "case": "debug-env-diff",
+   "arm": "global",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 305,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "推上去 CI 還是紅的，test_parse_sample 一樣失敗",
+    ""
+   ]
+  },
+  {
+   "case": "debug-env-diff",
+   "arm": "global",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 268,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "debug-env-diff",
+   "arm": "without",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 295,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "debug-env-diff",
+   "arm": "without",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 278,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "debug-error-output",
+   "arm": "global",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 161,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "跑 python build.py 還是噴一堆紅字失敗",
+    ""
+   ]
+  },
+  {
+   "case": "debug-error-output",
+   "arm": "global",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 3,
+   "outcome": "fixed",
+   "agent_turns": 3,
+   "user_turns": 2,
+   "corrections": 1,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 319,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go",
+    "correction"
+   ],
+   "symptoms": [
+    "跑 python build.py 還是噴一堆紅字失敗",
+    "「營燈」的價格顯示不對，應該要像 NT$1,500 這樣",
+    ""
+   ]
+  },
+  {
+   "case": "debug-error-output",
+   "arm": "without",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 204,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "跑 python build.py 還是噴一堆紅字失敗",
+    ""
+   ]
+  },
+  {
+   "case": "debug-error-output",
+   "arm": "without",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 182,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "跑 python build.py 還是噴一堆紅字失敗",
+    ""
+   ]
+  },
+  {
+   "case": "debug-flaky",
+   "arm": "global",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 261,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "CI 上 test_report 還是偶爾會紅，報表上同金額客戶的順序也會變",
+    ""
+   ]
+  },
+  {
+   "case": "debug-flaky",
+   "arm": "global",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 155,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "CI 上 test_report 還是偶爾會紅，報表上同金額客戶的順序也會變",
+    ""
+   ]
+  },
+  {
+   "case": "debug-flaky",
+   "arm": "without",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 212,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "debug-flaky",
+   "arm": "without",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 242,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "CI 上 test_report 還是偶爾會紅，報表上同金額客戶的順序也會變",
+    ""
+   ]
+  },
+  {
+   "case": "debug-recur",
+   "arm": "global",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 248,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "debug-recur",
+   "arm": "global",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 243,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "debug-recur",
+   "arm": "without",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 269,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "debug-recur",
+   "arm": "without",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 294,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "debug-side-effect",
+   "arm": "global",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 247,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "結帳頁還是不收「+886912345678」這種寫法",
+    ""
+   ]
+  },
+  {
+   "case": "debug-side-effect",
+   "arm": "global",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 223,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "結帳頁還是不收「+886912345678」這種寫法",
+    ""
+   ]
+  },
+  {
+   "case": "debug-side-effect",
+   "arm": "without",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 262,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "結帳頁還是不收「+886912345678」這種寫法",
+    ""
+   ]
+  },
+  {
+   "case": "debug-side-effect",
+   "arm": "without",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 234,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "req-unclear",
+   "arm": "global",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 5,
+   "outcome": "fixed",
+   "agent_turns": 5,
+   "user_turns": 4,
+   "corrections": 1,
+   "answers": 2,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 207,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "answer",
+    "answer",
+    "correction",
+    "go"
+   ],
+   "symptoms": [
+    "匯出功能還是不能用，按了沒反應",
+    "匯出功能還是不能用，按了沒反應",
+    "匯出功能還是不能用，按了沒反應",
+    "匯出功能還是不能用，按了沒反應",
+    ""
+   ]
+  },
+  {
+   "case": "req-unclear",
+   "arm": "global",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 3,
+   "outcome": "fixed",
+   "agent_turns": 3,
+   "user_turns": 2,
+   "corrections": 2,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 212,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "correction",
+    "correction"
+   ],
+   "symptoms": [
+    "匯出功能還是不能用，按了沒反應",
+    "匯出功能還是不能用，按了沒反應",
+    ""
+   ]
+  },
+  {
+   "case": "req-unclear",
+   "arm": "without",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 6,
+   "outcome": "fixed",
+   "agent_turns": 6,
+   "user_turns": 5,
+   "corrections": 4,
+   "answers": 1,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 409,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "answer",
+    "correction",
+    "correction",
+    "correction",
+    "correction"
+   ],
+   "symptoms": [
+    "匯出功能還是不能用，按了沒反應",
+    "欄位跟會計的對帳單對不起來，順序或名稱不一樣",
+    "欄位跟會計的對帳單對不起來，順序或名稱不一樣",
+    "金額欄位有小數點或怪符號，會計要的是整數",
+    "訂單沒有照日期從早排到晚",
+    ""
+   ]
+  },
+  {
+   "case": "req-unclear",
+   "arm": "without",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 4,
+   "outcome": "fixed",
+   "agent_turns": 4,
+   "user_turns": 3,
+   "corrections": 2,
+   "answers": 1,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 306,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "answer",
+    "correction",
+    "correction"
+   ],
+   "symptoms": [
+    "匯出功能還是不能用，按了沒反應",
+    "金額欄位有小數點或怪符號，會計要的是整數",
+    "訂單沒有照日期從早排到晚",
+    ""
+   ]
+  },
+  {
+   "case": "ui-missing-states",
+   "arm": "global",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 3,
+   "outcome": "fixed",
+   "agent_turns": 3,
+   "user_turns": 2,
+   "corrections": 1,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 376,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go",
+    "correction"
+   ],
+   "symptoms": [
+    "資料還在抓的時候，畫面還是一片空白",
+    "查詢失敗（例如網路斷掉）的時候，畫面還是一片空白",
+    ""
+   ]
+  },
+  {
+   "case": "ui-missing-states",
+   "arm": "global",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 1,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 170,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "correction"
+   ],
+   "symptoms": [
+    "資料還在抓的時候，畫面還是一片空白",
+    ""
+   ]
+  },
+  {
+   "case": "ui-missing-states",
+   "arm": "without",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 200,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "ui-missing-states",
+   "arm": "without",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 225,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "資料還在抓的時候，畫面還是一片空白",
+    ""
+   ]
+  },
+  {
+   "case": "ui-vague",
+   "arm": "global",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 150,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "最重要的數字還是不顯眼，標題字跟數字差不多大或更大",
+    ""
+   ]
+  },
+  {
+   "case": "ui-vague",
+   "arm": "global",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 146,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "最重要的數字還是不顯眼，標題字跟數字差不多大或更大",
+    ""
+   ]
+  },
+  {
+   "case": "ui-vague",
+   "arm": "without",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 1,
+   "outcome": "fixed",
+   "agent_turns": 1,
+   "user_turns": 0,
+   "corrections": 0,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 210,
+   "error": null,
+   "user_kinds": [
+    "opener"
+   ],
+   "symptoms": [
+    ""
+   ]
+  },
+  {
+   "case": "ui-vague",
+   "arm": "without",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 1,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 249,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "correction"
+   ],
+   "symptoms": [
+    "還是有些字很淡、灰灰的看不清楚",
+    ""
+   ]
+  },
+  {
+   "case": "ux-technical-copy",
+   "arm": "global",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 1,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 136,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "correction"
+   ],
+   "symptoms": [
+    "畫面上還是有客戶看不懂的英文或代碼：「Data Sync」",
+    ""
+   ]
+  },
+  {
+   "case": "ux-technical-copy",
+   "arm": "global",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 0,
+   "answers": 0,
+   "fired": true,
+   "fired_first": true,
+   "seconds": 128,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go"
+   ],
+   "symptoms": [
+    "畫面上還是有客戶看不懂的英文或代碼：「Data Sync」",
+    ""
+   ]
+  },
+  {
+   "case": "ux-technical-copy",
+   "arm": "without",
+   "run": 1,
+   "fixed": true,
+   "fixed_at": 4,
+   "outcome": "fixed",
+   "agent_turns": 4,
+   "user_turns": 3,
+   "corrections": 1,
+   "answers": 1,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 246,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "go",
+    "correction",
+    "answer"
+   ],
+   "symptoms": [
+    "畫面上還是有客戶看不懂的英文或代碼：「Data Sync」",
+    "客戶看到資料沒過驗證的訊息，還是不知道要改哪個欄位",
+    "客戶看到資料沒過驗證的訊息，還是不知道要改哪個欄位",
+    ""
+   ]
+  },
+  {
+   "case": "ux-technical-copy",
+   "arm": "without",
+   "run": 2,
+   "fixed": true,
+   "fixed_at": 2,
+   "outcome": "fixed",
+   "agent_turns": 2,
+   "user_turns": 1,
+   "corrections": 1,
+   "answers": 0,
+   "fired": false,
+   "fired_first": false,
+   "seconds": 192,
+   "error": null,
+   "user_kinds": [
+    "opener",
+    "correction"
+   ],
+   "symptoms": [
+    "畫面上還是有客戶看不懂的英文或代碼：「Data Sync」",
+    ""
+   ]
+  }
+ ]
+}

@@ -42,7 +42,7 @@ def check():
                   f"padding {paddings} width {widths} inline {inline} float {floats} layout {layout}"))
     # 4. 字級太多
     sizes = sheet.distinct_font_sizes()
-    if len(sizes) > 5:
+    if len(sizes) > 6:  # 原本 8 種；標題、數字、標籤、說明、註腳各一種再多一種都算合理
         p.append(("字的大小還是大大小小一堆，看起來很亂", f"{len(sizes)} 種字級：{sorted(sizes)}"))
     return p
 

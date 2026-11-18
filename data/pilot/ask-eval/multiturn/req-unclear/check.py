@@ -44,7 +44,7 @@ def check():
     rows = [[x.strip() for x in r] for r in rows]
     if not rows or rows[0] != EXPECT[0]:
         return [("欄位跟會計的對帳單對不起來，順序或名稱不一樣", f"表頭 {rows[:1]}")]
-    body = rows[1:]
+    body = [r[:3] + [r[3].replace(",", "")] + r[4:] if len(r) > 3 else r for r in rows[1:]]  # 千分位逗號也算整數
     ids = [r[0] for r in body]
     if "T04" in ids:
         return [("已經取消的訂單也被匯出來了", f"{ids}")]
