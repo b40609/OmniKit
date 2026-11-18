@@ -1,0 +1,68 @@
+body {
+  font-family: "Noto Sans TC", sans-serif;
+  background: #ffffff;
+  color: #333333;
+  margin: 24px;
+}
+
+.page-title {
+  font-size: 28px;
+}
+
+.muted {
+  color: #c4c4c4;
+  font-size: 13px;
+}
+
+.cards {
+  overflow: hidden;
+}
+
+.card {
+  float: left;
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  padding: 16px;
+  margin-right: 12px;
+  width: 22%;
+}
+
+.card.revenue {
+  padding: 24px;
+  width: 26%;
+}
+
+.card.orders {
+  padding: 12px 20px;
+}
+
+.kpi-label {
+  font-size: 17px;
+  font-weight: bold;
+}
+
+.kpi-value {
+  font-size: 15px;
+  color: #555555;
+}
+
+.card-note {
+  font-size: 11px;
+  color: #bbbbbb;
+}
+
+.footnote {
+  font-size: 12px;
+  color: #cccccc;
+  clear: both;
+  padding-top: 16px;
+}
+
+.card.members .kpi-value {
+  font-size: 19px;
+}
+
+.card.refunds .card-note {
+  font-size: 14px;
+}

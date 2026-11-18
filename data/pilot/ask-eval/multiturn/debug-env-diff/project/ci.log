@@ -1,0 +1,18 @@
+2026-11-17T09:12:03Z Runner: ubuntu-latest (Ubuntu 24.04)
+2026-11-17T09:12:05Z Run actions/checkout@v4
+2026-11-17T09:12:06Z Run actions/setup-python@v5  (python 3.12)
+2026-11-17T09:12:11Z Run python -m unittest discover -s tests -t .
+F.
+======================================================================
+FAIL: test_parse_sample (tests.test_importer.ImporterTest.test_parse_sample)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/shop/shop/tests/test_importer.py", line 12, in test_parse_sample
+    self.assertEqual(len(rows), 3)
+AssertionError: 0 != 3
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.001s
+
+FAILED (failures=1)
+Error: Process completed with exit code 1.

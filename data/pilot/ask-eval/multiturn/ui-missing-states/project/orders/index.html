@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8"><title>訂單查詢</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<form id="search"><input name="q" placeholder="訂單編號或客戶名稱"><button>查詢</button></form>
+<div id="result"></div>
+<script src="render.js"></script>
+<script>
+const box = document.getElementById("result");
+document.getElementById("search").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  box.innerHTML = render({ loading: true, orders: [] });
+  try {
+    const res = await fetch("/api/orders?q=" + encodeURIComponent(e.target.q.value));
+    box.innerHTML = render({ orders: await res.json() });
+  } catch (err) {
+    box.innerHTML = render({ error: err, orders: [] });
+  }
+});
+</script>
+</body>
+</html>

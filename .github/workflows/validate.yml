@@ -83,6 +83,8 @@ jobs:
       - run: uv run engine/scripts/pool.py --selftest
       - run: uv run engine/scripts/swap.py --selftest
       - run: uv run engine/scripts/advise.py --selftest
+      # 問法庫多輪評測的壞專案：隱藏檢查對壞專案判失敗、對參考修法判通過（不開對話、不呼叫模型）
+      - run: uv run data/pilot/ask-eval/multiturn_eval.py --selftest
       - run: uv run engine/scripts/feedback.py --selftest
       # 通知（FR-16、FR-19）：證據等級只取 OmniKit 自己的實測與初測紀錄；E4 每週最多 1 則、同一份證據只提一次、
       # 同槽位 30 天不重複、合計每週 3 則；子對話、CI、靜音不顯示；hook 只讀 JSON，名冊在背景一天最多算一次

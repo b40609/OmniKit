@@ -1,0 +1,10 @@
+{
+  "title": "Data Sync",
+  "sync_button": "Execute Sync",
+  "sync_running": "Processing request...",
+  "sync_success": "Sync OK: {count} rows affected",
+  "sync_empty": "null",
+  "error_422": "Invalid payload: field_status_code = 422",
+  "error_504": "ERR_GATEWAY_TIMEOUT (504)",
+  "error_401": "Unauthorized: token expired (401)"
+}
