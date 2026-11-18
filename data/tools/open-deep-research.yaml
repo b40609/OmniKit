@@ -3,9 +3,12 @@ name: LangChain Open Deep Research
 kind: app
 slots:
 - product-research
-status: pending
+status: rejected
 url: https://github.com/langchain-ai/open_deep_research
+decided_at: '2026-11-18'
+reason: repo 已封存（archived，最後 push 2026-08-10，README 沒有指向接替的專案），第 0 層硬性門檻不通過，P3 對比實測沒有跑它。
 sources:
 - RIA:C020
 - RIA:C049
+notes: ★12,674，MIT（2026-11-17 gh api）。預設用 Tavily 搜尋加 OpenAI 的 gpt-4.1 系列，研究迴圈上限 6 輪、每輪最多 10 次工具呼叫（configuration.py）。Deep Research Bench 排名是 2025-08 的資料。P3 紀錄見 data/evals/2026-11-18-product-research-P3.md。
 added: '2026-11-04'

@@ -1,0 +1,42 @@
+[
+ {
+  "file": "C2-vsx.tsv",
+  "name": "mermaid-js.mermaid-repo-parser",
+  "link": "https://marketplace.visualstudio.com/items?itemName=mermaid-js.mermaid-repo-parser",
+  "kind": "vscode",
+  "ok": false,
+  "display": null
+ },
+ {
+  "file": "C2-vsx.tsv",
+  "name": "architector.architector",
+  "link": "https://marketplace.visualstudio.com/items?itemName=architector.architector",
+  "kind": "vscode",
+  "ok": false,
+  "display": null
+ },
+ {
+  "file": "C2-vsx.tsv",
+  "name": "mermaid-ai.mermaid-ai",
+  "link": "https://marketplace.visualstudio.com/items?itemName=mermaid-ai.mermaid-ai",
+  "kind": "vscode",
+  "ok": false,
+  "display": null
+ },
+ {
+  "file": "C2-vsx.tsv",
+  "name": "bierner.plantuml",
+  "link": "https://marketplace.visualstudio.com/items?itemName=bierner.plantuml",
+  "kind": "vscode",
+  "ok": false,
+  "display": null
+ },
+ {
+  "file": "C2-vsx.tsv",
+  "name": "bierner.markdown-mermaid",
+  "link": "https://marketplace.visualstudio.com/items?itemName=bierner.markdown-mermaid",
+  "kind": "vscode",
+  "ok": true,
+  "display": "Markdown Preview Mermaid Support"
+ }
+]

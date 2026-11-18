@@ -1,0 +1,25 @@
+{
+  "arm": "local-deep-research",
+  "version": "2.0.1",
+  "run": "2",
+  "query": "Find as many distinct tools as possible (open-source repositories, products, VS Code extensions, coding-agent skills or MCP servers) that automatically generate architecture, structure, or dependency diagrams from a GitHub repository or codebase. For each tool give its name and a link.",
+  "overrides": {
+    "llm.provider": "ollama",
+    "llm.model": "qwen3:8b",
+    "search.tool": "tavily",
+    "search.engine.web.searxng.agent_enabled": false
+  },
+  "started": "2026-11-18T03:40:04+08:00",
+  "elapsed_seconds": 1742.2,
+  "result_keys": [
+    "content",
+    "metadata"
+  ],
+  "metadata": {
+    "generated_at": "2026-11-17T20:09:06.701622+00:00",
+    "initial_sources": 31,
+    "sections_researched": 5,
+    "searches_per_section": 2,
+    "query": "Find as many distinct tools as possible (open-source repositories, products, VS Code extensions, coding-agent skills or MCP servers) that automatically generate architecture, structure, or dependency diagrams from a GitHub repository or codebase. For each tool give its name and a link."
+  }
+}

@@ -1,0 +1,1482 @@
+{
+ "ahmedkhaleel2004/gitdiagram": {
+  "full": "ahmedkhaleel2004/gitdiagram",
+  "stars": 18973,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "MIT",
+  "description": "Visualize any GitHub codebase: free interactive architecture diagrams and one-minute explainer videos. Replace 'hub' with 'diagram' in any GitHub URL."
+ },
+ "adityasingh-ops/repo2diagram": {
+  "full": "adityasingh-ops/repo2diagram",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-10-29",
+  "license": "MIT",
+  "description": ""
+ },
+ "vinit-devops/repo-architecture-mcp": {
+  "full": "vinit-devops/repo-architecture-mcp",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2025-10-23",
+  "license": "MIT",
+  "description": "An MCP server that provides architecture insights by creating diagrams of class, service, and data-flow relationships across the codebase."
+ },
+ "saurabh-oss/archilens": {
+  "full": "saurabh-oss/archilens",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2026-11-15",
+  "license": "NOASSERTION",
+  "description": "Architecture diagrams from your Git repo, dependency rules checked in CI, and an architecture diff with an optional AI review on every pull request."
+ },
+ "ThiagoDataEngineer/diagram-forge": {
+  "full": "ThiagoDataEngineer/diagram-forge",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-05-12",
+  "license": "MIT",
+  "description": ""
+ },
+ "repowise-dev/repowise": {
+  "full": "repowise-dev/repowise",
+  "stars": 8167,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "AGPL-3.0",
+  "description": "Codebase intelligence for AI and humans: code health scores, auto-generated docs, git analytics, dead code detection, and architectural decisions via MCP."
+ },
+ "samjhill/diagrammer": {
+  "full": "samjhill/diagrammer",
+  "stars": 11,
+  "archived": false,
+  "pushed": "2026-02-02",
+  "license": "MIT",
+  "description": "automatically makes detailed diagrams of your code for easy understanding"
+ },
+ "swark-io/swark": {
+  "full": "swark-io/swark",
+  "stars": 1699,
+  "archived": false,
+  "pushed": "2025-03-21",
+  "license": "AGPL-3.0",
+  "description": "Create architecture diagrams from code automatically using large language models (LLMs)."
+ },
+ "tt-a1i/archify": {
+  "full": "tt-a1i/archify",
+  "stars": 97421,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "Apache-2.0",
+  "description": "Turn any idea, plan, or codebase into a beautiful interactive diagram. An agent skill for Claude Code, Codex, and more."
+ },
+ "Agents365-ai/drawio-skill": {
+  "full": "Agents365-ai/drawio-skill",
+  "stars": 10817,
+  "archived": false,
+  "pushed": "2026-11-10",
+  "license": "MIT",
+  "description": "Agent skill that turns natural language, code, Terraform/K8s, SQL, OpenAPI, AsyncAPI, Protobuf and GraphQL sources into editable, tested draw.io architecture diagrams: incremental sync, multi-view pro"
+ },
+ "sverweij/dependency-cruiser": {
+  "full": "sverweij/dependency-cruiser",
+  "stars": 7436,
+  "archived": false,
+  "pushed": "2026-11-16",
+  "license": "MIT",
+  "description": "Validate and visualize dependencies. Your rules. JavaScript, TypeScript, CoffeeScript. ES6, CommonJS, AMD."
+ },
+ "haydenschmitty/floorplan": {
+  "full": "haydenschmitty/floorplan",
+  "stars": 4713,
+  "archived": false,
+  "pushed": "2026-11-16",
+  "license": "MIT",
+  "description": "See how your app actually fits together. An interactive, plain-English map of your codebase, drawn by Claude or Codex."
+ },
+ "patrickchugh/terravision": {
+  "full": "patrickchugh/terravision",
+  "stars": 1693,
+  "archived": false,
+  "pushed": "2026-11-12",
+  "license": "AGPL-3.0",
+  "description": "Cloud architecture diagrams in both directions: AI prompt or JSON to diagram, diagram to Terraform via MCP server, and Terraform to diagram via CLI or CI/CD. Using Official AWS, Azure and GCP icons."
+ },
+ "Raja0sama/vibex": {
+  "full": "Raja0sama/vibex",
+  "stars": 392,
+  "archived": false,
+  "pushed": "2026-11-10",
+  "license": "MIT",
+  "description": "Architecture diagrams and checkable docs from your codebase — ERD, C4, API and lifecycle — generated from Prisma, OpenAPI or GraphQL. One HTML file, no server."
+ },
+ "Chris-Koenig/arc42ify": {
+  "full": "Chris-Koenig/arc42ify",
+  "stars": 3,
+  "archived": false,
+  "pushed": "2026-10-19",
+  "license": "MIT",
+  "description": "Agent skill that turns a repo, an idea or loose notes into arc42 architecture docs with clean SVG diagrams. Works in Claude Code, GitHub Copilot and OpenAI Codex."
+ },
+ "MentalVibez/AI_Architecture_Explainer": {
+  "full": "MentalVibez/AI_Architecture_Explainer",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2026-07-09",
+  "license": "AGPL-3.0",
+  "description": "AI-powered architecture analysis for public GitHub repos — generates diagrams, dependency breakdowns, and summaries for developers and hiring managers."
+ },
+ "bip-krishna/Repolens-AI": {
+  "full": "bip-krishna/Repolens-AI",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2026-09-16",
+  "license": "MIT",
+  "description": "This AI reads through your github repo and gives architecture diagrams flow explanation ,onboarding guide, contributor roadmap"
+ },
+ "ProAmineOfficial/GitArchitectureDiagram": {
+  "full": "ProAmineOfficial/GitArchitectureDiagram",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2026-10-25",
+  "license": "AGPL-3.0",
+  "description": "Make Any Product with Genius AI & Reverse Engineer Any Product-REP & Turn GitHub repos into interactive engineering workspaces with system maps, architecture diagrams, code hierarchies, mind maps, sou"
+ },
+ "parmsam/code-architecture-diagram-llm-app": {
+  "full": "parmsam/code-architecture-diagram-llm-app",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2024-09-09",
+  "license": null,
+  "description": "Shiny for Python app that creates a code architecture diagram using Mermaid based on a Github repo URL"
+ },
+ "ManyaS-Git/RepoPilot-AI-Powered-Codebase-Intelligence-and-Architecture-Mapping": {
+  "full": "ManyaS-Git/RepoPilot-AI-Powered-Codebase-Intelligence-and-Architecture-Mapping",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2026-08-09",
+  "license": null,
+  "description": "RepoPilot is an AI-powered codebase intelligence platform that transforms complex GitHub repositories into interactive architectural diagrams and dynamic, disk-cached RAG chat contexts for deep code a"
+ },
+ "builditwithgk/repo-cartographer": {
+  "full": "builditwithgk/repo-cartographer",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2026-11-14",
+  "license": "MIT",
+  "description": "Understand any codebase in 60 seconds - an MCP server, CLI and GitHub Action that turns any repo into an architecture diagram (Mermaid/Graphviz) and enforces architecture rules in CI. Works with Claud"
+ },
+ "originalpages/r2m": {
+  "full": "originalpages/r2m",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2026-10-15",
+  "license": "MIT",
+  "description": "See how a project is built: Mermaid diagrams (overview, dependencies, folders) from a folder or GitHub repo. One small offline binary."
+ },
+ "bassnova42/arch-diagram-skill": {
+  "full": "bassnova42/arch-diagram-skill",
+  "stars": 137,
+  "archived": false,
+  "pushed": "2026-11-08",
+  "license": "MIT",
+  "description": "RokoAI arch-diagram: a Claude Code & Codex skill that turns any repo or article into an animated architecture diagram (HTML / PNG / MP4 / GIF / Mermaid) with a live trace log"
+ },
+ "stack-muse/code-map": {
+  "full": "stack-muse/code-map",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-10-07",
+  "license": "MIT",
+  "description": "Claude Code skill that generates a single Markdown code map for a repo — architecture diagrams, sequence diagrams, ERD, and a module-responsibility table, all read straight from the source."
+ },
+ "AsyncFuncAI/deepwiki-open": {
+  "full": "AsyncFuncAI/deepwiki-open",
+  "stars": 18447,
+  "archived": false,
+  "pushed": "2026-11-15",
+  "license": "MIT",
+  "description": "Open Source DeepWiki: AI-Powered Wiki Generator for GitHub/Gitlab/Bitbucket Repositories. Join the discord: https://discord.gg/gMwThUMeme"
+ },
+ "frontend-engineering/RepoArch": {
+  "full": "frontend-engineering/RepoArch",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2025-05-30",
+  "license": "MIT",
+  "description": "Generate architecture for repo"
+ },
+ "saurabhgayali/GitRepoFlow": {
+  "full": "saurabhgayali/GitRepoFlow",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-08-19",
+  "license": "MIT",
+  "description": "Turn any public GitHub repo into an interactive 3D isometric architecture & workflow diagram."
+ },
+ "openflowkit/openflowkit": {
+  "full": "openflowkit/openflowkit",
+  "stars": 991,
+  "archived": false,
+  "pushed": "2026-11-07",
+  "license": "MIT",
+  "description": "Free, open-source diagram canvas. Draw it, write it as code (Mermaid, D2, Structurizr in), ask any AI model or a local one, let Claude Code edit it live over MCP, or map a GitHub repo with every arrow"
+ },
+ "JatinBhargava/repo-architecture-skill": {
+  "full": "JatinBhargava/repo-architecture-skill",
+  "stars": 13,
+  "archived": false,
+  "pushed": "2026-10-15",
+  "license": "MIT",
+  "description": "AI agent skill: turn any code repository into an interactive system-design page — diagram, request-flow simulation, endpoints, tables and columns, every step tied to file:line."
+ },
+ "pahen/madge": {
+  "full": "pahen/madge",
+  "stars": 10185,
+  "archived": false,
+  "pushed": "2026-01-21",
+  "license": "MIT",
+  "description": "Create graphs from your CommonJS, AMD or ES6 module dependencies"
+ },
+ "git-probe/gitprobe": {
+  "full": "git-probe/gitprobe",
+  "stars": 111,
+  "archived": false,
+  "pushed": "2025-07-26",
+  "license": "MIT",
+  "description": "Replace 'hub' with 'probe' in any github url to get llm friendly codebase structure."
+ },
+ "tach-org/tach": {
+  "full": "tach-org/tach",
+  "stars": 2874,
+  "archived": false,
+  "pushed": "2026-10-29",
+  "license": "MIT",
+  "description": "A Python tool to visualize + enforce dependencies, using modular architecture 🌎 Open source 🐍 Installable via pip 🔧 Able to be adopted incrementally - ⚡ Implemented with no runtime impact ♾️ Interoper"
+ },
+ "eduardd76/rfc-visual": {
+  "full": "eduardd76/rfc-visual",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "MIT",
+  "description": "Visualize any GitHub codebase: free interactive architecture diagrams and one-minute explainer videos. Replace 'hub' with 'diagram' in any GitHub URL."
+ },
+ "kuarcis/deepwiki-open-community": {
+  "full": "kuarcis/deepwiki-open-community",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2025-10-01",
+  "license": "MIT",
+  "description": "Open Source DeepWiki: AI-Powered Wiki Generator for GitHub/Gitlab/Bitbucket Repositories."
+ },
+ "yuppiez99999/archify-": {
+  "full": "yuppiez99999/archify-",
+  "stars": 4,
+  "archived": false,
+  "pushed": "2026-08-21",
+  "license": "MIT",
+  "description": "Agent skill for beautiful, verifiable architecture, workflow, sequence, data-flow, and lifecycle diagrams—self-contained HTML with motion and crisp export."
+ },
+ "zenobia000/archify-sdd": {
+  "full": "Zenobia000/archify-SDD",
+  "stars": 3,
+  "archived": false,
+  "pushed": "2026-10-24",
+  "license": "MIT",
+  "description": "Turn any idea, plan, or codebase into a beautiful interactive diagram. An agent skill for Claude Code, Codex, and more."
+ },
+ "enkogu/aesthetic-diagrams": {
+  "full": "enkogu/aesthetic-diagrams",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2026-07-19",
+  "license": "MIT",
+  "description": "A polished visual fork of Archify for aesthetic technical diagrams."
+ },
+ "mco-org/mco": {
+  "full": "mco-org/mco",
+  "stars": 557,
+  "archived": false,
+  "pushed": "2026-11-06",
+  "license": "MIT",
+  "description": "CLI-first orchestration for AI coding agents: run selected agents and models in parallel, compare raw answers, and coordinate review or implementation workflows."
+ },
+ "braedonsaunders/codeflow": {
+  "full": "braedonsaunders/codeflow",
+  "stars": 5504,
+  "archived": false,
+  "pushed": "2026-10-20",
+  "license": "MIT",
+  "description": "Paste any GitHub URL → interactive architecture map. See how files connect, find what breaks if you change something. No install, no accounts — runs entirely in your browser."
+ },
+ "oh-my-mermaid/oh-my-mermaid": {
+  "full": "oh-my-mermaid/oh-my-mermaid",
+  "stars": 3394,
+  "archived": false,
+  "pushed": "2026-04-07",
+  "license": "MIT",
+  "description": "Turn complex codebases into clear, navigable architecture diagrams with Claude Code."
+ },
+ "adrianhajdin/cartograph": {
+  "full": "adrianhajdin/cartograph",
+  "stars": 109,
+  "archived": false,
+  "pushed": "2026-10-02",
+  "license": null,
+  "description": "Cartograph turns any GitHub repo into an interactive dependency map by parsing real code to analyze structure, trace imports, calculate blast radius, and explain modules without AI guessing edges."
+ },
+ "srihari7070/lore-map": {
+  "full": "srihari7070/lore-map",
+  "stars": 79,
+  "archived": false,
+  "pushed": "2026-06-21",
+  "license": "MIT",
+  "description": "See your codebase as a living architecture map — then edit the map and let Claude build the code"
+ },
+ "devlensio/devlensOSS": {
+  "full": "devlensio/devlensOSS",
+  "stars": 71,
+  "archived": false,
+  "pushed": "2026-10-28",
+  "license": "AGPL-3.0",
+  "description": "An Open Source Codebase Intelligence for AI agents and Developers for javascript, typescript, reactjs, nextjs, python, java, go and rust for easy PR review, fast Onboarding and deep architectural unde"
+ },
+ "CodeBoarding/CodeBoarding": {
+  "full": "CodeBoarding/CodeBoarding",
+  "stars": 2686,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "MIT",
+  "description": "Interactive architecture diagrams for codebases"
+ },
+ "glato/emerge": {
+  "full": "glato/emerge",
+  "stars": 1184,
+  "archived": false,
+  "pushed": "2026-08-07",
+  "license": "MIT",
+  "description": "Emerge is a browser-based interactive codebase and dependency visualization tool for many different programming languages. It supports some basic code quality and graph metrics and provides a simple a"
+ },
+ "DucPhamNgoc08/CodeVisualizer": {
+  "full": "DucPhamNgoc08/CodeVisualizer",
+  "stars": 701,
+  "archived": false,
+  "pushed": "2026-09-13",
+  "license": "MIT",
+  "description": "CodeVisualizer is a powerful VS Code extension that provides two main visualization capabilities: function-level flowcharts for understanding code control flow, and codebase-level dependency graphs fo"
+ },
+ "Qiuner/birdview": {
+  "full": "Qiuner/birdview",
+  "stars": 692,
+  "archived": false,
+  "pushed": "2026-11-14",
+  "license": "MIT",
+  "description": "Stop letting AI code blind. Map the architecture before every change with Birdview."
+ },
+ "MaibornWolff/codecharta": {
+  "full": "MaibornWolff/codecharta",
+  "stars": 584,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "BSD-3-Clause",
+  "description": "CodeCharta is a visualization tool that transforms complex software architecture and code metrics into interactive, customizable visual maps, empowering everyone to communicate and analyze your codeba"
+ },
+ "xnuinside/codegraph": {
+  "full": "xnuinside/codegraph",
+  "stars": 514,
+  "archived": false,
+  "pushed": "2026-05-19",
+  "license": "MIT",
+  "description": "Static Python dependency graph with interactive HTML visualization, massive object detection, and unlinked module analysis (no code execution)."
+ },
+ "dundalek/stratify": {
+  "full": "dundalek/stratify",
+  "stars": 120,
+  "archived": false,
+  "pushed": "2026-02-15",
+  "license": "MIT",
+  "description": "Explore and improve architecture of software, visualize structure and dependencies of codebases, calculate code metrics"
+ },
+ "uigraph-oss/uigraph": {
+  "full": "uigraph-oss/uigraph",
+  "stars": 84,
+  "archived": false,
+  "pushed": "2026-10-22",
+  "license": "Apache-2.0",
+  "description": "Open-source local viewer for software architecture. Use the UIGraph skill with your coding agent to generate service maps, API specs, dependency graphs, and diagrams."
+ },
+ "Auryngji/DepViz-Dependency-Visualizer": {
+  "full": "Auryngji/DepViz-Dependency-Visualizer",
+  "stars": 67,
+  "archived": false,
+  "pushed": "2025-10-23",
+  "license": "MIT",
+  "description": "Function call & call stack diagrams for VS Code (Python/TS/JS). Architecture/UML, PlantUML export."
+ },
+ "Asixa/codemap-skill": {
+  "full": "Asixa/codemap-skill",
+  "stars": 9,
+  "archived": false,
+  "pushed": "2026-06-11",
+  "license": "MIT",
+  "description": "🧹 A code janitor for AI agents — map any codebase into functional modules, score every module 0-100 for tech debt, and clean up the spaghetti incrementally. A Claude Code / Codex skill."
+ },
+ "ysk8hori/typescript-graph": {
+  "full": "ysk8hori/typescript-graph",
+  "stars": 217,
+  "archived": false,
+  "pushed": "2026-11-16",
+  "license": null,
+  "description": "A CLI to visualize the dependencies between files in the TypeScript codebase."
+ },
+ "oslabs-beta/CodeMapper": {
+  "full": "oslabs-beta/CodeMapper",
+  "stars": 99,
+  "archived": false,
+  "pushed": "2020-11-08",
+  "license": "MIT",
+  "description": "CodeMapper is a command line tool that allows you to visualize your codebase at a high level, along with the functionality and dependencies within any JavaScript files in the codebase."
+ },
+ "codeatlasHQ/codebase-visualizer-action": {
+  "full": "codeatlasHQ/codebase-visualizer-action",
+  "stars": 72,
+  "archived": false,
+  "pushed": "2022-09-11",
+  "license": "MIT",
+  "description": "Visualize your codebase during CI."
+ },
+ "fadhlirahim/codebase-map": {
+  "full": "fadhlirahim/codebase-map",
+  "stars": 4,
+  "archived": false,
+  "pushed": "2026-07-14",
+  "license": "MIT",
+  "description": "An agent skill that generates an **interactive, self-contained HTML map of any codebase** — a dependency graph of its modules, a zoomable lines-of-code treemap, and stack-specific tabs for whatever th"
+ },
+ "gabotechs/dep-tree": {
+  "full": "gabotechs/dep-tree",
+  "stars": 1725,
+  "archived": false,
+  "pushed": "2025-03-22",
+  "license": "MIT",
+  "description": "Tool for helping developers keep their code bases clean and decoupled. It allows visualising a code base complexity using a 3d force-directed graph of files and the dependencies between them."
+ },
+ "githubocto/repo-visualizer": {
+  "full": "githubocto/repo-visualizer",
+  "stars": 1312,
+  "archived": true,
+  "pushed": "2026-01-22",
+  "license": "MIT",
+  "description": ""
+ },
+ "chanhx/crabviz": {
+  "full": "chanhx/crabviz",
+  "stars": 1412,
+  "archived": false,
+  "pushed": "2026-09-01",
+  "license": "AGPL-3.0",
+  "description": "Generate interactive call graphs for various languages"
+ },
+ "scottrogowski/code2flow": {
+  "full": "scottrogowski/code2flow",
+  "stars": 4621,
+  "archived": false,
+  "pushed": "2025-07-27",
+  "license": "MIT",
+  "description": "Pretty good call graphs for dynamic languages"
+ },
+ "mamuz/PhpDependencyAnalysis": {
+  "full": "mamuz/PhpDependencyAnalysis",
+  "stars": 573,
+  "archived": false,
+  "pushed": "2023-12-03",
+  "license": "MIT",
+  "description": "Static code analysis to find violations in a dependency graph"
+ },
+ "PaulTaykalo/objc-dependency-visualizer": {
+  "full": "PaulTaykalo/objc-dependency-visualizer",
+  "stars": 1869,
+  "archived": false,
+  "pushed": "2020-04-28",
+  "license": "MIT",
+  "description": "Objective-C and Swift dependency visualizer. It's tool that helps to visualize current state of your project. It's really easy to see how tight your classes are coupled. "
+ },
+ "arunkumar9t2/scabbard": {
+  "full": "arunkumar9t2/scabbard",
+  "stars": 876,
+  "archived": false,
+  "pushed": "2025-11-02",
+  "license": "Apache-2.0",
+  "description": "🗡 A tool to visualize Dagger 2 dependency graphs"
+ },
+ "compodoc/ngd": {
+  "full": "compodoc/ngd",
+  "stars": 610,
+  "archived": false,
+  "pushed": "2023-05-17",
+  "license": "MIT",
+  "description": "View the dependencies tree of you Angular application"
+ },
+ "fallow-rs/fallow": {
+  "full": "fallow-rs/fallow",
+  "stars": 5379,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "MIT",
+  "description": "Codebase intelligence for TypeScript and JavaScript. Health, complexity hotspots, duplication, architecture boundaries, circular dependencies, design-system drift, and unused code, from one graph. CLI"
+ },
+ "giancarloerra/SocratiCode": {
+  "full": "giancarloerra/SocratiCode",
+  "stars": 3380,
+  "archived": false,
+  "pushed": "2026-11-11",
+  "license": "AGPL-3.0",
+  "description": "Enterprise-grade (40m+ LOC) codebase intelligence, zero-setup, local & private Plugin/Skill/Extension or MCP: hybrid semantic search, polyglot dependency graphs, symbol-level impact analysis & call-fl"
+ },
+ "28mm/blast-radius": {
+  "full": "28mm/blast-radius",
+  "stars": 2197,
+  "archived": false,
+  "pushed": "2024-08-14",
+  "license": "MIT",
+  "description": "Interactive visualizations of Terraform dependency graphs using d3.js"
+ },
+ "thebjorn/pydeps": {
+  "full": "thebjorn/pydeps",
+  "stars": 2121,
+  "archived": false,
+  "pushed": "2026-11-09",
+  "license": "BSD-2-Clause",
+  "description": "Python Module Dependency graphs"
+ },
+ "kisielk/godepgraph": {
+  "full": "kisielk/godepgraph",
+  "stars": 1269,
+  "archived": false,
+  "pushed": "2025-06-24",
+  "license": "MIT",
+  "description": "A Go dependency graph visualization tool"
+ },
+ "dvdciri/daggraph": {
+  "full": "dvdciri/daggraph",
+  "stars": 1137,
+  "archived": false,
+  "pushed": "2023-01-03",
+  "license": "MIT",
+  "description": "Dagger dependency graph generator for Android Developers"
+ },
+ "groob/goviz-frameworks": {
+  "full": "groob/goviz-frameworks",
+  "stars": 229,
+  "archived": false,
+  "pushed": "2016-09-09",
+  "license": null,
+  "description": "pretty pictures of web frameworks and applications"
+ },
+ "fwouts/js-deps": {
+  "full": "fwouts/js-deps",
+  "stars": 38,
+  "archived": false,
+  "pushed": "2019-09-02",
+  "license": "MIT",
+  "description": "Interactive graph of dependencies between JS/TS files"
+ },
+ "uysalserkan/dependency-visualizer": {
+  "full": "uysalserkan/dependency-visualizer",
+  "stars": 10,
+  "archived": false,
+  "pushed": "2026-08-07",
+  "license": null,
+  "description": "A modern web application for visualizing import dependencies in Python, JavaScript, TypeScript, Go, Java, Ruby, Rust, and C++ projects. Understand your project structure through interactive, beautiful"
+ },
+ "noorrbutt/Codebase-Visualizer": {
+  "full": "noorrbutt/Codebase-Visualizer",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-11-16",
+  "license": "MIT",
+  "description": "AI powered dependency graph explorer for GitHub projects built using FastApi and React"
+ },
+ "taeezx44/Live-codebase": {
+  "full": "taeezx44/Live-codebase",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2026-03-15",
+  "license": "MIT",
+  "description": ""
+ },
+ "nanoapi-io/napi": {
+  "full": "nanoapi-io/napi",
+  "stars": 324,
+  "archived": false,
+  "pushed": "2026-04-12",
+  "license": "NOASSERTION",
+  "description": "Software architecture tooling for the AI age"
+ },
+ "league1991/codeatlasvsix": {
+  "full": "league1991/CodeAtlasVsix",
+  "stars": 268,
+  "archived": false,
+  "pushed": "2022-03-09",
+  "license": "GPL-2.0",
+  "description": "A graph-based code navigation plugin for Visual Studio"
+ },
+ "wlsdks/ontology-atlas": {
+  "full": "wlsdks/ontology-atlas",
+  "stars": 167,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "MIT",
+  "description": "Understand what your codebase builds, why it is structured that way, and what a change could affect.  One shared Markdown ontology for humans and coding agents—visualized for people, accessible to age"
+ },
+ "realvizu/quickdiagram": {
+  "full": "realvizu/QuickDiagram",
+  "stars": 143,
+  "archived": true,
+  "pushed": "2022-05-13",
+  "license": "GPL-2.0",
+  "description": "Code visualization tool for C# to quickly explore, navigate and document source code structure and relationships. Integrates into Visual Studio."
+ },
+ "brandondocusen/cntxtpy": {
+  "full": "brandondocusen/CntxtPY",
+  "stars": 115,
+  "archived": false,
+  "pushed": "2024-12-05",
+  "license": "MIT",
+  "description": "A discovery and compression tool for your Python codebase. Creates a knowledge graph for a LLM context window, efficiently outlining your project | Code structure visualization | LLM Context Window Ef"
+ },
+ "supermax92/qgraphflow": {
+  "full": "supermax92/qgraphflow",
+  "stars": 113,
+  "archived": false,
+  "pushed": "2026-11-08",
+  "license": "MIT",
+  "description": "Generate evidence-grounded interactive software diagrams with offline HTML, SVG and PNG export."
+ },
+ "chinmay-sawant/gomindmapper": {
+  "full": "chinmay-sawant/gomindmapper",
+  "stars": 70,
+  "archived": false,
+  "pushed": "2025-09-28",
+  "license": "MIT",
+  "description": "Mind Mapper for Go (Might make it language agnostic in future)"
+ },
+ "jananadiw/codex-tldraw-mcp": {
+  "full": "jananadiw/codex-tldraw-mcp",
+  "stars": 25,
+  "archived": false,
+  "pushed": "2026-11-13",
+  "license": "MIT",
+  "description": "Local Codex MCP server for scanning repositories and writing tldraw product workflow diagrams."
+ },
+ "bosheda/graphiquest": {
+  "full": "Bosheda/graphiquest",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2026-06-13",
+  "license": "MIT",
+  "description": "Local-first 3D knowledge-graph dashboard for codebases. Built on Graphify. Explore repos in Hivemind, run Hunter audits, trace nodes, and query graph context with Claude Code."
+ },
+ "thekindcoder/legacy-monolith-tool": {
+  "full": "theKindCoder/legacy-monolith-tool",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-06-27",
+  "license": null,
+  "description": "Legacy Monolith Tool — Interactive visual analyzer for exploring, summarizing, and risk-scoring legacy codebases."
+ },
+ "Aksh1810/Gitvize": {
+  "full": "Aksh1810/Gitvize",
+  "stars": 9,
+  "archived": false,
+  "pushed": "2026-11-16",
+  "license": null,
+  "description": ""
+ },
+ "iLevyTate/reposense": {
+  "full": "iLevyTate/reposense",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-11-15",
+  "license": "MIT",
+  "description": "Visualize Your Repo Cinematically "
+ },
+ "Elomami1976/GitScope": {
+  "full": "Elomami1976/GitScope",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-04-01",
+  "license": "MIT",
+  "description": "Browser based GitHub repository visualizer for exploring file trees, commits, contributors, and project structure."
+ },
+ "lmortimer/longitude": {
+  "full": "lmortimer/longitude",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2022-02-27",
+  "license": "MIT",
+  "description": ""
+ },
+ "nicolas-loubet/dependency-graph": {
+  "full": "nicolas-loubet/dependency-graph",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2026-05-25",
+  "license": "GPL-3.0",
+  "description": "Static analysis tool that scans a web project and generates an interactive HTML graph of file dependencies. Supports PHP, JavaScript, Java, HTML and CSS, with built-in detection for PHP API routers."
+ },
+ "virkha-kumari/python_codeflow_graph_maker": {
+  "full": "virkha-kumari/python_codeflow_graph_maker",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2026-10-31",
+  "license": null,
+  "description": "Python Code Flow Graph Maker - Static analysis tool that generates dependency graphs for Python codebases using AST parsing, tracks I/O operations, and creates interactive visualizations."
+ },
+ "google/importlab": {
+  "full": "google/importlab",
+  "stars": 179,
+  "archived": true,
+  "pushed": "2024-05-03",
+  "license": "Apache-2.0",
+  "description": "A library that automatically infers dependencies for Python files"
+ },
+ "403errors/repomind": {
+  "full": "403errors/repomind",
+  "stars": 291,
+  "archived": false,
+  "pushed": "2026-11-16",
+  "license": "MIT",
+  "description": "An open-source, AI-powered application using Agentic CAG to chat with any public GitHub repository or developer profile, offering deep code analysis, visual architecture maps and security audits"
+ },
+ "getfurio/furio": {
+  "full": "getfurio/furio",
+  "stars": 10,
+  "archived": false,
+  "pushed": "2026-11-14",
+  "license": "MIT",
+  "description": "Furio likes things tidy: validate and map your architecture, straight from your repos."
+ },
+ "AIDotNet/OpenDeepWiki": {
+  "full": "AIDotNet/OpenDeepWiki",
+  "stars": 3668,
+  "archived": false,
+  "pushed": "2026-10-23",
+  "license": "MIT",
+  "description": "OpenDeepWiki is the open-source version of the DeepWiki project, aiming to provide a powerful knowledge management and collaboration platform. The project is mainly developed using C# and TypeScript, "
+ },
+ "codiluce/codiluce": {
+  "full": "codiluce/codiluce",
+  "stars": 22,
+  "archived": false,
+  "pushed": "2026-11-15",
+  "license": "MIT",
+  "description": "See how your code fits together, even as agents keep changing it. A zoomable, evidenced map of your repository: every flow, its Git history and blast radius, explained over MCP."
+ },
+ "shestakoven/coderay": {
+  "full": "shestakoven/coderay",
+  "stars": 7,
+  "archived": false,
+  "pushed": "2026-10-26",
+  "license": "MIT",
+  "description": "A desktop IDE built around a live map of your code: see the AI agent's plan before it writes a line, then review what it did on the same map."
+ },
+ "dannynatha-max/morph-map": {
+  "full": "dannynatha-max/morph-map",
+  "stars": 7,
+  "archived": false,
+  "pushed": "2026-11-12",
+  "license": "NOASSERTION",
+  "description": "Turn any codebase or public website into an animated, editable map. Scan a repo or site, see how its parts connect, drag and edit boxes, sketch the plan you want, then press play to watch it morph. Fo"
+ },
+ "lyp1278471473/code-function": {
+  "full": "lyp1278471473/code-function",
+  "stars": 7,
+  "archived": false,
+  "pushed": "2026-10-09",
+  "license": "MIT",
+  "description": "功能点 → 代码：把一个项目变成单文件、离线、可交互的 HTML 地图，点开功能点即可看到横跨前端/后端/数据库的全部代码并跳转编辑器。An agent skill that maps every feature of a project to its cross-stack code."
+ },
+ "YuLaiZ/interactive-code-map": {
+  "full": "YuLaiZ/interactive-code-map",
+  "stars": 6,
+  "archived": false,
+  "pushed": "2026-10-10",
+  "license": "MIT",
+  "description": "A cross-client AI skill for evidence-backed interactive flowcharts and sequence diagrams of codebases and business processes — 跨客户端 AI skill，将代码库与业务流程转为带证据的交互式流程图和时序图"
+ },
+ "SourceAstra/astra-code-map": {
+  "full": "SourceAstra/astra-code-map",
+  "stars": 4,
+  "archived": false,
+  "pushed": "2026-10-19",
+  "license": "Apache-2.0",
+  "description": "Semantic code map and code graph MCP server for AI coding agents, powered by SCIP and Tree-sitter."
+ },
+ "0-uddeshya-0/archmap": {
+  "full": "0-uddeshya-0/archmap",
+  "stars": 3,
+  "archived": false,
+  "pushed": "2026-08-30",
+  "license": "MIT",
+  "description": "See any codebase as a map, not a maze — client-side interactive architecture maps. GitHub URL or local folder in, dependency graph + critical path + dead code out. Optional Claude enrichment."
+ },
+ "ZhaoBuyan/CodeAtlas": {
+  "full": "ZhaoBuyan/CodeAtlas",
+  "stars": 3,
+  "archived": false,
+  "pushed": "2026-11-04",
+  "license": "MIT",
+  "description": "A local-first code map for humans and AI. One scan → one bundle.json: browse it as a map in your browser, or query it over MCP to save tokens (32 code languages + 6 file-level formats, plus .dll/.exe/"
+ },
+ "cognitap/galactica": {
+  "full": "cognitap/galactica",
+  "stars": 4,
+  "archived": false,
+  "pushed": "2026-11-11",
+  "license": "MIT",
+  "description": "Trace JavaScript and TypeScript imports, find the tests a change can affect, and explore the dependency graph."
+ },
+ "webbertakken/citymap": {
+  "full": "webbertakken/citymap",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2026-11-16",
+  "license": "MIT",
+  "description": "Turn any folder tree into a living city map"
+ },
+ "yan-mc/dsh-normify": {
+  "full": "yan-mc/dsh-normify",
+  "stars": 132,
+  "archived": false,
+  "pushed": "2026-11-03",
+  "license": "MIT",
+  "description": "Normify · DSH 插件：把项目架构写成归一化的分形模块树，三层校验（写时 / 校验 / 冻结回执）、30 个 normify_* 工具 + normify-gen 技能，一键渲染单文件交互式架构图；支持伴随式开发（change_open → brief → check → 实施 → refresh → change_close）。"
+ },
+ "Tyr9102/project-map": {
+  "full": "Tyr9102/project-map",
+  "stars": 10,
+  "archived": false,
+  "pushed": "2026-10-03",
+  "license": "MIT",
+  "description": "See your whole project at a glance - without reading code. Leave notes on the map, click Send, and Claude Code replies. A plugin for Claude Code, runs locally."
+ },
+ "TheHolyOneZ/ZAtlas": {
+  "full": "TheHolyOneZ/ZAtlas",
+  "stars": 4,
+  "archived": false,
+  "pushed": "2026-11-07",
+  "license": "GPL-3.0",
+  "description": "A map of a codebase you have never seen before. Draws the dependency graph, every import cycle, where the mass is, what changes together and what is dead — across TypeScript, Rust, Python and Go. Rank"
+ },
+ "0xfauzi/systemap": {
+  "full": "0xfauzi/systemap",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "MIT",
+  "description": "See what your coding agents are building: your agent draws a map of the system from the code, a checker keeps it honest, and every pull request says what it did to the shape before you merge."
+ },
+ "cosmtrek/mindwalk": {
+  "full": "cosmtrek/mindwalk",
+  "stars": 1400,
+  "archived": false,
+  "pushed": "2026-08-10",
+  "license": "MIT",
+  "description": "A visualization tool that replays coding-agent sessions on a 3D map of your codebase."
+ },
+ "opentrace/opentrace": {
+  "full": "opentrace/opentrace",
+  "stars": 111,
+  "archived": false,
+  "pushed": "2026-10-28",
+  "license": "Apache-2.0",
+  "description": "OpenTrace is a knowledge graph platform that maps system architecture, code structure, and service relationships giving you a visual, queryable map of how your codebase and infrastructure connect."
+ },
+ "JordanCoin/codemap": {
+  "full": "JordanCoin/codemap",
+  "stars": 717,
+  "archived": false,
+  "pushed": "2026-11-15",
+  "license": "MIT",
+  "description": "a project brain for your AI. Give LLMs instant architectural context without burning tokens"
+ },
+ "man-consult/code-mapper": {
+  "full": "man-consult/code-mapper",
+  "stars": 4,
+  "archived": false,
+  "pushed": "2026-11-13",
+  "license": "MIT",
+  "description": "A tool to parse code and generate a graph to highlight read, write and authentication links"
+ },
+ "mikeroySoft/codebase-atlas": {
+  "full": "mikeroySoft/codebase-atlas",
+  "stars": 5,
+  "archived": false,
+  "pushed": "2026-09-02",
+  "license": "MIT",
+  "description": "Agent skill: turn a codebase into an interactive isometric architecture map (single HTML, file:line citations)"
+ },
+ "mk668a/llm-codemap": {
+  "full": "mk668a/llm-codemap",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2026-05-16",
+  "license": "MIT",
+  "description": ""
+ },
+ "koknat/callgraph": {
+  "full": "koknat/callGraph",
+  "stars": 341,
+  "archived": false,
+  "pushed": "2024-11-20",
+  "license": "GPL-3.0",
+  "description": "A multi-language tool which parses source code for function definitions and calls"
+ },
+ "Technologicat/pyan": {
+  "full": "Technologicat/pyan",
+  "stars": 463,
+  "archived": false,
+  "pushed": "2026-10-26",
+  "license": "GPL-2.0",
+  "description": "The Python static call graph generator. pyan3 on PyPI. Official repo. Py3.10-3.14."
+ },
+ "cscout-project/cscout-engine": {
+  "full": "cscout-project/cscout-engine",
+  "stars": 235,
+  "archived": false,
+  "pushed": "2026-11-07",
+  "license": "GPL-3.0",
+  "description": "C code refactoring browser"
+ },
+ "beicause/call-graph": {
+  "full": "beicause/call-graph",
+  "stars": 103,
+  "archived": false,
+  "pushed": "2024-12-19",
+  "license": "Apache-2.0",
+  "description": "Generate call graph for vscode in svg or graphviz dot."
+ },
+ "norah1499/solidity-flow-navigator": {
+  "full": "norah1499/solidity-flow-navigator",
+  "stars": 88,
+  "archived": false,
+  "pushed": "2026-07-17",
+  "license": "AGPL-3.0",
+  "description": "Per-entry-point, navigable call-graph visualizations of Solidity repositories — for Web3 security auditors."
+ },
+ "LinWanCen/draw-graph": {
+  "full": "LinWanCen/draw-graph",
+  "stars": 71,
+  "archived": false,
+  "pushed": "2026-04-12",
+  "license": "MPL-2.0",
+  "description": "IDEA插件：生成 方法调用图 和 Maven依赖图"
+ },
+ "microsoft/cmd-call-graph": {
+  "full": "microsoft/cmd-call-graph",
+  "stars": 61,
+  "archived": false,
+  "pushed": "2026-10-29",
+  "license": "MIT",
+  "description": "A simple tool to generate a call graph for calls within Windows CMD (batch) files."
+ },
+ "ehabterra/apispec": {
+  "full": "ehabterra/apispec",
+  "stars": 98,
+  "archived": false,
+  "pushed": "2026-11-16",
+  "license": "Apache-2.0",
+  "description": "Generate OpenAPI 3.1 (Swagger) specs from Go source code — no annotations. Static analysis and call-graph tracing infer routes, params, request/response schemas for Gin, Echo, Chi, Fiber, Gorilla Mux "
+ },
+ "Graphify-Labs/graphify": {
+  "full": "Graphify-Labs/graphify",
+  "stars": 149525,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "Apache-2.0",
+  "description": "Turn any codebase, with its docs, SQL schemas, configs, and PDFs, into a queryable knowledge graph. A /graphify skill for Claude Code, Cursor, Codex, and Gemini CLI: local deterministic AST parsing, e"
+ },
+ "Egonex-AI/Understand-Anything": {
+  "full": "Egonex-AI/Understand-Anything",
+  "stars": 93001,
+  "archived": false,
+  "pushed": "2026-11-15",
+  "license": "MIT",
+  "description": "Graphs that teach > graphs that impress. Turn any code into an interactive knowledge graph you can explore, search, and ask questions about. Works with Claude Code, Codex, Cursor, Copilot, Gemini CLI,"
+ },
+ "joernio/joern": {
+  "full": "joernio/joern",
+  "stars": 3648,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "Apache-2.0",
+  "description": "Open-source code analysis platform for C/C++/Java/Binary/Javascript/Python/Kotlin based on code property graphs. Discord https://discord.gg/vv4MH284Hc"
+ },
+ "crubier/code-to-graph": {
+  "full": "crubier/code-to-graph",
+  "stars": 383,
+  "archived": false,
+  "pushed": "2023-01-04",
+  "license": null,
+  "description": "Transforms JS code 🙈into mermaid flowchart 🐵"
+ },
+ "otobongfp/code-graph-view": {
+  "full": "otobongfp/code-graph-view",
+  "stars": 16,
+  "archived": false,
+  "pushed": "2026-11-03",
+  "license": "MIT",
+  "description": "Explore codebases visually as an interactive call graph and export structured, low-token context directly to AI coding assistants."
+ },
+ "vitsalis/PyCG": {
+  "full": "vitsalis/PyCG",
+  "stars": 366,
+  "archived": false,
+  "pushed": "2026-11-15",
+  "license": "Apache-2.0",
+  "description": "Static Python call graph generator"
+ },
+ "bwohlberg/jonga": {
+  "full": "bwohlberg/jonga",
+  "stars": 56,
+  "archived": false,
+  "pushed": "2025-01-04",
+  "license": "GPL-2.0",
+  "description": "Jonga: Python function call graph visualization"
+ },
+ "BaseMax/go-callgraph": {
+  "full": "BaseMax/go-callgraph",
+  "stars": 5,
+  "archived": false,
+  "pushed": "2025-12-20",
+  "license": "MIT",
+  "description": "A static call graph analysis tool for Go programs. This tool parses Go source code and generates call graphs showing the relationships between functions and methods. The output can be exported in DOT "
+ },
+ "gousiosg/java-callgraph": {
+  "full": "gousiosg/java-callgraph",
+  "stars": 846,
+  "archived": false,
+  "pushed": "2024-03-22",
+  "license": null,
+  "description": "Programs for producing static and dynamic (runtime) call graphs for Java programs"
+ },
+ "hightemp/php-call-graph-viz": {
+  "full": "hightemp/php-call-graph-viz",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-03-28",
+  "license": "MIT",
+  "description": "A static analysis tool that parses PHP(7.4-8.2) source code and generates visual call graphs using Graphviz. Written in Go."
+ },
+ "calltrace/traverse": {
+  "full": "calltrace/traverse",
+  "stars": 33,
+  "archived": false,
+  "pushed": "2025-10-04",
+  "license": "MIT",
+  "description": " Call graph-based analysis tools for Solidity smart contracts. Visualize contract interactions, generate Foundry tests, analyze storage patterns, and trace execution paths."
+ },
+ "hygeos/codegraph-viewer": {
+  "full": "hygeos/codegraph-viewer",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2026-04-20",
+  "license": null,
+  "description": " Interactive call graph visualization for Fortran code analysis."
+ },
+ "alloevil/codeblast": {
+  "full": "alloevil/codeblast",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2026-11-01",
+  "license": "MIT",
+  "description": "Know what breaks before you merge — mutation-tested code graph with architecture, change & impact maps. Evidence on every edge. For humans and AI agents."
+ },
+ "kevintsai1202/architecture-map": {
+  "full": "kevintsai1202/architecture-map",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-10-02",
+  "license": null,
+  "description": "讓 AI 讀懂既有專案，產出可互動的專案架構與運作流程地圖（Claude Code 技能）"
+ },
+ "Satoi77/BluePrint": {
+  "full": "Satoi77/BluePrint",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-09-13",
+  "license": "MIT",
+  "description": "项目功能蓝图可视化系统（Agent 建图 + 无限画布 + 钻取编辑）"
+ },
+ "Tycoon-HJ/CodeWeave": {
+  "full": "Tycoon-HJ/CodeWeave",
+  "stars": 3,
+  "archived": false,
+  "pushed": "2026-06-17",
+  "license": "MIT",
+  "description": "代码关系图展示/CodeWeave"
+ },
+ "quangdungluong/codewiki": {
+  "full": "quangdungluong/codewiki",
+  "stars": 22,
+  "archived": false,
+  "pushed": "2025-06-30",
+  "license": "Apache-2.0",
+  "description": "codewiki is an intelligent documentation tool that automatically generates wiki-style documentation for your GitHub or local repositories using AI."
+ },
+ "znc15/FlowVision": {
+  "full": "znc15/FlowVision",
+  "stars": 89,
+  "archived": false,
+  "pushed": "2026-05-08",
+  "license": "MIT",
+  "description": "FlowVision，一键分析项目代码 · 自动生成架构流程图 · 可视化编辑 · MCP 实时同步"
+ },
+ "hanifalkauni/uml-architect": {
+  "full": "hanifalkauni/uml-architect",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-10-28",
+  "license": "Apache-2.0",
+  "description": "Universal Autonomous Code-to-Diagram AI Skill Agent & MCP Server. Traces API endpoints and code execution flows across any language to generate syntax-validated Mermaid.js and PlantUML diagrams."
+ },
+ "a19836/php-to-diagram": {
+  "full": "a19836/php-to-diagram",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2025-12-26",
+  "license": "NOASSERTION",
+  "description": "PHP to Diagram is a library that enables bidirectional conversion between PHP code and visual workflow diagrams. It transforms PHP logic into low-code, visual diagrams, and converts those diagrams bac"
+ },
+ "pierre3/PlantUmlClassDiagramGenerator": {
+  "full": "pierre3/PlantUmlClassDiagramGenerator",
+  "stars": 772,
+  "archived": false,
+  "pushed": "2026-08-14",
+  "license": "MIT",
+  "description": "This is a generator to create a class-diagram of PlantUML from the C# source code."
+ },
+ "yoshimkd/swift-auto-diagram": {
+  "full": "yoshimkd/swift-auto-diagram",
+  "stars": 497,
+  "archived": false,
+  "pushed": "2021-05-08",
+  "license": "MIT",
+  "description": "A Ruby script that scans all swift code from the specified folders and files and automatically generates an entity diagram (similar to a class diagram) which can be viewed in a browser."
+ },
+ "andyabih/laravel-to-uml": {
+  "full": "andyabih/laravel-to-uml",
+  "stars": 156,
+  "archived": false,
+  "pushed": "2023-06-21",
+  "license": "MIT",
+  "description": "Automagically generate UML diagrams of your Laravel code."
+ },
+ "SpillwaveSolutions/plantuml": {
+  "full": "SpillwaveSolutions/plantuml",
+  "stars": 61,
+  "archived": false,
+  "pushed": "2026-08-24",
+  "license": null,
+  "description": "A Plantuml Claude Skill that can generate images and help you create Plantuml digrams from source code. It can also extract plantuml diagrams from a markdown file and then generate each of those to im"
+ },
+ "vaibhavkothari33/Code-to-Diagram": {
+  "full": "vaibhavkothari33/Code-to-Diagram",
+  "stars": 6,
+  "archived": false,
+  "pushed": "2026-06-15",
+  "license": "MIT",
+  "description": "A powerful Visual Studio Code extension that generates interactive diagrams from your JavaScript, Python, and C++ code using D3.js visualization."
+ },
+ "MH4GF/dependency-cruiser-report-action": {
+  "full": "MH4GF/dependency-cruiser-report-action",
+  "stars": 44,
+  "archived": false,
+  "pushed": "2026-11-16",
+  "license": "MIT",
+  "description": "A GitHub Actions that report to visualize dependencies of changed files each pull requests."
+ },
+ "kursk-ye/code2flow-mcp-server": {
+  "full": "kursk-ye/code2flow-mcp-server",
+  "stars": 3,
+  "archived": false,
+  "pushed": "2025-03-19",
+  "license": null,
+  "description": "Code2Flow MCP服务器，用于生成代码调用图并通过MCP协议提供服务"
+ },
+ "OrionStarAI/DeepV-Ki": {
+  "full": "OrionStarAI/DeepV-Ki",
+  "stars": 298,
+  "archived": false,
+  "pushed": "2026-03-26",
+  "license": "MIT",
+  "description": "DeepV-Ki — Instantly turn your code repository into a beautiful, interactive Wiki. An AI-powered documentation generator with RAG-based code Q&A, automatic architecture diagram generation, and multi-m"
+ },
+ "MxCorpIn/Repolyze": {
+  "full": "MxCorpIn/Repolyze",
+  "stars": 261,
+  "archived": false,
+  "pushed": "2026-03-09",
+  "license": "MIT",
+  "description": "Analyze your GitHub repository with actionable insights, visual diagrams, and exportable reports."
+ },
+ "nessalabs/nessa-docs": {
+  "full": "nessalabs/nessa-docs",
+  "stars": 134,
+  "archived": false,
+  "pushed": "2026-11-10",
+  "license": "MIT",
+  "description": "Repository Markdown, readable system diagrams, and a local Nessa Docs browser."
+ },
+ "smeghead/php-class-diagram": {
+  "full": "smeghead/php-class-diagram",
+  "stars": 141,
+  "archived": false,
+  "pushed": "2026-01-12",
+  "license": "Apache-2.0",
+  "description": "A CLI tool that parses the PHP source directory and generates PlantUML class diagram scripts as output."
+ },
+ "humbledshuttler/repodiagram": {
+  "full": "humbledshuttler/repodiagram",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-02-10",
+  "license": "MIT",
+  "description": "A CLI tool that analyzes your codebase and generates Mermaid.js architecture diagrams. Works offline with any local repository - no GitHub required."
+ },
+ "alirezaebrahimi5/Git-Based-Architecture-Visualizer": {
+  "full": "alirezaebrahimi5/Git-Based-Architecture-Visualizer",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2025-03-08",
+  "license": null,
+  "description": "The Git Repository Visualizer is a full‑stack application designed to analyze Git repositories and present a detailed, interactive view of their structure, Git history, branch details, and model/datab"
+ },
+ "hotvulcan/gitdiagram-extension": {
+  "full": "hotvulcan/gitdiagram-extension",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2025-04-02",
+  "license": "MIT",
+  "description": "one-click to show the UML diagram of current git repository"
+ },
+ "yidianyiko/vscode_Code-to-Mermaid-Converter": {
+  "full": "yidianyiko/vscode_Code-to-Mermaid-Converter",
+  "stars": 3,
+  "archived": false,
+  "pushed": "2024-09-26",
+  "license": "MIT",
+  "description": "Code to Mermaid Converter 是一个 Visual Studio Code 扩展，它可以将选中的代码转换对应的**流程图**、**时序图**等实用图表，让你可以快速可视化代码逻辑。"
+ },
+ "localSummer/deepseek-code2mermaid": {
+  "full": "localSummer/deepseek-code2mermaid",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2025-04-13",
+  "license": "MIT",
+  "description": "将代码的执行流程转为可在线预览的mermaid流程图，提升代码可读性"
+ },
+ "vilsonrodrigues/code2mermaid": {
+  "full": "vilsonrodrigues/code2mermaid",
+  "stars": 4,
+  "archived": false,
+  "pushed": "2024-11-27",
+  "license": "MIT",
+  "description": "A lightweight library for converting Python code into Mermaid chartflows"
+ },
+ "dyatko/arkit": {
+  "full": "dyatko/arkit",
+  "stars": 973,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "MIT",
+  "description": "JavaScript architecture diagrams and dependency graphs"
+ },
+ "ArcadeAI/blueprint-mcp": {
+  "full": "ArcadeAI/blueprint-mcp",
+  "stars": 734,
+  "archived": false,
+  "pushed": "2026-07-22",
+  "license": null,
+  "description": "Diagram generation for understanding codebases and system architecture using Nano Banana Pro."
+ },
+ "admica/FileScopeMCP": {
+  "full": "admica/FileScopeMCP",
+  "stars": 302,
+  "archived": false,
+  "pushed": "2026-05-10",
+  "license": "NOASSERTION",
+  "description": "Analyzes your codebase identifying important files based on dependency relationships. Generates diagrams and importance scores per file, helping AI assistants understand the codebase. Automatically pa"
+ },
+ "alexanderop/walkthrough": {
+  "full": "alexanderop/walkthrough",
+  "stars": 150,
+  "archived": false,
+  "pushed": "2026-03-23",
+  "license": null,
+  "description": "A Claude Code skill that generates interactive HTML walkthroughs with clickable Mermaid diagrams to explain codebase features, flows, and architecture."
+ },
+ "BlueBlazin/blockviz": {
+  "full": "BlueBlazin/blockviz",
+  "stars": 80,
+  "archived": false,
+  "pushed": "2026-10-17",
+  "license": "MIT",
+  "description": "Zoomable architecture diagrams of codebases, analyzed in your browser with Rust and WebAssembly"
+ },
+ "camilooscargbaptista/architect": {
+  "full": "camilooscargbaptista/architect",
+  "stars": 56,
+  "archived": false,
+  "pushed": "2026-10-26",
+  "license": "MIT",
+  "description": "AI-powered architecture analysis plugin for Claude Code. Generates diagrams, detects anti-patterns, and scores your codebase 0-100."
+ },
+ "bb-boy680/open-zread": {
+  "full": "bb-boy680/open-zread",
+  "stars": 52,
+  "archived": false,
+  "pushed": "2026-07-16",
+  "license": "MIT",
+  "description": "AI-powered codebase-to-Wiki generator. One command turns any repo into a structured Wiki with Mermaid diagrams, diff-aware sync,    and 75+ LLM providers. Open-source successor to zread.ai"
+ },
+ "niuma996/nium-wiki": {
+  "full": "niuma996/nium-wiki",
+  "stars": 42,
+  "archived": false,
+  "pushed": "2026-05-17",
+  "license": "MIT",
+  "description": "AI coding tool skill (e.g., Claude Code) centered on Karpathy's LLM Wiki pattern turns codebases into wikis, auto-analyzes, and generates docs similar to DeepWiki and ZRead with diagrams."
+ },
+ "rafaelolsr/archflow": {
+  "full": "rafaelolsr/archflow",
+  "stars": 33,
+  "archived": false,
+  "pushed": "2026-09-08",
+  "license": null,
+  "description": "Claude Code skill that turns any codebase into an animated HTML architecture diagram"
+ },
+ "aiunlocked1412/boxbox": {
+  "full": "aiunlocked1412/boxbox",
+  "stars": 26,
+  "archived": false,
+  "pushed": "2026-05-27",
+  "license": "MIT",
+  "description": "A Claude Code plugin that turns any codebase into a beautiful, zoomable HTML system diagram for non-coders. by AI UNLOCKED"
+ },
+ "fangyuan-ksgk/repo-viewer": {
+  "full": "fangyuan-ksgk/repo-viewer",
+  "stars": 24,
+  "archived": false,
+  "pushed": "2024-10-14",
+  "license": "Apache-2.0",
+  "description": "Visualize any repo or codebase into diagram or animation"
+ },
+ "ssmirnovpro/claude-code-documentation-crew": {
+  "full": "ssmirnovpro/claude-code-documentation-crew",
+  "stars": 19,
+  "archived": false,
+  "pushed": "2025-10-18",
+  "license": "MIT",
+  "description": "Multi-agent documentation generator for Claude Code CLI. Automatically creates professional docs, guides, and diagrams from your codebase."
+ },
+ "MrLesk/groma.md": {
+  "full": "MrLesk/groma.md",
+  "stars": 469,
+  "archived": false,
+  "pushed": "2026-11-16",
+  "license": "MIT",
+  "description": "groma.md - Your architecture as OKF Markdown in Git, and one C4 map you can walk. Scanned from source, curated by you and your agents."
+ },
+ "glenwrhodes/CodeLandscapeViewer": {
+  "full": "glenwrhodes/CodeLandscapeViewer",
+  "stars": 15,
+  "archived": false,
+  "pushed": "2026-02-21",
+  "license": "MIT",
+  "description": "Visualize any codebase as an interactive force-directed graph. Analyze Python, JS/TS, and more -- see how files, classes, endpoints, and services connect. Click any node for deep dependency chain insi"
+ },
+ "QuinnAho/claudemap": {
+  "full": "QuinnAho/claudemap",
+  "stars": 295,
+  "archived": false,
+  "pushed": "2026-04-20",
+  "license": "MIT",
+  "description": "google maps for vibecoders."
+ },
+ "chekrizh/Interactive-Map-Builder": {
+  "full": "chekrizh/Interactive-Map-Builder",
+  "stars": 35,
+  "archived": false,
+  "pushed": "2026-11-13",
+  "license": "MIT",
+  "description": "Understand unfamiliar codebases. Explore the architecture, follow execution flows, and drill down to the source - all in interactive map."
+ },
+ "anshmajumdar121/code-flow-visualizer": {
+  "full": "anshmajumdar121/code-flow-visualizer",
+  "stars": 26,
+  "archived": false,
+  "pushed": "2026-04-05",
+  "license": "NOASSERTION",
+  "description": "Interactive Python code to flowchart visualizer — write code, see it flow."
+ },
+ "adeebkhans/BackLens": {
+  "full": "adeebkhans/BackLens",
+  "stars": 8,
+  "archived": false,
+  "pushed": "2026-10-13",
+  "license": "AGPL-3.0",
+  "description": "BackLens helps you explore codebases as a semantic call graph inside VS Code and on the web."
+ },
+ "GeneralGDA/source-mesh": {
+  "full": "GeneralGDA/source-mesh",
+  "stars": 7,
+  "archived": false,
+  "pushed": "2026-11-10",
+  "license": "MIT",
+  "description": "Visualize folder dependencies in Rust projects, detect cycles, and enforce dependency limits. Export to GraphML, Mermaid, or DOT."
+ },
+ "aayushch/codjiva": {
+  "full": "aayushch/codjiva",
+  "stars": 4,
+  "archived": false,
+  "pushed": "2026-11-15",
+  "license": "Apache-2.0",
+  "description": "Codjiva opens a folder like an IDE. But where an IDE shows you the text of a file, Codjiva shows you a blueprint of it: the machines, the pipes between them, the limits, and a short narrated film that"
+ },
+ "aetox-skills/senior-architect-agent": {
+  "full": "aetox-skills/senior-architect-agent",
+  "stars": 24,
+  "archived": false,
+  "pushed": "2026-07-20",
+  "license": "MIT",
+  "description": "Senior Architect Agent: AI architecture skill for existing system mapping, software architecture documentation, Mermaid diagrams, and AI agent handoff."
+ },
+ "honow48-tech/CodeBread": {
+  "full": "honow48-tech/CodeBread",
+  "stars": 6,
+  "archived": false,
+  "pushed": "2026-10-16",
+  "license": "MIT",
+  "description": "Slice open any codebase and see how it's wired — interactive, zero-dependency map of files → functions → API routes → database tables."
+ },
+ "bograh/codebase-arch-diagram": {
+  "full": "bograh/codebase-arch-diagram",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-09-26",
+  "license": null,
+  "description": ""
+ },
+ "usc-softarch/arcade_core": {
+  "full": "usc-softarch/arcade_core",
+  "stars": 11,
+  "archived": false,
+  "pushed": "2024-03-07",
+  "license": "NOASSERTION",
+  "description": "Core ARCADE functionalities"
+ }
+}

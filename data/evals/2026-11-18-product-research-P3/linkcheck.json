@@ -1,0 +1,954 @@
+[
+ {
+  "file": "B1-tools.tsv",
+  "name": "GitHub Copilot",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B1-tools.tsv",
+  "name": "Code Outline (VS Code)",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B1-tools.tsv",
+  "name": "CodeScene",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B1-tools.tsv",
+  "name": "Sourcegraph",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B1-tools.tsv",
+  "name": "Dependency Cruiser",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B1-tools.tsv",
+  "name": "Graphviz",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B2-tools.tsv",
+  "name": "Code2Flow",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B2-tools.tsv",
+  "name": "CodeMap (Microsoft)",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B2-tools.tsv",
+  "name": "CodeGraph (GitHub)",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B2-tools.tsv",
+  "name": "Dependency-Tree",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B2-tools.tsv",
+  "name": "SonarQube",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B2-tools.tsv",
+  "name": "CodeScene",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B2-tools.tsv",
+  "name": "CodeDepend",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B2-tools.tsv",
+  "name": "CodeMap.io",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "B2-tools.tsv",
+  "name": "PlantUML",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "GitDiagram",
+  "link": "https://gitdiagram.com",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Dependency Cruiser",
+  "link": "https://github.com/sverweij/dependency-cruiser",
+  "kind": "github",
+  "ok": true,
+  "stars": 7437,
+  "full": "sverweij/dependency-cruiser"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Madge",
+  "link": "https://github.com/petehouston/madge",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "pipdeptree",
+  "link": "https://github.com/bdcravens/pipdeptree",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "ReShaper",
+  "link": "https://github.com/reshaper/reshaper",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Structurizr",
+  "link": "https://structurizr.com",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "C4Modeler",
+  "link": "https://github.com/c4model/c4model",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Code2Diagram",
+  "link": "https://github.com/Code2Diagram/code2diagram",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Archi",
+  "link": "https://www.archimatetool.com",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "FlowchartAI",
+  "link": "https://github.com/tanchaowen84/flowchartai",
+  "kind": "github",
+  "ok": true,
+  "stars": 45,
+  "full": "tanchaowen84/flowchartai"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Eraser AI (MCP)",
+  "link": "https://www.eraser.io/ai/flowchart-generator",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Code2Flow",
+  "link": "https://github.com/Code2Flow/Code2Flow",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Mermaid Chart",
+  "link": "https://mermaid.js.org",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Code to Flowchart (codetoflow.com)",
+  "link": "https://codetoflow.com",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Mermaid CLI",
+  "link": "https://github.com/mermaid-js/mermaid-cli",
+  "kind": "github",
+  "ok": true,
+  "stars": 5173,
+  "full": "mermaid-js/mermaid-cli"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "VS Code Mermaid Extension",
+  "link": "https://marketplace.visualstudio.com/items?itemName=mermaid-js.mermaid",
+  "kind": "vscode",
+  "ok": false,
+  "display": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "readme-md-diagram",
+  "link": "https://github.com/yourusername/readme-md-diagram",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "GitHub Actions + Mermaid",
+  "link": "https://github.com/features/actions",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "diagram-creator",
+  "link": "https://github.com/yourusername/diagram-creator",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Graphviz",
+  "link": "https://graphviz.org",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Mermaid",
+  "link": "https://mermaid.js.org",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "D2",
+  "link": "https://d2lang,com",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Architecture Review Agent",
+  "link": "https://techcommunity.microsoft.com/blog/stop-drawing-architecture-diagrams-manually-meet-the-open-source-ai-architecture/",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Archify",
+  "link": "https://github.com/archify",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "CodeScene",
+  "link": "https://www.codescene.io",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Codemaps",
+  "link": "https://codemaps.io",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Apex Code Diagrammer",
+  "link": "https://developer.salesforce.com/tools/apex-code-diagrammer",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Application Insights (Microsoft)",
+  "link": "https://learn.microsoft.com/en-us/azure/azure-monitor/app/app-insights",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "New Relic APM",
+  "link": "https://newrelic.com",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "NanoAPI Cloud",
+  "link": "https://productcool.com/product/nanoapi-cloud",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "CodeXray",
+  "link": "https://github.com/amitfounderspace/CodeXray",
+  "kind": "github",
+  "ok": true,
+  "stars": 1,
+  "full": "amitfounderspace/CodeXray"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "likec4",
+  "link": "https://aitoolly.com/ai-news/article/2026-02-09-likec4-visualize-collaborate-and-evolve-software-architecture-with-real-time-diagrams-from-code",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Datadog",
+  "link": "https://www.datadoghq.com",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Dynatrace",
+  "link": "https://www.dynatrace.com",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Splunk Observability Cloud",
+  "link": "https://www.splunk.com",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "New Relic",
+  "link": "https://newrelic.com",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Comet",
+  "link": "https://comet.is",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Azure Application Insights",
+  "link": "https://learn.microsoft.com/en-us/azure/azure-monitor/app/app-insights",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "IBM Cloud Pak for Applications",
+  "link": "https://www.ibm.com/cloud/cloud-pak-for-applications",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "ShiftLeft",
+  "link": "https://www.shiftleft.io",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Snyk",
+  "link": "https://www.snyk.io",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Black Duck by Synopsys",
+  "link": "https://www.synopsys.com/software-integrity",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Mermaid Live Preview",
+  "link": "https://marketplace.visualstudio.com/items?itemName=bierner.mermaid-live-preview",
+  "kind": "vscode",
+  "ok": false,
+  "display": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "PlantUML",
+  "link": "https://marketplace.visualstudio.com/items?itemName=PlantUML.plantuml",
+  "kind": "vscode",
+  "ok": false,
+  "display": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Architecture Diagrams",
+  "link": "https://marketplace.visualstudio.com/items?itemName=ms-architecture-extensions.architecture-diagrams",
+  "kind": "vscode",
+  "ok": false,
+  "display": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "likec4 (VS Code Extension)",
+  "link": "https://marketplace.visualstudio.com/items?itemName=likec4.likec4",
+  "kind": "vscode",
+  "ok": false,
+  "display": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Mermaid Markdown",
+  "link": "https://marketplace.visualstudio.com/items?itemName=bierner.markdown-mermaid",
+  "kind": "vscode",
+  "ok": true,
+  "display": "Markdown Preview Mermaid Support"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "GitHub Action for Mermaid",
+  "link": "https://github.com/marketplace/actions/mermaid-action",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "ERD Designer",
+  "link": "https://marketplace.visualstudio.com/items?itemName=kajitiluna.erd-designer",
+  "kind": "vscode",
+  "ok": true,
+  "display": "ERD Designer"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "db-schema-visualizer",
+  "link": "https://github.com/BOCOVO/db-schema-visualizer",
+  "kind": "github",
+  "ok": true,
+  "stars": 151,
+  "full": "BOCOVO/db-schema-visualizer"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "ModelMapper",
+  "link": "https://marketplace.visualstudio.com/items?itemName=anya.modelmapper",
+  "kind": "vscode",
+  "ok": true,
+  "display": "ModelMapper"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "erd-editor",
+  "link": "https://github.com/dineug/erd-editor",
+  "kind": "github",
+  "ok": true,
+  "stars": 1753,
+  "full": "dineug/erd-editor"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "dbdiagram VS Code",
+  "link": "https://marketplace.visualstudio.com/items?itemName=dbdiagram.dbdiagram",
+  "kind": "vscode",
+  "ok": false,
+  "display": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "draw.io Integration",
+  "link": "https://marketplace.visualstudio.com/items?itemName=hediet.vscode-drawio",
+  "kind": "vscode",
+  "ok": true,
+  "display": "Draw.io Integration"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Draw.io (Diagrams.net)",
+  "link": "https://www.draw.io",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "C4 Model Tools",
+  "link": "https://c4model.com",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "GitHub Actions + Diagram Generators",
+  "link": "https://github.com/features/actions",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Diagrams (mingrammer)",
+  "link": "https://github.com/mingrammer/diagrams",
+  "kind": "github",
+  "ok": true,
+  "stars": 42818,
+  "full": "mingrammer/diagrams"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "KubeDiagrams",
+  "link": "https://github.com/mingrammer/diagrams",
+  "kind": "github",
+  "ok": true,
+  "stars": 42818,
+  "full": "mingrammer/diagrams"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "HariSekhon / Diagrams-as-Code",
+  "link": "https://github.com/HariSekhon/Diagrams-as-Code",
+  "kind": "github",
+  "ok": true,
+  "stars": 284,
+  "full": "HariSekhon/Diagrams-as-Code"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "AI Diagram Maker",
+  "link": "https://levelup.gitconnected.com/how-to-turn-code-into-diagrams-free-vs-paid-workflows-for-github-and-cursor-4657d16ef0fd",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Cloudiscovery",
+  "link": "https://github.com/mingrammer/diagrams",
+  "kind": "github",
+  "ok": true,
+  "stars": 42818,
+  "full": "mingrammer/diagrams"
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "BrainTool",
+  "link": "https://www.academia.edu/81178217/Definition_of_a_Semantic_Plataform_for_Automated_Code_Generation_Based_on_Uml_Class_Diagrams_and_DSL_Semantic_Annotations",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "E-R Generator",
+  "link": "https://pure.ulster.ac.uk/ws/files/11298731/omaricoci06.pdf",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "VPasCode",
+  "link": "https://www.visual-paradigm.com/vpascode",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Query-Driven UML Generator",
+  "link": "https://arxiv.org/pdf/2604.23816",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "EulerViz",
+  "link": "https://github.com/yourusername/EulerViz",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "CodeVenn (Research Prototype)",
+  "link": "https://example.com/codenevn",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Graphviz with Euler Plugins",
+  "link": "https://graphviz.org",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "MCP Euler Generator (Experimental)",
+  "link": "https://mcp-research.org",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "VS Code Euler Extension (Beta)",
+  "link": "https://marketplace.visualstudio.com/items?itemName=yourusername.euler-diagram",
+  "kind": "vscode",
+  "ok": false,
+  "display": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Code2Diagram (Open-Source)",
+  "link": "https://github.com/yourusername/Code2Diagram",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "DiagramGen (Commercial)",
+  "link": "https://diagramgen.com",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "CodeGraph (VS Code Extension)",
+  "link": "https://marketplace.visualstudio.com/items?itemName=codegraph.codegraph",
+  "kind": "vscode",
+  "ok": false,
+  "display": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "AI Architect (Research Tool)",
+  "link": "https://aiarchitect.org",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "ModelCraft (MCP Integration)",
+  "link": "https://modelcraft.io",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "Structure101",
+  "link": "https://www.structure101.com/",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "CAST APM",
+  "link": "https://www.castsoftware.com/",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "CodeQL",
+  "link": "https://docs.github.com/en/code-security/code-scanning/using-code-scanning",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-tools.tsv",
+  "name": "GitHub Dependency Graph",
+  "link": "https://docs.github.com/en/repositories/branches-and-tags/about-branches",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "AI-Generated Diagrams",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "MCP Server Compatibility",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Coordinate-Based Diagram Format",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Three Editing Methods",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Collaborative Editing",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Export Options",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "LLM Conversion Workflow",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "GitHub Integration",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "AI-Powered Code Parsing",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "File-Line Citations",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Natural Language to Diagrams",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "MCP Server Integration",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Export to Draw.io XML",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "GitHub Actions Workflow",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "YAML-Based Diagram Definitions",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Mermaid Syntax Generation",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Git Revision Tracking",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Automated Diagram Updates",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Collaborative Editing with Git",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Diagram Format",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Version Control",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Declarative vs. Imperative",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "LLM Integration",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Zero-Configuration",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Privacy Focus",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Output Files",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Mermaid.js Compatibility",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Language Agnosticism",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "mermaid-cli",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "mermaid.js",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "code2flow",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "Swark",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ },
+ {
+  "file": "C2-tools.tsv",
+  "name": "c4hero/c4hero",
+  "link": "",
+  "kind": "other",
+  "ok": null
+ }
+]

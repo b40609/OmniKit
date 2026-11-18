@@ -1,0 +1,470 @@
+[
+ {
+  "file": "C1-repos.tsv",
+  "name": "mingrammer/diagrams",
+  "link": "https://github.com/mingrammer/diagrams",
+  "kind": "github",
+  "ok": true,
+  "stars": 42818,
+  "full": "mingrammer/diagrams"
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "tanchaowen84/flowchartai",
+  "link": "https://github.com/tanchaowen84/flowchartai",
+  "kind": "github",
+  "ok": true,
+  "stars": 45,
+  "full": "tanchaowen84/flowchartai"
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "Code2Diagram/code2diagram",
+  "link": "https://github.com/Code2Diagram/code2diagram",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "BOCOVO/db-schema-visualizer",
+  "link": "https://github.com/BOCOVO/db-schema-visualizer",
+  "kind": "github",
+  "ok": true,
+  "stars": 151,
+  "full": "BOCOVO/db-schema-visualizer"
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "dineug/erd-editor",
+  "link": "https://github.com/dineug/erd-editor",
+  "kind": "github",
+  "ok": true,
+  "stars": 1753,
+  "full": "dineug/erd-editor"
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "sverweij/dependency-cruiser",
+  "link": "https://github.com/sverweij/dependency-cruiser",
+  "kind": "github",
+  "ok": true,
+  "stars": 7437,
+  "full": "sverweij/dependency-cruiser"
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "petehouston/madge",
+  "link": "https://github.com/petehouston/madge",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "bdcravens/pipdeptree",
+  "link": "https://github.com/bdcravens/pipdeptree",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "reshaper/reshaper",
+  "link": "https://github.com/reshaper/reshaper",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "c4model/c4model",
+  "link": "https://github.com/c4model/c4model",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "Code2Flow/Code2Flow",
+  "link": "https://github.com/Code2Flow/Code2Flow",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "mermaid-js/mermaid-cli",
+  "link": "https://github.com/mermaid-js/mermaid-cli",
+  "kind": "github",
+  "ok": true,
+  "stars": 5173,
+  "full": "mermaid-js/mermaid-cli"
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "yourusername/readme-md-diagram",
+  "link": "https://github.com/yourusername/readme-md-diagram",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "yourusername/diagram-creator",
+  "link": "https://github.com/yourusername/diagram-creator",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "amitfounderspace/CodeXray",
+  "link": "https://github.com/amitfounderspace/CodeXray",
+  "kind": "github",
+  "ok": true,
+  "stars": 1,
+  "full": "amitfounderspace/CodeXray"
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "Code2Diagram/Code2Diagram",
+  "link": "https://github.com/Code2Diagram/Code2Diagram",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "HariSekhon/Diagrams-as-Code",
+  "link": "https://github.com/HariSekhon/Diagrams-as-Code",
+  "kind": "github",
+  "ok": true,
+  "stars": 284,
+  "full": "HariSekhon/Diagrams-as-Code"
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "yourusername/EulerViz",
+  "link": "https://github.com/yourusername/EulerViz",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "yourusername/Code2Diagram",
+  "link": "https://github.com/yourusername/Code2Diagram",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "en/code-security",
+  "link": "https://github.com/en/code-security",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "en/repositories",
+  "link": "https://github.com/en/repositories",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C1-repos.tsv",
+  "name": "kajitiluna/erd-designer",
+  "link": "https://github.com/kajitiluna/erd-designer",
+  "kind": "github",
+  "ok": true,
+  "stars": 28,
+  "full": "kajitiluna/erd-designer"
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "sverweij/dependency-cruiser",
+  "link": "https://github.com/sverweij/dependency-cruiser",
+  "kind": "github",
+  "ok": true,
+  "stars": 7437,
+  "full": "sverweij/dependency-cruiser"
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "sparklabx/drawio-ai-kit",
+  "link": "https://github.com/sparklabx/drawio-ai-kit",
+  "kind": "github",
+  "ok": true,
+  "stars": 675,
+  "full": "sparklabx/drawio-ai-kit"
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "tt-a1i/archify",
+  "link": "https://github.com/tt-a1i/archify",
+  "kind": "github",
+  "ok": true,
+  "stars": 97487,
+  "full": "tt-a1i/archify"
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "Mertcikla/tld",
+  "link": "https://github.com/Mertcikla/tld",
+  "kind": "github",
+  "ok": true,
+  "stars": 305,
+  "full": "Mertcikla/tld"
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "mingrammer/diagrams",
+  "link": "https://github.com/mingrammer/diagrams",
+  "kind": "github",
+  "ok": true,
+  "stars": 42818,
+  "full": "mingrammer/diagrams"
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "repo-graph/repo-graph",
+  "link": "https://github.com/repo-graph/repo-graph",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "codediagram/codediagram",
+  "link": "https://github.com/codediagram/codediagram",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "repomind/repomind",
+  "link": "https://github.com/repomind/repomind",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "codetool/codegraph",
+  "link": "https://github.com/codetool/codegraph",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "gitstruct/gitstruct",
+  "link": "https://github.com/gitstruct/gitstruct",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "repo-visualizer/repo-visualizer",
+  "link": "https://github.com/repo-visualizer/repo-visualizer",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "codetech/CodeGraphAI",
+  "link": "https://github.com/codetech/CodeGraphAI",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "mcp-dev/mcp-draw",
+  "link": "https://github.com/mcp-dev/mcp-draw",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "codenarrator/codenarrator",
+  "link": "https://github.com/codenarrator/codenarrator",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "mcp-projects/archgen",
+  "link": "https://github.com/mcp-projects/archgen",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "reposynth/reposynth",
+  "link": "https://github.com/reposynth/reposynth",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "docstruct/docstruct",
+  "link": "https://github.com/docstruct/docstruct",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "archilang/archilang",
+  "link": "https://github.com/archilang/archilang",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "Code2Diagram/Code2Diagram",
+  "link": "https://github.com/Code2Diagram/Code2Diagram",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "CodeGraph/CodeGraph",
+  "link": "https://github.com/CodeGraph/CodeGraph",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "alexkohler/dependency-cruiser",
+  "link": "https://github.com/alexkohler/dependency-cruiser",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "archunit/archunit",
+  "link": "https://github.com/archunit/archunit",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "mermaidjs/mermaid-cli",
+  "link": "https://github.com/mermaidjs/mermaid-cli",
+  "kind": "github",
+  "ok": true,
+  "stars": 1086,
+  "full": "mermaidjs/mermaid.cli"
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "yourusername/code2flow",
+  "link": "https://github.com/yourusername/code2flow",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "marco-schneider/plantuml-action",
+  "link": "https://github.com/marco-schneider/plantuml-action",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "en/codespaces",
+  "link": "https://github.com/en/codespaces",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "ZENTCH-Q/DepViz-Dependency-Visualizer",
+  "link": "https://github.com/ZENTCH-Q/DepViz-Dependency-Visualizer",
+  "kind": "github",
+  "ok": true,
+  "stars": 67,
+  "full": "Auryngji/DepViz-Dependency-Visualizer"
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "davidjake254871/depviz-dependency-visualizer",
+  "link": "https://github.com/davidjake254871/depviz-dependency-visualizer",
+  "kind": "github",
+  "ok": false,
+  "stars": null,
+  "full": null
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "swark-io/swark",
+  "link": "https://github.com/swark-io/swark",
+  "kind": "github",
+  "ok": true,
+  "stars": 1699,
+  "full": "swark-io/swark"
+ },
+ {
+  "file": "C2-repos.tsv",
+  "name": "Cocoon-AI/architecture-diagram-generator",
+  "link": "https://github.com/Cocoon-AI/architecture-diagram-generator",
+  "kind": "github",
+  "ok": true,
+  "stars": 7612,
+  "full": "Cocoon-AI/architecture-diagram-generator"
+ }
+]

@@ -1,0 +1,960 @@
+{
+ "created": "2026-11-17",
+ "groups": [
+  {
+   "group": "能把 GitHub repo 自動畫成架構圖的工具",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "ahmedkhaleel2004/gitdiagram",
+      "datadef",
+      "adityasingh-ops/repo2diagram",
+      "vinit-devops/repo-architecture-mcp",
+      "saurabh-oss/archilens",
+      "ThiagoDataEngineer/diagram-forge"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-zh": {
+     "names": [
+      "ahmedkhaleel2004/gitdiagram",
+      "deepwiki",
+      "repowise-dev/repowise",
+      "deeprepo",
+      "eraser-git-diagrammer",
+      "samjhill/diagrammer",
+      "swark-io/swark",
+      "tt-a1i/archify",
+      "reposlens"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "github repo architecture diagram",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "tt-a1i/archify",
+      "ahmedkhaleel2004/gitdiagram",
+      "Agents365-ai/drawio-skill",
+      "sverweij/dependency-cruiser",
+      "haydenschmitty/floorplan",
+      "patrickchugh/terravision",
+      "Raja0sama/vibex"
+     ],
+     "errors": [],
+     "hits": 40
+    },
+    "github-keyword": {
+     "names": [
+      "Chris-Koenig/arc42ify",
+      "MentalVibez/AI_Architecture_Explainer",
+      "vinit-devops/repo-architecture-mcp",
+      "bip-krishna/Repolens-AI",
+      "ProAmineOfficial/GitArchitectureDiagram",
+      "parmsam/code-architecture-diagram-llm-app",
+      "ManyaS-Git/RepoPilot-AI-Powered-Codebase-Intelligence-and-Architecture-Mapping",
+      "builditwithgk/repo-cartographer",
+      "originalpages/r2m"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "bassnova42/arch-diagram-skill",
+      "stack-muse/code-map"
+     ],
+     "errors": [],
+     "hits": 17
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "repoflows",
+      "AsyncFuncAI/deepwiki-open"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "frontend-engineering/RepoArch",
+      "saurabhgayali/GitRepoFlow",
+      "openflowkit/openflowkit",
+      "JatinBhargava/repo-architecture-skill"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "infrasketch",
+      "pahen/madge"
+     ],
+     "errors": []
+    },
+    "producthunt": {
+     "names": [
+      "git-probe/gitprobe",
+      "lucid-train",
+      "codeviz",
+      "tach-org/tach",
+      "solarch"
+     ],
+     "errors": []
+    },
+    "related": {
+     "names": [
+      "yihaozhadan/gitdiagram",
+      "hybridmas/gitdiagram",
+      "rajtilak-2020/gitdiagram",
+      "yufansong/gitdiagram",
+      "tempiltin/gitdiagram",
+      "shatakshi192007-sketch/gitdiagram",
+      "backnotprop/gitdiagram",
+      "manish-genai/gitdiagram",
+      "eduardd76/rfc-visual",
+      "hemanathan9352/gitdiagram",
+      "mucsbr/deepwiki-open",
+      "leiwang1999/deepwiki-open",
+      "stevensu1977/deepwiki-open",
+      "wgao9719/deepwiki-open",
+      "kuarcis/deepwiki-open-community",
+      "thz-favor/deepwiki-open",
+      "kustomzone/deepwiki",
+      "dbv111m/deepwiki-open",
+      "emersoftware/deepwiki-open",
+      "fatemyname/deepwiki-open",
+      "xiaonan0527/archify",
+      "xia-j-b/archify",
+      "yuppiez99999/archify-",
+      "edsonmartins/archify",
+      "zenobia000/archify-sdd",
+      "enkogu/aesthetic-diagrams",
+      "outlier27-cell/archify",
+      "muhammadyousifkhan/archify",
+      "oga35767-eng/archify",
+      "tbckdev/archify",
+      "mco-org/mco"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "codebase visualization",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "braedonsaunders/codeflow",
+      "oh-my-mermaid/oh-my-mermaid",
+      "adrianhajdin/cartograph",
+      "srihari7070/lore-map",
+      "devlensio/devlensOSS",
+      "CodeBoarding/CodeBoarding",
+      "glato/emerge",
+      "DucPhamNgoc08/CodeVisualizer",
+      "Qiuner/birdview",
+      "MaibornWolff/codecharta",
+      "xnuinside/codegraph",
+      "dundalek/stratify",
+      "uigraph-oss/uigraph",
+      "Auryngji/DepViz-Dependency-Visualizer",
+      "Asixa/codemap-skill"
+     ],
+     "errors": [],
+     "hits": 55
+    },
+    "github-keyword": {
+     "names": [
+      "ysk8hori/typescript-graph",
+      "oslabs-beta/CodeMapper",
+      "codeatlasHQ/codebase-visualizer-action"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "skills-sh": {
+     "names": [
+      "fadhlirahim/codebase-map"
+     ],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 15
+    },
+    "hn": {
+     "names": [
+      "gabotechs/dep-tree",
+      "githubocto/repo-visualizer",
+      "perl-codemap"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "codegraph-biz",
+      "grappl",
+      "codemap-app",
+      "creview",
+      "pyrovue-code-map",
+      "CodeBaseRelationshipVisualizer"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "chanhx/crabviz",
+      "scottrogowski/code2flow",
+      "mamuz/PhpDependencyAnalysis"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "dependency graph",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "PaulTaykalo/objc-dependency-visualizer",
+      "arunkumar9t2/scabbard",
+      "compodoc/ngd"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [
+      "fallow-rs/fallow",
+      "giancarloerra/SocratiCode",
+      "28mm/blast-radius",
+      "thebjorn/pydeps",
+      "kisielk/godepgraph",
+      "dvdciri/daggraph"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 4
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "groob/goviz-frameworks",
+      "fwouts/js-deps"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "uysalserkan/dependency-visualizer",
+      "noorrbutt/Codebase-Visualizer",
+      "taeezx44/Live-codebase"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "repo visualization",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "nanoapi-io/napi",
+      "league1991/codeatlasvsix",
+      "wlsdks/ontology-atlas",
+      "realvizu/quickdiagram",
+      "brandondocusen/cntxtpy",
+      "supermax92/qgraphflow",
+      "chinmay-sawant/gomindmapper",
+      "jananadiw/codex-tldraw-mcp",
+      "bosheda/graphiquest",
+      "thekindcoder/legacy-monolith-tool"
+     ],
+     "errors": [],
+     "hits": 45
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "Aksh1810/Gitvize",
+      "visualanything-repo-visualizer",
+      "iLevyTate/reposense",
+      "Elomami1976/GitScope",
+      "gitbiome",
+      "repograph",
+      "abanteai/repo-visualizer",
+      "lmortimer/longitude"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "nicolas-loubet/dependency-graph",
+      "virkha-kumari/python_codeflow_graph_maker",
+      "google/importlab",
+      "403errors/repomind",
+      "getfurio/furio",
+      "AIDotNet/OpenDeepWiki",
+      "weibaohui/openDeepWiki"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "codebase map",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "codiluce/codiluce",
+      "shestakoven/coderay",
+      "dannynatha-max/morph-map",
+      "lyp1278471473/code-function",
+      "YuLaiZ/interactive-code-map",
+      "SourceAstra/astra-code-map",
+      "0-uddeshya-0/archmap",
+      "ZhaoBuyan/CodeAtlas",
+      "cognitap/galactica",
+      "webbertakken/citymap",
+      "yan-mc/dsh-normify",
+      "Tyr9102/project-map",
+      "TheHolyOneZ/ZAtlas",
+      "0xfauzi/systemap",
+      "Peeter95/code-map"
+     ],
+     "errors": [],
+     "hits": 58
+    },
+    "github-keyword": {
+     "names": [
+      "cosmtrek/mindwalk",
+      "opentrace/opentrace",
+      "JordanCoin/codemap"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "carlrannaberg/codebase-map"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 15
+    },
+    "hn": {
+     "names": [
+      "man-consult/code-mapper"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "gate-codebase-maps",
+      "mikeroySoft/codebase-atlas",
+      "omertt27/CodeMap",
+      "codemap-tools"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "beadnall/codemap",
+      "mk668a/llm-codemap",
+      "windsurf-codemaps"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "code graph",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "koknat/callgraph",
+      "Technologicat/pyan",
+      "cscout-project/cscout-engine",
+      "beicause/call-graph",
+      "norah1499/solidity-flow-navigator",
+      "LinWanCen/draw-graph",
+      "microsoft/cmd-call-graph",
+      "ehabterra/apispec"
+     ],
+     "errors": [],
+     "hits": 58
+    },
+    "github-keyword": {
+     "names": [
+      "Graphify-Labs/graphify",
+      "Egonex-AI/Understand-Anything",
+      "joernio/joern"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "crubier/code-to-graph"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "cdgraph"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "lemonberrylabs/codegraph",
+      "otobongfp/code-graph-view",
+      "Emp1500/Code2Flow",
+      "vitsalis/PyCG",
+      "bwohlberg/jonga",
+      "BaseMax/go-callgraph",
+      "gousiosg/java-callgraph",
+      "petersenna/codeviz",
+      "hightemp/php-call-graph-viz",
+      "calltrace/traverse",
+      "hygeos/codegraph-viewer"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "代碼架構圖",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 7
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "alloevil/codeblast",
+      "kevintsai1202/architecture-map",
+      "Satoi77/BluePrint",
+      "revibe-architecture-diagram",
+      "openwiki",
+      "Tycoon-HJ/CodeWeave"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-zh": {
+     "names": [
+      "quangdungluong/codewiki",
+      "znc15/FlowVision",
+      "vs-code-map"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "code to diagram",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "hanifalkauni/uml-architect",
+      "a19836/php-to-diagram"
+     ],
+     "errors": [],
+     "hits": 13
+    },
+    "github-keyword": {
+     "names": [
+      "pierre3/PlantUmlClassDiagramGenerator",
+      "yoshimkd/swift-auto-diagram",
+      "andyabih/laravel-to-uml"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "SpillwaveSolutions/plantuml"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "infragram"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "vaibhavkothari33/Code-to-Diagram",
+      "code2graph-luka",
+      "typediagram"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "MH4GF/dependency-cruiser-report-action",
+      "kursk-ye/code2flow-mcp-server"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "repository diagram",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [
+      "OrionStarAI/DeepV-Ki",
+      "MxCorpIn/Repolyze",
+      "nessalabs/nessa-docs"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 3
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 7
+    },
+    "hn": {
+     "names": [
+      "smeghead/php-class-diagram",
+      "arcaide"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "readmecodegen-tree"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "humbledshuttler/repodiagram",
+      "alirezaebrahimi5/Git-Based-Architecture-Visualizer",
+      "hotvulcan/gitdiagram-extension",
+      "yidianyiko/vscode_Code-to-Mermaid-Converter",
+      "localSummer/deepseek-code2mermaid",
+      "vilsonrodrigues/code2mermaid"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "codebase diagram",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "github-keyword": {
+     "names": [
+      "dyatko/arkit",
+      "ArcadeAI/blueprint-mcp",
+      "admica/FileScopeMCP",
+      "alexanderop/walkthrough",
+      "BlueBlazin/blockviz",
+      "camilooscargbaptista/architect",
+      "bb-boy680/open-zread",
+      "niuma996/nium-wiki",
+      "cloudshipai/cartograph",
+      "rafaelolsr/archflow",
+      "aiunlocked1412/boxbox",
+      "fangyuan-ksgk/repo-viewer",
+      "ssmirnovpro/claude-code-documentation-crew"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 15
+    },
+    "hn": {
+     "names": [
+      "usecomposer",
+      "jigsawml",
+      "MrLesk/groma.md"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "archtocode",
+      "glenwrhodes/CodeLandscapeViewer"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "AhmedKhaleel2004/gitdiagram"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "codebase mapping",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "QuinnAho/claudemap",
+      "chekrizh/Interactive-Map-Builder",
+      "anshmajumdar121/code-flow-visualizer",
+      "adeebkhans/BackLens",
+      "GeneralGDA/source-mesh",
+      "aayushch/codjiva",
+      "aetox-skills/senior-architect-agent",
+      "honow48-tech/CodeBread"
+     ],
+     "errors": [],
+     "hits": 35
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 15
+    },
+    "hn": {
+     "names": [
+      "coderadius"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "bograh/codebase-arch-diagram",
+      "usc-softarch/arcade_core"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "architecture visualization",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 40
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 4
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 14
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    }
+   }
+  }
+ ]
+}

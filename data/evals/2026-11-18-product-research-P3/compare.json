@@ -1,0 +1,2498 @@
+{
+ "arms": {
+  "A": {
+   "listed": 217,
+   "relevant_lower": 162,
+   "relevant_upper": 213,
+   "noise": 4,
+   "noise_ratio": 0.018,
+   "archify": true,
+   "new_vs_A": [],
+   "covers_A_relevant": null,
+   "names": [
+    {
+     "name": "ahmedkhaleel2004/gitdiagram",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "datadef",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "adityasingh-ops/repo2diagram",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "vinit-devops/repo-architecture-mcp",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "saurabh-oss/archilens",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "ThiagoDataEngineer/diagram-forge",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "uncertain"
+    },
+    {
+     "name": "deepwiki",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "repowise-dev/repowise",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "deeprepo",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "eraser-git-diagrammer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "samjhill/diagrammer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "swark-io/swark",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "tt-a1i/archify",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "reposlens",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Agents365-ai/drawio-skill",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "sverweij/dependency-cruiser",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "haydenschmitty/floorplan",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "patrickchugh/terravision",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Raja0sama/vibex",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Chris-Koenig/arc42ify",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "MentalVibez/AI_Architecture_Explainer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "bip-krishna/Repolens-AI",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "ProAmineOfficial/GitArchitectureDiagram",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "parmsam/code-architecture-diagram-llm-app",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "ManyaS-Git/RepoPilot-AI-Powered-Codebase-Intelligence-and-Architecture-Mapping",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "builditwithgk/repo-cartographer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "originalpages/r2m",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "bassnova42/arch-diagram-skill",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "stack-muse/code-map",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "repoflows",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "AsyncFuncAI/deepwiki-open",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "frontend-engineering/RepoArch",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "saurabhgayali/GitRepoFlow",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "openflowkit/openflowkit",
+     "label": "disputed_or_uncertain",
+     "judge1": "not_relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "JatinBhargava/repo-architecture-skill",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "infrasketch",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "pahen/madge",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "git-probe/gitprobe",
+     "label": "disputed_or_uncertain",
+     "judge1": "not_relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "lucid-train",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "codeviz",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "tach-org/tach",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "solarch",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "eduardd76/rfc-visual",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "kuarcis/deepwiki-open-community",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "zenobia000/archify-sdd",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "enkogu/aesthetic-diagrams",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "mco-org/mco",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "braedonsaunders/codeflow",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "oh-my-mermaid/oh-my-mermaid",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "adrianhajdin/cartograph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "srihari7070/lore-map",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "devlensio/devlensOSS",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "CodeBoarding/CodeBoarding",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "glato/emerge",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "DucPhamNgoc08/CodeVisualizer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Qiuner/birdview",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "MaibornWolff/codecharta",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "xnuinside/codegraph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "dundalek/stratify",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "uigraph-oss/uigraph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Auryngji/DepViz-Dependency-Visualizer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Asixa/codemap-skill",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "ysk8hori/typescript-graph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "oslabs-beta/CodeMapper",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "codeatlasHQ/codebase-visualizer-action",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "fadhlirahim/codebase-map",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "gabotechs/dep-tree",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "githubocto/repo-visualizer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "perl-codemap",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "codegraph-biz",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "grappl",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "codemap-app",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "creview",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "pyrovue-code-map",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "CodeBaseRelationshipVisualizer",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "chanhx/crabviz",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "scottrogowski/code2flow",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "mamuz/PhpDependencyAnalysis",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "PaulTaykalo/objc-dependency-visualizer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "arunkumar9t2/scabbard",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "compodoc/ngd",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "fallow-rs/fallow",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "giancarloerra/SocratiCode",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "28mm/blast-radius",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "thebjorn/pydeps",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "kisielk/godepgraph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "dvdciri/daggraph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "groob/goviz-frameworks",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "fwouts/js-deps",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "uysalserkan/dependency-visualizer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "noorrbutt/Codebase-Visualizer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "taeezx44/Live-codebase",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "nanoapi-io/napi",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "league1991/codeatlasvsix",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "wlsdks/ontology-atlas",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "realvizu/quickdiagram",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "brandondocusen/cntxtpy",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "supermax92/qgraphflow",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "chinmay-sawant/gomindmapper",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "jananadiw/codex-tldraw-mcp",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "bosheda/graphiquest",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "thekindcoder/legacy-monolith-tool",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Aksh1810/Gitvize",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "visualanything-repo-visualizer",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "iLevyTate/reposense",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Elomami1976/GitScope",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "gitbiome",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "repograph",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "lmortimer/longitude",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "nicolas-loubet/dependency-graph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "virkha-kumari/python_codeflow_graph_maker",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "google/importlab",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "403errors/repomind",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "getfurio/furio",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "AIDotNet/OpenDeepWiki",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "codiluce/codiluce",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "shestakoven/coderay",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "dannynatha-max/morph-map",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "lyp1278471473/code-function",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "YuLaiZ/interactive-code-map",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "SourceAstra/astra-code-map",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "0-uddeshya-0/archmap",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "ZhaoBuyan/CodeAtlas",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "cognitap/galactica",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "webbertakken/citymap",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "yan-mc/dsh-normify",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Tyr9102/project-map",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "TheHolyOneZ/ZAtlas",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "0xfauzi/systemap",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "cosmtrek/mindwalk",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "opentrace/opentrace",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "gate-codebase-maps",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "mikeroySoft/codebase-atlas",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "codemap-tools",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "mk668a/llm-codemap",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "windsurf-codemaps",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "koknat/callgraph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Technologicat/pyan",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "cscout-project/cscout-engine",
+     "label": "disputed_or_uncertain",
+     "judge1": "not_relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "norah1499/solidity-flow-navigator",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "LinWanCen/draw-graph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "microsoft/cmd-call-graph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "ehabterra/apispec",
+     "label": "disputed_or_uncertain",
+     "judge1": "not_relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Graphify-Labs/graphify",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Egonex-AI/Understand-Anything",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "joernio/joern",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "crubier/code-to-graph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "cdgraph",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "otobongfp/code-graph-view",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "vitsalis/PyCG",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "bwohlberg/jonga",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "BaseMax/go-callgraph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "gousiosg/java-callgraph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "hightemp/php-call-graph-viz",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "calltrace/traverse",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "hygeos/codegraph-viewer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "alloevil/codeblast",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "kevintsai1202/architecture-map",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Satoi77/BluePrint",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "revibe-architecture-diagram",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "openwiki",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Tycoon-HJ/CodeWeave",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "quangdungluong/codewiki",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "znc15/FlowVision",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "vs-code-map",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "hanifalkauni/uml-architect",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "a19836/php-to-diagram",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "pierre3/PlantUmlClassDiagramGenerator",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "yoshimkd/swift-auto-diagram",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "andyabih/laravel-to-uml",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "SpillwaveSolutions/plantuml",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "infragram",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "vaibhavkothari33/Code-to-Diagram",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "code2graph-luka",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "typediagram",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "MH4GF/dependency-cruiser-report-action",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "kursk-ye/code2flow-mcp-server",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "OrionStarAI/DeepV-Ki",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "MxCorpIn/Repolyze",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "nessalabs/nessa-docs",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "smeghead/php-class-diagram",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "arcaide",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "readmecodegen-tree",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "humbledshuttler/repodiagram",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "alirezaebrahimi5/Git-Based-Architecture-Visualizer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "hotvulcan/gitdiagram-extension",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "yidianyiko/vscode_Code-to-Mermaid-Converter",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "localSummer/deepseek-code2mermaid",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "vilsonrodrigues/code2mermaid",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "dyatko/arkit",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "ArcadeAI/blueprint-mcp",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "admica/FileScopeMCP",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "alexanderop/walkthrough",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "BlueBlazin/blockviz",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "camilooscargbaptista/architect",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "bb-boy680/open-zread",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "niuma996/nium-wiki",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "rafaelolsr/archflow",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "aiunlocked1412/boxbox",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "fangyuan-ksgk/repo-viewer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "ssmirnovpro/claude-code-documentation-crew",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "usecomposer",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "jigsawml",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "MrLesk/groma.md",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "archtocode",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "glenwrhodes/CodeLandscapeViewer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "QuinnAho/claudemap",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "chekrizh/Interactive-Map-Builder",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "anshmajumdar121/code-flow-visualizer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "adeebkhans/BackLens",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "GeneralGDA/source-mesh",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "aayushch/codjiva",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "aetox-skills/senior-architect-agent",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "honow48-tech/CodeBread",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "coderadius",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "bograh/codebase-arch-diagram",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "usc-softarch/arcade_core",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    }
+   ]
+  },
+  "B1": {
+   "listed": 6,
+   "relevant_lower": 1,
+   "relevant_upper": 2,
+   "noise": 4,
+   "noise_ratio": 0.667,
+   "archify": false,
+   "new_vs_A": [],
+   "covers_A_relevant": 0.006,
+   "names": [
+    {
+     "name": "GitHub Copilot",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Code Outline",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "CodeScene",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Sourcegraph",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "sverweij/dependency-cruiser",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Graphviz",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    }
+   ]
+  },
+  "B2": {
+   "listed": 9,
+   "relevant_lower": 2,
+   "relevant_upper": 5,
+   "noise": 4,
+   "noise_ratio": 0.444,
+   "archify": false,
+   "new_vs_A": [],
+   "covers_A_relevant": 0.012,
+   "names": [
+    {
+     "name": "scottrogowski/code2flow",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "CodeMap (Microsoft)",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "CodeGraph (GitHub)（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Dependency-Tree",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "SonarQube",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "CodeScene",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "CodeDepend（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "CodeMap.io（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "SpillwaveSolutions/plantuml",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    }
+   ]
+  },
+  "C1": {
+   "listed": 75,
+   "relevant_lower": 10,
+   "relevant_upper": 22,
+   "noise": 53,
+   "noise_ratio": 0.707,
+   "archify": true,
+   "new_vs_A": [
+    "amitfounderspace/CodeXray",
+    "codetoflow.com"
+   ],
+   "covers_A_relevant": 0.049,
+   "names": [
+    {
+     "name": "ahmedkhaleel2004/gitdiagram",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "sverweij/dependency-cruiser",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "pahen/madge",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "pipdeptree",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "ReShaper（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Structurizr",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "C4Modeler（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Code2Diagram（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Archi",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "tanchaowen84/flowchartai",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "eraser-git-diagrammer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "scottrogowski/code2flow",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Mermaid Chart",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "codetoflow.com",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Mermaid CLI",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "VS Code Mermaid Extension（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "readme-md-diagram（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "GitHub Actions + Mermaid",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "diagram-creator（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Graphviz",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Mermaid",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "D2",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Architecture Review Agent",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "tt-a1i/archify",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "CodeScene",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Codemaps（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Apex Code Diagrammer",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Azure Application Insights",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "New Relic",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "nanoapi-io/napi",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "amitfounderspace/CodeXray",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "likec4",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Datadog",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Dynatrace",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Splunk Observability Cloud",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Comet",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "IBM Cloud Pak for Applications",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "ShiftLeft",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Snyk",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Black Duck",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Mermaid Live Preview（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "SpillwaveSolutions/plantuml",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Architecture Diagrams VS Code 擴充（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Mermaid Markdown",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "GitHub Action for Mermaid",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "kajitiluna/erd-designer",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "BOCOVO/db-schema-visualizer",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "ModelMapper",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "dineug/erd-editor",
+     "label": "disputed_or_uncertain",
+     "judge1": "not_relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "dbdiagram VS Code（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "draw.io",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "C4 Model Tools",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "GitHub Actions + Diagram Generators",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "mingrammer/diagrams",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "KubeDiagrams",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "HariSekhon/Diagrams-as-Code",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "AI Diagram Maker",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Cloudiscovery",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "BrainTool",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "E-R Generator",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "VPasCode（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Query-Driven UML Generator",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "EulerViz（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "CodeVenn（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Graphviz with Euler Plugins",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "MCP Euler Generator（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "VS Code Euler Extension（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "DiagramGen（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "CodeGraph VS Code 擴充（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "AI Architect（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "ModelCraft",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Structure101",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "CAST APM",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "CodeQL",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "GitHub Dependency Graph",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    }
+   ]
+  },
+  "C2": {
+   "listed": 42,
+   "relevant_lower": 12,
+   "relevant_upper": 17,
+   "noise": 25,
+   "noise_ratio": 0.595,
+   "archify": true,
+   "new_vs_A": [],
+   "covers_A_relevant": 0.074,
+   "names": [
+    {
+     "name": "ahmedkhaleel2004/gitdiagram",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "repowise-dev/repowise",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "eraser-git-diagrammer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "archtocode",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "tt-a1i/archify",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "sparklabx/drawio-ai-kit",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "sverweij/dependency-cruiser",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Auryngji/DepViz-Dependency-Visualizer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Mertcikla/tld",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "swark-io/swark",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "c4hero/c4hero",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "diagrams-as-code (Community Tools)",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Mermaid",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "SpillwaveSolutions/plantuml",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "mingrammer/diagrams",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Mermaid Live",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "repograph",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Mermaid-Repo-Parser（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "CodeDiagram（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "403errors/repomind",
+     "label": "disputed_or_uncertain",
+     "judge1": "uncertain",
+     "judge2": "relevant"
+    },
+    {
+     "name": "xnuinside/codegraph",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Architector（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "GitStruct（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "githubocto/repo-visualizer",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "CodeNarrator（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "MCP-ArchGen（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "RepoSynth（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "DocStruct（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "ArchiLang（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "CodeGraphAI（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Mermaid-AI（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "MCP-Draw（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "PlantUML GitHub Action（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "PlantUML for VS Code（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "UMLet",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "draw.io",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "GitHub Codespaces with PlantUML CLI",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Code2Diagram（編造）",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "ArchUnit",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "Mermaid CLI",
+     "label": "not_relevant",
+     "judge1": "not_relevant",
+     "judge2": "not_relevant"
+    },
+    {
+     "name": "scottrogowski/code2flow",
+     "label": "relevant",
+     "judge1": "relevant",
+     "judge2": "relevant"
+    },
+    {
+     "name": "Cocoon-AI/architecture-diagram-generator",
+     "label": "disputed_or_uncertain",
+     "judge1": "relevant",
+     "judge2": "not_relevant"
+    }
+   ]
+  }
+ },
+ "disagreements": [
+  {
+   "name": "datadef",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "adityasingh-ops/repo2diagram",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "deeprepo",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "reposlens",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "openflowkit/openflowkit",
+   "judge1": "not_relevant",
+   "judge2": "relevant"
+  },
+  {
+   "name": "git-probe/gitprobe",
+   "judge1": "not_relevant",
+   "judge2": "relevant"
+  },
+  {
+   "name": "lucid-train",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "solarch",
+   "judge1": "uncertain",
+   "judge2": "not_relevant"
+  },
+  {
+   "name": "devlensio/devlensOSS",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "Asixa/codemap-skill",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "perl-codemap",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "codegraph-biz",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "grappl",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "codemap-app",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "creview",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "pyrovue-code-map",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "CodeBaseRelationshipVisualizer",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "fallow-rs/fallow",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "giancarloerra/SocratiCode",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "taeezx44/Live-codebase",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "wlsdks/ontology-atlas",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "Aksh1810/Gitvize",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "visualanything-repo-visualizer",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "iLevyTate/reposense",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "Elomami1976/GitScope",
+   "judge1": "uncertain",
+   "judge2": "not_relevant"
+  },
+  {
+   "name": "gitbiome",
+   "judge1": "uncertain",
+   "judge2": "not_relevant"
+  },
+  {
+   "name": "repograph",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "lmortimer/longitude",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "403errors/repomind",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "SourceAstra/astra-code-map",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "mk668a/llm-codemap",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "cscout-project/cscout-engine",
+   "judge1": "not_relevant",
+   "judge2": "relevant"
+  },
+  {
+   "name": "ehabterra/apispec",
+   "judge1": "not_relevant",
+   "judge2": "relevant"
+  },
+  {
+   "name": "joernio/joern",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "cdgraph",
+   "judge1": "uncertain",
+   "judge2": "not_relevant"
+  },
+  {
+   "name": "openwiki",
+   "judge1": "uncertain",
+   "judge2": "not_relevant"
+  },
+  {
+   "name": "quangdungluong/codewiki",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "vs-code-map",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "infragram",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "code2graph-luka",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "typediagram",
+   "judge1": "uncertain",
+   "judge2": "not_relevant"
+  },
+  {
+   "name": "arcaide",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "readmecodegen-tree",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "niuma996/nium-wiki",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "ssmirnovpro/claude-code-documentation-crew",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "usecomposer",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "jigsawml",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "aetox-skills/senior-architect-agent",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "coderadius",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "bograh/codebase-arch-diagram",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "CodeScene",
+   "judge1": "uncertain",
+   "judge2": "not_relevant"
+  },
+  {
+   "name": "CodeMap (Microsoft)",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "SonarQube",
+   "judge1": "uncertain",
+   "judge2": "not_relevant"
+  },
+  {
+   "name": "pipdeptree",
+   "judge1": "uncertain",
+   "judge2": "not_relevant"
+  },
+  {
+   "name": "Architecture Review Agent",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "Apex Code Diagrammer",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "BOCOVO/db-schema-visualizer",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "ModelMapper",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "dineug/erd-editor",
+   "judge1": "not_relevant",
+   "judge2": "relevant"
+  },
+  {
+   "name": "KubeDiagrams",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "AI Diagram Maker",
+   "judge1": "uncertain",
+   "judge2": "not_relevant"
+  },
+  {
+   "name": "ModelCraft",
+   "judge1": "uncertain",
+   "judge2": "not_relevant"
+  },
+  {
+   "name": "Structure101",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "CAST APM",
+   "judge1": "uncertain",
+   "judge2": "not_relevant"
+  },
+  {
+   "name": "sparklabx/drawio-ai-kit",
+   "judge1": "uncertain",
+   "judge2": "not_relevant"
+  },
+  {
+   "name": "Mertcikla/tld",
+   "judge1": "uncertain",
+   "judge2": "relevant"
+  },
+  {
+   "name": "Cocoon-AI/architecture-diagram-generator",
+   "judge1": "relevant",
+   "judge2": "not_relevant"
+  }
+ ]
+}

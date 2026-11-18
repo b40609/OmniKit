@@ -1,0 +1,263 @@
+{
+ "agentera/agently": {
+  "full": "AgentEra/Agently",
+  "stars": 1673,
+  "archived": false,
+  "pushed": "2026-11-12",
+  "license": "Apache-2.0",
+  "description": "[GenAI Application Development Framework]  🚀 Build GenAI application quick and easy 💬 Easy to interact with GenAI agent in code using structure data and chained-calls syntax 🧩 Use Event-Driven Flow *T"
+ },
+ "arrufat/meduza": {
+  "full": "arrufat/meduza",
+  "stars": 3,
+  "archived": false,
+  "pushed": "2023-10-16",
+  "license": "MIT",
+  "description": "🦎 🧜‍♀️ Zig codebase graph generator that emits a Mermaid class diagram."
+ },
+ "arthurmgraf/claude-diagram-generator": {
+  "full": "arthurmgraf/claude-diagram-generator",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-02-07",
+  "license": null,
+  "description": "Generate professional Excalidraw diagrams from your codebase using Claude Code"
+ },
+ "aryanutkarsh/seecode": {
+  "full": "Aryanutkarsh/SeeCode",
+  "stars": 976,
+  "archived": false,
+  "pushed": "2026-11-02",
+  "license": "MIT",
+  "description": "Animated, explorable diagrams for Claude and other coding agents, from a short JSON spec."
+ },
+ "athola/claude-night-market": {
+  "full": "athola/claude-night-market",
+  "stars": 350,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "MIT",
+  "description": "23 Claude Code plugins: TDD enforcement hooks, git/PR workflows, spec-driven development, code review, project lifecycle, fix-from-error, maintenance automation, context optimization, research, and mu"
+ },
+ "bkryza/clang-uml": {
+  "full": "bkryza/clang-uml",
+  "stars": 923,
+  "archived": false,
+  "pushed": "2026-10-06",
+  "license": "Apache-2.0",
+  "description": "Customizable automatic UML diagram generator for C++ based on Clang."
+ },
+ "ccalita/graphviz-dive": {
+  "full": "CCALITA/graphviz-dive",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-02-16",
+  "license": null,
+  "description": "skills for detailed dot files."
+ },
+ "coder-ralph/repotree": {
+  "full": "coder-ralph/RepoTree",
+  "stars": 28,
+  "archived": false,
+  "pushed": "2026-08-22",
+  "license": "MIT",
+  "description": "Fast, clean ASCII trees and insightful analysis for GitHub or GitLab repositories."
+ },
+ "corvidlabs/fledge-plugin-atlas": {
+  "full": "CorvidLabs/fledge-plugin-atlas",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2026-09-29",
+  "license": "MIT",
+  "description": "🗺️ Render your specs, code, and their overlap as `fledge atlas`: a self-contained interactive HTML atlas, for humans and agents."
+ },
+ "donbr/skills": {
+  "full": "donbr/skills",
+  "stars": 0,
+  "archived": true,
+  "pushed": "2025-12-21",
+  "license": null,
+  "description": "Custom Agent Skills and Semantic Routing generators for Claude Code and Anthropic's Agent Skills standard."
+ },
+ "dp-archive/archive": {
+  "full": "dp-archive/archive",
+  "stars": 1107,
+  "archived": false,
+  "pushed": "2026-03-04",
+  "license": "Apache-2.0",
+  "description": "Skill Compose is an open-source agent builder and runtime platform for skill-powered agents. No workflow graphs. No CLI."
+ },
+ "helloiamlee/repomap": {
+  "full": "helloiamlee/repomap",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2026-03-23",
+  "license": "MIT",
+  "description": "Interactive codebase documentation generator for Next.js. Analyzes pages, components, GraphQL operations, and data flow with visual diagrams."
+ },
+ "imperialautomation/claude-code-toolkit": {
+  "full": "ImperialAutomation/claude-code-toolkit",
+  "stars": 10,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": null,
+  "description": "Claude Code skills for GitHub issue management, PR workflows, and development utilities"
+ },
+ "inkboard/system-atlas": {
+  "full": "inkboard/system-atlas",
+  "stars": 472,
+  "archived": false,
+  "pushed": "2026-09-01",
+  "license": "MIT",
+  "description": "An agent skill that turns an architecture discussion into an explorable isometric atlas: one data file, an interactive map and a generated SYSTEM.md"
+ },
+ "jfeliu007/goplantuml": {
+  "full": "jfeliu007/goplantuml",
+  "stars": 2082,
+  "archived": false,
+  "pushed": "2026-11-08",
+  "license": "MIT",
+  "description": "PlantUML Class Diagram Generator for golang projects"
+ },
+ "konraddzbik/architecture-diagram-skill": {
+  "full": "konraddzbik/architecture-diagram-skill",
+  "stars": 166,
+  "archived": false,
+  "pushed": "2026-10-22",
+  "license": "MIT",
+  "description": "Build click-through, animated system architecture diagrams as a single HTML file. Drop it into a workshop, design review, or onboarding doc and let people watch the data flow instead of reading static"
+ },
+ "laneparton/document-flows": null,
+ "lazypay/archscribe": {
+  "full": "lazypay/Archscribe",
+  "stars": 380,
+  "archived": false,
+  "pushed": "2026-07-15",
+  "license": "MIT",
+  "description": "Premium hand-drawn, dark-background animated architecture & process diagrams. Outputs editable .excalidraw + PNG + genuinely animated GIF. Codex/Claude skill."
+ },
+ "lewes2/archpresent": {
+  "full": "lewes2/archpresent",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2026-09-03",
+  "license": "MIT",
+  "description": "Agent skill: generate beautiful dark-themed architecture diagrams from your project/demo/idea. Interactive, verifiable, and editable. Delivered as self-contained HTML."
+ },
+ "madhurjindal/github-repo-visualizer": null,
+ "mgiovani/cc-arsenal": {
+  "full": "mgiovani/cc-arsenal",
+  "stars": 8,
+  "archived": false,
+  "pushed": "2026-10-28",
+  "license": "MIT",
+  "description": "45 production-grade AI agent skills for real dev workflows. Code review, shipping, docs, git. Works with any skill-compatible agent."
+ },
+ "mohamedsci/project-structure-tree-generator": {
+  "full": "MohamedSci/Project-Structure-Tree-Generator",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2025-09-04",
+  "license": "Apache-2.0",
+  "description": "A JavaScript (Node.js) solution that generates a professional and organized directory tree for your repository. The script outputs everything into a single .txt file, making it easy to document, share"
+ },
+ "nedeadinside/likec4-skill": {
+  "full": "nedeadinside/likec4-skill",
+  "stars": 1,
+  "archived": false,
+  "pushed": "2026-11-16",
+  "license": "MIT",
+  "description": "Agent Skill that writes C4 diagrams in the LikeC4 DSL, from a description or from your codebase, and runs the LikeC4 CLI over them before delivery. Works in Claude Code, Codex, Cursor and OpenCode."
+ },
+ "oimiragieo/agent-studio": {
+  "full": "oimiragieo/agent-studio",
+  "stars": 45,
+  "archived": false,
+  "pushed": "2026-07-14",
+  "license": null,
+  "description": ""
+ },
+ "pjaerr/code-flow-extension": {
+  "full": "Pjaerr/Code-Flow-Extension",
+  "stars": 27,
+  "archived": false,
+  "pushed": "2023-07-08",
+  "license": "MIT",
+  "description": "VS Code Extension to map code flow output as a diagram"
+ },
+ "seandearnaley/code-diagram-generator": {
+  "full": "seandearnaley/code-diagram-generator",
+  "stars": 13,
+  "archived": false,
+  "pushed": "2024-02-19",
+  "license": "MIT",
+  "description": "Tool to scan a python based repo and outline a text based report used for LLMs"
+ },
+ "shibainu0817/draw-c4-skill": {
+  "full": "ShibaInu0817/draw-c4-skill",
+  "stars": 3,
+  "archived": false,
+  "pushed": "2026-10-29",
+  "license": "MIT",
+  "description": "A Claude Code Skill (packaged as an installable plugin) that turns a codebase into an interactive, C4-style architecture diagram — a single self-contained HTML file with no build step and no dependenc"
+ },
+ "sopaco/smart-docs": null,
+ "sudokatie/cartographer": {
+  "full": "sudokatie/cartographer",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-04-21",
+  "license": "MIT",
+  "description": ""
+ },
+ "techdeveloper-org/mcp-uml-diagram": {
+  "full": "techdeveloper-org/mcp-uml-diagram",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2026-11-10",
+  "license": null,
+  "description": "Automatic Mermaid UML diagram generator from codebases supporting class, sequence, call graph, and state diagrams."
+ },
+ "tensorush/meduza": null,
+ "thomasgauvin/codebase-architecture-analysis": null,
+ "vedantparmar12/document-automation": {
+  "full": "vedantparmar12/Document-Automation",
+  "stars": 2,
+  "archived": false,
+  "pushed": "2026-01-19",
+  "license": "MIT",
+  "description": ""
+ },
+ "wyxnick/agent-mermaid-skill": {
+  "full": "WYXNICK/agent-mermaid-skill",
+  "stars": 13,
+  "archived": false,
+  "pushed": "2026-06-18",
+  "license": "MIT",
+  "description": ""
+ },
+ "yaambe/synopsis": {
+  "full": "yaambe/synopsis",
+  "stars": 3,
+  "archived": false,
+  "pushed": "2026-07-10",
+  "license": "MIT",
+  "description": ""
+ },
+ "yusufguzeldere/codebase-architect-agent": {
+  "full": "YusufGuzeldere/codebase-architect-agent",
+  "stars": 0,
+  "archived": false,
+  "pushed": "2026-09-08",
+  "license": "NOASSERTION",
+  "description": "RAG-based Codebase Architect & Diagram Generator"
+ },
+ "zebbern/claude-code-guide": {
+  "full": "zebbern/claude-code-guide",
+  "stars": 4715,
+  "archived": false,
+  "pushed": "2026-11-17",
+  "license": "MIT",
+  "description": "Claude Code Guide - Setup, Commands, workflows, agents, skills & tips-n-tricks from beginner to power user!"
+ }
+}

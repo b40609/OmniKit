@@ -1,0 +1,8 @@
+2026-11-18 02:58 核對 GPT Researcher 第 2 次報告裡的連結（gh api 與 curl -L）
+github.com/github/codegraph        gh api 404（不存在）
+github.com/Code2Flow/Code2Flow     gh api 404（不存在；真正的 code2flow 是 scottrogowski/code2flow）
+https://www.codedepend.com/        連不上（curl 000）
+https://codemap.io/                200，但被轉址到 xoilac7.baby（賭博網站），不是工具
+https://www.codescene.net/         連不上（curl 000；官網是 codescene.com）
+https://www.sonarqube.org/         200，轉到 sonarsource.com/products/sonarqube/
+https://www.npmjs.com/package/dependency-tree  403（npm 擋 curl，套件存在）
