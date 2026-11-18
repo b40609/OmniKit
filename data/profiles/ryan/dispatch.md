@@ -24,5 +24,5 @@ instances:
     needs_user: 同 antigravity_ava
 
 # 原生子代理（Agent 工具）用的是目前這段對話的帳號，不用列。
-# 要用 delegate_task 派給 Claude 時，【待確認】三個 Claude 帳號的優先順序；暫時用目前這段對話的實例（inherited）。
+# 要用 delegate_task 派給 Claude 時，先用目前這段對話的實例（inherited）；那個帳號額度用完，再照上面 instances 的順序（claudeAgent、claudeAgent_2、claudeAgent_claude_kai）換下一個。使用者沒有偏好（2026-11-18 定案）。
 ```
