@@ -124,9 +124,16 @@ def check(pol, mine=None):
     errors = []
     classes = pol.get("model_classes") or {}
     levels = pol.get("levels") or {}
-    for key in ("model_classes", "tasks", "levels", "escalation", "channels", "usage_signal", "trials", "log"):
+    for key in ("model_classes", "tasks", "levels", "escalation", "channels", "antigravity_turns", "usage_signal", "trials", "log"):
         if key not in pol:
             errors.append(f"共用層少了 {key}")
+    turns = pol.get("antigravity_turns") or {}
+    if "antigravity_turns" in pol:
+        if len(turns.get("brief") or []) != 4:
+            errors.append("antigravity_turns.brief 要列四件事（交付檔、完成標記、10 行內的回覆、伺服器背景啟動）")
+        for k in ("verify", "failed_15min"):
+            if not turns.get(k):
+                errors.append(f"antigravity_turns 少了 {k}")
     chans = set(pol.get("channels") or {})
     if "channels" in pol and chans != set(CHANNELS):
         errors.append(f"channels 和 dispatch.py 的 CHANNELS 對不上：政策多了 {sorted(chans - set(CHANNELS))}，"
@@ -401,6 +408,19 @@ def channel_lines(pol):
     return lines
 
 
+def antigravity_lines(pol):
+    """派給 Antigravity 時任務說明要寫的四件事與驗收方式；完整證據在 dispatch-policy.md 的 antigravity_turns。"""
+    t = pol.get("antigravity_turns") or {}
+    if not t:
+        return []
+    lines = ["\n派給 Antigravity（所有管道）：任務說明固定寫這四件事（證據與待驗證看 antigravity_turns）："]
+    lines += [f"  {i}. {b}" for i, b in enumerate(t.get("brief") or [], 1)]
+    verify = re.sub(r"(?<=[，。；：、（）])\s+", "", " ".join(str(t.get("verify", "")).split()))  # YAML 換行變成的空白
+    lines.append("  驗收：" + verify.split("。")[0])
+    lines.append("  以 sent nothing for 15 minutes 失敗時：先看交付檔與完成標記，不要直接重派")
+    return lines
+
+
 def show_text(table, profile, has_personal, usage=None, pol=None):
     lines = [f"profile：{profile}；{'個人實例：有' if has_personal else '沒有個人分派設定，只用原生子代理'}"]
     if usage:
@@ -417,7 +437,7 @@ def show_text(table, profile, has_personal, usage=None, pol=None):
             if o["pending"]:
                 lines.append(f"     {o['pending'].strip()}")
     if pol:
-        lines += channel_lines(pol)
+        lines += channel_lines(pol) + antigravity_lines(pol)
     return "\n".join(lines)
 
 
@@ -442,6 +462,34 @@ def stats_text(s):
 # - agy 終端機的 PATH 只有系統路徑（沒有使用者路徑），uv、gh 這類要給絕對路徑。
 AGY_GUARD = ("【硬性限制，優先於下面的任務說明】不 git commit、不 git push、不刪檔或清空資料夾、不改 git 設定、"
              "不寄信或發訊息、不安裝軟體、不改系統或安全設定；只改任務說明允許的檔案。做不到就停下來回報。\n\n")
+# 收尾規定（dispatch-policy.md 的 antigravity_turns.brief）：2026-11-18 antigravity_kai 在 T3 寫完回報後回合一直不結束，
+# 15 分鐘後被判失敗；同一次也因為在前景跑伺服器撞到工具逾時。完成標記固定寫在交付檔旁邊，主控才查得到。
+AGY_FINISH = ("【收尾規定，優先於下面的任務說明】1. 交付物先寫成檔案：任務說明有指定位置就寫在那裡，沒指定就寫進 {result}。"
+              "2. 全部做完後，最後一個動作是建立完成標記檔 {done}（內容寫交付檔的路徑），寫完才送出最後回覆。"
+              "3. 最後回覆不超過 10 行，附上交付檔路徑。"
+              "4. 伺服器、watcher 這類不會自己結束的程式一律背景啟動，不要在前景跑。"
+              "這兩個檔一律允許寫。\n\n")
+
+
+def agy_prefix(result_file):
+    """固定加在任務說明前面的硬性限制與收尾規定。"""
+    return AGY_GUARD + AGY_FINISH.format(result=result_file, done=f"{result_file}.done")
+
+
+def agy_result_path(folder=None):
+    """沒指定 --result-file 時的交付檔：暫存資料夾的 omnikit-agy 底下，每次一個新檔名。"""
+    folder = Path(folder or tempfile.gettempdir()) / "omnikit-agy"
+    return folder / f"result-{int(time.time() * 1000)}-{os.getpid()}.md"
+
+
+def agy_marks(result_file):
+    """跑完之後交付檔與完成標記在不在；沒有標記不直接判失敗，提醒主控先看檔再判斷。"""
+    result = Path(result_file)
+    done = Path(f"{result}.done")
+    out = {"result_file": str(result), "result_exists": result.exists(), "done_marker": done.exists()}
+    if not out["done_marker"]:
+        out["warnings"] = [f"沒有完成標記檔 {done}：先看交付檔與它改的檔，再判斷做完了沒有"]
+    return out
 
 def agy_model(pol, cls, thinking):
     """模型類別加思考程度 → agy 的模型代號；不合政策就停。"""
@@ -472,9 +520,10 @@ def agy_path_note():
 AGY_INLINE_MAX = 4000  # 超過就寫成檔案，參數只放指標
 
 
-def agy_command(exe, brief, model, timeout_s, log_file=None, spill_dir=None):
+def agy_command(exe, brief, model, timeout_s, result_file, log_file=None, spill_dir=None):
     """長說明寫成檔案、參數只放「讀這個檔照做」：2026-11-16 評審時，約 1.7 萬字的說明放在參數裡，
-    有兩份每次都讓呼叫端在 1 秒內靜默結束（結束碼 0、沒有任何輸出），改成檔案指標就正常。"""
+    有兩份每次都讓呼叫端在 1 秒內靜默結束（結束碼 0、沒有任何輸出），改成檔案指標就正常。
+    硬性限制與收尾規定（agy_prefix）一律留在參數裡、放在最前面。"""
     if len(brief) > AGY_INLINE_MAX:
         folder = Path(spill_dir or tempfile.gettempdir()) / "omnikit-agy"
         folder.mkdir(parents=True, exist_ok=True)
@@ -483,7 +532,7 @@ def agy_command(exe, brief, model, timeout_s, log_file=None, spill_dir=None):
         brief = f"完整的任務說明在這個檔案：{path}\n先讀它，完全照裡面的指示做；最後的回覆格式也照它寫的。"
     if len(brief) > AGY_MAX_BRIEF:
         raise SystemExit(f"任務說明 {len(brief)} 字元，超過 {AGY_MAX_BRIEF}")
-    cmd = [exe, "-p", AGY_GUARD + brief, "--model", model, "--output-format", "json", "--print-timeout", f"{timeout_s}s",
+    cmd = [exe, "-p", agy_prefix(result_file) + brief, "--model", model, "--output-format", "json", "--print-timeout", f"{timeout_s}s",
            "--dangerously-skip-permissions"]
     return cmd + (["--log-file", str(log_file)] if log_file else [])
 
@@ -516,11 +565,14 @@ def run_agy(pol, args):
     brief = Path(args.brief_file).read_text(encoding="utf-8-sig") if args.brief_file else args.brief
     if not brief:
         raise SystemExit("要給 --brief 或 --brief-file")
-    cmd = agy_command(exe, brief + agy_path_note(), model, args.timeout, args.log_file)
+    result = Path(args.result_file).resolve() if args.result_file else agy_result_path()
+    result.parent.mkdir(parents=True, exist_ok=True)
+    cmd = agy_command(exe, brief + agy_path_note(), model, args.timeout, result, args.log_file)
     t0 = time.monotonic()
     r = subprocess.run(cmd, cwd=args.cwd, capture_output=True, timeout=args.timeout + 120)
     out = agy_result((r.stdout + r.stderr).decode("utf-8", "replace"))
     out.update({"model": model, "elapsed_seconds": round(time.monotonic() - t0), "exit_code": r.returncode})
+    out.update(agy_marks(result))
     return out
 
 
@@ -570,6 +622,7 @@ def main(argv=None):
     p.add_argument("--brief-file")
     p.add_argument("--cwd", help="agy 的工作資料夾（預設目前資料夾）")
     p.add_argument("--timeout", type=int, default=1800, help="秒")
+    p.add_argument("--result-file", help="任務說明沒指定交付位置時寫在這裡，完成標記是它加 .done（預設在暫存資料夾）")
     p.add_argument("--log-file")
     args = ap.parse_args(argv)
     if args.selftest:
@@ -709,17 +762,48 @@ def selftest():
     ok("agy：不合政策的不派（Claude Code 的類別、禁用的 low、超過上限、沒寫思考程度）",
        fails(lambda: agy_model(pol, "claude-opus", "high")) and fails(lambda: agy_model(pol, "gemini-pro", "low"))
        and fails(lambda: agy_model(pol, "gemini-flash", "xhigh")) and fails(lambda: agy_model(pol, "gemini-pro", None)))
-    cmd = agy_command("agy", "任務", "gemini-4-hydrogen-high", 600, "x.log")
-    ok("agy：指令帶模型代號、JSON 輸出、逾時、log 與略過權限；任務說明前面加硬性限制；不帶 --mode（accept-edits 會擋掉終端機指令）",
-       cmd[:2] == ["agy", "-p"] and cmd[2] == AGY_GUARD + "任務" and "gemini-4-hydrogen-high" in cmd and "json" in cmd
+    cmd = agy_command("agy", "任務", "gemini-4-hydrogen-high", 600, "r.md", "x.log")
+    ok("agy：指令帶模型代號、JSON 輸出、逾時、log 與略過權限；任務說明前面加硬性限制與收尾規定；不帶 --mode（accept-edits 會擋掉終端機指令）",
+       cmd[:2] == ["agy", "-p"] and cmd[2] == agy_prefix("r.md") + "任務" and cmd[2].startswith(AGY_GUARD)
+       and "gemini-4-hydrogen-high" in cmd and "json" in cmd
        and "600s" in cmd and "--dangerously-skip-permissions" in cmd and "--mode" not in cmd and cmd[-1] == "x.log")
+    finish = agy_prefix("C:/t/result-1.md")
+    ok("agy：收尾規定四件事都在（交付檔路徑、最後寫完成標記 .done、回覆 10 行內、伺服器背景啟動），而且跟政策的 brief 一樣是四條",
+       "C:/t/result-1.md" in finish and "C:/t/result-1.md.done" in finish and "最後一個動作" in finish
+       and "10 行" in finish and "背景啟動" in finish and "前景" in finish
+       and len(pol["antigravity_turns"]["brief"]) == 4 and all(f"{i}. " in finish for i in range(1, 5)))
     with tempfile.TemporaryDirectory() as tmp:
-        long_cmd = agy_command("agy", "長說明" * 3000, "m", 1, spill_dir=tmp)
+        long_cmd = agy_command("agy", "長說明" * 3000, "m", 1, "r.md", spill_dir=tmp)
         spilled = list((Path(tmp) / "omnikit-agy").glob("brief-*.md"))
-        ok("agy：長說明寫成檔案，參數只放指標與硬性限制（長參數曾讓呼叫端靜默結束）",
-           len(long_cmd[2]) < AGY_INLINE_MAX + len(AGY_GUARD) and long_cmd[2].startswith(AGY_GUARD)
+        ok("agy：長說明寫成檔案，參數只放指標、硬性限制與收尾規定（長參數曾讓呼叫端靜默結束）",
+           len(long_cmd[2]) < AGY_INLINE_MAX + len(agy_prefix("r.md")) and long_cmd[2].startswith(agy_prefix("r.md"))
            and len(spilled) == 1 and spilled[0].read_text(encoding="utf-8") == "長說明" * 3000
            and str(spilled[0]) in long_cmd[2])
+        res = agy_result_path(tmp)
+        res.parent.mkdir(parents=True, exist_ok=True)
+        before = agy_marks(res)
+        res.write_text("報告", encoding="utf-8")
+        Path(f"{res}.done").write_text(str(res), encoding="utf-8")
+        after = agy_marks(res)
+        ok("agy：預設交付檔在暫存的 omnikit-agy；跑完回報交付檔與完成標記在不在，沒標記只提醒、不改 ok",
+           res.parent == Path(tmp) / "omnikit-agy" and res.name.startswith("result-")
+           and not before["done_marker"] and not before["result_exists"] and before["warnings"]
+           and after["done_marker"] and after["result_exists"] and "warnings" not in after and "ok" not in after)
+    turns = pol.get("antigravity_turns") or {}
+    ok("政策的 antigravity_turns：驗收寫明 t3_thread_wait 短逾時、t3_thread_interrupt、settle，t3_cli 沒有中斷子指令；"
+       "15 分鐘失敗先看交付檔；三項待驗證",
+       all(k in turns.get("verify", "") for k in ("t3_thread_wait", "60 秒", "t3_thread_interrupt", "settle", "t3 thread show"))
+       and "完成標記" in turns.get("failed_15min", "") and "重派" in turns.get("failed_15min", "")
+       and sum("待驗證" in p for p in turns.get("pending") or []) == 3)
+    shown_turns = show_text(resolved(pol, ryan, "claude"), "ryan", True, None, pol)
+    ok("show 的輸出印出派給 Antigravity 的四件事與驗收方式",
+       all(b in shown_turns for b in turns.get("brief") or ["?"]) and "t3_thread_interrupt" in shown_turns)
+    no_turns = json.loads(json.dumps(pol))
+    no_turns.pop("antigravity_turns")
+    three = json.loads(json.dumps(pol))
+    three["antigravity_turns"]["brief"] = three["antigravity_turns"]["brief"][:3]
+    ok("檢查抓得到：少了 antigravity_turns、brief 不是四件事",
+       any("antigravity_turns" in e for e in check(no_turns)) and any("四件事" in e for e in check(three)))
     good = agy_result('{"conversation_id":"c1","status":"SUCCESS","response":"完成\\n","duration_seconds":14.2,'
                       '"usage":{"thinking_tokens":358,"total_tokens":23514}}')
     denied = agy_result('{"conversation_id":"c2","status":"SUCCESS","response":"","denied_actions":[{"action":"command",'

@@ -20,7 +20,7 @@ uv run scripts/run.py show
 主控是 Claude Code 或 Codex、而選到的類別是 Antigravity 的（gemini-pro、gemini-flash、antigravity-opus）時，用 agy 無頭派：
 
 ```
-uv run scripts/run.py agy --class gemini-pro --thinking high --brief-file <任務說明檔> [--cwd <工作資料夾>] [--timeout 1800]
+uv run scripts/run.py agy --class gemini-pro --thinking high --brief-file <任務說明檔> [--cwd <工作資料夾>] [--timeout 1800] [--result-file <交付檔>]
 ```
 
 - 思考程度由腳本寫進模型代號（`gemini-4-hydrogen-xhigh`），不合政策的（禁用的 low、超過上限）直接擋下。
@@ -28,8 +28,25 @@ uv run scripts/run.py agy --class gemini-pro --thinking high --brief-file <任�
 - 輸出是 JSON 摘要；`ok` 是 false（終端機指令被拒、沒回覆、逾時）就當這次沒完成，看 `problems`。
 - 要跑很久的（調研、大範圍閱讀）用背景執行，完成再收。
 - 腳本用略過權限模式跑（無頭模式不能核准指令），並在任務說明前面固定加硬性限制：不 commit、不 push、不刪檔、不對外發送、不安裝。所以要 commit 或 push 的，由主控自己做。
+- 腳本也固定加下一節的收尾規定。任務說明沒指定交付位置時，它寫進 `--result-file`（預設在暫存資料夾的 `omnikit-agy`）；輸出的 `result_file`、`done_marker` 說明交付檔與完成標記在不在。沒有標記只會出 `warnings`，不改 `ok`。
 - 結果一律由主控驗收（讀它改的檔、跑測試），不要只看它的回覆。
 - 記紀錄時 `--channel agy_cli --instance antigravity`。
+
+## 派給 Antigravity 的回合怎麼收尾（所有管道）
+
+agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一樣。原因：2026-11-18 antigravity_kai（gemini-3.8-flash）在 T3 寫完回報後，回合一直不結束，15 分鐘後 T3 印「Antigravity sent nothing for 15 minutes」把對話標成 failed。上游 T3 把這個逾時寫死成 15 分鐘，也不會偵測回合完成。同一次還因為在前景跑伺服器撞到 600 秒工具逾時。證據與出處在 `dispatch-policy.md` 的 `antigravity_turns`。
+
+- **任務說明固定寫四件事**（agy_cli 由腳本自動加，其他管道由主控寫進說明）：
+  1. 交付物先寫成檔案，路徑由你在說明裡指定。
+  2. 最後一個動作是寫完成標記檔（交付檔路徑加 `.done`，例如 `report.md.done`），寫完才送出最後回覆。
+  3. 最後回覆不超過 10 行，附上交付檔路徑。
+  4. 伺服器、watcher 這類不會自己結束的程式一律背景啟動，不要在前景跑。
+- **驗收**：
+  - 有 T3 MCP：用 `t3_thread_wait` 搭配短逾時（約 60 秒）輪詢。看到完成標記，而且 1 到 2 分鐘沒有新活動，就呼叫 `t3_thread_interrupt` 中斷回合，再用 `t3_thread_organize` 帶 `action: "settle"` 結案。不用空等 15 分鐘。
+  - 只有 t3_cli：t3 v0.1.10 的 `thread` 只有 list、start、send、show，沒有中斷子指令（2026-11-18 查 `--help`）。Antigravity 的長任務不加 `--wait`（回合卡住時會跟著等到逾時，推論，未實測），改用 `t3 thread show <id> --json` 看狀態並檢查完成標記；標記在就去驗收，回報裡列出對話 id 與標題，請使用者在 T3 停止並結案。
+- **以「sent nothing for 15 minutes」失敗收場時**：先檢查交付檔和完成標記，不要直接重派。東西都在就當作完成，照常驗收並結案；不在就用 send 請它接著做。
+- **使用者自己在 T3 開的對話**：看到回報檔已經出現、對話卻還顯示 working，跟他說直接按停止。
+- 【待驗證】`t3_thread_interrupt` 能不能立刻收掉這種卡住的回合；中斷會不會把最後那則回覆一起吃掉；agy CLI 的無頭模式會不會有同樣的問題。下次實際發生時測。
 
 ## 不在 T3 裡也能開 T3 對話（T3 MCP 優先，t3_cli 是退路）
 

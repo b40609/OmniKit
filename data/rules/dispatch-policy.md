@@ -7,7 +7,7 @@
 怎麼用：
 1. 照 `tasks` 判斷任務類型，得到級別；在 `levels.<級別>.route` 由上往下挑第一個「你有實例、額度沒用完、`when` 成立（沒寫就算成立）、`tasks` 有列就要包含這個任務」的選項。
 2. 思考程度照選項寫明，不要沿用主線的設定，也不要靠預設值。
-3. 照 `channels` 選管道；開子對話或派子代理時，在任務說明寫明級別與思考程度。
+3. 照 `channels` 選管道；開子對話或派子代理時，在任務說明寫明級別與思考程度。派給 Antigravity 的模型時，任務說明還要照 `antigravity_turns.brief` 寫明交付檔與完成標記，驗收照 `antigravity_turns.verify`。
 4. 子任務結果收回、驗收完、要 settle 之前，記一行委派紀錄（`run.py log`）；一次委派一行，重跑與升級記在同一行。
 5. 驗收不過照 `escalation` 升級，升級也要記。
 6. 專案規則對模型分工或驗收另有規定時，照專案規則。
@@ -128,6 +128,7 @@ channels:
       能改檔並自己跑測試；終端機 PATH 只有系統路徑，腳本會把 uv、gh 的絕對路徑附在任務說明後面；
       權限：無頭模式不能核准，agy 的安全監控送審就自動拒絕（時好時壞）；accept-edits 一律擋終端機指令；允許規則會落進沙盒。
       所以腳本用 --dangerously-skip-permissions，任務說明前面固定加硬性限制（不 commit、不 push、不刪檔、不對外發送、不安裝），
+      以及 antigravity_turns.brief 的收尾規定（交付檔沒指定時寫進 --result-file，預設在暫存資料夾）；
       結果一律由主控讀檔、跑測試驗收。用的是 antigravity 實例（ryan 帳號）。
   t3_cli:
     use: >-
@@ -191,6 +192,37 @@ channels:
       會被接受也能跑完，但 t3_thread_read 沒有回傳 options，在 Gemini 端有沒有生效還不知道。
     settle: >-
       t3_thread_organize 帶 action settle 與 threadId，再用 t3_thread_read 回讀確認 settled 是 true（2026-11-18 實測）。
+
+# 派給 Antigravity 的回合怎麼收尾。所有管道都適用：agy_cli、t3_cli、t3_thread_launch，主控在 T3 裡用 delegate_task 也一樣。
+antigravity_turns:
+  why: >-
+    2026-11-18 實測：antigravity_kai（gemini-3.8-flash）的 T3 對話在 08:31:29 UTC 跑完最後一個指令，回報檔早就寫好，
+    之後 15 分 14 秒沒有任何活動；08:46:43 T3 印「Antigravity sent nothing for 15 minutes, so T3 Code stopped the turn
+    and restarted the agent」，對話被標成 failed，最後那則回覆在錯誤前 17 毫秒才收進來（t3_thread_read 的活動紀錄）。
+    上游 pingdotgg/t3code 的 PR #30377（2026-11-05，issue #30271）：Antigravity 的 ACP 程序在最後一次輸出後，可能讓
+    session/prompt 一直不結束；AntigravityAdapterV2.ts 寫死 promptInactivityTimeout 15 分鐘，不能設定，本機 T3 v0.1.10 已含這個修正。
+    AntigravityTurnOutcome.ts 的 watchAntigravityPromptOutcome 只抓錯誤（例如額度用完），不偵測回合完成。
+    同一次的第一輪另外因為在前景跑伺服器（python -u run.py）撞到 600 秒工具逾時而中斷。
+  brief:
+    - 交付物先寫成檔案，路徑由主控在任務說明裡指定
+    - 最後一個動作是寫完成標記檔（交付檔路徑加 .done，例如 report.md.done），寫完才送出最後回覆
+    - 最後回覆不超過 10 行，附上交付檔路徑
+    - 伺服器、watcher 這類不會自己結束的程式一律背景啟動，不要在前景跑
+  verify: >-
+    有 T3 MCP 時：用 t3_thread_wait 搭配短逾時（約 60 秒）輪詢；看到完成標記，而且 1 到 2 分鐘沒有新活動，就呼叫
+    t3_thread_interrupt 中斷回合，再用 t3_thread_organize 帶 action settle 結案（照 t3_thread_launch 的 settle 回讀確認），
+    不用空等 15 分鐘。只有 t3_cli 時：t3 v0.1.10 的 thread 只有 list、start、send、show，沒有中斷子指令（2026-11-18 查 --help）；
+    Antigravity 的長任務不加 --wait（回合卡住時會跟著等到 15 分鐘逾時，推論，未實測），改用 t3 thread show 看狀態並檢查完成標記，
+    標記在就當作完成去驗收，回報裡列出對話 id 與標題，請使用者在 T3 停止並結案。agy_cli：run.py agy 會在任務說明前面自動加這四件事，
+    輸出的 done_marker 說明標記檔在不在。
+  failed_15min: >-
+    對話以「sent nothing for 15 minutes」失敗收場時，先檢查交付檔和完成標記，不要直接重派：東西都在就當作完成、照常驗收並結案；
+    不在就用 send（t3_thread_launch 的對話用 MCP，t3_cli 用 t3 thread send）請它接著做。
+  user_in_t3: 使用者自己在 T3 開的對話：看到回報檔已經出現、對話卻還顯示 working，直接按停止。
+  pending:
+    - 【待驗證】t3_thread_interrupt 能不能立刻收掉這種卡住的回合
+    - 【待驗證】中斷會不會把最後那則回覆一起吃掉
+    - 【待驗證】agy CLI 的無頭模式（agy_cli）會不會有同樣的問題
 
 # 本週 Claude 用量（給 high 級的 80% 條件用）。
 usage_signal:
