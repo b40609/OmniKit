@@ -31,6 +31,8 @@ git hook 與 agent 在背景同步時常失敗。支援的 agent 固定是這三
 其他設定目錄（多帳號、啟動器另外指定的，homes.py 找）：
 - Claude Code（CLAUDE_CONFIG_DIR、T3 Code 的 homePath、~/.claude-* 等）：規則區塊、skills 連結、
   MCP（<目錄>/.claude.json，claude 指令帶 CLAUDE_CONFIG_DIR）、權限規則與 hook（claude_allow.py）
+- Claude Code 的其他設定目錄也同步使用者自己裝在 ~/.claude 的 skill（連結）與啟用中的 plugin（claude plugin install，
+  CLAUDE_CONFIG_DIR 指過去），見下面「~/.claude 使用者自己的 skill 與 plugin」那段
 - Codex（CODEX_HOME 等）：規則區塊（<目錄>/AGENTS.md）、MCP（<目錄>/config.toml）；skills 在 ~/.agents/skills，共用
 - T3 Code 的 Antigravity 實例：ACP 模式不讀規則檔；t3_acp.py 把實例的 Binary path 指到 OmniKit 的轉接程式
   （acp_shim.py，放在 ~/.omnikit/acp），開新對話時帶入 ~/.gemini/GEMINI.md
@@ -45,7 +47,7 @@ Claude 桌面版這類封裝的 app 轉存的副本）的狀態合併進 ~/.omni
 
 用法：
   uv run engine/scripts/agents.py connect [--profile <名稱>] [--agents claude-code,codex,antigravity] [--ask]
-  uv run engine/scripts/agents.py sync [--skills] [--mcp] [--ask]
+  uv run engine/scripts/agents.py sync [--skills] [--mcp] [--plugins] [--ask]
   uv run engine/scripts/agents.py resolve <名稱> --use-omnikit|--keep-mine [--agent <agent>]
   uv run engine/scripts/agents.py approvals [--ask] [--grant <名稱>] [--revoke <名稱>]
   uv run engine/scripts/agents.py disconnect
@@ -105,6 +107,7 @@ class Env:
     claude_homes: list = field(default_factory=list)  # ~/.claude 以外的 Claude 設定目錄（homes.py）
     codex_homes: list = field(default_factory=list)  # ~/.codex 以外的 Codex 設定目錄（homes.py）
     which: object = shutil.which
+    runner: object = None  # 跑 claude plugin 的函式 (cmd, environ) -> (exit, stdout, stderr)；None 用 subprocess（自我測試換成假的）
 
     @property
     def data(self):
@@ -213,7 +216,7 @@ def load_record(env):
         rec = rec if isinstance(rec, dict) else {}
     except (OSError, ValueError):
         rec = {}
-    for key, empty in (("agents", []), ("skills", {}), ("mcp", {}), ("mcp_keep", {})):
+    for key, empty in (("agents", []), ("skills", {}), ("mcp", {}), ("mcp_keep", {}), ("user_skills", {}), ("user_plugins", {})):
         rec.setdefault(key, empty)
     if not isinstance(rec["skills"], dict):
         rec["skills"] = {}
@@ -449,6 +452,251 @@ def sync_skills(env, agents, rec, profile=None):
             if left:
                 lines.append(f"skills：{folder} 還有 OmniKit 之前放的 {len(left)} 個 skill，只有 {label_of(key)} 會讀，"
                              f"它沒有接上，所以沒有更新也沒有刪；用不到可以自己刪")
+    return lines
+
+
+# ---- ~/.claude 使用者自己的 skill 與 plugin：同步到其他 Claude 設定目錄 ----
+# 2026-11-18：T3 Code 的 retis、Kai 帳號各用 ~/.claude-retis、~/.claude-kai，OmniKit 的規則、skill、hook 都接上了，
+# 但使用者自己裝在 ~/.claude 的 skill（unslop 等）與 plugin（claude-mem、floorplan、taste-skill）一個都沒有，
+# 規則裡「前端預設 unslop」在那兩個帳號就失效、claude-mem 記憶也不累積。所以把 ~/.claude 當來源同步過去；
+# OmniKit 自己的 skill 由 sync_skills 處理，設定檔的其他欄位與金鑰都不碰。可以重跑：缺的補上，已經有的不動。
+# - skill：<目錄>/skills/<名稱> 建資料夾連結，連到 ~/.claude/skills/<名稱> 的實際位置（只有一份，改了馬上生效）。
+#   名稱 . 開頭、.bak 這類備份、沒有 SKILL.md 的（synced 是 claude.ai 給各帳號各自同步的）不同步；
+#   目標已經有同名、指到別處的，不動；~/.claude 拿掉的，只拿掉 OmniKit 建的連結
+# - plugin：~/.claude/settings.json 的 enabledPlugins 是 true 的（停用的不同步），用官方的 claude plugin，
+#   CLAUDE_CONFIG_DIR 指到那個目錄：缺 marketplace 先 marketplace add（來源照 ~/.claude/plugins/known_marketplaces.json，
+#   沒有再看 settings.json 的 extraKnownMarketplaces），再 plugin install -s user。不帶 -y：要跑 marketplace 宣告的
+#   指令才能裝的 plugin 要本人確認，失敗就印一行。那個目錄裝了但停用的，當成使用者的選擇不動；
+#   ~/.claude 之後停用或移除的，OmniKit 裝的那份停用（不解除安裝，plugin 的資料留著），之後又啟用就再啟用
+
+USER_SKIP = re.compile(r"^\.|\.bak(?:[-_.]|$)|\.orig$|~$", re.I)
+
+
+def user_source(env):
+    return env.home / ".claude"
+
+
+def mirror_targets(env, agents):
+    """要同步使用者 skill 與 plugin 的其他 Claude 設定目錄：[(key, 目錄)]。"""
+    return [(k, h) for k, a, h in env.extra_homes(agents) if a == "claude-code" and not same_path(h, user_source(env))]
+
+
+def user_skills(env, rec):
+    """~/.claude/skills 裡使用者自己的 skill：{名稱: 實際位置}。OmniKit 的（連到 engine/skills、記錄裡的）不算。"""
+    folder = user_source(env) / "skills"
+    if not folder.is_dir():
+        return {}
+    ours = set(skill_names(env.skills_src)) | set(rec["skills"].get("claude-code", []))
+    found = {}
+    for p in sorted(folder.iterdir(), key=lambda x: x.name):
+        if USER_SKIP.search(p.name) or p.name in ours or not (p / "SKILL.md").is_file() or owned(p, env):
+            continue
+        found[p.name] = Path(os.path.realpath(p))
+    return found
+
+
+def sync_user_skills(env, agents, rec):
+    targets = mirror_targets(env, agents)
+    if not targets:
+        return []
+    wanted = user_skills(env, rec)
+    lines = []
+    for key, h in targets:
+        folder = h / "skills"
+        recorded = set(rec["user_skills"].get(key, []))
+        placed, added, skipped, failed = [], [], [], []
+        for name, target in wanted.items():
+            dest = folder / name
+            if present(dest):
+                if same_path(os.path.realpath(dest), target):
+                    placed.append(name)
+                    continue
+                if not (is_link(dest) and name in recorded):
+                    skipped.append(name)
+                    continue
+                remove_link(dest)  # OmniKit 建的連結，來源換了位置：重新連
+            try:
+                folder.mkdir(parents=True, exist_ok=True)
+                make_link(target, dest)
+            except OSError as e:
+                failed.append(f"{name}（{e}）")
+                continue
+            placed.append(name)
+            added.append(name)
+        removed = [n for n in sorted(recorded - set(wanted)) if is_link(folder / n)]
+        for name in removed:
+            remove_link(folder / name)
+        rec["user_skills"][key] = placed
+        line = f"skills：{label_of(key)} 從 ~/.claude 同步使用者的 skill {len(placed)} 個（連結）"
+        lines.append(line + (f"，新增 {'、'.join(added)}" if added else ""))
+        if removed:
+            lines.append(f"  ~/.claude 已經沒有，拿掉連結：{'、'.join(removed)}")
+        for name in skipped:
+            lines.append(f"  {folder / name} 已經有同名的 skill，不是從 ~/.claude 連過去的，沒有動")
+        if failed:
+            lines.append(f"  建不起資料夾連結，沒有同步：{'、'.join(failed)}")
+    return lines
+
+
+def unmirror_skills(env, rec):
+    """disconnect：拿掉 OmniKit 建的使用者 skill 連結（連到的資料夾不動）。"""
+    lines = []
+    for key, names in rec["user_skills"].items():
+        home = home_of(key)
+        gone = [n for n in names if home and is_link(home / "skills" / n)]
+        for name in gone:
+            remove_link(home / "skills" / name)
+        if gone:
+            lines.append(f"skills：從 {home / 'skills'} 拿掉連到 ~/.claude 的 {'、'.join(gone)}")
+    return lines
+
+
+def read_doc(path):
+    """讀 JSON；不存在或壞掉都當成空的（來源的設定壞了不該讓整個同步停下來）。"""
+    try:
+        doc = json.loads(path.read_bytes().decode("utf-8-sig"))
+    except (OSError, ValueError):
+        return {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def wanted_plugins(env):
+    enabled = read_doc(user_source(env) / "settings.json").get("enabledPlugins") or {}
+    if not isinstance(enabled, dict):
+        return []
+    return sorted(p for p, on in enabled.items() if on is True and isinstance(p, str) and "@" in p)
+
+
+def marketplace_sources(env):
+    """{marketplace 名稱: source}：known_marketplaces.json 優先（實際加過的），沒有再看 extraKnownMarketplaces。"""
+    extra = read_doc(user_source(env) / "settings.json").get("extraKnownMarketplaces") or {}
+    known = read_doc(user_source(env) / "plugins" / "known_marketplaces.json")
+    found = {}
+    for doc in (extra if isinstance(extra, dict) else {}, known):
+        for name, entry in doc.items():
+            if isinstance(entry, dict) and isinstance(entry.get("source"), dict):
+                found[name] = entry["source"]
+    return found
+
+
+def marketplace_args(source):
+    """claude plugin marketplace add 的參數；認不得的來源回傳 None。
+    指定 ref 的用 <git 網址>#<ref>（官方文件的寫法；這台還沒有帶 ref 的 marketplace，未實測）。"""
+    kind, ref = source.get("source"), source.get("ref")
+    if kind == "github" and source.get("repo"):
+        arg = f"https://github.com/{source['repo']}.git" if ref else source["repo"]
+    elif kind in ("git", "url") and source.get("url"):
+        arg = source["url"]
+    elif kind in ("directory", "file") and source.get("path"):
+        arg, ref = source["path"], None
+    else:
+        return None
+    args = ["plugin", "marketplace", "add", arg + (f"#{ref}" if ref else ""), "--scope", "user"]
+    if isinstance(source.get("sparsePaths"), list) and source["sparsePaths"]:
+        args += ["--sparse", *source["sparsePaths"]]
+    return args
+
+
+def run_claude(env, args, key):
+    """跑 claude 指令，CLAUDE_CONFIG_DIR 指到 key 的目錄；回傳 (exit, stdout, stderr)，不丟例外。"""
+    cmd, environ = [*env.claude_cli, *args], claude_env(key)
+    if env.runner:
+        return env.runner(cmd, environ)
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=600,
+                           env=environ, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return 1, "", str(e)
+    return r.returncode, r.stdout or "", r.stderr or ""
+
+
+def json_out(text):
+    """--json 的輸出：前面可能夾雜提示文字，從第一個 [ 或 { 開始解析。"""
+    for i, ch in enumerate(text):
+        if ch in "[{":
+            try:
+                return json.loads(text[i:])
+            except ValueError:
+                return None
+    return None
+
+
+def brief(code, out, err):
+    text = " ".join((err or out or "").split())
+    return f"exit {code}：{text[:300]}" if text else f"exit {code}"
+
+
+def sync_user_plugins(env, agents, rec):
+    targets = mirror_targets(env, agents)
+    if not targets:
+        return []
+    wanted = wanted_plugins(env)
+    if not env.claude_cli:
+        return [f"plugin：找不到 claude 指令，~/.claude 啟用的 {len(wanted)} 個 plugin 沒有同步到其他設定目錄"] if wanted else []
+    sources = marketplace_sources(env)
+    lines = []
+    for key, _ in targets:
+        old = rec["user_plugins"].get(key) or {}
+        synced, turned_off = set(old.get("synced", [])), set(old.get("disabled", []))
+        listed = run_claude(env, ["plugin", "list", "--json"], key)
+        items = json_out(listed[1]) if listed[0] == 0 else None
+        if not isinstance(items, list):
+            lines.append(f"plugin：{label_of(key)} 讀不到已安裝的 plugin（{brief(*listed)}），這次沒有同步")
+            continue
+        installed = {i["id"]: bool(i.get("enabled")) for i in items if isinstance(i, dict) and isinstance(i.get("id"), str)}
+        r = run_claude(env, ["plugin", "marketplace", "list", "--json"], key)
+        markets = {m.get("name") for m in (json_out(r[1]) or []) if isinstance(m, dict)} if r[0] == 0 else set()
+        have, added, enabled, left, failed = [], [], [], [], []
+        for pid in wanted:
+            if pid in installed:
+                if installed[pid]:
+                    have.append(pid)
+                elif pid in turned_off:  # OmniKit 之前停用的，~/.claude 又啟用了
+                    r = run_claude(env, ["plugin", "enable", pid, "--scope", "user"], key)
+                    if r[0] == 0:
+                        have.append(pid)
+                        enabled.append(pid)
+                    else:
+                        failed.append(f"{pid}（enable {brief(*r)}）")
+                else:
+                    left.append(pid)
+                continue
+            mkt = pid.rsplit("@", 1)[1]
+            if mkt not in markets:
+                args = marketplace_args(sources.get(mkt) or {})
+                if args is None:
+                    failed.append(f"{pid}（~/.claude 找不到 marketplace {mkt} 的來源）")
+                    continue
+                r = run_claude(env, args, key)
+                if r[0] != 0:
+                    failed.append(f"{pid}（marketplace add {brief(*r)}）")
+                    continue
+                markets.add(mkt)
+            r = run_claude(env, ["plugin", "install", pid, "--scope", "user"], key)
+            if r[0] != 0:
+                failed.append(f"{pid}（install {brief(*r)}）")
+                continue
+            have.append(pid)
+            added.append(pid)
+        off = []
+        for pid in sorted((synced | turned_off) - set(wanted)):
+            if installed.get(pid) is True:
+                r = run_claude(env, ["plugin", "disable", pid, "--scope", "user"], key)
+                if r[0] != 0:
+                    failed.append(f"{pid}（disable {brief(*r)}）")
+                    continue
+                off.append(pid)
+                turned_off.add(pid)
+        turned_off = {p for p in turned_off - set(have) if p in installed}
+        rec["user_plugins"][key] = {"synced": sorted(set(have) | set(left)), "disabled": sorted(turned_off)}
+        line = f"plugin：{label_of(key)} 從 ~/.claude 同步啟用中的 plugin {len(have)}/{len(wanted)} 個"
+        lines.append(line + (f"，新裝 {'、'.join(added)}" if added else "") + (f"，重新啟用 {'、'.join(enabled)}" if enabled else ""))
+        if left:
+            lines.append(f"  這個目錄裝了但停用，當成你的選擇沒有動：{'、'.join(left)}")
+        if off:
+            lines.append(f"  ~/.claude 已經停用或移除，這裡也停用（沒有解除安裝）：{'、'.join(off)}")
+        for item in failed:
+            lines.append(f"  沒有同步：{item}；可以設 CLAUDE_CONFIG_DIR={home_of(key)} 再自己跑 claude plugin install")
     return lines
 
 
@@ -1001,7 +1249,9 @@ def connect(env, profile=None, agents=None, ask=None):
     lines = profiles.apply(env.data, env.state, env.rules, wanted=profile, agents=agents, take_over=True,
                            skillshare_config=env.skillshare / "config.yaml", **extra_rules(env, agents))
     lines += sync_skills(env, agents, rec, profile)
+    lines += sync_user_skills(env, agents, rec)
     lines += apply_mcp(env, agents, rec, plan)
+    lines += sync_user_plugins(env, agents, rec)
     t3_lines, t3_keys = connect_t3(env, agents)
     lines += t3_lines
     rec["homes"] = [k for k, _, _ in env.extra_homes(agents)] + t3_keys
@@ -1053,7 +1303,7 @@ def attach_homes(env, rec):
     return lines, [k for k, _, _ in new]
 
 
-def sync(env, skills=True, mcp=True, ask=None):
+def sync(env, skills=True, mcp=True, ask=None, plugins=True):
     rec = load_record(env)
     if not rec["agents"]:
         return ["這台還沒用新的方式接上 agent（沒有 agents.json），skills 與 MCP 沒有同步：重跑 install.ps1"]
@@ -1061,8 +1311,11 @@ def sync(env, skills=True, mcp=True, ask=None):
     plan = settle(env, rec["agents"], rec, ask) if mcp else None
     if skills:
         lines += sync_skills(env, rec["agents"], rec)
+        lines += sync_user_skills(env, rec["agents"], rec)
     if mcp:
         lines += apply_mcp(env, rec["agents"], rec, plan)
+    if plugins:
+        lines += sync_user_plugins(env, rec["agents"], rec)
     t3_lines, t3_keys = connect_t3(env, rec["agents"])
     lines += t3_lines
     rec["homes"] = [k for k, _, _ in env.extra_homes(rec["agents"])] + t3_keys
@@ -1089,7 +1342,7 @@ def resolve_conflict(env, name, choice, agent=None):
     lines = [f"MCP：{label_of(c.agent)} 的 {name} {how}" for c in hits]
     if not rec["agents"]:
         return lines + ["這台還沒接上 agent：重跑 install.ps1 就會套用"]
-    return lines + sync(env, skills=False)  # 其他還沒解決的衝突一樣略過並列出來
+    return lines + sync(env, skills=False, plugins=False)  # 其他還沒解決的衝突一樣略過並列出來
 
 
 def approval_items(env, agents):
@@ -1147,7 +1400,7 @@ def approvals(env, ask=None, grant=(), revoke=()):
                                     env.state, env.repo, extra_settings=[h / "settings.json" for h in env.claude_homes])
     if not rec["agents"]:
         return lines + ["這台還沒接上 agent：重跑 install.ps1 就會套用"]
-    return lines + sync(env, skills=False)
+    return lines + sync(env, skills=False, plugins=False)
 
 
 def disconnect(env):
@@ -1165,6 +1418,10 @@ def disconnect(env):
                 removed.append(name)
         if removed:
             lines.append(f"skills：從 {folder} 拿掉 {'、'.join(removed)}")
+    lines += unmirror_skills(env, rec)
+    if any(v.get("synced") for v in rec["user_plugins"].values() if isinstance(v, dict)):
+        lines.append("plugin：從 ~/.claude 同步到其他設定目錄的 plugin 留著（是你自己的 plugin，不是 OmniKit 的）；"
+                     "不要的話設 CLAUDE_CONFIG_DIR 再跑 claude plugin uninstall")
     servers = load_servers(env)
     allowed = edition.approver(env.state, env.repo)
     # 接上過、目錄還在的其他設定目錄也要拿（這次可能找不到了，例如環境變數沒設）
@@ -1726,6 +1983,110 @@ def selftest():
               not (kai / "CLAUDE.md").exists() and not any(present(kai / "skills" / n) for n in names4)
               and (kai / "skills" / "synced" / "x.txt").exists() and "devtools" not in read_servers(env4, extra_key(kai)))
 
+        # ~/.claude 使用者自己的 skill 與 plugin：同步到其他 Claude 設定目錄（T3 Code 的 retis、Kai 帳號）
+        home7, state7 = tmp / "home7", tmp / "state7"
+        c7 = home7 / ".claude"
+        put(c7 / "CLAUDE.md", "# 我的\n")
+        put(c7 / "skills" / "unslop" / "SKILL.md", "---\nname: unslop\n---\n")
+        put(c7 / "skills" / "caveman" / "SKILL.md", "---\nname: caveman\n---\n")
+        put(c7 / "skills" / "omnikeep-setup.bak-20261118" / "SKILL.md", "備份\n")
+        put(c7 / "skills" / ".trash" / "old" / "SKILL.md", "丟掉的\n")
+        put(c7 / "skills" / "synced" / "abc" / "SKILL.md", "claude.ai 同步的\n")
+        put(home7 / ".agents" / "skills" / "archify" / "SKILL.md", "---\nname: archify\n---\n")
+        make_link(home7 / ".agents" / "skills" / "archify", c7 / "skills" / "archify")
+        put(c7 / "settings.json", json.dumps({
+            "enabledPlugins": {"mem@mem": True, "taste@taste": True, "off@mem": False, "needs-cmd@mem": True},
+            "extraKnownMarketplaces": {"taste": {"source": {"source": "github", "repo": "o/taste"}},
+                                       "floor": {"source": {"source": "git", "url": "https://x/floor.git"}}},
+            "env": {"SECRET_TOKEN": "不能被複製"}}))
+        put(c7 / "plugins" / "known_marketplaces.json",
+            json.dumps({"mem": {"source": {"source": "github", "repo": "o/mem"}, "installLocation": "x"}}))
+        retis, kai7 = home7 / ".claude-retis", home7 / ".claude-kai"
+        put(kai7 / "skills" / "unslop" / "SKILL.md", "---\nname: unslop\n---\n這個帳號自己的\n")
+        fake7, calls7 = {}, []
+
+        def runner7(cmd, environ):
+            st = fake7.setdefault(environ.get("CLAUDE_CONFIG_DIR"), {"plugins": {}, "markets": set()})
+            args = cmd[1:]
+            calls7.append((environ.get("CLAUDE_CONFIG_DIR"), args))
+            if args[:2] == ["plugin", "list"]:
+                return 0, "提示文字\n" + json.dumps([{"id": k, "enabled": v} for k, v in st["plugins"].items()]), ""
+            if args[:3] == ["plugin", "marketplace", "list"]:
+                return 0, json.dumps([{"name": n} for n in sorted(st["markets"])]), ""
+            if args[:3] == ["plugin", "marketplace", "add"]:
+                st["markets"].add({"o/mem": "mem", "o/taste": "taste", "https://x/floor.git": "floor"}[args[3]])
+                return 0, "", ""
+            if args[:2] == ["plugin", "install"]:
+                if args[2].split("@")[1] not in st["markets"]:
+                    return 1, "", "marketplace not found"
+                if args[2].startswith("needs-cmd"):
+                    return 1, "", "requires -y when stdin is not a TTY"
+                st["plugins"][args[2]] = True
+                return 0, "", ""
+            if args[:2] in (["plugin", "disable"], ["plugin", "enable"]):
+                st["plugins"][args[2]] = args[1] == "enable"
+                return 0, "", ""
+            return 1, "", "unknown"
+
+        env7 = Env(home=home7, repo=repo, state=state7, skillshare=tmp / "none", which=lambda _: None,
+                   claude_homes=[retis, kai7], runner=runner7)
+        edition.set_edition(state7, "colleague")
+        lines = connect(env7, agents=["claude-code"], ask=lambda c: "mine")
+        check("使用者的 skill：其他 Claude 設定目錄連到 ~/.claude 的實際位置；備份、. 開頭、沒有 SKILL.md、OmniKit 的不同步",
+              all(is_link(retis / "skills" / n) for n in ("unslop", "caveman", "archify"))
+              and same_path(os.path.realpath(retis / "skills" / "archify"), os.path.realpath(home7 / ".agents" / "skills" / "archify"))
+              and not any(present(retis / "skills" / n) for n in ("omnikeep-setup.bak-20261118", ".trash", "synced"))
+              and sorted(load_record(env7)["user_skills"][extra_key(retis)]) == ["archify", "caveman", "unslop"]
+              and is_link(retis / "skills" / "alpha") and same_path(link_target(retis / "skills" / "alpha"), src / "alpha"))
+        check("使用者的 skill：目標已經有同名、不是連過去的，不動並印出來",
+              not is_link(kai7 / "skills" / "unslop") and "這個帳號自己的" in (kai7 / "skills" / "unslop" / "SKILL.md").read_text(encoding="utf-8")
+              and is_link(kai7 / "skills" / "caveman") and any("不是從 ~/.claude 連過去的" in line for line in lines))
+        check("plugin：沒有 claude 指令就不同步，說一聲", any("找不到 claude 指令" in line for line in lines) and not calls7)
+        env7.claude_cli = ["claude"]
+        lines = sync(env7, mcp=False)
+        st_r, st_k = fake7[str(retis)], fake7[str(kai7)]
+        check("plugin：啟用中的用 claude plugin 裝進每個設定目錄（CLAUDE_CONFIG_DIR 指過去），缺 marketplace 先加，停用的不裝",
+              st_r["plugins"] == {"mem@mem": True, "taste@taste": True} == st_k["plugins"]
+              and st_r["markets"] == {"mem", "taste"} and not any(d is None for d, _ in calls7)
+              and ["plugin", "marketplace", "add", "o/mem", "--scope", "user"] in [a for _, a in calls7]
+              and ["plugin", "install", "taste@taste", "--scope", "user"] in [a for _, a in calls7])
+        check("plugin：裝不起來的（要本人確認指令）印一行，其他照常",
+              any("needs-cmd@mem" in line and "沒有同步" in line for line in lines))
+        check("plugin：設定檔其他欄位與金鑰不碰", not (retis / "settings.json").exists()
+              or "SECRET_TOKEN" not in (retis / "settings.json").read_text(encoding="utf-8"))
+        calls7.clear()
+        lines = sync(env7, mcp=False)
+        check("重跑：已經同步的不再裝、不再連（只讀清單）",
+              all(a[:2] == ["plugin", "list"] or a[:3] == ["plugin", "marketplace", "list"] or a[2].startswith("needs-cmd")
+                  for _, a in calls7) and not any("新增" in line or "新裝" in line for line in lines))
+        # 之後在 ~/.claude 新裝 skill、啟用新的 plugin（marketplace 只在 extraKnownMarketplaces）、停用一個、拿掉一個 skill
+        put(c7 / "skills" / "web-unblock" / "SKILL.md", "---\nname: web-unblock\n---\n")
+        remove_tree(c7 / "skills" / "caveman")
+        doc7 = read_json(c7 / "settings.json")
+        doc7["enabledPlugins"].update({"floor@floor": True, "taste@taste": False})
+        put(c7 / "settings.json", json.dumps(doc7))
+        st_k["plugins"]["mem@mem"] = False  # 使用者在 Kai 帳號自己停用
+        lines = sync(env7, mcp=False)
+        check("重跑：新的 skill 補上，~/.claude 拿掉的只拿掉 OmniKit 建的連結",
+              is_link(retis / "skills" / "web-unblock") and not present(retis / "skills" / "caveman")
+              and not present(kai7 / "skills" / "caveman") and (kai7 / "skills" / "unslop" / "SKILL.md").exists())
+        check("重跑：新啟用的 plugin 補裝（來源照 extraKnownMarketplaces），~/.claude 停用的這裡也停用",
+              st_r["plugins"] == {"mem@mem": True, "taste@taste": False, "floor@floor": True}
+              and load_record(env7)["user_plugins"][extra_key(retis)]["disabled"] == ["taste@taste"])
+        check("重跑：使用者在那個帳號自己停用的不動", st_k["plugins"]["mem@mem"] is False
+              and any("當成你的選擇" in line for line in lines))
+        doc7["enabledPlugins"]["taste@taste"] = True
+        put(c7 / "settings.json", json.dumps(doc7))
+        sync(env7, mcp=False)
+        check("重跑：~/.claude 又啟用，OmniKit 停用的那份再啟用", st_r["plugins"]["taste@taste"] is True
+              and load_record(env7)["user_plugins"][extra_key(retis)]["disabled"] == [])
+        env7.claude_cli = None  # disconnect 的 MCP 走直接改檔，不跑真的 claude 指令
+        lines = disconnect(env7)
+        check("disconnect：拿掉連到 ~/.claude 的連結，來源與目標自己的 skill 留著，plugin 不解除安裝",
+              not present(retis / "skills" / "unslop") and (c7 / "skills" / "unslop" / "SKILL.md").exists()
+              and (kai7 / "skills" / "unslop" / "SKILL.md").exists() and (home7 / ".agents" / "skills" / "archify").is_dir()
+              and any("plugin 留著" in line for line in lines))
+
         # 安裝之後才多出來的設定目錄（新的 Claude 帳號、CODEX_HOME）：sync 就接上，不用重跑 install
         home5, state5 = tmp / "home5", tmp / "state5"
         put(home5 / ".claude" / "CLAUDE.md", "# 我的\n")
@@ -1822,6 +2183,7 @@ def main(argv=None):
     s = sub.add_parser("sync", help="依記錄同步 skills 與 MCP（維護者版的 git hook 用）")
     s.add_argument("--skills", action="store_true", help="只同步 skills")
     s.add_argument("--mcp", action="store_true", help="只同步 MCP")
+    s.add_argument("--plugins", action="store_true", help="只把 ~/.claude 啟用中的 plugin 同步到其他 Claude 設定目錄")
     s.add_argument("--ask", action="store_true", help="MCP 有衝突時逐一問（要能互動）")
     r = sub.add_parser("resolve", help="決定 MCP 衝突要用誰的設定，並馬上同步")
     r.add_argument("name", metavar="名稱", help="MCP server 名稱")
@@ -1851,9 +2213,10 @@ def main(argv=None):
             parser.error(f"不認得的 agent：{'、'.join(bad)}")
         lines = connect(env, args.profile, agents, ask=ask_conflict if args.ask and interactive else None)
     elif args.command == "sync":
-        both = not (args.skills or args.mcp)
-        lines = after_migrate(env, moved) + sync(env, skills=args.skills or both, mcp=args.mcp or both,
-                                                 ask=ask_conflict if args.ask and interactive else None)
+        every = not (args.skills or args.mcp or args.plugins)
+        lines = after_migrate(env, moved) + sync(env, skills=args.skills or every, mcp=args.mcp or every,
+                                                 ask=ask_conflict if args.ask and interactive else None,
+                                                 plugins=args.plugins or every)
     elif args.command == "resolve":
         lines = resolve_conflict(env, args.name, "omnikit" if args.use_omnikit else "mine", args.agent)
     elif args.command == "approvals":

@@ -25,6 +25,8 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
      其他設定目錄（engine/scripts/homes.py 找：CLAUDE_CONFIG_DIR、CODEX_HOME、T3 Code 每個實例的 homePath、
      有 .claude.json 的 ~/.claude-*、~/.codex-* 等）：Claude 的 CLAUDE.md、Codex 的 AGENTS.md 也放同一個區塊，
      MCP 也寫進去，Claude 的 skills 也連進去。agent 只讀自己設定目錄的規則，不放就讀不到。
+     Claude 的其他設定目錄也同步你自己裝在 ~/.claude 的 skill（資料夾連結）與啟用中的 plugin
+     （claude plugin install，CLAUDE_CONFIG_DIR 指過去）；之後新裝的，重跑 agents.py sync 就補上。
      安裝之後才新增的帳號：開新對話時 home_watch.py 發現，就在背景接上（也可以跑 agents.py sync）。
      T3 Code 的 Antigravity 實例走 ACP 模式、不讀規則檔：把實例的 Binary path 指到 OmniKit 的轉接程式
      （~/.omnikit/acp/omnikit-acp.cmd，engine/scripts/t3_acp.py 與 acp_shim.py），
