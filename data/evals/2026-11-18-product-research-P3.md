@@ -30,7 +30,7 @@
 3. **兩個相容性問題（11-17 23:20）**：
    - GPT Researcher 0.17.0 在繁中 Windows 上一印 emoji 就因為 cp950 編碼當掉，要開 Python 的 UTF-8 模式（`-X utf8`）。
    - 用 Gemini 4 時，langchain-google-genai 4.5.0 回傳的 content 是分段的 list，GPT Researcher 只對 `minimax_anthropic` 改用 `.text`，所以在 `deep_research.py` 的 `response.strip()` 當掉。執行腳本加了一處修正，讓 `google_genai` 也走它既有的 `.text` 路徑，研究流程沒動。
-4. **A 組停在額度用完的那一刻、C 組改用 local-deep-research（11-17 23:45）**：Antigravity（ryan）的額度在 A、R1 兩條調研跑到第 12、13 組時用完（3 天 11 小時後重置）。兩邊每組都還有一大半是新名字，完全沒有收斂，所以 A 組照帳本當下的內容算，標「未飽和」，不改派 Claude 續跑。C 組改用 LearningCircuit/local-deep-research 2.0.1（★9,597、MIT、第 0 層通過、名冊沒有）：R1 帳本裡近期有更新、pip 就能在 Windows 裝、能用 Gemini、研究時自己挑搜尋引擎的一個。R1 沒飽和，所以它只是「符合條件的一個」，不保證是最好的對手。
+4. **A 組停在額度用完的那一刻、C 組改用 local-deep-research（11-17 23:45）**：Antigravity（ryan）的額度在 A、R1 兩條調研跑到第 12、13 組時用完（錯誤訊息寫「reset in 3 days, 11 hours」，但實際上 11-18 當天就重置了，以實際為準）。兩邊每組都還有一大半是新名字，完全沒有收斂，所以 A 組照帳本當下的內容算，標「未飽和」，不改派 Claude 續跑。C 組改用 LearningCircuit/local-deep-research 2.0.1（★9,597、MIT、第 0 層通過、名冊沒有）：R1 帳本裡近期有更新、pip 就能在 Windows 裝、能用 Gemini、研究時自己挑搜尋引擎的一個。R1 沒飽和，所以它只是「符合條件的一個」，不保證是最好的對手。
 5. **B、C 改用本機模型（11-18 02:25）**：Gemini 免費版的 `gemini-4-hydrogen` **一天只能 20 次請求**（429 RESOURCE_EXHAUSTED，`generate_content_free_tier_requests, limit: 20`）。B 第 1 次跑了 31 分鐘、0 個來源；B 第 2 次與 C 兩次一開始就被拒。這 4 次不算結果（`out/failed/`）。改用這台的 Ollama `qwen3:8b`（RTX 2000 Ada，16 GB；local-deep-research 的預設本來就是 Ollama）：兩邊 context 都設 20,480（LDR 的本機預設），思考模式照 LDR 預設開著，一次只跑一個。**B、C 用的是 8B 小模型、A 組是 Gemini 4 Hydrogen，所以 B、C 的結果只能當下限。**
 
 ## 結果
@@ -74,7 +74,7 @@ B、C 用的是本機 qwen3:8b，A 用 Gemini 4 Hydrogen，見「要打折看的
 | 12 | 11 | 1 | 0 |
 
 - 跟 P2 比：P2 三組關鍵字的 88 個名字，A 只找到 29 個（33%）。P2 有、A 沒有的 59 個裡，★1,000 以上、而且真的相關的只有 1 個（jfeliu007/goplantuml，★2,082，從 Go 程式碼產生 PlantUML 類別圖）；另外 3 個 ★1,000 以上的（Claude Code 使用指南、GenAI 開發框架、agent 建構平台）照判斷標準不算相關，是 P2 單一評審放寬了。長尾很大，兩次獨立調研的小 repo 重疊很少。
-- 時間：第 1 到 4 組 13 分鐘（22:36 到 22:49），第 5 到 12 組約 40 分鐘（23:21 起）；中間斷線一次。花的是 Antigravity 的訂閱額度，跟 R1 一起把一週的額度用完。
+- 時間：第 1 到 4 組 13 分鐘（22:36 到 22:49），第 5 到 12 組約 40 分鐘（23:21 起）；中間斷線一次。花的是 Antigravity 的訂閱額度，跟 R1 一起把當時剩下的額度用完。
 
 ### B：GPT Researcher 0.17.0（本機 qwen3:8b）
 
@@ -124,13 +124,13 @@ B、C 用的是本機 qwen3:8b，A 用 Gemini 4 Hydrogen，見「要打折看的
 
 - **多管道對單一搜尋的差距很大。** B、C 都只透過網頁搜尋（Tavily）找，A 的 221 個名字裡，GitHub topic 一個管道就貢獻 65 個、GitHub 關鍵字 41 個。deep research 工具擅長把幾十頁整理成報告，不擅長把一類工具列齊。
 - **小模型的 deep research 會編造。** C 的兩次加起來有 37 個編造的工具或連結，B2 也有 3 個。報告寫得很像樣（表格、引用編號），不逐一核對看不出來。要拿這類工具找工具，連結核對是必要的一步。
-- **omnikit-research 自己的問題：長尾題目停不下來。** 12 組了每組還有一大半是新名字，兩條平行的調研就把一週的 Antigravity 額度用完。★1,000 以上的名字第 7 組之後就沒有新的，所以已經在 `61f2f0b` 加了 `status --min-stars` 的停法與 12 組上限。這個停法也會漏：P2 有、A 沒有的 goplantuml（★2,082）就沒找到。
+- **omnikit-research 自己的問題：長尾題目停不下來。** 12 組了每組還有一大半是新名字，兩條平行的調研就把 Antigravity 一個帳號當時剩下的額度用完。★1,000 以上的名字第 7 組之後就沒有新的，所以已經在 `61f2f0b` 加了 `status --min-stars` 的停法與 12 組上限。這個停法也會漏：P2 有、A 沒有的 goplantuml（★2,082）就沒找到。
 - **兩次獨立調研的長尾重疊很少**（A 只找到 P2 的 33%），所以「找齊」在長尾上本來就做不到，有分量的名字找齊才是實際的目標。
 - **Windows 上要先排掉的坑**：GPT Researcher 的 cp950 崩潰、Gemini 4 的 list content；兩個工具都假設有付費的 OpenAI 金鑰，免費路線（Gemini 免費版一天 20 次）跑不起 deep research。
 
 ## 用掉的資源
 
-- Antigravity（ryan）：A 與 R1 兩條調研把這一週的額度用完（3 天 11 小時後重置）。
+- Antigravity（ryan）：A 與 R1 兩條調研把當時剩下的額度用完。錯誤訊息寫 3 天 11 小時後重置，實際上 11-18 當天就重置了；這份報告初版照訊息寫成「一週的額度」，是推論錯誤，已更正。
 - Gemini API 免費版：`gemini-4-hydrogen` 當天的 20 次。
 - OpenAI：0（帳戶沒有額度，請求都被拒）。
 - Tavily：免費額度內（每月 1,000 credits），用量沒有逐次記。
