@@ -19,6 +19,7 @@ disable-model-invocation: true
 | `research`、`調研` | 照 `omnikit-research` 做 |
 | `dispatch`、`分派` | 照 `omnikit-dispatch` 做 |
 | `setup`、`設定` | 照 `omnikit-setup` 做 |
+| `capabilities`、`清點`、`能力` | 照 `omnikit-capabilities` 做 |
 | 其他任何字 | 當成使用者的狀況，照 `omnikit-ask` 做 |
 
 「照某個 skill 做」：Claude Code 用 Skill 工具叫用它；其他 agent 讀同一層資料夾裡的 `../<skill 名稱>/SKILL.md`，照裡面的步驟做。

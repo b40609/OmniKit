@@ -1,0 +1,723 @@
+{
+ "created": "2026-11-18",
+ "groups": [
+  {
+   "group": "agent tool discovery",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [
+      "ibm/mcp-context-forge",
+      "agentic-community/mcp-gateway-registry",
+      "xfey/mcp-zero",
+      "neuronto/agentic-resource-discovery"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 18
+    },
+    "npm": {
+     "names": [
+      "usefulsoftwareco/executor"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "mcpjungle/mcpjungle",
+      "btsouth/toolport",
+      "tuckerschreiber/need",
+      "EnactProtocol/encat-spec-and-tools"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "openai-tool-search",
+      "anthropic-tool-search-tool",
+      "claude-code-tool-search",
+      "DunkelCloud/ToolMesh"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "TheLunarCompany/lunar",
+      "obot-platform/obot"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "mcp server discovery local",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "cli-use",
+      "mcpjungle/mcpjungle"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "activeing123/mcptoon",
+      "lirantal/ls-mcp",
+      "cubicecho/mcp-discovery",
+      "kuldeep-poonia/mcpscan",
+      "PrefectHQ/fastmcp"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "mcp-shark/lazy-tool",
+      "abdullah1854/MCPGateway",
+      "voicetreelab/lazy-mcp",
+      "keybrdist/opencode-lazy-loader",
+      "knowsuchagency/mcp2cli",
+      "philschmid/mcp-cli"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "command line tools inventory",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 4
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 4
+    },
+    "exa": {
+     "names": [
+      "cli-ai-org/cli",
+      "Yaemikoreal/CliLoci",
+      "clihub-ai/clihub"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "syshin0116/clidex",
+      "thellimist/clihub"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "agent 工具 自動 探索 本機 指令",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "linxule/opencli"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-zh": {
+     "names": [
+      "claude-code-sessionstart-hook",
+      "anthropic-tool-search-tool",
+      "philschmid/mcp-cli"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "dynamic tool loading",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "ChandraMohanBusam/mcp-dynamic-tool-loader"
+     ],
+     "errors": [],
+     "hits": 21
+    },
+    "github-keyword": {
+     "names": [
+      "asadani/tool-attention",
+      "asyrjasalo/dynamic-mcp",
+      "mizchi/mcp-reloader",
+      "spring-ai-community/spring-ai-tool-search-tool"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [
+      "yulimfish/opencode-tool-search"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "openrouter-tool-search",
+      "kimi-dynamic-tool-loading",
+      "morphllm-dynamic-tool-loading"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "Scalekit"
+     ],
+     "errors": []
+    },
+    "producthunt": {
+     "names": [
+      "Klavis-AI/klavis",
+      "Scalekit",
+      "AgentKey"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "sessionstart hook environment tools",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "Alpha-Oi/cc-skill-router"
+     ],
+     "errors": [],
+     "hits": 3
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 6
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "claude-code-sessionstart-hook"
+     ],
+     "errors": []
+    },
+    "related": {
+     "names": [
+      "knowsuchagency/mcp2cli",
+      "ibm/mcp-context-forge"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "progressive disclosure cli mcp",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "everclear077/dsh-progressive-tools",
+      "labmimors/dsh-mcp-lens",
+      "runkids/agents-context-router"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [
+      "brunogama/mcp-cli-wrappers"
+     ],
+     "errors": [],
+     "hits": 12
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 3
+    },
+    "exa": {
+     "names": [
+      "codyaverett/mcp-cli",
+      "brunogama/claude-mcp-wrapper",
+      "Consiliency/pmcp",
+      "nvidia-nemoclaw-progressive-tool-disclosure"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "anthropic-agent-skills"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "capability discovery agent cli",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "cordsjon/a2a-cli-registry",
+      "444136347/dsh-capability-discovery"
+     ],
+     "errors": [],
+     "hits": 19
+    },
+    "github-keyword": {
+     "names": [
+      "adaptive-interfaces/adaptive-tool-discovery",
+      "Rosh1106/WhatTheAgent"
+     ],
+     "errors": [],
+     "hits": 7
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "expo/agent-cli-detector"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 11
+    },
+    "hn": {
+     "names": [
+      "SenteLabsAI/extensible-mcp"
+     ],
+     "errors": [],
+     "hits": 19
+    },
+    "exa": {
+     "names": [
+      "Magic-Man-us/claude-code-capabilities",
+      "gushuaialan1/od-cli-scanner",
+      "alpibrusl/acli"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "cordsjon/a2a-cli-registry"
+     ],
+     "errors": []
+    }
+   }
+  }
+ ],
+ "stars": {
+  "agentic-community/mcp-gateway-registry": {
+   "stars": 1052,
+   "checked": "2026-11-18"
+  },
+  "btsouth/toolport": {
+   "stars": 241,
+   "checked": "2026-11-18"
+  },
+  "dunkelcloud/toolmesh": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "enactprotocol/encat-spec-and-tools": {
+   "stars": 40,
+   "checked": "2026-11-18"
+  },
+  "ibm/mcp-context-forge": {
+   "stars": 4846,
+   "checked": "2026-11-18"
+  },
+  "mcpjungle/mcpjungle": {
+   "stars": 1628,
+   "checked": "2026-11-18"
+  },
+  "neuronto/agentic-resource-discovery": {
+   "stars": 57,
+   "checked": "2026-11-18"
+  },
+  "obot-platform/obot": {
+   "stars": 1198,
+   "checked": "2026-11-18"
+  },
+  "thelunarcompany/lunar": {
+   "stars": 510,
+   "checked": "2026-11-18"
+  },
+  "tuckerschreiber/need": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "usefulsoftwareco/executor": {
+   "stars": 4511,
+   "checked": "2026-11-18"
+  },
+  "xfey/mcp-zero": {
+   "stars": 519,
+   "checked": "2026-11-18"
+  },
+  "abdullah1854/mcpgateway": {
+   "stars": 18,
+   "checked": "2026-11-18"
+  },
+  "activeing123/mcptoon": {
+   "stars": 437,
+   "checked": "2026-11-18"
+  },
+  "cubicecho/mcp-discovery": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "keybrdist/opencode-lazy-loader": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "knowsuchagency/mcp2cli": {
+   "stars": 2440,
+   "checked": "2026-11-18"
+  },
+  "kuldeep-poonia/mcpscan": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "lirantal/ls-mcp": {
+   "stars": 84,
+   "checked": "2026-11-18"
+  },
+  "mcp-shark/lazy-tool": {
+   "stars": 40,
+   "checked": "2026-11-18"
+  },
+  "philschmid/mcp-cli": {
+   "stars": 1285,
+   "checked": "2026-11-18"
+  },
+  "prefecthq/fastmcp": {
+   "stars": 28640,
+   "checked": "2026-11-18"
+  },
+  "voicetreelab/lazy-mcp": {
+   "stars": 115,
+   "checked": "2026-11-18"
+  },
+  "cli-ai-org/cli": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "clihub-ai/clihub": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "syshin0116/clidex": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "thellimist/clihub": {
+   "stars": 669,
+   "checked": "2026-11-18"
+  },
+  "yaemikoreal/cliloci": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "linxule/opencli": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "asadani/tool-attention": {
+   "stars": 34,
+   "checked": "2026-11-18"
+  },
+  "asyrjasalo/dynamic-mcp": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "chandramohanbusam/mcp-dynamic-tool-loader": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "klavis-ai/klavis": {
+   "stars": 5826,
+   "checked": "2026-11-18"
+  },
+  "mizchi/mcp-reloader": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "spring-ai-community/spring-ai-tool-search-tool": {
+   "stars": 78,
+   "checked": "2026-11-18"
+  },
+  "yulimfish/opencode-tool-search": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "alpha-oi/cc-skill-router": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "brunogama/claude-mcp-wrapper": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "brunogama/mcp-cli-wrappers": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "codyaverett/mcp-cli": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "consiliency/pmcp": {
+   "stars": 23,
+   "checked": "2026-11-18"
+  },
+  "everclear077/dsh-progressive-tools": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "labmimors/dsh-mcp-lens": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "runkids/agents-context-router": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "444136347/dsh-capability-discovery": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "adaptive-interfaces/adaptive-tool-discovery": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "alpibrusl/acli": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "cordsjon/a2a-cli-registry": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "expo/agent-cli-detector": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "gushuaialan1/od-cli-scanner": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "magic-man-us/claude-code-capabilities": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "rosh1106/whattheagent": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "sentelabsai/extensible-mcp": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  }
+ }
+}

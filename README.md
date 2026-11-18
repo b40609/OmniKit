@@ -122,7 +122,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 ## 裝好之後
 
-安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了六個 skill（`omnikit-setup`、`omnikit-weekly`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-research`、`omnikit-eval`；訪談選了不評估新工具的沒有 `omnikit-eval`）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
+安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了八個 skill（`omnikit-setup`、`omnikit-ask`、`omnikit-weekly`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-research`、`omnikit-capabilities`、`omnikit-eval`；訪談選了不評估新工具的沒有 `omnikit-eval`）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
 
 ### 確認接上了
 
@@ -142,11 +142,12 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 |---|---|---|
 | 規則（`data/rules/baseline.md` + `data/rules/dispatch.md`（分派的原則，完整政策在 `dispatch-policy.md`，要派才讀）+ profile 的 `AGENTS.md`，profile 有 `dispatch.md` 也一起接） | 安全底線所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問 | Claude Code 直接讀這兩份，改完開新 session 就生效。Codex 與 Antigravity 讀的是兩份接在一起的內容：改了 profile 要跑 `uv run engine/scripts/profiles.py` 重新接上（維護者版改的是 repo 裡的檔案的話，commit 時 git hook 會自動同步） |
 | `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 三邊說「幫我設定 OmniKit」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-setup`，Codex 輸入 `$omnikit-setup` |
-| `omnikit-ask` skill | 說「我不知道怎麼問：〔狀況〕」，依情境給問法、做法與該用的官方功能（72 個情境，三家 agent 的對照表）。 | 三家都能用；只有 Claude Code 有的官方功能，表裡寫了其他兩家的替代做法 |
+| `omnikit-ask` skill | 說「我不知道怎麼問：〔狀況〕」，依情境給問法、做法與該用的官方功能（73 個情境，三家 agent 的對照表）。 | 三家都能用；只有 Claude Code 有的官方功能，表裡寫了其他兩家的替代做法 |
 | `omnikit-weekly` skill（已停用） | 2026-11-17 起停用，改用官方的 `/doctor`、`/insights` 與 `omnikit-ask`。原本是：說「OmniKit 本週週報」，列出你的個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率；還查不到的標「未知」。不連網，見[個人週報](#個人週報)。說「OmniKit 給我建議」，依這台裝了什麼、用了什麼，分成裝、拿掉、用內建的就好三類，見[建議](#建議裝拿掉用內建的就好) | 三邊說「OmniKit 本週週報」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-weekly`，Codex 輸入 `$omnikit-weekly`。訪談怎麼答都會裝。建議只有 Claude Code 與 Codex 有 |
 | `omnikit-handoff` skill | 說「交接」，agent 把做到一半的工作 commit、push，寫一份交接檔到你的狀態 repo，再開新對話接著做；新對話說「讀 <交接檔路徑> 接著做」就照交接檔接手。狀態 repo 的位置寫在你的 profile，沒寫 agent 會先問 | 三邊說「交接」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-handoff`，Codex 輸入 `$omnikit-handoff` |
 | `omnikit-dispatch` skill | 派子任務、開子對話時照分派政策選模型與思考程度，收完結果後記一行委派紀錄（存在這台，不上傳）；也能看 Sonnet 試行的比較與本週 Claude 用量。見[子任務分派與委派紀錄](#子任務分派與委派紀錄) | 三邊說「委派紀錄」「分派統計」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-dispatch`，Codex 輸入 `$omnikit-dispatch`。本週用量的快照只有 Claude Code 的狀態列存得到 |
 | `omnikit-research` skill | 說「先查業界做法」「找同類工具」「比較方案」，agent 每個管道都查（網頁中英文、GitHub topic 與星數、fork 與競品、skill／MCP 目錄、Hacker News、Product Hunt），關鍵字從結果擴展，連續 3 組沒有新名字才停（長尾題目改看 ★1,000 以上的名字，標「長尾未飽和」；12 組還沒停先回報）；報告附查了哪些管道與關鍵字、第幾組停、哪裡查不到，星數與授權用 `gh api` 實測並寫日期。安全底線有一行要求調研照這個 skill 做 | 三邊說「找同類工具」「調研」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-research`，Codex 輸入 `$omnikit-research`。GitHub 的管道要先 `gh auth login` |
+| `omnikit-capabilities` skill | agent 要說「做不到」「沒有工具」「請你手動做」之前，先清點這台能用的 CLI（標出 Git Bash 找不到、只有 PowerShell 找得到的，例如只有 `t3.cmd` 的 T3）、各 agent 登記的 MCP server、本機 MCP 端點（開著沒、要不要登入、哪個 agent 還沒接），列出最省事的做法，再對照 `--help` 與最新官方文件。只看檔案、PATH 與本機連線，不印金鑰。安全底線的「說做不到之前」要求先照這個 skill 查完 | 三邊要說做不到、或使用者問「你能不能…」「有沒有辦法派給…」時觸發；要手動叫，Claude Code 輸入 `/omnikit-capabilities`，Codex 輸入 `$omnikit-capabilities`。也能直接跑 `uv run engine/scripts/capabilities.py` |
 | `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡；「每週彙整」是維護者評估工具用的 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval`，Codex 輸入 `$omnikit-eval`。Codex 與 Antigravity 用的是複製品，skill 改完要 commit 才會更新 |
 | `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 已加進免問清單，Codex 設成自動核准，兩邊都不會跳權限確認；Antigravity 照它自己的權限設定 |
 | 開新對話提醒 | 每回合結束時檢查一次：這段對話第一次成功 `git push`、或累計第 1、3、9、27… 次自動壓縮，就跳一行提醒你考慮開新對話；任務還沒做完的話，跟 agent 說「交接」。不看 token 數（各模型上限不同，自動壓縮才是 agent 自己判斷滿了）。提醒本身不會自己換對話 | Claude Code 裝好就生效；由別的對話開出來的子對話不提醒，做完看收尾的狀態就好。Codex 的新 hook 要先信任才會跑，CLI 輸入 `/hooks`、桌面版到設定的 Hooks 按信任；OmniKit 搬位置或原本那支 uv 不在了，指令會改，要再信任一次 |
@@ -605,6 +606,7 @@ engine/                      引擎：不用改
   skills/omnikit-handoff/    交接與接手的 skill
   skills/omnikit-dispatch/   子任務分派與委派紀錄的 skill
   skills/omnikit-research/   飽和式調研（查同類工具、比較方案）的 skill
+  skills/omnikit-capabilities/ 說做不到之前的能力清點（指令、MCP、本機端點）的 skill
 .claude-plugin/              Claude Code 的 marketplace（由名冊產生，不要手改）
 .agents/plugins/             Codex 的 marketplace（由名冊產生，不要手改）
 ```

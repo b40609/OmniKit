@@ -7,5 +7,5 @@
 - **寫的與審的不同家**：有第二家模型時，重要的結果換一家唯讀審查。
 - **派之前**：先跑 `run.py show` 選級別、模型與思考程度，寫進任務說明；不要沿用主線的設定，也不要靠預設值。
 - **派之後**：結果由主控驗收（讀它改的檔、跑測試），不只看它的回覆。收完、settle 之前用 `run.py log` 記一行；驗收不過照 `show` 印的順序升級，升級也記。
-- **不在 T3 裡也能派給 T3**：主控是 Claude Code、Codex 或 Antigravity 時，用 T3 Code 的本機 CLI `t3 thread start`（在 PowerShell 呼叫，Git Bash 的 PATH 沒有 `t3`）開 T3 對話、指定帳號實例與模型；沒有 `delegate_task` 這類 T3 工具不代表派不了。用法在政策的 `t3_cli` 管道。
+- **不在 T3 裡也能派給 T3**：主控是 Claude Code、Codex 或 Antigravity 時，用 T3 Code 的本機 CLI `t3 thread start`（PowerShell 打 `t3`；Git Bash 要打 `t3.cmd`，Bash 不會自動補 `.cmd`）開 T3 對話、指定帳號實例與模型；沒有 `delegate_task` 這類 T3 工具不代表派不了。用法在政策的 `t3_cli` 管道。
 - 專案規則對模型分工或驗收另有規定時，照專案規則。

@@ -35,7 +35,7 @@ uv run scripts/run.py agy --class gemini-pro --thinking high --brief-file <任�
 
 主控是 Claude Code、Codex 或 Antigravity，沒有 `delegate_task`、`t3_thread_launch` 這類 T3 工具時，用 T3 Code 的本機 CLI `t3 thread`。**不要回答「這裡沒有 T3 工具，沒辦法派」**。適合：要指定 T3 上的帳號實例或模型（例如 `antigravity_kai` 加 `gemini-3.8-flash`）、想在 T3 側邊欄看到那條對話、之後要用 `send` 接著問。
 
-- 在 **PowerShell** 呼叫。`t3.cmd` 在 `%USERPROFILE%\.t3\bin`，PowerShell 的 PATH 有、Git Bash 沒有；Bash 的 `command -v t3` 找不到不代表沒裝。先 `t3 --version` 確認。
+- PowerShell 打 `t3`；Git Bash 要打 `t3.cmd`。`%USERPROFILE%\.t3\bin` 只有 `t3.cmd`，Bash 只會自動補 `.exe`，所以 Bash 的 `command -v t3` 找不到，不代表沒裝。先 `t3 --version` 確認；找不到就跑 `omnikit-capabilities` 的清點。
 - 開對話（`.` 是目前 repo；也可以填 project id 或那個專案裡的路徑）：
 
   ```
@@ -47,8 +47,8 @@ uv run scripts/run.py agy --class gemini-pro --thinking high --brief-file <任�
   - 要獨立 worktree：加 `--worktree <分支或 commit>`，可再加 `--branch <新分支名>`。
   - `--wait` 等它做完並印回覆；結束碼 1 是執行失敗、2 是對話在等人回答（用 `send` 回它）。不加 `--wait` 就只印對話 id，適合長任務。
 - 之後：`t3 thread show <id> --json` 看狀態與最新訊息；`t3 thread send <id> "<訊息>" --wait` 追問；`t3 thread list --json` 列出對話。
-- 思考程度：t3 v0.1.10 沒有參數可設。Antigravity 的模型把程度寫進代號（`gemini-4-hydrogen-xhigh`）；Claude 的 effort 設不了，要指定 effort 就改用原生子代理。
-- 結案：v0.1.10 沒有 settle 子指令。收完結果後，在回報裡列出對話 id 與標題，請使用者在 T3 結案（主控有 `t3_thread_organize` 時自己 settle）。
+- 要指定思考程度或 settle：接 T3 的 MCP（`claude mcp add --transport http t3 http://127.0.0.1:3773/mcp` 再 `claude mcp login t3`，Codex 用 `codex mcp add t3 --url ...` 再 `codex mcp login t3`；登入要使用者在瀏覽器核准一次）。接上之後用 `t3_thread_launch` 開對話，`modelSelection.options` 帶思考程度；用 `t3_thread_organize`（`action: settle`、給 `threadId`）結案。這是照上游文件與原始碼（2026-11-18 查證）可以這樣做，本機還沒實測；先跑 `omnikit-capabilities` 看哪個 agent 已經登記。
+- 只用 CLI 時：t3 v0.1.10 沒有思考程度參數，Antigravity 的模型把程度寫進代號（`gemini-4-hydrogen-xhigh`）；也沒有 settle 子指令，收完結果後在回報裡列出對話 id 與標題，請使用者在 T3 結案。
 - 和其他管道的分工：同供應商、不用指定帳號 → 原生子代理；要 Antigravity 模型、要看思考 token 或在背景跑 → agy_cli；要指定 T3 的帳號實例、要在 T3 看到 → t3_cli；主控本身在 T3 裡 → delegate_task。
 - 結果一樣由主控驗收。記紀錄時 `--channel t3_cli --instance <實例>`。
 - 【待驗證】照上游 `pingdotgg/t3code` 的 `docs/user/outside-agents.md`，Claude Code 可以 `claude mcp add --transport http t3 <環境位址>/mcp` 再 `claude mcp login t3`（Codex 用 `codex mcp add t3 --url ...` 與 `codex mcp login t3`），拿到 `t3_thread_launch`、`t3_thread_wait`、`t3_thread_organize`；在外部 agent 要用 `t3_thread_launch`，`delegate_task` 會回錯。本機還沒實測。

@@ -1,0 +1,681 @@
+{
+ "created": "2026-11-18",
+ "groups": [
+  {
+   "group": "llm agent learned helplessness",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 3
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "arXiv:2512.13762"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "agents.md rules autonomy",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 4
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 3
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "dep/agent-rules"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "over-refusal capability",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 3
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "AI agent 說做不到 叫我手動",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-zh": {
+     "names": [],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "default to action agentic eagerness",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "arXiv:2610.24194",
+      "arXiv:2604.08588"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "anthropic-claude-prompting-best-practices",
+      "openai-gpt5-prompting-guide",
+      "google-aistudio-prompting-strategies",
+      "google-cloud-engineer-agentic-prompts",
+      "claude-code-best-practices"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "unsolvable task detection llm agent",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 3
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "arXiv:2606.28733",
+      "arXiv:2605.28532",
+      "arXiv:2512.01661",
+      "arXiv:2406.20015"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "arXiv:2510.20270",
+      "arXiv:2607.10059",
+      "arXiv:2506.09038",
+      "arXiv:2607.28815"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "claude.md cursorrules agent rules",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 18
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 11
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "PatrickJS/awesome-cursorrules",
+      "netdata/netdata",
+      "x1xhlol/system-prompts-and-models-of-ai-tools",
+      "jason-m-d/crosby"
+     ],
+     "errors": []
+    },
+    "related": {
+     "names": [
+      "balqaasem/awesome-windsurfrules",
+      "jhonma82/awesome-clinerules",
+      "project-translation/awesome-cursorrules",
+      "luongnv89/agents-dot-md",
+      "iagomsouza/awesome-cursorrules",
+      "obstr/awesome-cursorrules",
+      "ghuntley/awesome-cursorrules",
+      "jfontestad/ai-awesome-cursorrules",
+      "surefirestudios/awesome-cursorrules",
+      "stacklok/prompt-library",
+      "claire-gong-18/awesome-cursorrules",
+      "shareai-lab/share-best-prompt",
+      "wesleymaik/system-prompts-and-models-of-ai-tools",
+      "hussainasghar/system-prompts-and-models-of-ai-tools",
+      "deonna/system-prompts-and-models-of-ai-tools",
+      "iamunbounded/ai-tools",
+      "yours-flow/leaked-prompts",
+      "tasmay-tibrewal/system-prompts-and-models-of-ai-tools",
+      "anxkhn/system-prompts-and-models-of-ai-tools",
+      "kiliczsh/system-prompts-and-models-of-ai-tools",
+      "harshyadav152/prompts-g-es-by-x1xhlol"
+     ],
+     "errors": []
+    },
+    "producthunt": {
+     "names": [],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "latest documentation training data cutoff agent rules",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 3
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "aws-agentic-ai-lens-agentrel05"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "feasibility awareness agentic abstention",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [
+      "arXiv:2610.06563",
+      "arXiv:2610.19226"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "facebookresearch/AbstentionBench",
+      "LeonChengg/FeasiGen",
+      "knowledge-verse-ai/LLM-Self_Knowledge_Eval",
+      "arXiv:2606.20661"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "coding agent laziness verify before claiming",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [],
+     "errors": []
+    }
+   }
+  }
+ ],
+ "stars": {
+  "anxkhn/system-prompts-and-models-of-ai-tools": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "balqaasem/awesome-windsurfrules": {
+   "stars": 48,
+   "checked": "2026-11-18"
+  },
+  "claire-gong-18/awesome-cursorrules": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "deonna/system-prompts-and-models-of-ai-tools": {
+   "stars": 51,
+   "checked": "2026-11-18"
+  },
+  "dep/agent-rules": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "ghuntley/awesome-cursorrules": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "harshyadav152/prompts-g-es-by-x1xhlol": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "hussainasghar/system-prompts-and-models-of-ai-tools": {
+   "stars": 70,
+   "checked": "2026-11-18"
+  },
+  "iagomsouza/awesome-cursorrules": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "iamunbounded/ai-tools": {
+   "stars": 45,
+   "checked": "2026-11-18"
+  },
+  "jason-m-d/crosby": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "jfontestad/ai-awesome-cursorrules": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "jhonma82/awesome-clinerules": {
+   "stars": 24,
+   "checked": "2026-11-18"
+  },
+  "kiliczsh/system-prompts-and-models-of-ai-tools": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "luongnv89/agents-dot-md": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "netdata/netdata": {
+   "stars": 81463,
+   "checked": "2026-11-18"
+  },
+  "obstr/awesome-cursorrules": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "patrickjs/awesome-cursorrules": {
+   "stars": 41167,
+   "checked": "2026-11-18"
+  },
+  "project-translation/awesome-cursorrules": {
+   "stars": 21,
+   "checked": "2026-11-18"
+  },
+  "shareai-lab/share-best-prompt": {
+   "stars": 323,
+   "checked": "2026-11-18"
+  },
+  "stacklok/prompt-library": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "surefirestudios/awesome-cursorrules": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "tasmay-tibrewal/system-prompts-and-models-of-ai-tools": {
+   "stars": 27,
+   "checked": "2026-11-18"
+  },
+  "wesleymaik/system-prompts-and-models-of-ai-tools": {
+   "stars": 294,
+   "checked": "2026-11-18"
+  },
+  "x1xhlol/system-prompts-and-models-of-ai-tools": {
+   "stars": 144739,
+   "checked": "2026-11-18"
+  },
+  "yours-flow/leaked-prompts": {
+   "stars": 29,
+   "checked": "2026-11-18"
+  },
+  "facebookresearch/abstentionbench": {
+   "stars": 101,
+   "checked": "2026-11-18"
+  },
+  "knowledge-verse-ai/llm-self_knowledge_eval": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "leonchengg/feasigen": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  }
+ }
+}

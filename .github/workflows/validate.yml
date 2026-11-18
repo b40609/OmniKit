@@ -51,6 +51,9 @@ jobs:
       - run: uv run engine/skills/omnikit-dispatch/scripts/run.py show > /dev/null
       # 飽和式調研：帳本、停止條件、各管道的解析（假的 gh 與網路）
       - run: uv run engine/skills/omnikit-research/scripts/sweep.py --selftest
+      # 說做不到之前的能力清點：各種 shell 的找法（Bash 不補 .cmd）、各 agent 的 MCP 設定不印金鑰、本機端點的判斷
+      - run: uv run engine/scripts/capabilities.py --selftest
+      - run: uv run engine/skills/omnikit-capabilities/scripts/run.py --json > /dev/null
       # 接上三個 agent（規則、skills、MCP，以及從舊版 skillshare 接手）的自我測試
       - run: uv run engine/scripts/agents.py --selftest
       # 找出每個 agent 在用的設定目錄（多帳號、T3 Code 的實例、CLAUDE_CONFIG_DIR…），以及開新對話時接上新出現的
