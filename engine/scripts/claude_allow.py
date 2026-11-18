@@ -31,9 +31,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import edition  # noqa: E402  同一個資料夾，沒有相依套件
 import profiles  # noqa: E402  其他 Claude 設定目錄（claude_homes）
 from fsretry import flaky, retry  # noqa: E402  防毒短暫鎖住檔案時等一下再試（FR-34）
+import statedir  # noqa: E402  狀態資料夾 ~/.omnikit
 
 ROOT = Path(__file__).resolve().parents[2]
-RECORD = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "omnikit" / "install-record.json"
+RECORD = statedir.STATE / "install-record.json"
 NUDGE = "session_nudge.py"
 WATCH = "home_watch.py"
 CLAIM = "claim_check.py"

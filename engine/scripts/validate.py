@@ -17,10 +17,10 @@ capability 是 agent 碰得到什麼，domain 是一種業務要交付的成果�
 讀出的名冊裡，槽位情境是套上 profile 之後的：這台用 profiles.py 選過的 profile 優先，
 沒有就用 data/omnikit.yaml 的 profile；那個 profile 沒寫的槽位沿用模組檔裡的範本。
 
-repo 外的 profile（%LOCALAPPDATA%\\omnikit\\profiles，訪談產生的）只檢查這台在用的那一個：其他的跟名冊無關，
+repo 外的 profile（~/.omnikit/profiles，訪談產生的）只檢查這台在用的那一個：其他的跟名冊無關，
 pre-commit 與 CI 也不該因為這台的個人檔案失敗。看板用的 profile（omnikit.yaml）一定要在 repo 裡。
 
-私有模組放在 repo 外的 %LOCALAPPDATA%\\omnikit\\modules\\<層>\\<id>.yaml，格式跟公開的模組檔一樣，只在這台生效，
+私有模組放在 repo 外的 ~/.omnikit/modules/<層>/<id>.yaml，格式跟公開的模組檔一樣，只在這台生效，
 不會被 commit。只有給這台看的腳本（建議、找候選）才讀它（check 的 private=True）；看板與評估紀錄會寫進 repo，
 所以預設不讀。有問題的私有模組不載入、列出原因，不算名冊的錯。
 
@@ -324,7 +324,7 @@ def check_profiles(data, slot_ids, state=None, wanted=None, modules=None):
 
 def check(data, profile=None, state=None, private=False):
     """回傳（問題清單, 名冊）；名冊含 config、套上 profile 情境的 slots、依 id 排序的 tools、profile 名稱
-    與它的資料夾（profile_dir）。state 是 %LOCALAPPDATA%\\omnikit（自我測試換成暫存資料夾）。
+    與它的資料夾（profile_dir）。state 是 ~/.omnikit（自我測試換成暫存資料夾）。
     private=True 才把這台的私有模組（state/modules）接在公開名冊後面，名冊多一個 private：{dir, loaded, skipped}。
     私有模組一律啟用（放進去就是要用，刪掉檔案就停用）；它的問題不算名冊的錯，只列在 skipped。
     會把結果寫進 repo 或公開看板的腳本不要開 private。"""

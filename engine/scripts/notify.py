@@ -17,7 +17,7 @@ E4 主動通知一次；E3 只進個人週報（weekly.py 第 3 區）。
 
 怎麼顯示（照 gh、update-notifier 的做法：背景算、下次顯示，一天最多算一次）：
 1. plan：讀名冊、實測紀錄與這台裝了什麼，算出每個 agent 還沒裝的 E3、E4 候選，存到
-   %LOCALAPPDATA%\\omnikit\\notify\\queue.json。要讀名冊（pyyaml），所以由 hook 在背景開一個 uv 跑，不擋對話。
+   ~/.omnikit/notify/queue.json。要讀名冊（pyyaml），所以由 hook 在背景開一個 uv 跑，不擋對話。
 2. due：session_nudge.py（Stop hook）在一個主線 session 的第一回合呼叫，只讀 JSON（不用 pyyaml）：
    - 試用到期（swaps.json 裡試用中、已過試用期限的）先提，每個替換提一次。
    - 再來是 E4：每週最多 1 則；同一個工具同一份證據只提一次；同一個槽位提過之後 30 天內不再提，除非證據換了。
@@ -26,7 +26,7 @@ E4 主動通知一次；E3 只進個人週報（weekly.py 第 3 區）。
    顯示過的記在 notify\\shown.json（只有槽位、工具 id、依據的路徑與日期）。
 3. mute：說「OmniKit 通知靜音」就全部靜音；也可以只靜音一個工具。unmute 打開。
 
-這支腳本只讀名冊與紀錄、只寫 %LOCALAPPDATA%\\omnikit\\notify\\，不安裝、不連網；要換工具一律走「給我建議」與 swap.py。
+這支腳本只讀名冊與紀錄、只寫 ~/.omnikit/notify/，不安裝、不連網；要換工具一律走「給我建議」與 swap.py。
 
 用法：
   uv run engine/scripts/notify.py plan [--print]
@@ -47,7 +47,10 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
-STATE = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "omnikit"  # 跟 profiles.STATE 一樣；這裡不能匯入 pyyaml
+sys.path.insert(0, str(HERE))
+import statedir  # noqa: E402  同一個資料夾，沒有相依套件（這裡不能匯入要 pyyaml 的 profiles）
+
+STATE = statedir.STATE  # 跟 profiles.STATE 一樣：~/.omnikit
 AGENTS = {"claude": "claude-code", "codex": "codex"}
 LABELS = {"claude": "Claude Code", "codex": "Codex"}
 WEEK_BETTER = 1   # FR-16：主動通知每人每週最多 1 則

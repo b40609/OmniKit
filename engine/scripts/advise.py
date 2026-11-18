@@ -11,7 +11,7 @@
 - 腳本給事實與候選（這支，輸出 JSON）：只讀本機的紀錄與設定，不連網、不花 token、不寫檔。
 - agent 在候選裡挑選，每一項寫理由，存成一個 JSON 檔。候選以外的不能挑。
 - 腳本驗證挑選並寫出建議（--picks）：每一項都要在候選裡、都要有理由，通過才寫。建議存在
-  %LOCALAPPDATA%\\omnikit\\advice\\<日期>-<agent>.md，附上使用者同意後要跑的指令。
+  ~/.omnikit/advice/<日期>-<agent>.md，附上使用者同意後要跑的指令。
 - 安裝、停用、移除不在這支腳本裡做：交給各 agent 原生的指令（claude plugin、codex plugin、claude mcp、codex mcp）。
 
 三類候選，Claude Code 與 Codex 各算各的；這台沒裝、或這段期間沒有對話紀錄的 agent 不出建議：
@@ -1093,7 +1093,7 @@ def selftest():
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         tmp = Path(tmp)
         path = save(["# 建議"], tmp / "state", "2026-11-11", "claude")
-        check("建議存在 %LOCALAPPDATA%\\omnikit\\advice\\<日期>-<agent>.md",
+        check("建議存在 ~/.omnikit/advice/<日期>-<agent>.md",
               path == tmp / "state" / "advice" / "2026-11-11-claude.md" and path.read_text(encoding="utf-8") == "# 建議\n")
 
         def offline(*_a, **_k):
@@ -1143,7 +1143,7 @@ def main(argv=None):
     parser.add_argument("--agent", choices=sorted(AGENTS), help="只看一個 agent；不給就兩個都列")
     parser.add_argument("--days", type=int, default=30, help="多少天沒用到算「沒在用」，預設 30")
     parser.add_argument("--picks", type=Path, help="agent 挑選的結果（JSON 檔）：驗證後寫出建議")
-    parser.add_argument("--no-save", action="store_true", help="只印出來，不存到 %%LOCALAPPDATA%%\\omnikit\\advice")
+    parser.add_argument("--no-save", action="store_true", help="只印出來，不存到 ~/.omnikit/advice")
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args(argv)
     if args.selftest:

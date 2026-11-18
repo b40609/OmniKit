@@ -8,7 +8,10 @@
 """doctor（FR-11）：逐項確認 OmniKit 寫進這台的設定都還在、跟記錄一樣，再用各 agent 自己的清單確認。
 只讀不寫。查不到的標「未知」，不當作通過；有任何一項失敗就 exit 1。
 
-寫入檢查（照 %LOCALAPPDATA%\\omnikit 的 agents.json 與 install-record.json）：
+狀態：狀態資料夾（~/.omnikit，見 statedir.py）只能有一份。舊位置（%LOCALAPPDATA%\\omnikit，以及 Claude 桌面版
+這類封裝的 app 轉存的副本 %LOCALAPPDATA%\\Packages\\*\\LocalCache\\Local\\omnikit）還有沒合併的狀態檔，列成失敗；
+上次合併有衝突就列出來（用了較新的，另一份在備份裡）。
+寫入檢查（照 ~/.omnikit 的 agents.json 與 install-record.json）：
 - 規則：~/.claude/CLAUDE.md、~/.codex/AGENTS.md、~/.gemini/GEMINI.md 的受管區塊，跟這台選的 profile 產生的一樣。
 - skills：記錄裡的每個 skill 都在；連結指向 repo，複製品的雜湊跟 repo 一樣。
 - MCP：帳本裡的每個 server 都在，OmniKit 管的欄位雜湊跟寫入時一樣（被改過就用 agents.py resolve 決定）。
@@ -41,6 +44,7 @@ import agents  # noqa: E402
 import claude_allow  # noqa: E402
 import homes  # noqa: E402
 import profiles  # noqa: E402
+import statedir  # noqa: E402
 import t3_acp  # noqa: E402
 
 OK, FAIL, UNKNOWN = "ok", "fail", "unknown"
@@ -290,12 +294,23 @@ def installed_repo(env, rec):
     return None
 
 
-def collect(env, record_path, lists=True, pre=False, run=subprocess.run, which=shutil.which, found=None):
-    """found：homes.discover() 的結果；沒給就照 env.home 找（測試用的 home 不看這個行程的環境變數）。"""
+def check_state(state, environ=None):
+    """狀態資料夾只能有一份：舊位置（%LOCALAPPDATA%\\omnikit、封裝的 app 轉存的副本）還有沒合併的就是失敗。"""
+    return [row("狀態", "", item, OK if ok else FAIL, detail) for ok, item, detail in statedir.report(state, environ)]
+
+
+def collect(env, record_path, lists=True, pre=False, run=subprocess.run, which=shutil.which, found=None, environ=None):
+    """found：homes.discover() 的結果；沒給就照 env.home 找（測試用的 home 不看這個行程的環境變數）。
+    environ：找舊狀態位置用的環境變數；沒給時一樣，測試用的 home 不看這個行程的。"""
     rec = agents.load_record(env)
-    found = homes.discover(env.home, None if env.home == homes.HOME else {}) if found is None else found
+    environ = (None if env.home == homes.HOME else {}) if environ is None else environ
+    found = homes.discover(env.home, environ) if found is None else found
+    state_rows = check_state(env.state, environ)
     if not rec["agents"]:
-        return [row("記錄", "", "agents.json", FAIL, "這台還沒接上 OmniKit（沒有 agents.json）：跑 install.ps1")]
+        legacy = any(r["status"] == FAIL for r in state_rows)
+        return [row("記錄", "", "agents.json", FAIL,
+                    "狀態資料夾還沒有 agents.json，舊位置的還沒合併過來：跑 agents.py sync" if legacy
+                    else "這台還沒接上 OmniKit（沒有 agents.json）：跑 install.ps1")] + state_rows
     rows = []
     repo = installed_repo(env, rec)
     if repo and not agents.same_path(repo, env.repo) and (repo / "data").is_dir():
@@ -303,6 +318,7 @@ def collect(env, record_path, lists=True, pre=False, run=subprocess.run, which=s
         env = dataclasses.replace(env, repo=repo)
     rows += check_rules(env, rec) + check_skills(env, rec) + check_mcp(env, rec) + check_harness(env.home, record_path)
     rows += check_homes(rec, found, t3_acp.state(env.home, t3_acp.acp_dir(env.home)))
+    rows += state_rows
     if lists:
         rows += agent_lists(rec, run, which)
     if pre:
@@ -415,6 +431,18 @@ def selftest():
         check("從別的 checkout 執行：以安裝時的 repo 為準", moved[0]["item"] == "repo"
               and next(r for r in moved if r["area"] == "skills" and r["agent"] == "Claude Code")["status"] == OK)
         check("還沒接上：直接說要跑 install.ps1", collect(empty, tmp / "none.json", lists=False)[0]["status"] == FAIL)
+
+        # 狀態只能有一份：封裝的 app（Claude 桌面版）轉存的副本還沒合併，列成失敗並說怎麼合併
+        local = tmp / "AppData" / "Local"
+        put(local / "Packages" / "Claude_x" / "LocalCache" / "Local" / "omnikit" / "install-record.json", "{}")
+        rows = collect(env, record_path, lists=False, environ={"LOCALAPPDATA": str(local)})
+        st = [r for r in rows if r["area"] == "狀態"]
+        check("狀態：列出狀態資料夾；封裝轉存的副本沒合併是失敗，說要跑 statedir.py migrate",
+              st[0]["status"] == OK and st[0]["detail"] == str(state) and st[1]["status"] == FAIL
+              and "Claude_x" in st[1]["detail"] and "statedir.py migrate" in st[1]["detail"])
+        first = collect(empty, tmp / "none.json", lists=False, environ={"LOCALAPPDATA": str(local)})
+        check("還沒有 agents.json 但舊位置有：說要先合併，不叫你重裝", "agents.py sync" in first[0]["detail"]
+              and any(r["area"] == "狀態" and r["status"] == FAIL for r in first))
 
         # 其他設定目錄：接上的通過；安裝後才出現的列成失敗；沒接上的 agent 不管
         kai, work, cx = home / ".claude-kai", home / ".claude-work", home / ".codex-x"

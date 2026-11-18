@@ -12,15 +12,15 @@ agent 讀到的規則是兩層接在一起，依序：
 同一個 profile 資料夾裡的 scenarios.yaml 是評估工具用的真實情境，由 validate.py 讀。
 
 profile 放在兩個地方，同名時 repo 外的優先：
-- %LOCALAPPDATA%\\omnikit\\profiles\\<名稱>\\：訪談（omnikit-setup）產生的。個人資料不放進 repo，
+- ~/.omnikit/profiles/<名稱>/：訪談（omnikit-setup）產生的。個人資料不放進 repo，
   不會被 commit 或 push，git status 也看不到（FR-38）。
 - data/profiles/<名稱>/：跟著 repo 的，default 與維護者手寫的。
 舊版把訪談產生的 profile 寫在 data/profiles/ 裡；--migrate 把它們搬到 repo 外，刪掉 repo 裡的舊檔前先問。
 
-選了哪個 profile 記在 %LOCALAPPDATA%\\omnikit\\profile.json。沒選過就用 default（授權偏保守），
+選了哪個 profile 記在 ~/.omnikit/profile.json（狀態資料夾，見 statedir.py）。沒選過就用 default（授權偏保守），
 而且每次都會提醒，直到用 --set 選定。
 
-接上的方式（只接 agents.py 記錄裡的 agent，記在 %LOCALAPPDATA%\\omnikit\\agents.json）：
+接上的方式（只接 agents.py 記錄裡的 agent，記在 ~/.omnikit/agents.json）：
 - Claude Code：~/.claude/CLAUDE.md 開頭的受管區塊 import 底線與 profile 兩份，改完開新 session 就生效。
   其他 Claude 設定目錄（CLAUDE_CONFIG_DIR、T3 Code 每個 Claude 實例的 homePath、~/.claude-* 等，見 homes.py）的
   CLAUDE.md 也放同一個區塊，不然那些帳號只讀自己目錄的 CLAUDE.md，完全讀不到 OmniKit 規則（claude_homes）。
@@ -53,13 +53,14 @@ from datetime import datetime
 from pathlib import Path
 
 import homes  # 同一個資料夾：這台每個 agent 在用的設定目錄
+import statedir  # 同一個資料夾：狀態資料夾 ~/.omnikit，以及從舊位置搬過來
 from fsretry import flaky, retry  # 同一個資料夾：防毒短暫鎖住檔案時等一下再試（FR-34）
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "data"
 HOME = Path.home()
 LOCAL = Path(os.environ.get("LOCALAPPDATA", HOME))
-STATE = LOCAL / "omnikit"
+STATE = statedir.STATE  # ~/.omnikit：不放 %LOCALAPPDATA%，從封裝的 app（Claude 桌面版）裡跑會被轉存成另一份
 RULES = {
     "claude-code": HOME / ".claude" / "CLAUDE.md",
     "codex": HOME / ".codex" / "AGENTS.md",
@@ -861,6 +862,9 @@ def main(argv=None):
         return selftest()
     if args.yes and not args.migrate:
         parser.error("--yes 要搭配 --migrate")
+    if not args.show:
+        for line in statedir.migrate(STATE).lines():  # 舊位置（%LOCALAPPDATA%\omnikit）的狀態先搬過來
+            print(line)
     if args.migrate:
         for line in migrate_cli(DATA, STATE, yes=args.yes):
             print(line)

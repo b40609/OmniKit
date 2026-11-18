@@ -24,7 +24,7 @@
   列出開頭成本變多的工具。
 - E（FR-44）名冊比對：裝著、但名冊上不是 default 或 trial 的。
 
-狀態存在 %LOCALAPPDATA%\\omnikit\\weekly\\：inventory.json（上次看到的清單）、startup.json（每週的開頭大小）。
+狀態存在 ~/.omnikit/weekly/：inventory.json（上次看到的清單）、startup.json（每週的開頭大小）。
 
 用法：
   uv run engine/scripts/cost.py [--json]      印出這台的成本監測（不寫任何檔案）
@@ -901,8 +901,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.selftest:
         return selftest()
-    import os
-    state = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "omnikit"
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import statedir  # 同一個資料夾：狀態資料夾 ~/.omnikit
+    state = statedir.STATE
     result = measure(Path.home(), state, plugin_details=details)
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2, default=str))

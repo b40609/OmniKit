@@ -21,7 +21,7 @@
 
 會連網：GitHub（raw 與 API）、registry.modelcontextprotocol.io、skills.sh。送出去的只有槽位的關鍵字（名冊裡公開的字），
 不送專案名稱、不送這台的任何內容。抓回來的文字只當資料存，不執行。結果存在
-%LOCALAPPDATA%\\omnikit\\pool\\，advise.py 只讀那裡的檔，自己不連網。
+~/.omnikit/pool/，advise.py 只讀那裡的檔，自己不連網。
 
 檢查沿用第 0 層的門檻：封存的不列；沒有授權、一年沒更新、建立不到 14 天、星數不到 50 只標出來；
 查不到就寫「未知」，不當作通過。這裡沒有跑 batch0.py 的完整健康指標，也沒有做安全掃描。

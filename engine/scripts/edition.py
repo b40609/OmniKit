@@ -11,9 +11,9 @@
   data/harness/claude-allow.txt 與 data/mcp/servers.yaml，那是維護者自己同意過的；同事版每個工具分開問，
   本人同意了才寫入，不沿用維護者的同意。
 
-版本記在 %LOCALAPPDATA%\\omnikit\\edition.json。沒有記錄時：分版之前就裝過的電腦（有 agents.json，
+版本記在 ~/.omnikit/edition.json（狀態資料夾，見 statedir.py）。沒有記錄時：分版之前就裝過的電腦（有 agents.json，
 而且 repo 用 .githooks）是維護者版，其他都是同事版。
-同意記在 %LOCALAPPDATA%\\omnikit\\consent.json，以工具為單位（MCP server 名稱；不是 MCP 的權限規則就用規則本身）。
+同意記在 ~/.omnikit/consent.json，以工具為單位（MCP server 名稱；不是 MCP 的權限規則就用規則本身）。
 
 用法：
   uv run engine/scripts/edition.py                          印出這台的版本與判斷依據
@@ -34,9 +34,10 @@ from datetime import date
 from pathlib import Path
 
 from fsretry import flaky, retry  # 同一個資料夾：防毒短暫鎖住檔案時等一下再試（FR-34）
+import statedir  # 同一個資料夾：狀態資料夾 ~/.omnikit
 
 ROOT = Path(__file__).resolve().parents[2]
-STATE = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "omnikit"
+STATE = statedir.STATE
 EDITIONS = ("maintainer", "colleague")
 LABELS = {"maintainer": "維護者版", "colleague": "同事版"}
 SOURCES = {"recorded": "記在 edition.json", "legacy": "分版之前就裝過，沿用原本的自動同步", "default": "預設"}
@@ -182,12 +183,13 @@ def selftest():
 
         check("不是 git repo：hooksPath 是空字串", hooks_path(tmp / "not-a-repo") == "")
 
-        # 實際跑 .githooks/sync-data.sh：%LOCALAPPDATA% 指到暫存資料夾，只餵不會觸發同步的組合，碰不到這台的設定
+        # 實際跑 .githooks/sync-data.sh：%LOCALAPPDATA% 與狀態資料夾都指到暫存資料夾，只餵不會觸發同步的組合，
+        # 碰不到這台的設定
         sh = shutil.which("sh")
         if not sh:
             print("略過：找不到 sh，沒有實際跑 git hook")
         else:
-            hook_env = {**os.environ, "LOCALAPPDATA": str(tmp / "hook")}
+            hook_env = {**os.environ, "LOCALAPPDATA": str(tmp / "hook"), statedir.ENV: str(tmp / "hook" / "omnikit")}
             if os.environ.get("UV"):  # 讓 hook 找得到正在用的這支 uv
                 hook_env["PATH"] = str(Path(os.environ["UV"]).parent) + os.pathsep + hook_env.get("PATH", "")
             if os.environ.get("LOCALAPPDATA") and not os.environ.get("UV_CACHE_DIR"):

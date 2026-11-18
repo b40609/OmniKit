@@ -14,11 +14,11 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
    GitHub repo、profile 改回 default，並重新產生 marketplace 清單，避免跟原作者的 marketplace 撞名。
 3. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本）。
 4. 舊版把訪談產生的 profile 存在 repo 裡（data/profiles/<名稱>，有 answers.json、沒進版本控制）的話，
-   交給 profiles.py --migrate 搬到 repo 外（%LOCALAPPDATA%\omnikit\profiles）；刪掉 repo 裡的舊檔前先問，
+   交給 profiles.py --migrate 搬到 repo 外（~/.omnikit/profiles）；刪掉 repo 裡的舊檔前先問，
    不能互動時什麼都不改，只列出來（FR-38）。
    agents.py connect：
    - 規則 = 安全底線（data/rules/baseline.md）+ 分派共用層（data/rules/dispatch.md）+ profile 的 AGENTS.md（profile 有 dispatch.md 也接）。訪談產生的 profile 在
-     %LOCALAPPDATA%\omnikit\profiles\<名稱>（不在 repo 裡），default 與維護者手寫的在 data/profiles/<名稱>；同名時 repo 外的優先。
+     ~/.omnikit/profiles/<名稱>（不在 repo 裡），default 與維護者手寫的在 data/profiles/<名稱>；同名時 repo 外的優先。
      Claude 在 ~/.claude/CLAUDE.md 用受管區塊 import；Codex 的 ~/.codex/AGENTS.md 與 Antigravity 的
      ~/.gemini/GEMINI.md 在開頭加受管區塊（原地改寫，硬連結不會斷），原本的規則留在區塊外照常生效，
      也先備份成 .pre-omnikit。沒指定也沒選過 profile 就用 default（下載、安裝前會先問）。
@@ -46,14 +46,17 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 每一步用 uv 跑 Python 腳本時，防毒短暫鎖住 uv 剛建好的暫存執行檔的話，等 3 秒重試一次（engine/scripts/uv-run.ps1，FR-34）。
 
 這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，會記在
-%LOCALAPPDATA%\omnikit\install-record.json；接上了哪些 agent、管了哪些 skills 與 MCP，記在
-%LOCALAPPDATA%\omnikit\agents.json。uninstall.ps1 只移除這些。
+~/.omnikit/install-record.json；接上了哪些 agent、管了哪些 skills 與 MCP，記在
+~/.omnikit/agents.json。uninstall.ps1 只移除這些。
+狀態放家目錄的 ~/.omnikit，不放 %LOCALAPPDATA%：從 Claude 桌面版這類 Microsoft Store（MSIX）封裝的 app 裡跑時，
+AppData 底下新建的檔會被轉存到那個 app 自己的位置，終端機、T3 Code、Codex 看不到，同一台就有兩份狀態。
+舊版放在 %LOCALAPPDATA%\omnikit 的（以及被轉存的副本），uv 裝好後第一步就合併進 ~/.omnikit（engine/scripts/statedir.py）。
 
 裝好之後，開新 session 說「幫我設定 OmniKit」，omnikit-setup 會用簡短訪談建立自己的 profile。
 
 參數：
   -ProfileName <名稱>  用這個 profile 的個人規則，並記下來；之後重跑不用再指定。先找 repo 外的
-                       %LOCALAPPDATA%\omnikit\profiles\<名稱>（訪談產生的），再找 data/profiles/<名稱>。
+                       ~/.omnikit/profiles/<名稱>（訪談產生的），再找 data/profiles/<名稱>。
   -Edition <版本>      colleague（同事版）或 maintainer（維護者版），記下來；之後重跑不用再指定。
                        沒指定也沒記過：分版之前就裝過的電腦是維護者版，其他都是同事版。
   -Fresh               這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
@@ -94,6 +97,7 @@ $Repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $ProfilesPy = Join-Path $Repo 'engine\scripts\profiles.py'
 $AgentsPy = Join-Path $Repo 'engine\scripts\agents.py'
 $EditionPy = Join-Path $Repo 'engine\scripts\edition.py'
+$StatedirPy = Join-Path $Repo 'engine\scripts\statedir.py'
 $PreflightPs1 = Join-Path $Repo 'engine\scripts\preflight.ps1'
 $EditionNames = @{ 'colleague' = '同事版'; 'maintainer' = '維護者版' }
 $Arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
@@ -106,8 +110,10 @@ $GitleaksExe = Join-Path $GitleaksDir 'gitleaks.exe'
 $ClaudeMd = Join-Path $env:USERPROFILE '.claude\CLAUDE.md'
 $CodexMd = Join-Path $env:USERPROFILE '.codex\AGENTS.md'
 $GeminiMd = Join-Path $env:USERPROFILE '.gemini\GEMINI.md'
-$AgentsFile = Join-Path $env:LOCALAPPDATA 'omnikit\agents.json'
-$RecordFile = Join-Path $env:LOCALAPPDATA 'omnikit\install-record.json'
+# 狀態資料夾：跟 statedir.py 一樣是 ~/.omnikit（OMNIKIT_STATE_DIR 可以改），不放 %LOCALAPPDATA%（原因見最上面）
+$StateDir = if ($env:OMNIKIT_STATE_DIR) { $env:OMNIKIT_STATE_DIR } else { Join-Path $env:USERPROFILE '.omnikit' }
+$AgentsFile = Join-Path $StateDir 'agents.json'
+$RecordFile = Join-Path $StateDir 'install-record.json'
 $SkillshareConfig = Join-Path $env:APPDATA 'skillshare\config.yaml'
 $BlockPattern = '(?s)<!-- omnikit:rules:begin -->.*?<!-- omnikit:rules:end -->'
 $OursHeader = '<!-- 由 OmniKit 產生，不要手改：'
@@ -307,7 +313,7 @@ function Request-AutoApprove {
 
 # profile 的資料夾：跟 profiles.py 的 folder 一樣，先找 repo 外的（訪談產生的），再找 repo 裡的；都沒有回 $null
 function Get-ProfileDir($name) {
-  foreach ($dir in @((Join-Path $env:LOCALAPPDATA "omnikit\profiles\$name"), (Join-Path $Repo "data\profiles\$name"))) {
+  foreach ($dir in @((Join-Path $StateDir "profiles\$name"), (Join-Path $Repo "data\profiles\$name"))) {
     if (Test-Path -LiteralPath (Join-Path $dir 'AGENTS.md')) { return $dir }
   }
   return $null
@@ -318,9 +324,27 @@ function Test-ProfileName($name) {
   if (-not $name) { return $null }
   if ($name -cnotmatch '^[a-z0-9]+(-[a-z0-9]+)*$') { return "profile 名稱只能用小寫英數與 -：$name" }
   if (-not (Get-ProfileDir $name)) {
-    return "找不到 profile「$name」（$(Join-Path $env:LOCALAPPDATA "omnikit\profiles\$name") 或 data/profiles/$name，要有 AGENTS.md）"
+    return "找不到 profile「$name」（$(Join-Path $StateDir "profiles\$name") 或 data/profiles/$name，要有 AGENTS.md）"
   }
   return $null
+}
+
+# 舊版的狀態位置還有東西的：%LOCALAPPDATA%\omnikit，以及封裝的 app（Claude 桌面版）轉存的副本
+# %LOCALAPPDATA%\Packages\<套件>\LocalCache\Local\omnikit（跟 statedir.py 的 candidates 一樣）
+function Get-LegacyStateDirs {
+  $dirs = @(Join-Path $env:LOCALAPPDATA 'omnikit')
+  $pkgs = Join-Path $env:LOCALAPPDATA 'Packages'
+  if (Test-Path -LiteralPath $pkgs) {
+    $dirs += @(Get-ChildItem -LiteralPath $pkgs -Directory -ErrorAction SilentlyContinue |
+        ForEach-Object { Join-Path $_.FullName 'LocalCache\Local\omnikit' })
+  }
+  return @($dirs | Where-Object { (Test-Path -LiteralPath $_) -and @(Get-ChildItem -LiteralPath $_ -Force -ErrorAction SilentlyContinue).Count })
+}
+
+# 舊位置的狀態合併進 ~/.omnikit（statedir.py）。後面每一步都讀寫新位置，所以 uv 一裝好就先跑
+function Merge-LegacyState {
+  $r = Invoke-UvRun (Get-Uv) @('run', '--quiet', $StatedirPy, 'migrate', '--quiet')
+  if ($r.Code -ne 0) { throw "statedir.py migrate 失敗（exit $($r.Code)）" }
 }
 
 # 舊版存在 repo 裡、由訪談產生的 profile：跟 profiles.py 的 legacy 一樣，有 answers.json、沒進版本控制的才算
@@ -431,12 +455,20 @@ function Show-InstallPlan {
   } else {
     $plan += "接上偵測到的 agent：$(($agents | ForEach-Object { $AgentNames[$_] }) -join '、')"
   }
+  $legacyState = @(Get-LegacyStateDirs)
+  if ($legacyState) {
+    $plan += "  狀態檔改放 $StateDir：把舊位置（$($legacyState -join '、')）合併過去，舊的原封不動備份在 $(Join-Path $StateDir 'legacy')；兩份不一樣的用較新的，並列出來"
+  }
   $legacyProfiles = @(Get-LegacyProfiles)
   if ($legacyProfiles) {
-    $dest = Join-Path $env:LOCALAPPDATA 'omnikit\profiles'
+    $dest = Join-Path $StateDir 'profiles'
     $plan += "  舊版存在 repo 裡的 profile（$($legacyProfiles -join '、')）：搬到 $dest（不會被 commit）；刪掉 repo 裡的舊檔前先問你，不能互動時不搬"
   }
-  $stateFile = Join-Path $env:LOCALAPPDATA 'omnikit\profile.json'
+  $stateFile = Join-Path $StateDir 'profile.json'
+  # 還沒合併：預覽照舊位置的記錄
+  if (-not (Test-Path -LiteralPath $stateFile)) {
+    $stateFile = @($legacyState | ForEach-Object { Join-Path $_ 'profile.json' } | Where-Object { Test-Path -LiteralPath $_ }) + @($stateFile) | Select-Object -First 1
+  }
   $chosen = if (Test-Path -LiteralPath $stateFile) { try { ([IO.File]::ReadAllText($stateFile) | ConvertFrom-Json).profile } catch { $null } }
   $name = if ($ProfileName) { $ProfileName } elseif ($chosen) { $chosen } else { 'default' }
   $note = if ($ProfileName -or $chosen) { '' } else { '（還沒選過，用預設：下載、安裝前會先問）' }
@@ -444,7 +476,7 @@ function Show-InstallPlan {
   $where = if (-not $profileDir) { '' } elseif ($profileDir.StartsWith($Repo)) { "，data/profiles/$name" } else { "，$profileDir" }
   $plan += "  規則：安全底線 + profile「$name」$note$where"
   if (-not $profileDir) {
-    $plan += "  找不到 profile「$name」（$(Join-Path $env:LOCALAPPDATA "omnikit\profiles\$name") 或 data/profiles/$name，要有 AGENTS.md），安裝會在這一步失敗"
+    $plan += "  找不到 profile「$name」（$(Join-Path $StateDir "profiles\$name") 或 data/profiles/$name，要有 AGENTS.md），安裝會在這一步失敗"
   }
   if ($agents -contains 'claude-code') {
     $verb = if ((Get-FileText $ClaudeMd) -match $BlockPattern) { '更新' } else { '在開頭加上' }
@@ -571,11 +603,14 @@ function Invoke-SelfTest {
   $tmp = Join-Path ([IO.Path]::GetTempPath()) ('okst-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
   New-Item -ItemType Directory -Path $tmp | Out-Null
   $realLocal, $realRepo, $realUvCache = $env:LOCALAPPDATA, $script:Repo, $env:UV_CACHE_DIR
+  $realStateEnv, $realStateDir = $env:OMNIKIT_STATE_DIR, $script:StateDir
   # uv 的快取預設在 %LOCALAPPDATA%，換掉之前先指回原本的，免得重新下載
   if (-not $env:UV_CACHE_DIR) { $env:UV_CACHE_DIR = Join-Path $realLocal 'uv\cache' }
   try {
     $env:LOCALAPPDATA = Join-Path $tmp 'local'
-    $editionFile = Join-Path $env:LOCALAPPDATA 'omnikit\edition.json'
+    $env:OMNIKIT_STATE_DIR = Join-Path $tmp 'state'
+    $script:StateDir = $env:OMNIKIT_STATE_DIR
+    $editionFile = Join-Path $script:StateDir 'edition.json'
     Check 'Get-EditionPreview：沒有記錄是同事版，而且不寫檔' ((Get-EditionPreview '') -eq 'colleague' -and -not (Test-Path $editionFile))
     Check 'Resolve-Edition：沒指定就照判斷（同事版）並記下來' ((Resolve-Edition '') -eq 'colleague' -and (Get-FileText $editionFile) -match '"colleague"')
     Check 'Resolve-Edition：-Edition maintainer 記成維護者版' ((Resolve-Edition 'maintainer') -eq 'maintainer' -and (Get-FileText $editionFile) -match '"maintainer"')
@@ -597,7 +632,7 @@ function Invoke-SelfTest {
     $utf8 = New-Object Text.UTF8Encoding($false)
     $put = { param($path, $text) New-Item -ItemType Directory -Force -Path (Split-Path $path) | Out-Null; [IO.File]::WriteAllText($path, $text, $utf8) }
     $inRepo = Join-Path $script:Repo 'data\profiles'
-    $local = Join-Path $env:LOCALAPPDATA 'omnikit\profiles'
+    $local = Join-Path $script:StateDir 'profiles'
     & $put (Join-Path $inRepo 'default\AGENTS.md') "# default`n"
     & $put (Join-Path $inRepo 'ryan\AGENTS.md') "# 維護者 commit 的`n"
     & $put (Join-Path $inRepo 'ryan\answers.json') '{}'
@@ -615,6 +650,19 @@ function Invoke-SelfTest {
     Check 'Test-ProfileName：格式不對（例如誤把 -SelfTest 當成名稱）或找不到，安裝一開始就停' (
       (Test-ProfileName '-SelfTest') -match '小寫英數' -and (Test-ProfileName 'Bad_Name') -match '小寫英數' -and
       (Test-ProfileName 'nope') -match '找不到 profile「nope」')
+
+    # 狀態的舊位置：%LOCALAPPDATA%\omnikit 與封裝的 app 轉存的副本，有東西的才算；合併後就不算
+    $pkgCopy = Join-Path $env:LOCALAPPDATA 'Packages\Claude_x\LocalCache\Local\omnikit'
+    New-Item -ItemType Directory -Force -Path (Join-Path $env:LOCALAPPDATA 'Packages\Other_y\LocalCache\Local') | Out-Null
+    & $put (Join-Path $pkgCopy 'agents.json') '{"agents": ["claude-code"]}'
+    & $put (Join-Path $env:LOCALAPPDATA 'omnikit\edition.json') '{"edition": "maintainer"}'
+    New-Item -ItemType Directory -Force -Path (Join-Path $env:LOCALAPPDATA 'Packages\Empty_z\LocalCache\Local\omnikit') | Out-Null
+    Check 'Get-LegacyStateDirs：列出有東西的舊位置（空的不算）' ((@(Get-LegacyStateDirs) -join '|') -eq
+      ((Join-Path $env:LOCALAPPDATA 'omnikit'), $pkgCopy -join '|'))
+    Merge-LegacyState
+    Check 'Merge-LegacyState：合併進狀態資料夾，舊位置搬走' (@(Get-LegacyStateDirs).Count -eq 0 -and
+      (Get-FileText (Join-Path $script:StateDir 'agents.json')) -match 'claude-code' -and
+      (Get-FileText (Join-Path $script:StateDir 'edition.json')) -match 'maintainer')
 
     # 防毒短暫鎖住 uv 的暫存執行檔（FR-34）：用真的 uv 跑一支假的腳本，照計數檔決定第幾次要印出
     # uv 被鎖住時的訊息並失敗。這裡在 Stop 模式下跑，stderr 有輸出也不能丟出錯誤
@@ -666,6 +714,7 @@ print(json.dumps(sys.argv[3:]))
       (ConvertFrom-UvBytes $mixed $cp950) -eq "UTF-8 的中文`ncp950 的中文")
   } finally {
     $env:LOCALAPPDATA, $script:Repo, $env:UV_CACHE_DIR = $realLocal, $realRepo, $realUvCache
+    $env:OMNIKIT_STATE_DIR, $script:StateDir = $realStateEnv, $realStateDir
     Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
   }
   Write-Host ''
@@ -697,6 +746,7 @@ if (-not $PreflightOk) {
 }
 
 Install-Uv
+Merge-LegacyState
 Install-Gh
 $CurrentEdition = Resolve-Edition $Edition
 if ($CurrentEdition -eq 'maintainer') { Install-Gitleaks }

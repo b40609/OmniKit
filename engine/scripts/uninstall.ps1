@@ -10,7 +10,7 @@ OmniKit 移除：把 install.ps1 對這台電腦做的改動還原，可以重�
    T3 Code 的 Antigravity 實例：還指到 OmniKit 轉接程式的 Binary path 拿掉（回到 T3 自動選），
    刪掉 ~/.omnikit/acp 裡的轉接程式；清掉舊版 skillshare 設定裡 OmniKit 的部分，刪掉 agents.json。
    同名但不是 OmniKit 的 skill 與 MCP server 不碰；OmniKit 寫入之後被使用者改過的 MCP server 也留著。
-4. 刪掉 %LOCALAPPDATA%\omnikit 裡接好的規則（rules\AGENTS.md）、profile 選擇（profile.json）、
+4. 刪掉 ~/.omnikit 裡接好的規則（rules\AGENTS.md）、profile 選擇（profile.json）、
    版本（edition.json）與免問核准的同意紀錄（consent.json）。
 5. 權限與 hook：從 ~/.claude/settings.json（與其他 Claude 設定目錄的）拿掉安裝紀錄裡、由 OmniKit 加的規則、
    Stop hook 與 SessionStart hook；
@@ -21,10 +21,14 @@ OmniKit 移除：把 install.ps1 對這台電腦做的改動還原，可以重�
 
 用 uv 跑 Python 腳本時，防毒短暫鎖住 uv 剛建好的暫存執行檔的話，等 3 秒重試一次（engine/scripts/uv-run.ps1，FR-34）。
 
-只動安裝紀錄（%LOCALAPPDATA%\omnikit\install-record.json）與 agents.json 裡記下的東西；
+只動安裝紀錄（~/.omnikit/install-record.json）與 agents.json 裡記下的東西；
 安裝前就有的工具、套件與權限規則都保留。repo 資料夾本身不刪。
-訪談產生的 profile（%LOCALAPPDATA%\omnikit\profiles）是你的個人資料，也不刪：重新安裝就能接著用，
+訪談產生的 profile（~/.omnikit/profiles）是你的個人資料，也不刪：重新安裝就能接著用，
 不需要的話自己刪掉。
+
+狀態在 ~/.omnikit（engine/scripts/statedir.py）。舊版放在 %LOCALAPPDATA%\omnikit，從 Claude 桌面版這類封裝的 app
+裡跑過的還會有一份被轉存的副本（%LOCALAPPDATA%\Packages\<套件>\LocalCache\Local\omnikit）；一開始先用 statedir.py
+把它們合併進 ~/.omnikit，從終端機跑也找得到完整的安裝紀錄。找不到 uv 時直接讀那些位置的安裝紀錄，合在一起用。
 
 參數：
   -Yes        不詢問，直接移除
@@ -46,16 +50,19 @@ $SkillshareConfig = Join-Path $SkillshareDir 'config.yaml'
 $ClaudeMd = Join-Path $env:USERPROFILE '.claude\CLAUDE.md'
 $CodexMd = Join-Path $env:USERPROFILE '.codex\AGENTS.md'
 $GeminiMd = Join-Path $env:USERPROFILE '.gemini\GEMINI.md'
-$RecordFile = Join-Path $env:LOCALAPPDATA 'omnikit\install-record.json'
-$AgentsFile = Join-Path $env:LOCALAPPDATA 'omnikit\agents.json'
+# 狀態資料夾：跟 statedir.py 一樣是 ~/.omnikit（OMNIKIT_STATE_DIR 可以改）
+$StateDir = if ($env:OMNIKIT_STATE_DIR) { $env:OMNIKIT_STATE_DIR } else { Join-Path $env:USERPROFILE '.omnikit' }
+$StatedirPy = Join-Path $Repo 'engine\scripts\statedir.py'
+$RecordFile = Join-Path $StateDir 'install-record.json'
+$AgentsFile = Join-Path $StateDir 'agents.json'
 # profiles.py 產生的：底線 + profile 接成一份的規則（比對 Codex 用）與這台選的 profile
-$ComposedRules = Join-Path $env:LOCALAPPDATA 'omnikit\rules'
-$ProfileFile = Join-Path $env:LOCALAPPDATA 'omnikit\profile.json'
+$ComposedRules = Join-Path $StateDir 'rules'
+$ProfileFile = Join-Path $StateDir 'profile.json'
 # edition.py 記的：這台是哪一版，以及免問核准的同意
-$EditionFile = Join-Path $env:LOCALAPPDATA 'omnikit\edition.json'
-$ConsentFile = Join-Path $env:LOCALAPPDATA 'omnikit\consent.json'
+$EditionFile = Join-Path $StateDir 'edition.json'
+$ConsentFile = Join-Path $StateDir 'consent.json'
 # 訪談產生的 profile：個人資料，不刪（FR-38）
-$LocalProfiles = Join-Path $env:LOCALAPPDATA 'omnikit\profiles'
+$LocalProfiles = Join-Path $StateDir 'profiles'
 $BlockPattern = '(?s)<!-- omnikit:rules:begin -->.*?<!-- omnikit:rules:end -->\r?\n?'
 $OursHeader = '<!-- 由 OmniKit 產生，不要手改：'
 $Utf8 = New-Object Text.UTF8Encoding($false)
@@ -83,13 +90,46 @@ function Test-Deletable($path) {
   return $parent -ieq $ProgramsDir
 }
 
-# ---- 讀現況，列出要做的事 ----
-
-$record = @{}
-$hasRecord = Test-Path $RecordFile
-if ($hasRecord) {
-  foreach ($p in (Read-Text $RecordFile | ConvertFrom-Json).PSObject.Properties) { $record[$p.Name] = @($p.Value) }
+# 舊版的狀態位置還有東西的（跟 statedir.py 的 candidates 一樣）
+function Get-LegacyStateDirs {
+  $dirs = @(Join-Path $env:LOCALAPPDATA 'omnikit')
+  $pkgs = Join-Path $env:LOCALAPPDATA 'Packages'
+  if (Test-Path -LiteralPath $pkgs) {
+    $dirs += @(Get-ChildItem -LiteralPath $pkgs -Directory -ErrorAction SilentlyContinue |
+        ForEach-Object { Join-Path $_.FullName 'LocalCache\Local\omnikit' })
+  }
+  return @($dirs | Where-Object { (Test-Path -LiteralPath $_) -and @(Get-ChildItem -LiteralPath $_ -Force -ErrorAction SilentlyContinue).Count })
 }
+
+# 安裝紀錄：~/.omnikit 的，加上還沒合併的舊位置的（陣列取聯集，其他取第一個有的）
+function Read-InstallRecord($files) {
+  $merged = @{}
+  foreach ($f in $files) {
+    if (-not (Test-Path -LiteralPath $f)) { continue }
+    try { $json = Read-Text $f | ConvertFrom-Json } catch { Write-Warning "安裝紀錄讀不懂，略過：$f"; continue }
+    foreach ($p in $json.PSObject.Properties) {
+      $values = @($p.Value)
+      if (-not $merged.ContainsKey($p.Name)) { $merged[$p.Name] = $values; continue }
+      if (@($values | Where-Object { $_ -is [string] }).Count -eq $values.Count) {
+        $merged[$p.Name] = @(@($merged[$p.Name]) + $values | Where-Object { $_ } | Select-Object -Unique)
+      }
+    }
+  }
+  return $merged
+}
+
+# ---- 先把舊位置的狀態合併進 ~/.omnikit，再讀現況，列出要做的事 ----
+
+if (@(Get-LegacyStateDirs).Count) {
+  $uv = Get-Uv
+  if ($uv) {
+    $r = Invoke-UvRun $uv @('run', '--quiet', $StatedirPy, 'migrate', '--quiet')
+    if ($r.Code -ne 0) { Write-Warning "statedir.py migrate 失敗（exit $($r.Code)），改成直接讀舊位置的安裝紀錄" }
+  }
+}
+$recordFiles = @($RecordFile) + @(Get-LegacyStateDirs | ForEach-Object { Join-Path $_ 'install-record.json' })
+$record = Read-InstallRecord $recordFiles
+$hasRecord = [bool]@($recordFiles | Where-Object { Test-Path -LiteralPath $_ }).Count
 $ssText = Get-FileText $SkillshareConfig
 $legacyCodex = $ssText -match '(?m)^\s*- name: rules-codex\s*$'
 $legacySkillshare = $legacyCodex -or ($ssText -match '(?m)^  mcp: .*servers\.yaml') -or
@@ -116,7 +156,7 @@ if ($hasAgents) { $plan += '移除 OmniKit 的 skills 與 MCP server（Claude Co
 if ($geminiHasBlock) { $plan += '拿掉 ~/.gemini/GEMINI.md 的 OmniKit 區塊（原地改寫，硬連結不會斷）' }
 if ($legacySkillshare) { $plan += '拿掉舊版 skillshare 設定裡 OmniKit 的部分' }
 if ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile) -or $hasEditionState) {
-  $plan += '刪除接好的規則、profile 選擇、版本與免問核准的同意紀錄（%LOCALAPPDATA%\omnikit）'
+  $plan += "刪除接好的規則、profile 選擇、版本與免問核准的同意紀錄（$StateDir）"
 }
 if ($record['claude_allow']) { $plan += "從 ~/.claude/settings.json 拿掉權限規則：$($record['claude_allow'] -join ', ')" }
 if ($record['claude_hooks']) { $plan += '從 ~/.claude/settings.json 拿掉 OmniKit 的 hook（開新對話提醒、說做不到查證、設定目錄檢查）' }
@@ -137,6 +177,8 @@ if (-not $plan) {
 Write-Host '將會：'
 $plan | ForEach-Object { Write-Host "  - $_" }
 if (Test-Path -LiteralPath $LocalProfiles) { Write-Host "  （你的 profile 不會刪：$LocalProfiles）" }
+$legacyBackup = Join-Path $StateDir 'legacy'
+if (Test-Path -LiteralPath $legacyBackup) { Write-Host "  （舊位置搬過來時的備份不會刪：$legacyBackup，不需要的話自己刪）" }
 if (-not $hasRecord) {
   Write-Warning '找不到安裝紀錄：工具、npm 套件與權限規則無法確定是不是 OmniKit 裝的，全部保留。'
 }

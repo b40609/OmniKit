@@ -8,7 +8,7 @@
 """依 omnikit-setup 的訪談答案產生個人 profile：AGENTS.md、scenarios.yaml 與 answers.json
 （留著給下次重新訪談時預填）。
 
-寫在 repo 外的 %LOCALAPPDATA%\\omnikit\\profiles\\<名稱>\\（FR-38）：個人資料不會被 commit 或 push，
+寫在 repo 外的 ~/.omnikit/profiles/<名稱>/（FR-38）：個人資料不會被 commit 或 push，
 在 repo 裡跑 git status 也看不到。repo 裡的 data/profiles/ 只放 default 與維護者手寫的，不寫進去。
 
 agent 只負責問問題、把答案寫成 JSON（格式見 engine/schema/answers.schema.json）；檔案由這支腳本

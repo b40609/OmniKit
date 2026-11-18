@@ -38,8 +38,10 @@ git hook 與 agent 在背景同步時常失敗。支援的 agent 固定是這三
 （home_watch.py 在開新對話時發現新的目錄就在背景跑 sync）。
 
 接上了哪些 agent、管了哪些 skills 與 MCP server、接上了哪些其他設定目錄（homes），
-記在 %LOCALAPPDATA%\\omnikit\\agents.json；
+記在 ~/.omnikit/agents.json（狀態資料夾，見 statedir.py）；
 同步只動記錄裡的 agent，移除時只拿掉 OmniKit 的東西，同名但不是 OmniKit 的不碰。
+會寫入的指令（connect、sync、resolve、approvals、disconnect）先把舊位置（%LOCALAPPDATA%\\omnikit，以及
+Claude 桌面版這類封裝的 app 轉存的副本）的狀態合併進 ~/.omnikit；sync 有搬到東西時，也用新位置重新接上規則。
 
 用法：
   uv run engine/scripts/agents.py connect [--profile <名稱>] [--agents claude-code,codex,antigravity] [--ask]
@@ -73,6 +75,7 @@ import codex_hooks  # noqa: E402  讀寫 config.toml 時保留原本的換行
 import edition  # noqa: E402  維護者版或同事版，以及免問核准的個人同意
 import homes  # noqa: E402  這台每個 agent 在用的設定目錄
 import profiles  # noqa: E402
+import statedir  # noqa: E402  狀態資料夾 ~/.omnikit，以及從舊位置搬過來
 import t3_acp  # noqa: E402  T3 Code 的 Antigravity 實例接上轉接程式
 import validate  # noqa: E402
 from fsretry import flaky, hold, retry  # noqa: E402  防毒短暫鎖住檔案時等一下再試（FR-34）
@@ -1199,9 +1202,24 @@ def disconnect(env):
     return lines
 
 
-def status(env):
-    print(json.dumps({"detected": detect(env), **load_record(env)}, ensure_ascii=False, indent=2))
+def status(env, environ=None):
+    legacy = [str(path) for _, path, _ in statedir.pending(env.state, environ)]
+    print(json.dumps({"detected": detect(env), "state": str(env.state), **load_record(env),
+                      **({"legacy": legacy} if legacy else {})}, ensure_ascii=False, indent=2))
+    if legacy:
+        print(f"舊位置還有沒合併的狀態檔，上面的記錄可能不完整；跑 agents.py sync（或 statedir.py migrate）合併", file=sys.stderr)
     return 0
+
+
+def after_migrate(env, moved):
+    """搬過家之後：用新位置重新接上規則（CLAUDE.md 的 import 可能指到舊位置的 profile）。"""
+    if not moved.changed:
+        return []
+    rec = load_record(env)
+    if not rec["agents"]:
+        return []
+    return profiles.apply(env.data, env.state, env.rules, agents=rec["agents"],
+                          skillshare_config=env.skillshare / "config.yaml", **extra_rules(env, rec["agents"]))
 
 
 def selftest():
@@ -1776,6 +1794,19 @@ def selftest():
         for d in readonly:
             writable(d)
 
+        # status：印出狀態資料夾；舊位置（%LOCALAPPDATA%\omnikit 等）還有沒合併的就列出來
+        import contextlib
+        import io
+        old_local = tmp / "old-local"
+        put(old_local / "omnikit" / "agents.json", "{}")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            status(env6, {"LOCALAPPDATA": str(old_local)})
+        shown = json.loads(out.getvalue())
+        check("status：印出狀態資料夾與還沒合併的舊位置",
+              shown["state"] == str(state6) and shown["legacy"] == [str(old_local / "omnikit")])
+        check("搬家沒有搬到東西：不重新接上規則", after_migrate(env6, statedir.Result(state6)) == [])
+
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0
 
@@ -1809,6 +1840,11 @@ def main(argv=None):
         return selftest()
     env = real_env()
     interactive = sys.stdin.isatty()
+    if args.command == "status":
+        return status(env)
+    moved = statedir.migrate(env.state) if args.command else statedir.Result(env.state)
+    for line in moved.lines():
+        print(line)
     if args.command == "connect":
         agents = args.agents.split(",") if args.agents else None
         if agents and (bad := [a for a in agents if a not in AGENTS]):
@@ -1816,8 +1852,8 @@ def main(argv=None):
         lines = connect(env, args.profile, agents, ask=ask_conflict if args.ask and interactive else None)
     elif args.command == "sync":
         both = not (args.skills or args.mcp)
-        lines = sync(env, skills=args.skills or both, mcp=args.mcp or both,
-                     ask=ask_conflict if args.ask and interactive else None)
+        lines = after_migrate(env, moved) + sync(env, skills=args.skills or both, mcp=args.mcp or both,
+                                                 ask=ask_conflict if args.ask and interactive else None)
     elif args.command == "resolve":
         lines = resolve_conflict(env, args.name, "omnikit" if args.use_omnikit else "mine", args.agent)
     elif args.command == "approvals":
@@ -1826,8 +1862,6 @@ def main(argv=None):
             lines.append(f"沒辦法詢問（不能互動）：還沒問的免問核准先不寫入；要同意就執行 {claude_allow.GRANT}")
     elif args.command == "disconnect":
         lines = disconnect(env)
-    elif args.command == "status":
-        return status(env)
     else:
         parser.print_help()
         return 2

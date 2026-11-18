@@ -9,7 +9,7 @@
 
 業界做法與取捨見 docs/proposals/2026-11-14-decision-evidence.md（影子測試、冠軍與挑戰者；重播不等於原場景）。
 
-一次比對一個替換（swaps.json 的 id），紀錄都在 %LOCALAPPDATA%\\omnikit\\shadow\\<替換 id>\\，只在這台，不進 repo、不回流。
+一次比對一個替換（swaps.json 的 id），紀錄都在 ~/.omnikit/shadow/<替換 id>/，只在這台，不進 repo、不回流。
 1. record：從對話紀錄找試用期間叫用過新工具的對話（Claude Code 與 Codex），記下專案、使用者的第一個要求、
    開始前的 commit 與結束時的 commit。對話結束時沒有新的 commit 的記成「沒有成果可以比」。
 2. pick：挑 2 到 3 筆（有成果、要求看得懂、不同專案優先、新的優先）。不到 2 筆就照實說沒辦法比，建議延長或換回，不硬湊。

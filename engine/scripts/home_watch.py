@@ -11,8 +11,11 @@ agents.py sync（規則、skills、MCP、權限規則與 hook 都會接上；T3 
 並用 systemMessage 說一聲。新帳號自己的第一段對話讀不到（它的設定目錄這時才建立），下一段就讀得到。
 
 不擋開新對話：只做比對（讀 agents.json、T3 設定、看幾個資料夾在不在），要接才另開背景行程。
-同一組新目錄 6 小時內只試一次；背景同步的輸出留在 %LOCALAPPDATA%\\omnikit\\home_watch.log。
+同一組新目錄 6 小時內只試一次；背景同步的輸出留在 ~/.omnikit/home_watch.log。
 任何錯誤都安靜結束（exit 0），檢查壞掉不能干擾對話。還沒用 agents.py 接上過的（沒有 agents.json）不動。
+
+也看舊位置（%LOCALAPPDATA%\\omnikit，以及封裝的 app 轉存的副本，見 statedir.py）還有沒有沒合併的狀態檔：
+有就一樣在背景跑 agents.py sync（它會先合併進 ~/.omnikit、再用新位置重新接上規則），同樣 6 小時內只試一次。
 
 註冊：claude_allow.py 寫進每個 Claude 設定目錄的 settings.json 的 hooks.SessionStart。
 自我測試：uv run engine/scripts/home_watch.py --selftest
@@ -28,9 +31,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import homes  # noqa: E402  同一個資料夾，沒有相依套件
+import statedir  # noqa: E402  同一個資料夾，沒有相依套件：狀態資料夾 ~/.omnikit 與舊位置
 
 ROOT = Path(__file__).resolve().parents[2]
-STATE = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "omnikit"
+STATE = statedir.STATE
 RETRY = 6 * 3600
 BREAKAWAY = 0x01000000  # CREATE_BREAKAWAY_FROM_JOB：hook 結束後背景同步還要跑完
 
@@ -81,11 +85,22 @@ def start_sync(state, popen=subprocess.Popen):
 
 def check(state=STATE, home=homes.HOME, environ=None, now=None, popen=subprocess.Popen):
     """回傳要給使用者看的訊息；沒事就是 None。"""
+    now = time.time() if now is None else now
+    legacy = statedir.pending(state, environ)
+    if legacy:
+        keys = sorted(f"legacy:{path}" for _, path, _ in legacy)
+        if not due(state, keys, now):
+            return None
+        state.mkdir(parents=True, exist_ok=True)
+        (state / "home_watch.json").write_text(json.dumps({"keys": keys, "at": now}, ensure_ascii=False), encoding="utf-8")
+        start_sync(state, popen)
+        where = "、".join(str(path) for _, path, _ in legacy)
+        return (f"OmniKit：狀態檔改放 {state}，已在背景把舊位置（{where}）合併過去；"
+                f"過程記在 {state / 'home_watch.log'}")
     new = pending(state, homes.discover(home, environ))
     if not new:
         return None
     keys = sorted(f.key for f in new)
-    now = time.time() if now is None else now
     if not due(state, keys, now):
         return None
     state.mkdir(parents=True, exist_ok=True)
@@ -149,6 +164,18 @@ def selftest():
         ok("T3 的 Antigravity 實例記過了：不動", check(state, h, {}, 99999 + RETRY + 1, fake) is None)
         (state / "agents.json").write_text("{壞掉", encoding="utf-8")
         ok("agents.json 壞掉：不動", check(state, h, {}, 99999, fake) is None)
+
+        # 舊位置還有狀態檔（例如 Claude 桌面版封裝轉存的副本）：背景跑 agents.py sync 合併，6 小時內只試一次
+        local = Path(t) / "AppData" / "Local"
+        copy = local / "Packages" / "Claude_x" / "LocalCache" / "Local" / "omnikit"
+        copy.mkdir(parents=True)
+        (copy / "agents.json").write_text("{}", encoding="utf-8")
+        before = len(calls)
+        msg = check(state, h, {"LOCALAPPDATA": str(local)}, 200000, fake)
+        ok("舊位置有沒合併的狀態：背景跑 agents.py sync，訊息說搬到哪", msg is not None and str(state) in msg
+           and str(copy) in msg and len(calls) == before + 1 and calls[-1][-1] == "sync")
+        ok("舊位置：6 小時內不重跑", check(state, h, {"LOCALAPPDATA": str(local)}, 200000 + 60, fake) is None
+           and len(calls) == before + 1)
     print("home_watch selftest", "FAIL" if fails else "OK")
     return 1 if fails else 0
 

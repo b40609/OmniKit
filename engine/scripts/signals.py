@@ -12,7 +12,7 @@
 靜默記錄滿 2 週、漏斗給出 10 個以上結果、命中率過半，才在第 3 階段打開（沿用 PRD §0.1 第 5 題的門檻，量法改成漏斗）。
 使用者只在最後一步出現：第 2 層實測有結果、要不要換工具時。
 
-來源設定在這台、repo 外：%LOCALAPPDATA%\\omnikit\\signals\\sources.yaml，沒有這個檔就沒有來源。例如：
+來源設定在這台、repo 外：~/.omnikit/signals/sources.yaml，沒有這個檔就沒有來源。例如：
   sources:
     - id: omnikeep
       type: omnikeep

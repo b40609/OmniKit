@@ -59,7 +59,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 3. **確認接上了。** 開一個新的 Claude Code 或 Codex session，問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的一樣，就表示規則生效了。skill 與 MCP 怎麼檢查，見[裝好之後](#裝好之後)。
 
-4. **建立自己的 profile。** 在新的 session 說「幫我設定 OmniKit」，回答最多 6 題，看過預覽才寫入，見[建立自己的 profile](#建立自己的-profile)。profile 存在 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`，不在 repo 裡，不會被 commit 或上傳。
+4. **建立自己的 profile。** 在新的 session 說「幫我設定 OmniKit」，回答最多 6 題，看過預覽才寫入，見[建立自己的 profile](#建立自己的-profile)。profile 存在 `~/.omnikit/profiles/<名稱>/`，不在 repo 裡，不會被 commit 或上傳。
 
 之後要更新：`git pull`，再跑 `install.ps1 -WhatIf` 預覽、`install.ps1` 套用。`git pull` 本身不會改任何設定。
 
@@ -80,7 +80,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 3. **認識 profile。** agent 讀到的規則分兩層：
    - `data/rules/baseline.md` 是安全底線，所有人都套用：刪除、對外發送、付款前先確認，不碰金鑰。
-   - profile 是個人層：`AGENTS.md` 寫語言、語氣、哪些事可以直接做；`scenarios.yaml` 寫評估工具用的真實情境，沒寫的槽位用模組檔（`data/modules/`）的範本。訪談產生的 profile 存在 repo 外的 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`；repo 裡的 `data/profiles/<名稱>/` 放 `default` 與維護者手寫、要跟著 repo 的 profile。兩邊同名時，repo 外的優先。
+   - profile 是個人層：`AGENTS.md` 寫語言、語氣、哪些事可以直接做；`scenarios.yaml` 寫評估工具用的真實情境，沒寫的槽位用模組檔（`data/modules/`）的範本。訪談產生的 profile 存在 repo 外的 `~/.omnikit/profiles/<名稱>/`；repo 裡的 `data/profiles/<名稱>/` 放 `default` 與維護者手寫、要跟著 repo 的 profile。兩邊同名時，repo 外的優先。
 
    不用先改檔案：先用 `default` 安裝（繁體中文、下載安裝前先問），裝好之後用[訪談](#建立自己的-profile)產生你自己的 profile。想手寫也行：複製 `data/profiles/default` 成 `data/profiles/<你的名字>` 再改，會跟著你的 fork commit；`data/profiles/ryan` 是原作者的，可以參考。
 
@@ -173,7 +173,7 @@ OmniKit 規則版本與 profile 是什麼？
 1. **掃描**：列出這台裝了哪些 agent、目前的規則、skills 與 MCP（只看名稱與版本，不讀金鑰）；另外依你現在的專案資料夾裡的檔名（只看檔名），預選第 1 題的領域。
 2. **訪談**：最多 6 題，大多是選擇題：做哪幾種工作（領域，可複選）、最想改善的習慣、回覆的語言與詳略、agent 可以自己做到哪、要不要評估新工具、主要專案。
 3. **預覽**：先給你看產生的規則，同意才寫入。
-4. **建立並套用**：寫進 repo 外的 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`，接上這台接好的 agent，開新 session 生效。
+4. **建立並套用**：寫進 repo 外的 `~/.omnikit/profiles/<名稱>/`，接上這台接好的 agent，開新 session 生效。
 
 | 你選的 | 規則裡寫成 |
 |---|---|
@@ -185,7 +185,7 @@ OmniKit 規則版本與 profile 是什麼？
 
 規則檔與情境檔都由 `engine/scripts/profile_new.py` 依固定範本產生、驗證，agent 只負責問問題；寫入後可以直接改，改完跑 `uv run engine/scripts/profiles.py` 重新接上。重新訪談時會帶入上次的答案，舊檔先備份成 `.bak`；手寫的 profile 與 repo 裡已經有的名稱不會被覆蓋。安全底線不能從 profile 放寬。
 
-profile 存在 repo 外的 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`（`AGENTS.md`、`scenarios.yaml`、`domains.yaml`，以及下次訪談預填用的 `answers.json`），不會被 commit、push 或上傳，在 repo 裡跑 `git status` 也看不到。舊版存在 repo 裡（`data/profiles/<名稱>/`）的，重跑 `install.ps1` 或說「幫我設定 OmniKit」時會問你要不要搬過去；搬好、確認內容一樣才刪 repo 裡的舊檔，不同意就不動。
+profile 存在 repo 外的 `~/.omnikit/profiles/<名稱>/`（`AGENTS.md`、`scenarios.yaml`、`domains.yaml`，以及下次訪談預填用的 `answers.json`），不會被 commit、push 或上傳，在 repo 裡跑 `git status` 也看不到。舊版存在 repo 裡（`data/profiles/<名稱>/`）的，重跑 `install.ps1` 或說「幫我設定 OmniKit」時會問你要不要搬過去；搬好、確認內容一樣才刪 repo 裡的舊檔，不同意就不動。
 
 ### 預設 plugin 要另外裝
 
@@ -207,7 +207,7 @@ flowchart LR
     F["profiles/*/<br/>default 與維護者的 profile"]
     M["mcp/、harness/<br/>MCP 與權限"]
   end
-  L["%LOCALAPPDATA%\omnikit\profiles<br/>訪談產生的 profile（repo 外）"]
+  L["~/.omnikit/profiles<br/>訪談產生的 profile（repo 外）"]
   S --> B["build.py"]
   T --> B
   F -->|情境| B
@@ -243,21 +243,21 @@ flowchart LR
 |---|---|
 | `%LOCALAPPDATA%\Programs\` | 安裝固定版本的 uv、gh，以及維護者版才裝的 gitleaks；比對 SHA256，不改 PATH。這台已經有 uv、gh 就沿用 |
 | `data/omnikit.yaml` | fork 出來的 repo，改成你的 `repo`、`owner`、`marketplace`，`profile` 改回 `default`，並重新產生 marketplace 清單 |
-| `~/.claude/CLAUDE.md` | 在開頭加一段受管區塊，import `data/rules/baseline.md` 與你選的 profile 的 `AGENTS.md`（訪談產生的在 `%LOCALAPPDATA%\omnikit\profiles`，其他在 `data/profiles`）；路徑有空白時用 `\ ` 跳脫，不然 Claude Code 讀到空白就斷掉。其他內容不動 |
+| `~/.claude/CLAUDE.md` | 在開頭加一段受管區塊，import `data/rules/baseline.md` 與你選的 profile 的 `AGENTS.md`（訪談產生的在 `~/.omnikit/profiles`，其他在 `data/profiles`）；路徑有空白時用 `\ ` 跳脫，不然 Claude Code 讀到空白就斷掉。其他內容不動 |
 | `~/.codex/AGENTS.md` | 在開頭加一段受管區塊，放底線與 profile 接在一起的內容；原本的規則留在區塊外，照常生效，也先備份成 `AGENTS.md.pre-omnikit`。舊版整份換掉的，同步時換成只有區塊（規則內容一樣）；區塊被拿掉的話，同步時不加回去 |
 | `~/.gemini/GEMINI.md` | Antigravity 的規則：在開頭加一段受管區塊，放底線與 profile 接在一起的內容；原本的先備份成 `GEMINI.md.pre-omnikit`。原地改寫，這個檔案跟其他工具共用（硬連結）時，其他名字會一起更新，連結不會斷 |
 | `~/.claude/skills` | `engine/skills` 的每個 skill 用資料夾連結接上，改完馬上生效 |
 | `~/.agents/skills` | Codex 的：`engine/skills` 的每個 skill 複製一份，裡面的 `.omnikit.json` 記來源；同名但不是 OmniKit 的不碰 |
 | `~/.gemini/config/skills` | Antigravity 的（App、IDE 與 CLI 共用）：一樣複製一份、帶 `.omnikit.json`，因為 Antigravity 不跟隨資料夾連結。它不讀 `~/.agents/skills`（`.agents/skills` 只在專案資料夾裡有效） |
 | `~/.claude.json`、`~/.codex/config.toml`、`~/.gemini/config/mcp_config.json` | 寫入 `data/mcp/servers.yaml` 的 MCP server，只動這些 server 裡 OmniKit 管的欄位；你加的欄位（例如停用）與 Codex 的工具核准紀錄都留著。被你改過、被你移除，或同名但不是 OmniKit 的，那個 server 略過不動，見 [MCP 有衝突時](#mcp-有衝突時)。Claude 用 `claude mcp add-json`；Codex 寫入前驗證其他設定沒被動到；Antigravity 不寫 BOM（它讀到 BOM 會整份失敗）。`config.toml` 結尾另加兩段 `[[hooks.Stop]]`：開新對話提醒與說做不到查證 |
-| `%LOCALAPPDATA%\omnikit\` | `profiles\<名稱>\` 是訪談產生的 profile（個人資料，不在 repo 裡；移除時也不刪）；`profile.json` 記這台選的 profile；`edition.json` 記這台是維護者版還是同事版；`consent.json` 記你同意了哪些工具免問；`agents.json` 記接上了哪些 agent、OmniKit 管了哪些 skills，以及每個 MCP server 寫入時的雜湊（判斷有沒有被改過）；`rules\AGENTS.md` 是底線與 profile 接在一起的內容（移除時比對用） |
+| `~/.omnikit/`（Windows 是 `%USERPROFILE%\.omnikit`；可用環境變數 `OMNIKIT_STATE_DIR` 改位置） | 不放 `%LOCALAPPDATA%`：從 Claude 桌面版這類 MSIX 封裝的 app 裡跑時，那裡新建的檔會被轉存成另一份；舊版留在 `%LOCALAPPDATA%\omnikit` 與轉存副本的，安裝、同步時會合併過來（原檔備份在 `legacy\`）。`profiles/<名稱>/` 是訪談產生的 profile（個人資料，不在 repo 裡；移除時也不刪）；`profile.json` 記這台選的 profile；`edition.json` 記這台是維護者版還是同事版；`consent.json` 記你同意了哪些工具免問；`agents.json` 記接上了哪些 agent、OmniKit 管了哪些 skills，以及每個 MCP server 寫入時的雜湊（判斷有沒有被改過）；`rules/AGENTS.md` 是底線與 profile 接在一起的內容（移除時比對用） |
 | 舊版的 skillshare | 以前用 skillshare 接的電腦，重跑 `install.ps1` 會改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分；skillshare 本身不刪 |
 | npm 全域套件 | 安裝 `data/mcp/packages.txt` 指定的固定版本 |
 | `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪；同事版只補你同意過的工具。在 `hooks.Stop` 加上開新對話提醒（`engine/scripts/session_nudge.py`）與說做不到查證（`engine/scripts/claim_check.py`），在 `hooks.SessionStart` 加上設定目錄檢查（`engine/scripts/home_watch.py`：發現新帳號的設定目錄就在背景接上） |
 | 其他設定目錄 | 多帳號或啟動器另外指定的設定目錄（`CLAUDE_CONFIG_DIR`、`CODEX_HOME`、T3 Code 每個實例的 homePath、有 `.claude.json` 的 `~/.claude-*` 等，`engine/scripts/homes.py` 找）：規則區塊、MCP、Claude 的 skills、權限規則與 hook 都跟預設目錄一樣寫 |
 | `~/.t3/userdata/settings.json`、`~/.omnikit/acp/` | T3 Code 的 Antigravity 實例走 ACP 模式，不讀 `GEMINI.md`。把每個實例的 Binary path（`config.binaryPath`）設成 OmniKit 的轉接程式 `omnikit-acp.cmd`，它跑 T3 自己裝的 server，開新對話時把 `~/.gemini/GEMINI.md` 帶進系統提示（`engine/scripts/t3_acp.py`、`acp_shim.py`）。T3 自己補的預設實例（`antigravity`，設定檔沒列）也接上；只改沒設的，你自己設了 Binary path 的不動，`doctor.py` 會列出來。設定後 T3 會重建那個實例，開著的 Antigravity 對話會斷一次。只裝 T3 沒裝 Antigravity CLI 也算有 Antigravity。移除時改回 T3 自動選。目前只支援 Windows。轉接程式不放 `%LOCALAPPDATA%`：從 Claude 桌面版這類 MSIX 封裝的 app 裡安裝時，AppData 底下新建的檔會被轉存到那個 app 的私人位置，T3 看不到 |
 | 這個 repo | 維護者版：`core.hooksPath` 指到 `.githooks`，commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、skills、MCP、權限、提醒 hook 時自動同步。同事版不設 git hook |
-| `%LOCALAPPDATA%\omnikit\install-record.json` | 安裝紀錄：記下這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，移除時只動這些 |
+| `~/.omnikit/install-record.json` | 安裝紀錄：記下這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，移除時只動這些 |
 
 加上 `-Fresh` 會把 `~/.claude/CLAUDE.md` 受管區塊以外的舊規則移除（先備份成 `CLAUDE.md.pre-omnikit`），適合想讓 OmniKit 的規則完全取代舊規則的人。
 
@@ -284,7 +284,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\uninstall.ps1
 - 三個 agent 的規則、skills、MCP，以及權限、git hook 還原成安裝前的樣子，安裝前的備份會放回原位；只拿掉 OmniKit 的，其他的不碰。
 - 只移除安裝紀錄裡、由 OmniKit 裝上的工具與 npm 套件；安裝前就有的都保留。
 - 加 `-KeepTools` 只還原設定、保留工具；加 `-Yes` 不詢問直接移除。
-- repo 資料夾與訪談產生的 profile（`%LOCALAPPDATA%\omnikit\profiles`）不會刪，重新安裝就能接著用；不需要的話自己刪掉即可。
+- repo 資料夾與訪談產生的 profile（`~/.omnikit/profiles`）不會刪，重新安裝就能接著用；不需要的話自己刪掉即可。
 
 ## 日常使用
 
@@ -296,7 +296,7 @@ uv run engine/scripts/profiles.py --set <名稱>    # 換成這個 profile，接
 uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 profile 搬到 repo 外（先問你）
 ```
 
-找 profile 時先找 repo 外的 `%LOCALAPPDATA%\omnikit\profiles\<名稱>`，再找 repo 裡的 `data/profiles/<名稱>`。換完開新的 session 才生效。skills 也會跟著同步：換到訪談選了不評估新工具的 profile，`omnikit-eval` 會拿掉，換回來再裝上。還沒選過的電腦會一直用 `default`，並在安裝與同步時提醒。想重新訪談、改掉原本的答案，說「幫我設定 OmniKit」就好。
+找 profile 時先找 repo 外的 `~/.omnikit/profiles/<名稱>`，再找 repo 裡的 `data/profiles/<名稱>`。換完開新的 session 才生效。skills 也會跟著同步：換到訪談選了不評估新工具的 profile，`omnikit-eval` 會拿掉，換回來再裝上。還沒選過的電腦會一直用 `default`，並在安裝與同步時提醒。想重新訪談、改掉原本的答案，說「幫我設定 OmniKit」就好。
 
 ### 個人週報（已停用）
 
@@ -318,7 +318,7 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
    開頭成本照對話紀錄裡第一回合實際載入的內容量（skill 清單、hook 加進 context 的內容、MCP 的說明），不採用工具自己報的數字。
 
-只讀這台的紀錄與設定，不連網、不上傳；完整內容存在 `%LOCALAPPDATA%\omnikit\weekly\<年>-W<週>.md`，同一週重跑會換成最新的。也可以在 repo 根目錄跑 `uv run engine/scripts/weekly.py`。
+只讀這台的紀錄與設定，不連網、不上傳；完整內容存在 `~/.omnikit/weekly/<年>-W<週>.md`，同一週重跑會換成最新的。也可以在 repo 根目錄跑 `uv run engine/scripts/weekly.py`。
 
 ### 建議：裝、拿掉、用內建的就好（已停用）
 
@@ -343,11 +343,11 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 - 官方 MCP Registry：用槽位的關鍵字查，只留有 GitHub repo 的。
 - agent 自己上網找到的：交給腳本檢查過才會變成候選。
 
-每一筆都查 GitHub 現況：封存的、名冊記了「別裝」的不列；沒有授權、一年沒更新、建立不到 14 天、星數不到 50 會標出來。這些候選**沒有實測過，也沒有做安全掃描**，建議裡會寫明「名冊外」。找的時候會連網，送出去的只有槽位的關鍵字；結果存在 `%LOCALAPPDATA%\omnikit\pool\`，7 天內不重抓。
+每一筆都查 GitHub 現況：封存的、名冊記了「別裝」的不列；沒有授權、一年沒更新、建立不到 14 天、星數不到 50 會標出來。這些候選**沒有實測過，也沒有做安全掃描**，建議裡會寫明「名冊外」。找的時候會連網，送出去的只有槽位的關鍵字；結果存在 `~/.omnikit/pool/`，7 天內不重抓。
 
 **名冊沒有你的工作**：說「幫我加一個領域」（`omnikit-setup`）。用幾句話描述工作，agent 草擬槽位、情境與找候選用的關鍵字，`engine/scripts/module_new.py` 驗證、預覽，同意後寫成這台的私有模組：
 
-- 存在 repo 外的 `%LOCALAPPDATA%\omnikit\modules\<層>\<id>.yaml`，不會被 commit。格式跟 `data/modules/` 的模組檔一樣，也可以自己手寫。
+- 存在 repo 外的 `~/.omnikit/modules/<層>/<id>.yaml`，不會被 commit。格式跟 `data/modules/` 的模組檔一樣，也可以自己手寫。
 - 放進去就啟用，刪掉檔案就停用。給建議與找候選時會看；公開的看板與評估紀錄不會讀它。
 - id 跟公開名冊重複、格式不對的不載入，`uv run engine/scripts/validate.py` 會列出原因，不影響名冊其他部分。
 - 找候選時關鍵字會送到外面，所以關鍵字用通用的說法；單位專屬的內容寫在名稱與情境裡。
@@ -356,7 +356,7 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 1. 腳本算出事實與候選：`uv run engine/scripts/advise.py`，輸出 JSON。只讀這台，不連網、不寫檔（名冊外的候選是 `pool.py find` 事先找好的）。
 2. agent 只能在候選裡挑，每一項寫理由。
-3. 腳本驗證挑選，寫出建議，存在 `%LOCALAPPDATA%\omnikit\advice\<日期>-<agent>.md`。候選以外的、沒寫理由的會被擋下來。
+3. 腳本驗證挑選，寫出建議，存在 `~/.omnikit/advice/<日期>-<agent>.md`。候選以外的、沒寫理由的會被擋下來。
 
 安裝、停用、移除都等你同意才做，而且用各 agent 自己的指令（`claude plugin install`、`codex plugin add` 等）。拿掉是刪除，一項一項問。
 
@@ -371,7 +371,7 @@ profile 選了領域的話，只對那些領域的槽位出建議；沒選過就
 3. `swap check` 確認 B 出現在 agent 自己的清單、A 照計畫停用或還在，才算開始試用。
 4. 說「換回」：移除 B、打開 A，再 `swap check` 比對這次動到的兩個跟替換前一樣才算換回；換回後 30 天內不再建議 B。說要留下 B，A 拿不拿由你決定。
 
-紀錄在 `%LOCALAPPDATA%\omnikit\swaps.json`，只有工具名稱與狀態；MCP 只讀名稱與有沒有啟用，不讀參數。
+紀錄在 `~/.omnikit/swaps.json`，只有工具名稱與狀態；MCP 只讀名稱與有沒有啟用，不讀參數。
 
 ### 小提示與通知
 
@@ -383,7 +383,7 @@ profile 選了領域的話，只對那些領域的槽位出建議；沒選過就
 - 試用到期：說留下或換回。
 - 合計每週最多 3 則、每段對話最多 1 則；子對話、CI 不顯示。說「OmniKit 通知靜音」全部關掉（也可以只關一個工具），設環境變數 `OMNIKIT_NO_NOTIFY` 也行。
 
-證據等級只取 `data/evals/` 的實測結果與 `data/funnel/` 的初測紀錄；候選在背景一天最多算一次，紀錄在 `%LOCALAPPDATA%\omnikit\notify\`。
+證據等級只取 `data/evals/` 的實測結果與 `data/funnel/` 的初測紀錄；候選在背景一天最多算一次，紀錄在 `~/.omnikit/notify/`。
 
 ### 回流：把使用情況回報給維護者（已停用）
 
@@ -400,7 +400,7 @@ profile 選了領域的話，只對那些領域的槽位出建議；沒選過就
 
 讓 OmniKit 自己發現外面的變動，不用等你看到新趨勢才回來調整（提案見 `docs/proposals/2026-11-13-self-iteration.md`）。目前是第 1 階段：收集與判斷都會記下來，但週報還不會出現這一節。判斷準不準由評估漏斗驗證，不用你一筆一筆標；靜默記錄滿 14 天、漏斗給出 10 個以上結果、命中率過半才打開。你只在最後出現：第 2 層實測有結果、要不要換工具的時候。
 
-- **來源**：設定在這台、repo 外的 `%LOCALAPPDATA%\omnikit\signals\sources.yaml`，`uv run engine/scripts/signals.py init` 寫出預設值。目前只有 OmniKeep（自架的資訊雷達）：只連本機位址，唯讀呼叫 `GET /api/items`，金鑰放在環境變數（預設 `OMNIKEEP_API_KEY`），不寫進任何檔案。沒有 OmniKeep 的人不用設，沒有來源就什麼都不做。
+- **來源**：設定在這台、repo 外的 `~/.omnikit/signals/sources.yaml`，`uv run engine/scripts/signals.py init` 寫出預設值。目前只有 OmniKeep（自架的資訊雷達）：只連本機位址，唯讀呼叫 `GET /api/items`，金鑰放在環境變數（預設 `OMNIKEEP_API_KEY`），不寫進任何檔案。沒有 OmniKeep 的人不用設，沒有來源就什麼都不做。
 - **收集**：`signals.py collect` 讀上次之後的新項目，用關鍵字（Claude Code、Codex、MCP、skill、提示詞等）篩出相關的，預覽不寫檔，加 `--write` 才存。OmniKeep 沒在跑或金鑰不對就標「略過」。
 - **判斷**：agent 讀 `signals.py pending`，每筆分「不影響」「名冊層」「架構」三類並寫理由，用 `signals.py judge --file <JSON>` 交進來；沒理由的、名冊層沒寫目標的會被擋下。
 - **送進漏斗**：`signals.py promote --write` 把名冊層的判斷變成待評估的卡（`data/tools/`，來源「自我迭代訊號」）或已有卡的重評，再跑第 0、1 層（指令會印出來）。社群貼文找不到 GitHub repo 的量不了，不算進命中率。
@@ -418,7 +418,7 @@ profile 選了領域的話，只對那些領域的槽位出建議；沒選過就
 
 兩份都是 Markdown 加一個 YAML 區塊：agent 載入規則時讀得懂，`engine/scripts/dispatch.py` 也讀得到。兩份都會跟安全底線、`AGENTS.md` 一起接進 Claude Code、Codex 與 Antigravity，改完開新 session 生效（同事版要重跑 `install.ps1`，或 `uv run engine/scripts/profiles.py`）。改共用層要更新 `data/rules/baseline.md` 的規則版本。
 
-**設定自己的帳號對應。** 在你的 profile 資料夾（訪談產生的在 `%LOCALAPPDATA%\omnikit\profiles\<名稱>\`）新增 `dispatch.md`。實例 id 用 T3 的 `orchestrator_capabilities` 查（列出的 `providerInstanceId`），`classes` 只能寫共用層 `model_classes` 裡有的類別，而且要跟實例的 driver 對得上：
+**設定自己的帳號對應。** 在你的 profile 資料夾（訪談產生的在 `~/.omnikit/profiles/<名稱>/`）新增 `dispatch.md`。實例 id 用 T3 的 `orchestrator_capabilities` 查（列出的 `providerInstanceId`），`classes` 只能寫共用層 `model_classes` 裡有的類別，而且要跟實例的 driver 對得上：
 
 ````markdown
 # 個人分派設定：<名稱>
@@ -434,7 +434,7 @@ instances:
 
 **沒有 Gemini／Antigravity，只用 Claude。** 不用寫 `dispatch.md`。沒有實例的類別會自動跳過：中級退回 Claude Sonnet（effort medium），高級用 Opus（effort high），更高用 Opus（effort xhigh），驗收用 Opus（effort high），沒有第二意見；「本週用量 80% 改派 Antigravity」那條也不會用到。只有其他 Claude 帳號要給 `delegate_task` 指定時，才需要寫 `claudeAgent` 類的實例。
 
-**委派紀錄。** 子任務結果收回、驗收完、settle 之前，agent 用 `omnikit-dispatch` skill 記一行到 `%LOCALAPPDATA%\omnikit\dispatch\log.jsonl`：時間、專案名稱、任務類型、級別、管道、供應商實例、模型類別與模型、思考程度、是否一次通過、重試次數、升級次數、最後過關的類別、驗收結論、規則版本、profile。只存在這台，不進 repo、不上傳；專案只記資料夾名稱。目前是規則要求 agent 寫，不是 hook 自動寫：一次通過、驗收結論這些只有主對話知道。
+**委派紀錄。** 子任務結果收回、驗收完、settle 之前，agent 用 `omnikit-dispatch` skill 記一行到 `~/.omnikit/dispatch/log.jsonl`：時間、專案名稱、任務類型、級別、管道、供應商實例、模型類別與模型、思考程度、是否一次通過、重試次數、升級次數、最後過關的類別、驗收結論、規則版本、profile。只存在這台，不進 repo、不上傳；專案只記資料夾名稱。目前是規則要求 agent 寫，不是 hook 自動寫：一次通過、驗收結論這些只有主對話知道。
 
 ```powershell
 uv run engine/scripts/dispatch.py stats     # 依級別與模型類別的一次通過率，以及 Sonnet 試行的判定
@@ -448,7 +448,7 @@ uv run engine/scripts/dispatch.py stats     # 依級別與模型類別的一次�
 "statusLine": { "type": "command", "command": "uv run --quiet <OmniKit 路徑>/engine/scripts/dispatch.py statusline --then \"<原本的指令>\"" }
 ```
 
-快照存在 `%LOCALAPPDATA%\omnikit\dispatch\claude-usage.json`，依帳號的設定資料夾分開；`uv run engine/scripts/dispatch.py usage` 讀它。沒有快照、快照的這一週已經重置，就回報「未知」，agent 不會假設已達 80%。T3 透過 Agent SDK 跑 Claude 時狀態列會不會執行還沒實測（待驗證），所以只用 T3 的話，這個訊號可能一直是未知。
+快照存在 `~/.omnikit/dispatch/claude-usage.json`，依帳號的設定資料夾分開；`uv run engine/scripts/dispatch.py usage` 讀它。沒有快照、快照的這一週已經重置，就回報「未知」，agent 不會假設已達 80%。T3 透過 Agent SDK 跑 Claude 時狀態列會不會執行還沒實測（待驗證），所以只用 T3 的話，這個訊號可能一直是未知。
 
 ### 評估新工具
 
@@ -593,7 +593,7 @@ data/                        資料：fork 後換成你的
   rules/dispatch-policy.md   子任務分派的完整政策（級別、模型、思考程度、升級、委派紀錄；要派才讀）
   tips.json                  對話開頭的用法小提示（新的官方功能加在這裡）
   profiles/<名稱>/           跟著 repo 的 profile：個人規則（AGENTS.md）、真實情境（scenarios.yaml）、分派用的實例（dispatch.md，可省略）；
-                             default 是沒選時的預設。訪談產生的存在 repo 外（%LOCALAPPDATA%\omnikit\profiles）
+                             default 是沒選時的預設。訪談產生的存在 repo 外（~/.omnikit/profiles）
   mcp/                       MCP server 定義與 npm 套件版本
   harness/                   Claude Code 免問的權限規則
   evals/                     實測紀錄

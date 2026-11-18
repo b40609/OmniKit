@@ -61,6 +61,8 @@ jobs:
       # 找出每個 agent 在用的設定目錄（多帳號、T3 Code 的實例、CLAUDE_CONFIG_DIR…），以及開新對話時接上新出現的
       - run: uv run engine/scripts/homes.py --selftest
       - run: uv run engine/scripts/home_watch.py --selftest
+      # 狀態資料夾放 ~/.omnikit，舊位置（%LOCALAPPDATA%\omnikit 與封裝的 app 轉存的副本）合併成一份
+      - run: uv run engine/scripts/statedir.py --selftest
       # T3 Code 的 Antigravity 轉接程式：帶入規則、照 T3 的規則改 initialize，以及接上、改回 T3 的設定
       - run: uv run engine/scripts/acp_shim.py --selftest
       - run: uv run engine/scripts/t3_acp.py --selftest

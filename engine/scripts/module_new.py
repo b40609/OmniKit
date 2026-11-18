@@ -5,7 +5,7 @@
 # [tool.uv]
 # exclude-newer = "2026-11-01T00:00:00Z"
 # ///
-"""把 agent 草擬的模組寫成這台的私有模組：%LOCALAPPDATA%\\omnikit\\modules\\<層>\\<id>.yaml。
+"""把 agent 草擬的模組寫成這台的私有模組：~/.omnikit/modules/<層>/<id>.yaml。
 
 名冊的領域不符合使用者的工作時用：使用者用幾句話描述工作，agent 草擬槽位、情境與找候選用的關鍵字，
 存成 JSON；這支腳本補上預設值、驗證、預覽，使用者同意後才寫入。跟產生 profile 一樣：agent 出內容，腳本寫入。

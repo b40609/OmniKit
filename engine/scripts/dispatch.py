@@ -13,12 +13,12 @@
 - <profile>/dispatch.md：個人層，自己有哪些供應商實例、每個類別用哪個；沒有就只用原生子代理
 profiles.py 把兩份接進 Claude Code、Codex 與 Antigravity 的規則；這支不改規則，只讀。
 
-委派紀錄存在本機 %LOCALAPPDATA%\\omnikit\\dispatch\\log.jsonl（一次委派一行，不進 repo、不上傳）。
+委派紀錄存在本機 ~/.omnikit/dispatch/log.jsonl（一次委派一行，不進 repo、不上傳）。
 這份紀錄之後要拿來依數據調整分派規則；這支只負責記錄與計算，不會自己改規則。
 
 本週 Claude 用量：Claude Code 狀態列的 JSON 輸入有 rate_limits.seven_day.used_percentage
 （https://code.claude.com/docs/en/statusline）。`statusline` 子指令可以設成狀態列指令（或串在原本的前面），
-把它存成 %LOCALAPPDATA%\\omnikit\\dispatch\\claude-usage.json；`usage` 讀這份快照。
+把它存成 ~/.omnikit/dispatch/claude-usage.json；`usage` 讀這份快照。
 T3 透過 Agent SDK 跑 Claude 時狀態列會不會執行，還沒實測（待驗證）。
 
 用法：

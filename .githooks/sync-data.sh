@@ -18,6 +18,17 @@ uv=$(command -v uv || echo "$LOCALAPPDATA/Programs/uv/uv.exe")
 # 會觸發下面任何一種同步的檔案
 syncable='^(data/(rules|profiles|mcp|harness)/|engine/(skills/|scripts/))'
 
+# git-dir 跟 git-common-dir 不同就是 linked worktree；兩個都換成實際路徑再比，避免相對路徑或斜線寫法不同
+git_dir=$(cd "$(git rev-parse --git-dir 2>/dev/null)" 2>/dev/null && pwd -P)
+common_dir=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd -P)
+
+# 狀態檔改放 ~/.omnikit（statedir.py）：判斷版本之前，先把舊位置（%LOCALAPPDATA%\omnikit 與封裝的 app 轉存的副本）
+# 合併過來，不然 edition.json 還在舊位置，會誤判成同事版而不同步。只在主 checkout、而且有要同步的檔案時做
+if [ "$git_dir" = "$common_dir" ] && printf '%s\n' "$changed" | grep -qE "$syncable"; then
+  moved=$("$uv" run --quiet engine/scripts/statedir.py migrate --quiet 2>/dev/null | tr -d '\r')
+  [ -n "$moved" ] && printf '%s\n' "$moved" | sed 's/^/OmniKit：/'
+fi
+
 # Windows 的 Python 印出來是 CRLF，比對前拿掉 \r；判斷失敗就當成同事版，不自動套用
 edition=$("$uv" run --quiet engine/scripts/edition.py --show 2>/dev/null | tr -d '\r')
 if [ "$edition" != "maintainer" ]; then
@@ -27,9 +38,6 @@ if [ "$edition" != "maintainer" ]; then
   exit 0
 fi
 
-# git-dir 跟 git-common-dir 不同就是 linked worktree；兩個都換成實際路徑再比，避免相對路徑或斜線寫法不同
-git_dir=$(cd "$(git rev-parse --git-dir 2>/dev/null)" 2>/dev/null && pwd -P)
-common_dir=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd -P)
 if [ -n "$git_dir" ] && [ -n "$common_dir" ] && [ "$git_dir" != "$common_dir" ]; then
   if printf '%s\n' "$changed" | grep -qE "$syncable"; then
     echo "OmniKit：在 worktree 裡，不同步；合進 main 後主 checkout 會同步"

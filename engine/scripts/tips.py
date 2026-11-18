@@ -9,8 +9,8 @@
 2. insights_due()：這段對話第一次 git push（一件事告一段落）時，如果 Claude Code 的 /insights 報告超過 14 天沒更新
    （或從沒跑過），提醒一句。14 天內只提醒一次。只有 Claude Code 有 /insights。
 
-「OmniKit 通知靜音」（%LOCALAPPDATA%\\omnikit\\notify\\mute.json 的 all）與環境變數 CI、OMNIKIT_NO_NOTIFY 都會讓兩種提示安靜。
-只寫 %LOCALAPPDATA%\\omnikit\\tips\\state.json。任何錯誤都當成沒有提示。
+「OmniKit 通知靜音」（~/.omnikit/notify/mute.json 的 all）與環境變數 CI、OMNIKIT_NO_NOTIFY 都會讓兩種提示安靜。
+只寫 ~/.omnikit/tips/state.json。任何錯誤都當成沒有提示。
 
 自我測試：uv run engine/scripts/tips.py --selftest
 """
@@ -21,7 +21,10 @@ import tempfile
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-STATE = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "omnikit"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import statedir  # noqa: E402  同一個資料夾，沒有相依套件
+
+STATE = statedir.STATE  # ~/.omnikit
 TIPS = Path(__file__).resolve().parents[2] / "data" / "tips.json"
 REPORT = Path.home() / ".claude" / "usage-data" / "report.html"
 INSIGHTS_DAYS = 14

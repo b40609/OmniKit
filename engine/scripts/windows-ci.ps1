@@ -129,6 +129,8 @@ $Repo = Join-Path $Base 'OmniKit 副本'
 $Temp = Join-Path $Base '暫存 tmp'
 $FakeHome = Join-Path $Base '使用者 家目錄'
 $FakeLocal = Join-Path $FakeHome 'AppData\Local'
+# OmniKit 的狀態資料夾（statedir.py）：家目錄底下的 .omnikit，不在 AppData
+$FakeState = Join-Path $FakeHome '.omnikit'
 $UvCache = (& uv cache dir | Out-String).Trim()
 New-Item -ItemType Directory -Force -Path $Repo, $Temp, $FakeLocal | Out-Null
 
@@ -154,7 +156,7 @@ $StatusCopied = Get-Status
 # 從這裡開始，家目錄與 %LOCALAPPDATA% 都換成測試資料夾裡假的，碰不到這台的設定；結束時換回來。
 # uv 的快取指回原本的，免得重新下載
 $savedEnv = @{}
-foreach ($k in 'TEMP', 'TMP', 'PYTHONIOENCODING', 'USERPROFILE', 'HOME', 'LOCALAPPDATA', 'UV_CACHE_DIR') {
+foreach ($k in 'TEMP', 'TMP', 'PYTHONIOENCODING', 'USERPROFILE', 'HOME', 'LOCALAPPDATA', 'UV_CACHE_DIR', 'OMNIKIT_STATE_DIR') {
   $savedEnv[$k] = [Environment]::GetEnvironmentVariable($k)
 }
 $env:TEMP = $Temp
@@ -164,6 +166,7 @@ $env:UV_CACHE_DIR = $UvCache
 $env:USERPROFILE = $FakeHome
 $env:HOME = $FakeHome
 $env:LOCALAPPDATA = $FakeLocal
+$env:OMNIKIT_STATE_DIR = $null
 try {
 
 # ---- 1. validate.yml「名冊」job 的每一個 uv run ----
@@ -205,10 +208,14 @@ Add-Result '自我測試沒有在 repo 裡留下檔案（git status 跟剛複製
 
 Write-File (Join-Path $FakeHome '.claude\CLAUDE.md') "# 我自己的規則`n"
 New-Item -ItemType Directory -Force -Path (Join-Path $FakeHome '.codex') | Out-Null
-$colleague = Join-Path $FakeLocal 'omnikit\profiles\ci-colleague'
+$colleague = Join-Path $FakeState 'profiles\ci-colleague'
 Write-File (Join-Path $colleague 'AGENTS.md') "# 個人規則：ci-colleague`n"
 Write-File (Join-Path $colleague 'answers.json') '{"name": "ci-colleague", "evaluate_tools": false}'
-Write-File (Join-Path $FakeLocal 'omnikit\profile.json') '{"profile": "ci-colleague"}'
+Write-File (Join-Path $FakeState 'profile.json') '{"profile": "ci-colleague"}'
+# 舊版放在 %LOCALAPPDATA%\omnikit 的狀態，以及 Claude 桌面版這類封裝的 app 轉存的副本：之後要合併進 ~/.omnikit
+$pkgCopy = Join-Path $FakeLocal 'Packages\Claude_ci\LocalCache\Local\omnikit'
+Write-File (Join-Path $pkgCopy 'install-record.json') '{"paths": ["C:/ci/Programs/uv"]}'
+Write-File (Join-Path $FakeLocal 'omnikit\dispatch\log.jsonl') ('{"ts": "2026-11-18T00:00:00", "task": "docs"}' + "`n")
 $legacy = Join-Path $Repo 'data\profiles\ci-legacy'
 Write-File (Join-Path $legacy 'AGENTS.md') "# 舊版存在 repo 裡的 profile`n"
 Write-File (Join-Path $legacy 'answers.json') '{"name": "ci-legacy"}'
@@ -220,8 +227,10 @@ Add-Result 'install.ps1 -WhatIf：正常列出預覽' ($r.Code -eq 0 -and $r.Out
 Add-Result 'install.ps1 -WhatIf：profile 在 repo 外，列出位置' ($r.Output.Contains("profile「ci-colleague」") -and $r.Output.Contains($colleague))
 Add-Result 'install.ps1 -WhatIf：列出舊版存在 repo 裡、要搬的 profile' ($r.Output.Contains('舊版存在 repo 裡的 profile（ci-legacy）'))
 Add-Result 'install.ps1 -WhatIf：照 repo 外 profile 的答案預覽 skills' ($r.Output.Contains('不裝 omnikit-eval'))
+Add-Result 'install.ps1 -WhatIf：列出要合併的舊狀態位置（含封裝轉存的副本）' ($r.Output.Contains("狀態檔改放 $FakeState") -and
+  $r.Output.Contains($pkgCopy) -and $r.Output.Contains((Join-Path $FakeLocal 'omnikit')))
 Add-Result 'install.ps1 -WhatIf：什麼都沒寫' ((Get-Content -LiteralPath (Join-Path $FakeHome '.claude\CLAUDE.md') -Raw -Encoding UTF8) -eq "# 我自己的規則`n" -and
-  -not (Test-Path (Join-Path $FakeLocal 'omnikit\agents.json')) -and (Test-Path $legacy))
+  -not (Test-Path (Join-Path $FakeState 'agents.json')) -and (Test-Path $legacy) -and (Test-Path $pkgCopy))
 
 # ---- 4. FR-38：搬舊版的 profile、跑一次訪談，git status 都跟開始時一樣 ----
 
@@ -237,14 +246,18 @@ $r = Invoke-Uv @('run', '--quiet', $profilesPy, '--migrate', '--yes')
 Write-Host $r.Output $r.Error
 Write-Host '::endgroup::'
 Add-Result 'FR-38：同意後搬到 repo 外，repo 的 git status 回到開始時' ($r.Code -eq 0 -and -not (Test-Path $legacy) -and
-  (Test-Path (Join-Path $FakeLocal 'omnikit\profiles\ci-legacy\answers.json')) -and (Get-Status) -eq $StatusBefore) (Get-Detail $r)
+  (Test-Path (Join-Path $FakeState 'profiles\ci-legacy\answers.json')) -and (Get-Status) -eq $StatusBefore) (Get-Detail $r)
+Add-Result '狀態合併：舊位置與封裝轉存的副本合併進 ~/.omnikit，舊位置搬進備份' (-not (Test-Path $pkgCopy) -and
+  -not (Test-Path (Join-Path $FakeLocal 'omnikit')) -and (Test-Path (Join-Path $FakeState 'dispatch\log.jsonl')) -and
+  (Get-Content -LiteralPath (Join-Path $FakeState 'install-record.json') -Raw -Encoding UTF8).Contains('C:/ci/Programs/uv') -and
+  (Test-Path (Join-Path $FakeState 'legacy')))
 
 Write-Host '::group::FR-38：訪談（scan → 預覽 → 寫入並套用）'
 $r = Invoke-Uv @('run', '--quiet', $setupPy, 'scan')
 $scan = $r.Output | ConvertFrom-Json
 $answers = $scan.omnikit.answers_file
-Add-Result 'FR-38：scan 的答案檔與 profile 位置都在 repo 外' ($answers.StartsWith($FakeLocal) -and
-  $scan.omnikit.profiles_dir -eq (Join-Path $FakeLocal 'omnikit\profiles'))
+Add-Result 'FR-38：scan 的答案檔與 profile 位置都在 repo 外' ($answers.StartsWith($FakeState) -and
+  $scan.omnikit.profiles_dir -eq (Join-Path $FakeState 'profiles'))
 Write-File $answers ('{"name": "wang-xiaoming", "language": "zh-TW", "verbosity": "concise", "autonomy": "balanced", ' +
   '"work": ["coding", "data"], "pains": ["no-verification"], "background": "產線資料分析，Python", ' +
   '"projects": {"main": "產線 監控"}, "evaluate_tools": true}')
@@ -255,7 +268,7 @@ $r = Invoke-Uv @('run', '--quiet', $setupPy, 'profile', '--answers', $answers, '
 Write-Host $r.Output $r.Error
 $written = $r.Code
 Write-Host '::endgroup::'
-$folder = Join-Path $FakeLocal 'omnikit\profiles\wang-xiaoming'
+$folder = Join-Path $FakeState 'profiles\wang-xiaoming'
 Add-Result 'FR-38：訪談寫進 repo 外的 profile 資料夾' ($preview -eq 0 -and $written -eq 0 -and
   (Test-Path (Join-Path $folder 'AGENTS.md')) -and (Test-Path (Join-Path $folder 'answers.json')) -and (Test-Path (Join-Path $folder 'scenarios.yaml')))
 Add-Result 'FR-38：訪談跑完，repo 的 git status 跟開始時一樣（看不到個人檔案）' ((Get-Status) -eq $StatusBefore)
@@ -263,7 +276,7 @@ $imports = @((Get-Content -LiteralPath (Join-Path $FakeHome '.claude\CLAUDE.md')
 # 依序是安全底線、共用分派（data/rules/dispatch.md）、個人 AGENTS.md；個人 dispatch.md 有才接，這裡沒有
 Add-Result 'Claude import：路徑有空白與中文時，空白用反斜線跳脫，指到 repo 外的 profile' ($imports.Count -eq 3 -and
   $imports[0].EndsWith('/rules/baseline.md') -and $imports[1].EndsWith('/rules/dispatch.md') -and
-  -not ($imports | Where-Object { $_ -match '(?<!\\) ' }) -and $imports[2].EndsWith('/omnikit/profiles/wang-xiaoming/AGENTS.md') -and
+  -not ($imports | Where-Object { $_ -match '(?<!\\) ' }) -and $imports[2].EndsWith('/.omnikit/profiles/wang-xiaoming/AGENTS.md') -and
   $imports[2].Contains('使用者\ 家目錄'))
 
 } finally {

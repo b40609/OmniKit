@@ -20,7 +20,7 @@ omnikit-weekly 這個 skill 不在 profiles.OPTIONAL_SKILLS 裡，第 5 題選�
    模型用量、對話開頭的大小與跟上週比、名冊比對。存檔時一併記下這次看到的清單與這週的開頭大小，下週拿來比。
 
 不連網、不上傳；只輸出名稱、次數與日期，不輸出對話內容。完整內容存在
-%LOCALAPPDATA%\\omnikit\\weekly\\<年>-W<週>.md，同一週重跑就換成最新的。
+~/.omnikit/weekly/<年>-W<週>.md，同一週重跑就換成最新的。
 維護者評估工具用的「每週彙整」（評估額度、建議評估的槽位、評估漏斗）在 omnikit-eval 裡，是另一份。
 每週第一個 session 開頭的一行提示還沒做（要 SessionStart hook，跟 FR-39 一起做）。
 
@@ -254,7 +254,7 @@ def selftest():
               (state / "weekly" / "inventory.json").exists() and (state / "weekly" / "startup.json").exists())
 
         path = save(lines, state, today)
-        check("完整內容存在 %LOCALAPPDATA%\\omnikit\\weekly\\<年>-W<週>.md",
+        check("完整內容存在 ~/.omnikit/weekly/<年>-W<週>.md",
               path == state / "weekly" / "2026-W45.md" and path.read_text(encoding="utf-8").startswith("# OmniKit 本週週報"))
         save(["# OmniKit 本週週報（重跑）"], state, date(2026, 11, 8))
         check("同一週重跑：換成最新的，不另外多一份", (state / "weekly" / "2026-W45.md").read_text(encoding="utf-8")
@@ -268,7 +268,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="OmniKit 個人週報")
     parser.add_argument("--days", type=int, default=30, help="多少天沒用到算「沒在用」，預設 30")
     parser.add_argument("--today", type=date.fromisoformat, default=date.today())
-    parser.add_argument("--no-save", action="store_true", help="只印出來，不存到 %%LOCALAPPDATA%%\\omnikit\\weekly")
+    parser.add_argument("--no-save", action="store_true", help="只印出來，不存到 ~/.omnikit/weekly")
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args(argv)
     if args.selftest:

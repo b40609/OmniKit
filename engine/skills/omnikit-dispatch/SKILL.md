@@ -88,7 +88,7 @@ uv run scripts/run.py log --task <任務類型> --class <模型類別> --thinkin
 - `--control`：Sonnet 試行的對照組（中級改派 Opus 的那幾次）。
 - `--note`：一句話，不寫專案內容細節、不寫金鑰或 token。
 - 時間、專案名稱、規則版本、profile 自動帶；不確定欄位怎麼寫，先加 `--dry-run` 看會寫出什麼。
-- 寫在本機 `%LOCALAPPDATA%\omnikit\dispatch\log.jsonl`，不進 repo、不上傳。
+- 寫在本機 `~/.omnikit/dispatch/log.jsonl`，不進 repo、不上傳。
 
 範例：Sonnet 做的文件驗收不過，改 Opus（同一級 effort）重跑後過關：
 

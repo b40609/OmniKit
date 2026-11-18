@@ -27,7 +27,7 @@ description: （已停用，2026-11-17）OmniKit 的個人週報與工具建議�
 uv run scripts/report.py
 ```
 
-輸出是 Markdown，第一行是週次，接著一行摘要，再依序是六個區塊（第 6 個是成本）。最後一行是完整內容存放的位置（`%LOCALAPPDATA%\omnikit\weekly\<年>-W<週>.md`，同一週重跑會換成最新的）。
+輸出是 Markdown，第一行是週次，接著一行摘要，再依序是六個區塊（第 6 個是成本）。最後一行是完整內容存放的位置（`~/.omnikit/weekly/<年>-W<週>.md`，同一週重跑會換成最新的）。
 
 照這樣回報：
 
@@ -105,7 +105,7 @@ uv run scripts/report.py
    uv run scripts/report.py advise --picks <檔案路徑>
    ```
 
-   出現「挑選有問題」就照訊息修正再跑。建議的 Markdown 由腳本寫，不要自己寫。通過後的輸出就是建議，最後一行是存檔位置（`%LOCALAPPDATA%\omnikit\advice\<日期>-<agent>.md`）。
+   出現「挑選有問題」就照訊息修正再跑。建議的 Markdown 由腳本寫，不要自己寫。通過後的輸出就是建議，最後一行是存檔位置（`~/.omnikit/advice/<日期>-<agent>.md`）。
 6. 照各節講給使用者聽，問要做哪幾項。使用者同意的才做，用輸出裡寫的指令：
    - 裝：照「同意後執行」在終端機跑（Claude Code 是 `claude plugin install`，Codex 是 `codex plugin add`）。對話裡的 `/plugin install` 只會開面板。裝好提醒開新的對話。
    - 名冊外的：講明沒有實測過、也沒有做安全掃描，請使用者先看來源再決定。指令是照目錄登記的資料組的，OmniKit 沒有跑過；沒有指令的照來源的說明裝。
