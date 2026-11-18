@@ -106,7 +106,8 @@ def parse_version(v):
 
 def helper_session(params):
     cwd = params.get("cwd")
-    return isinstance(cwd, str) and Path(cwd).name.startswith(HELPER_PREFIX)
+    # 兩種斜線都切：T3 傳的是它那台的路徑格式，跟跑這支的系統不一定一樣
+    return isinstance(cwd, str) and cwd.replace("\\", "/").rstrip("/").rsplit("/", 1)[-1].startswith(HELPER_PREFIX)
 
 
 def encode(msg):
