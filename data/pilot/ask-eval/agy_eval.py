@@ -15,6 +15,11 @@
 - variants：同一個情境換兩種說法（explicit：直接說不知道怎麼問；vague：只抱怨或只貼錯誤），
   只跑有它，看叫用穩不穩；評分沿用 cases 裡對應題目（front matter 的 base）的 method 評分項。
 - negatives：需求講得很清楚、不該叫用問法庫的請求，只跑有它，看誤叫用；評分項在 negatives/_graders。
+- real（2026-11-18 起）：從公開的真實 coding agent 對話紀錄（SWE-chat 的來源，Entire.io 存在 GitHub 的
+  checkpoint）挑出使用者卡住或糾正 agent 的片段，改寫成繁體中文單輪題目。評分項照原始對話裡「使用者後來
+  真正要的是什麼、agent 原本錯在哪」寫，不從問法庫情境檔產出。front matter 的 situation 是問法庫裡對應的
+  情境（沒有對應就寫「沒有對應情境」），source 是出處。預設跑 global,without。這組整份當外部驗證，
+  不分訓練題與保留題，也不要照它的結果改問法庫。見 real/README.md。
 
 每題兩組：
 - 有它：工作資料夾放 `.agents/skills/omnikit-ask`（Antigravity 的專案層 skill）；全域 skill 照平常
@@ -46,6 +51,7 @@ agent 回覆是額度用完的訊息時記為錯誤；連續 3 次就停止開�
   uv run data/pilot/ask-eval/agy_eval.py --set variants --arms global --kind vague --runs 1
   uv run data/pilot/ask-eval/agy_eval.py --out <結果資料夾> --rejudge
   uv run data/pilot/ask-eval/agy_eval.py --set cases --split holdout --list
+  uv run data/pilot/ask-eval/agy_eval.py --set real --account ava --model gemini-3.8-flash-high -j 3 --runs 1
 """
 from __future__ import annotations
 
@@ -68,7 +74,7 @@ import time
 HERE = pathlib.Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 CASES = HERE / "cases"
-SETS = ("cases", "variants", "negatives")
+SETS = ("cases", "variants", "negatives", "real")
 HOLDOUT = HERE / "holdout.txt"
 SPLITS = ("train", "holdout", "all")
 # 只看短回覆，避免把在討論額度的正常回答（例如 feature 題）誤判成額度用完
@@ -380,13 +386,15 @@ def load_cases(set_name, names):
         else:
             graders = shared
         cases.append({"name": d.name, "prompt": prompt, "graders": graders, "base": front.get("base"),
-                      "kind": front.get("kind") or "base", "category": d.name.split("-")[0],
+                      "kind": front.get("kind") or "base", "category": front.get("category") or d.name.split("-")[0],
+                      "situation": front.get("situation"), "source": front.get("source"),
                       "expect_fire": front.get("expect_fire", "true").lower() != "false"})
     if names and len(cases) != len(set(names)):
         sys.exit(f"有題目找不到：{sorted(set(names) - {c['name'] for c in cases})}")
     held = load_holdout()
     for c in cases:
-        c["split"] = "holdout" if c["name"] in held or (c["base"] and c["base"] in held) else "train"
+        c["split"] = ("external" if set_name == "real" else
+                      "holdout" if c["name"] in held or (c["base"] and c["base"] in held) else "train")
     return cases
 
 
@@ -524,6 +532,16 @@ def fired(run) -> bool:
     return False
 
 
+def peeked(run) -> bool:
+    """agent 有沒有去翻評測自己的資料夾（題目、評分標準、結果）。2026-11-18 真實糾正題第一輪，
+    沒有前文的糾正句讓 agent 在硬碟上找專案，翻到了 data/pilot/ask-eval；這種回合不算分。"""
+    for tool in run["tools"]:
+        for value in (tool.get("rawInput") or {}).values():
+            if isinstance(value, str) and "ask-eval" in value.replace("\\", "/"):
+                return True
+    return False
+
+
 def save(run, out_dir):
     (out_dir / f"{run['case']}.{run['arm']}.{run['run']}.json").write_text(
         json.dumps(run, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -552,7 +570,8 @@ def agent_job(args, gemini_dirs, case, arm, idx, out_dir):
         run = run_turn(gemini_dirs[arm], ws, args.model, case["prompt"], args.timeout)
     finally:
         shutil.rmtree(ws, ignore_errors=True)
-    run.update(case=case["name"], arm=arm, run=idx, fired=fired(run), account=args.account, agent_model=args.model,
+    run.update(case=case["name"], arm=arm, run=idx, fired=fired(run), peeked=peeked(run),
+               account=args.account, agent_model=args.model,
                global_skill_hidden=arm == "without", workspace_skill=arm == "with")
     note_quota(run.get("quota", False))
     save(run, out_dir)
@@ -596,10 +615,13 @@ def fire_stats(results, cases):
     out = {"expected": rate(expect), "negative": rate(negative),
            "missed": sorted({r["case"] for r in expect if not r["fired"]}),
            "false_fired": sorted({r["case"] for r in negative if r["fired"]})}
-    for key in ("category", "kind"):
+    for key in ("category", "kind", "mapped"):
         groups = {}
         for r in runs:
-            groups.setdefault(by_name[r["case"]][key], []).append(r)
+            c = by_name[r["case"]]
+            value = c.get(key) if key != "mapped" else (
+                ("沒有對應" if "沒有對應" in c["situation"] else "有對應") if c.get("situation") else "-")
+            groups.setdefault(value, []).append(r)
         out[f"by_{key}"] = {k: rate(v) for k, v in sorted(groups.items())}
     return out
 
@@ -609,11 +631,12 @@ def summarize(results, cases, judges):
     for spec in judges:
         rows = []
         for c in cases:
-            row = {"case": c["name"], "category": c["category"], "kind": c["kind"]}
+            row = {"case": c["name"], "category": c["category"], "kind": c["kind"],
+                   "mapped": ("沒有對應" if "沒有對應" in c["situation"] else "有對應") if c.get("situation") else "-"}
             for arm in ("with", "without"):  # global 放在 with 這一欄（同一個資料夾只會有其中一種）
                 runs = [r for r in results if r["case"] == c["name"]
                         and (r["arm"] == arm or (arm == "with" and r["arm"] == "global"))]
-                scores = [r.get("scores", {}).get(spec) for r in runs if not r["error"]]
+                scores = [r.get("scores", {}).get(spec) for r in runs if not r["error"] and not r.get("peeked")]
                 row[arm] = mean(scores)
                 row[f"{arm}_fired"] = f"{sum(r['fired'] for r in runs)}/{len(runs)}"
                 row[f"{arm}_unscored"] = sum(1 for s in scores if s is None)
@@ -627,6 +650,7 @@ def summarize(results, cases, judges):
                      "paired_with": mean([r["with"] for r in paired]),
                      "paired_without": mean([r["without"] for r in paired]),
                      "by_category": group_means(rows, "category"), "by_kind": group_means(rows, "kind"),
+                     "by_mapped": group_means(rows, "mapped"),
                      "rows": rows}
     agree = None
     if len(judges) >= 2:
@@ -650,7 +674,7 @@ def print_table(spec, s):
         print(f"| {r['case']} | {r['with']} | {r['without']} | {r['delta']} | {r['with_fired']} | {r['without_fired']} "
               f"| {r['with_unscored'] + r['without_unscored']} | {r['with_errors'] + r['without_errors']} |")
     print(f"| **平均** | **{s['mean_with']}** | **{s['mean_without']}** | **{s['mean_delta']}** | | | | |")
-    for key, title in (("by_category", "分類"), ("by_kind", "說法")):
+    for key, title in (("by_category", "分類"), ("by_kind", "說法"), ("by_mapped", "問法庫情境")):
         if len(s[key]) < 2:
             continue
         print(f"\n| {title} | 題數 | 有它 | 沒它 | 差距 |\n|---|---|---|---|---|")
@@ -665,7 +689,7 @@ def print_fire(f):
         print(f"該叫用：{e['fired']}/{e['runs']}（{e['rate']}）；沒叫用的題目：{', '.join(f['missed']) or '無'}")
     if n["runs"]:
         print(f"不該叫用：誤叫用 {n['fired']}/{n['runs']}（{n['rate']}）；誤叫用的題目：{', '.join(f['false_fired']) or '無'}")
-    for key, title in (("by_category", "分類"), ("by_kind", "說法")):
+    for key, title in (("by_category", "分類"), ("by_kind", "說法"), ("by_mapped", "問法庫情境")):
         if len(f[key]) < 2:
             continue
         print(f"\n| {title} | 叫用 | 次數 | 比率 |\n|---|---|---|---|")
@@ -685,7 +709,7 @@ def main():
     ap.add_argument("--runs", type=int, default=2)
     ap.add_argument("--votes", type=int, default=1, help="每個評分項投票幾次（取多數）")
     ap.add_argument("--arms", help="with、without、global，逗號分隔；預設 cases 跑 with,without，"
-                                   "variants 與 negatives 跑 with")
+                                   "real 跑 global,without，variants 與 negatives 跑 with")
     ap.add_argument("--kind", action="append", help="只跑這種說法（base、explicit、vague、negative），可重複")
     ap.add_argument("--split", default="train", choices=SPLITS,
                     help="train（預設，改問法庫時只看這份）、holdout（定案時才跑，見 holdout.txt）、all")
@@ -698,7 +722,9 @@ def main():
     ap.add_argument("--rejudge", action="store_true", help="不跑 agent，只替 --out 裡已有的回覆補評分")
     args = ap.parse_args()
     args.judge = args.judge or ["claude:sonnet"]
-    args.arms = args.arms or ("with,without" if args.set == "cases" else "with")
+    args.arms = args.arms or {"cases": "with,without", "real": "global,without"}.get(args.set, "with")
+    if args.set == "real":
+        args.split = "all"  # 整份是外部驗證題，不分訓練與保留
 
     cases = [c for c in load_cases(args.set, args.case) if not args.kind or c["kind"] in args.kind]
     cases = pick_split(cases, args.split, bool(args.case))
@@ -769,7 +795,8 @@ def main():
     per_judge, agree, fire = summarize(results, cases, args.judge)
     first = next(iter(results), {})
     errors = sum(1 for r in results if r["error"])
-    summary = {"set": args.set, "split": args.split, "arms": args.arms, "kind": args.kind,
+    peeks = sorted(f"{r['case']}.{r['arm']}.{r['run']}" for r in results if r.get("peeked"))
+    summary = {"peeked": peeks, "set": args.set, "split": args.split, "arms": args.arms, "kind": args.kind,
                "account": first.get("account", args.account),
                "model": first.get("agent_model", args.model), "judges": args.judge, "votes": args.votes,
                "rules": None if args.no_rules else args.rules,
@@ -782,6 +809,8 @@ def main():
     print_fire(fire)
     if agree:
         print(f"\n兩位評分者一致率：{agree['same']}/{agree['pairs']}（{agree['rate']}）")
+    if peeks:
+        print(f"\n翻到評測資料夾而不算分的回合：{', '.join(peeks)}")
     if errors or skipped:
         print(f"\n錯誤 {errors} 次、略過 {skipped} 次{'（額度用完而停止）' if STOP.is_set() else ''}；"
               f"用同一個 --out 再跑一次會只補這些")
