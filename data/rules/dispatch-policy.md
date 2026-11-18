@@ -122,12 +122,46 @@ channels:
       從 Claude Code、Codex 等任何 agent 派給 Antigravity 的模型（Hydrogen、Flash、Antigravity 的 Opus），前景或背景都可以。
       用 omnikit-dispatch skill 的 run.py agy --class <類別> --thinking <程度> --brief-file <任務說明>；
       思考程度寫進模型代號（gemini-4-hydrogen-xhigh），只寫 gemini-4-hydrogen 會落到 medium。
+      要指定別的 Antigravity 帳號（ava、kai）時改用 t3_cli。
     note: >-
       2026-11-16 用 agy 1.5.9 實測：xhigh 確實生效（log 印 resolved to gemini-4-hydrogen-xhigh，思考 token 約 high 的 2 到 3 倍）；
       能改檔並自己跑測試；終端機 PATH 只有系統路徑，腳本會把 uv、gh 的絕對路徑附在任務說明後面；
       權限：無頭模式不能核准，agy 的安全監控送審就自動拒絕（時好時壞）；accept-edits 一律擋終端機指令；允許規則會落進沙盒。
       所以腳本用 --dangerously-skip-permissions，任務說明前面固定加硬性限制（不 commit、不 push、不刪檔、不對外發送、不安裝），
       結果一律由主控讀檔、跑測試驗收。用的是 antigravity 實例（ryan 帳號）。
+  t3_cli:
+    use: >-
+      不在 T3 裡（主控是 Claude Code、Codex、Antigravity）也能開 T3 對話：用 T3 Code 的本機 t3 thread CLI。
+      使用者要指定 T3 上的帳號實例或模型（例如 antigravity_kai 加 gemini-3.8-flash）、想在 T3 側邊欄看到那條對話、
+      要開在獨立 worktree，或要派給 T3 才有的帳號實例時用它。不要因為這裡沒有 delegate_task、t3_thread_launch 這類
+      MCP 工具就回答「沒辦法派給 T3」。
+    how: >-
+      在 PowerShell 呼叫（t3.cmd 在 %USERPROFILE%\.t3\bin，PowerShell 的 PATH 有、Git Bash 沒有；Bash 的
+      command -v t3 找不到不代表沒裝，改用 PowerShell 或絕對路徑再判斷）。
+      開對話：t3 thread start <project id 或專案內路徑，. 是目前 repo> "<任務說明>" --provider <實例> --model <模型代號>
+      --title "<標題>" --json [--wait]；說明很長時訊息填 -，從 stdin 讀。--provider 的值就是個人層 instances 的 key，
+      要和 --model 一起給；不給 --model 用專案預設模型。要獨立 worktree 加 --worktree <分支或 commit> [--branch <新分支名>]。
+      --wait 等到做完並印出回覆：結束碼 1 是執行失敗、2 是對話在等人回答。
+      其他：t3 thread show <id> --json 看狀態與最新訊息；t3 thread send <id> "<訊息>" --wait 追問；t3 thread list --json 列出對話。
+    thinking: >-
+      t3 v0.1.10 沒有設定思考程度的參數（上游 main 的文件有 --option effort=...，要等 T3 更新）。Antigravity 的模型
+      照 delegate_task 的做法把程度寫進模型代號（gemini-4-hydrogen-xhigh）；Claude 的 effort 目前設不了，
+      要指定 effort 就改用原生子代理或在 T3 介面裡設。【待驗證】代號帶程度經 t3 thread start 生效，是 2026-11-16 的實測，只測過 Hydrogen。
+    settle: >-
+      v0.1.10 沒有 settle 子指令：用 t3_cli 開的對話由主控收完結果後提醒使用者在 T3 結案（或主控有 t3_thread_organize
+      時自己 settle）；在回報裡列出對話 id 與標題，方便使用者找。
+    vs: >-
+      和其他管道的分工：同供應商、不需要指定帳號、不用在 T3 看到的，用原生子代理（最省事、結果直接回主線）；
+      要 Antigravity 模型而且要看思考 token、在背景跑、或不想經過 T3 伺服器的，用 agy_cli（固定 antigravity 實例）；
+      要指定 T3 上的帳號實例（antigravity_kai、claudeAgent_2…）、要在 T3 側邊欄看到或之後用 send 接著問的，用 t3_cli。
+      主控本身就在 T3 裡時，仍用 delegate_task。
+    note: >-
+      2026-11-18 實測（t3 v0.1.10）：t3 thread start . "只回 OK" --provider antigravity_kai --model gemini-3.8-flash --wait --json
+      回傳 {"status":"completed","reply":"OK"}，不用登入。
+      【待驗證】要在外部 agent 拿到完整的 T3 工具（t3_thread_launch、t3_thread_wait、t3_thread_organize 可以 settle），
+      照上游 pingdotgg/t3code 的 docs/user/outside-agents.md：Claude Code 用 claude mcp add --transport http t3 <環境位址>/mcp
+      再 claude mcp login t3（使用者核准一次、30 天有效）；Codex 用 codex mcp add t3 --url ... 再 codex mcp login t3。
+      外部 agent 呼叫 delegate_task 會回錯，要改用 t3_thread_launch。本機都還沒實測。
   delegate_task:
     use: 在 T3 裡跨供應商（Gemini／Antigravity）、要獨立 worktree、要指定別的帳號實例（providerInstanceId）
     thinking: >-
@@ -140,7 +174,7 @@ channels:
       現行規則：delegate_task 不能指定別的專案。【待驗證】T3 的 delegate_task 參數裡有 target.projectId，
       實際能不能把子任務開在別的專案還沒實測，驗證前照現行規則。
   t3_thread_launch:
-    use: 跨專案的工作，開在那個專案裡
+    use: 跨專案的工作，開在那個專案裡（T3 裡的 MCP 工具；不在 T3 裡就用 t3_cli，project 參數填那個專案的路徑）
 
 # 本週 Claude 用量（給 high 級的 80% 條件用）。
 usage_signal:

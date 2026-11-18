@@ -25,7 +25,7 @@ T3 透過 Agent SDK 跑 Claude 時狀態列會不會執行，還沒實測（待�
   uv run engine/scripts/dispatch.py show [--agent claude|codex|antigravity] [--json]   套上這台 profile 之後的分派表
   uv run engine/scripts/dispatch.py check                                            檢查兩層政策
   uv run engine/scripts/dispatch.py log --task <類型> --class <類別> --thinking <程度> --verdict pass|fail|partial|skipped
-        [--first-pass yes|no] [--retries N] [--escalations N] [--final-class <類別>] [--channel native|agy_cli|delegate_task|t3_thread_launch]
+        [--first-pass yes|no] [--retries N] [--escalations N] [--final-class <類別>] [--channel native|agy_cli|t3_cli|delegate_task|t3_thread_launch]
         [--instance <實例>] [--level <級別>] [--project <名稱>] [--control] [--note <文字>] [--dry-run]
   uv run engine/scripts/dispatch.py stats [--json]                                   一次通過率與 Sonnet 試行的判定
   uv run engine/scripts/dispatch.py usage [--json]                                   本週 Claude 用量（快照）
@@ -53,7 +53,8 @@ import profiles  # noqa: E402  同一個資料夾：這台選的 profile 與它�
 
 THINKING = ["low", "medium", "high", "xhigh", "max"]
 VERDICTS = ("pass", "fail", "partial", "skipped")
-CHANNELS = ("native", "agy_cli", "delegate_task", "t3_thread_launch")
+# 管道名稱要和共用層 channels 的 key 一致（check 會比對）。t3_cli：不在 T3 裡，用本機 t3 thread CLI 開 T3 對話。
+CHANNELS = ("native", "agy_cli", "t3_cli", "delegate_task", "t3_thread_launch")
 AGY_MAX_BRIEF = 30000  # Windows 命令列上限約 32k 字元，任務說明走參數，留一點餘裕
 AGENT_DRIVER = {"claude": "claudeAgent", "codex": "codex", "antigravity": "antigravity"}
 FENCE = re.compile(r"```ya?ml\s*\n(.*?)\n```", re.S)
@@ -126,6 +127,10 @@ def check(pol, mine=None):
     for key in ("model_classes", "tasks", "levels", "escalation", "channels", "usage_signal", "trials", "log"):
         if key not in pol:
             errors.append(f"共用層少了 {key}")
+    chans = set(pol.get("channels") or {})
+    if "channels" in pol and chans != set(CHANNELS):
+        errors.append(f"channels 和 dispatch.py 的 CHANNELS 對不上：政策多了 {sorted(chans - set(CHANNELS))}，"
+                      f"少了 {sorted(set(CHANNELS) - chans)}")
     for name, c in classes.items():
         for k in ("model", "driver", "default_thinking", "max_thinking"):
             if k not in c:
@@ -387,7 +392,16 @@ def usage_text(u):
             + (f"；{u['why']}" if u["why"] else ""))
 
 
-def show_text(table, profile, has_personal, usage=None):
+def channel_lines(pol):
+    """管道一覽：每個管道印 use 的第一句。完整寫法（t3_cli 的指令、限制）在 dispatch-policy.md 的 channels。"""
+    lines = ["\n管道（完整用法看 data/rules/dispatch-policy.md 的 channels）："]
+    for name, ch in (pol.get("channels") or {}).items():
+        use = " ".join(str((ch or {}).get("use", "")).split())
+        lines.append(f"  {name}：{use.split('。')[0]}")
+    return lines
+
+
+def show_text(table, profile, has_personal, usage=None, pol=None):
     lines = [f"profile：{profile}；{'個人實例：有' if has_personal else '沒有個人分派設定，只用原生子代理'}"]
     if usage:
         lines.append(usage_text(usage))
@@ -402,6 +416,8 @@ def show_text(table, profile, has_personal, usage=None):
             lines.append(f"  {head} {o['class']}（{o['model']}）{o['thinking_name']} {o['thinking']}；{inst}{extra}{role}")
             if o["pending"]:
                 lines.append(f"     {o['pending'].strip()}")
+    if pol:
+        lines += channel_lines(pol)
     return "\n".join(lines)
 
 
@@ -583,8 +599,8 @@ def main(argv=None):
     if args.cmd == "show":
         table = resolved(pol, mine, args.agent)
         u = weekly_usage(state, pol["usage_signal"]["claude_weekly_threshold_pct"])
-        print(json.dumps({"usage": u, "levels": table}, ensure_ascii=False, indent=2) if args.json
-              else show_text(table, name, mine is not None, u))
+        print(json.dumps({"usage": u, "levels": table, "channels": pol.get("channels")}, ensure_ascii=False, indent=2)
+              if args.json else show_text(table, name, mine is not None, u, pol))
         return 0
     if args.cmd == "log":
         rec = make_record(pol, args, rules_version(data), name, project_name())
@@ -640,6 +656,17 @@ def selftest():
         except ValueError as e:
             caught = "note" in str(e)
     ok("政策 yaml 同一層重複的鍵會報錯，不會悄悄只留後面那個", caught)
+    t3 = (pol.get("channels") or {}).get("t3_cli") or {}
+    ok("共用層有 t3_cli 管道：寫明在 PowerShell 呼叫 t3 thread start、--provider 用實例 key、沒有 settle 子指令",
+       "t3 thread start" in t3.get("how", "") and "PowerShell" in t3.get("how", "") and "--provider" in t3.get("how", "")
+       and "settle" in t3.get("settle", "") and set(pol["channels"]) == set(CHANNELS))
+    shown = show_text(resolved(pol, ryan, "claude"), "ryan", True, None, pol)
+    ok("show 的輸出列出每個管道，包含 t3_cli", all(f"  {c}：" in shown for c in CHANNELS))
+    drift = json.loads(json.dumps(pol))
+    drift["channels"].pop("t3_cli")
+    drift["channels"]["t3_typo"] = {"use": "x"}
+    ok("政策的管道和 CHANNELS 對不上會報錯（log --channel 才不會收不存在的管道）",
+       any("t3_cli" in e and "t3_typo" in e for e in check(drift)))
     ok("每一級、每個選項都寫明思考程度（不靠預設值）",
        all(o.get("thinking") in THINKING for lv in pol["levels"] for o in options(pol, lv)))
 
@@ -707,6 +734,13 @@ def selftest():
     ok("紀錄有必填欄位；級別從任務類型推；沒寫 first-pass 時，一次就過才算",
        all(k in rec for k in need) and rec["level"] == "medium" and rec["first_pass"] is True
        and rec["model"] == "claude-sonnet-5-5" and rec["instance"] == "native")
+    t3rec = make_record(pol, ns(**{**base, "cls": "gemini-flash", "thinking": "high", "channel": "t3_cli",
+                                   "instance": "antigravity_kai"}), "v", "ryan", "p", now)
+    p_log = argparse.ArgumentParser(exit_on_error=False)
+    p_log.add_argument("--channel", choices=CHANNELS)
+    ok("log 收 t3_cli 管道，實例照寫（antigravity_kai）",
+       t3rec["channel"] == "t3_cli" and t3rec["instance"] == "antigravity_kai"
+       and p_log.parse_args(["--channel", "t3_cli"]).channel == "t3_cli")
     esc = make_record(pol, ns(**{**base, "verdict": "pass", "escalations": 1, "final_class": "claude-opus"}), "v", "ryan", "p", now)
     ok("Sonnet 驗收不過、改 Opus 重跑：記成一行，class 是一開始派的 Sonnet，first_pass 是 false",
        esc["class"] == "claude-sonnet" and esc["final_class"] == "claude-opus" and esc["first_pass"] is False)
