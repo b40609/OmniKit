@@ -1,0 +1,3015 @@
+{
+ "created": "2026-11-18",
+ "groups": [
+  {
+   "group": "code review agent",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "alibaba/open-code-review",
+      "tirth8205/code-review-graph",
+      "the-pr-agent/pr-agent",
+      "backnotprop/plannotator",
+      "modem-dev/hunk",
+      "reviewdog/reviewdog",
+      "lintsinghua/deepaudit",
+      "danger/danger",
+      "danger/danger-js",
+      "agavra/tuicr",
+      "google/mantis",
+      "the-open-engine/zeroshot",
+      "kodustech/kodus-ai",
+      "hyhmrright/brooks-lint",
+      "hexmostech/git-lrc",
+      "openqodex/openqodex",
+      "sno-ai/sno-station",
+      "nikita-filonov/ai-review",
+      "codexstar69/bug-hunter",
+      "kyy-logs/code-review-gate-skill",
+      "imbue-ai/vet",
+      "nayjest/gito",
+      "miracodeai/mira"
+     ],
+     "errors": [],
+     "hits": 60
+    },
+    "github-keyword": {
+     "names": [
+      "mattzcarey/shippie",
+      "kenn-io/roborev",
+      "openedclaude/claude-reviews-claude"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [
+      "mr-karan/hodor",
+      "dsh-code-review",
+      "kivancbilen/ya-code-review",
+      "the-human-mustachio/ai-review-agent",
+      "koreanhole/koreanhole-code-review-agent",
+      "lucaford/ai-code-reviewer",
+      "mr-rpchauhan/codereviewai"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "seoes/proval",
+      "gumbel-ai/agent-debate",
+      "devlyai/agentcheck",
+      "gaurav-yadav/adversarial-ai-review",
+      "spencermarx/open-code-review",
+      "sourcebot-dev/sourcebot"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "openai/codex-plugin-cc",
+      "hamelsmu/claude-review-loop",
+      "davidleitw/xreview",
+      "akkie76/code-review-skills",
+      "oneredoak/claude-code-workflows",
+      "openai/codex-security",
+      "chaseai-yt/claudex-loop",
+      "pullboard-dev/pullboard"
+     ],
+     "errors": []
+    },
+    "producthunt": {
+     "names": [
+      "kodustech/kodus-ai",
+      "puemos/lareview",
+      "Co-Review",
+      "Review (desktop)",
+      "CodeCrab",
+      "Kilo Code Reviewer"
+     ],
+     "errors": []
+    },
+    "related": {
+     "names": [
+      "awesome-skills/code-review-skill",
+      "adamjgmiller/adamsreview",
+      "truongnh1992/gemini-ai-code-reviewer",
+      "continuum-ai-corp/orca-code-review",
+      "persiyanov/herdr-reviewr",
+      "syabro/rejudge",
+      "amelnagdy/guard-skills",
+      "vikingmute/review-forge",
+      "nathankim0/clean-architecture-skills",
+      "gentleman-programming/gentleman-guardian-angel",
+      "getsentry/warden",
+      "sturdy-dev/codeball-action",
+      "sourcery-ai/sourcery",
+      "vercel-labs/openreview",
+      "villesau/ai-codereviewer",
+      "cirolini/genai-code-review",
+      "gitbito/bitoai",
+      "cloudflare-studio/ask-bonk",
+      "spherical-up/easy-ai-codereview",
+      "flows-network/github-pr-summary",
+      "presubmit/ai-reviewer",
+      "octopusreview/octopus",
+      "feiskyer/chatgpt-reviewer",
+      "qiniu/reviewbot",
+      "juror-ai/juror",
+      "nfacha/openai-gitlab-pr-review",
+      "usagi-org/ai-code-review-helper",
+      "buxuku/ai-code-reviewer",
+      "zixingtangmouren/mr-agent",
+      "adshao/chatgpt-code-review-action",
+      "ccsert/opencode-review-gitea",
+      "truskovskiyk/pr-reviewer",
+      "gitbito/codereviewagent",
+      "gitpack-ai/gitpack-ai",
+      "integral-healthcare/robin-ai-reviewer",
+      "furudo-erika/codingfox",
+      "snarktank/ai-pr-review",
+      "aryanbrite/openrabbit",
+      "aestheticsuraj234/chai-ai-code-reviewer",
+      "factory-ai/droid-code-review",
+      "ellenhp/auditlm",
+      "electricsheephq/evaos-code-review-bot-neondiff",
+      "selimozten/elek",
+      "diffpal/diffpal",
+      "fivetaku/insane-review",
+      "asyncfuncai/asyncreview",
+      "greptileai/skills",
+      "win4r/agent-skills-code-review-router",
+      "rediga/salesforce-code-review-agent",
+      "w1ckedxt/cynical-sally",
+      "aidankinzett/claude-git-pr-skill",
+      "mberneti/clab",
+      "turingmindai/turingmind-code-review",
+      "aurite-ai/agent-verifier",
+      "somestay07/code-review-agent",
+      "whitequeen306/code-cortex-loop",
+      "lohani-mohit/shipcheck",
+      "wxmb01/review-skill",
+      "barlevysh/code-smells-skill",
+      "victorserpa/objection",
+      "sashiko-dev/sashiko",
+      "nilbuild/diffity",
+      "devagrawal09/jev-review",
+      "taovc/pr-cockpit",
+      "lakeday-org/perch",
+      "themorpheus407/repolens",
+      "reviewstage/stage-cli",
+      "niazmorshed2007/jev-review",
+      "openqa-cn/codexqa",
+      "wong2/diffx",
+      "ataraxy-labs/inspect",
+      "tshemsedinov/reslop",
+      "egma-ai/jev-code-reviewer",
+      "gil2015/code-gate",
+      "nicobailon/pi-review-loop",
+      "vuphongle/oss-pr-reviewer",
+      "ali-marandi/ai-code-reviewer",
+      "reviu-dev/reviu",
+      "hyperb1iss/lucidity-mcp",
+      "snakyvine/codex-maintainer",
+      "mikker/semantic-review",
+      "katarmal-ram/codemoot",
+      "n24q02m/crg",
+      "in-the-loop-labs/pair-review",
+      "simion/reviewd",
+      "kunkka19xx/lgtm",
+      "bobmatnyc/ai-code-review",
+      "kodehash/katichai",
+      "giorgiop/aicodepal",
+      "scanlinedev/scanline",
+      "dbachelder/slop-review",
+      "get-tmonier/argot",
+      "killop/code-review-skill",
+      "xieziyu/duetlens",
+      "diffohq/diffo",
+      "raye-deng/open-code-review",
+      "amix/dunk",
+      "logi-cmd/agent-guardrails",
+      "ispuppy/ai-pre-commit-reviewer",
+      "ahoybuoy/buoy",
+      "itsmesherry/claude-audit",
+      "commitbrief/commitbrief",
+      "umitkavala/revet",
+      "danielt777/sieve",
+      "alxnddr/reviewer",
+      "matheusfillipe/diffler",
+      "narghev/askdiff",
+      "zanetworker/highstakes",
+      "mantacron/manta",
+      "jsliapark/preflight",
+      "verabravo/diffback",
+      "voodootikigod/adversarial-review",
+      "witold-andelie/revio",
+      "agent-0x/claude-codex-review",
+      "open-document-alliance/agent-review-cli",
+      "agentgg-dev/agentgg",
+      "tanviet12/vbsec",
+      "addepar/redflag",
+      "anthropics/claude-code-security-review",
+      "arm/metis",
+      "eastsword/skill-dfyx_code_security_review",
+      "momenbasel/vulnhawk",
+      "shivamsaraswat/secora",
+      "fabriziosalmi/brutal-coding-tool",
+      "oscaar90/opsguard-ai",
+      "win4r/jev-security-scan",
+      "vikram-codes-hub/codesense-ai",
+      "chorus-codes/chorus",
+      "agent-field/pr-af",
+      "amelnagdy/review-skills",
+      "virtuslab/tulip",
+      "mte90/linus-torvalds-skill",
+      "umputun/revmux",
+      "huoji120/code_review_agent",
+      "gggodlin/claude-pr-review",
+      "zjuncher/mr-agent",
+      "csy-csy123/pr-review-agent-council",
+      "kevinten-ai/ai-agent-agentscope-codereview",
+      "addyosmani/adverse",
+      "maxwellccc/autonomous-qa-loop",
+      "aaronz345/codebase-argus",
+      "ncoevoet/claude-review-all",
+      "leocder07/spectra",
+      "zephyrdeng/pi-review",
+      "frehu/claude-maintainability-review",
+      "px0-ai/px0",
+      "domvwt/chatgpt-code-review",
+      "felixng1022/cf_ai_code_review",
+      "hexmostech/livereview",
+      "devarshishimpi/codra"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "AI code review",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "duriantaco/skylos",
+      "sno-ai/sno-station-skills",
+      "tianchong-zerotemp/dianxing",
+      "manojmallick/sigmap",
+      "highgarden-studio/highreview",
+      "p3nchan/deep-review",
+      "nuekkis/ai-code-review",
+      "cogitoforge-ai/cogito-review"
+     ],
+     "errors": [],
+     "hits": 59
+    },
+    "github-keyword": {
+     "names": [
+      "aiwithremy/claude-skills-llm-council"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [
+      "@wuyanbin/ai-code-review-cli-remote",
+      "allocator-one/rcl",
+      "humanbased-ai/crosscheck",
+      "ntanwir10/guardscan",
+      "weave-os/checks",
+      "fullstackhouse/cerber",
+      "malsabbagh/review-sensei",
+      "agentskit-io/code-review",
+      "briggsd/code-reviewer",
+      "immamdouhaboammar/openreview",
+      "realabdullah/hunkyard",
+      "mergelightai/mergelight"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "mukundzha/avouch"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "Optimal-AI/optibot-skill",
+      "anthropics/claude-plugins-official",
+      "religa/multi_mcp",
+      "praneybehl/code-review-mcp"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "claude code review plugin",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "nyldn/claude-octopus"
+     ],
+     "errors": [],
+     "hits": 41
+    },
+    "github-keyword": {
+     "names": [
+      "dagoste/squadra",
+      "gmickel/flow-next",
+      "vladikk/modularity",
+      "iamumeransari/claude-show-your-work",
+      "u-ichi/reviewable-html-workbench",
+      "sendbird/cc-plugin-codex",
+      "xai-org/grok-build-plugin-cc",
+      "antropos17/aegis"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [
+      "pullfrog/pullfrog",
+      "jonathanong/pr-shepherd",
+      "greptileai/cli"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "altimateai/claude-consensus",
+      "boyand/codex-review",
+      "m-ghalib/gemini-plugin-cc",
+      "farfield-dev/deep-review"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "closedloop-ai/claude-plugins"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "anthropics/claude-code-action",
+      "anthropics/claude-code",
+      "pejmanjohn/cc-plugin-codex",
+      "haasonsaas/codex-code-reviewer",
+      "wnjoon/sparring",
+      "joleksiysurovtsev/claude-review-plugin"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "codex review",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "nyxandro/sparring-skill",
+      "lynnswap/codexreviewkit",
+      "alainabo/aso-dual-agent-review",
+      "deepmyst/mysti",
+      "umputun/ralphex"
+     ],
+     "errors": [],
+     "hits": 44
+    },
+    "github-keyword": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 18
+    },
+    "npm": {
+     "names": [
+      "leonlee/cc-pair",
+      "uzi0espil/codex-claude-reviewer-bridge",
+      "pair-programming-orchestrator",
+      "vukhanhtruong/codex-review-cc",
+      "wzc520pyfm/dsh-git-review",
+      "pmerwin/codex-review-mcp",
+      "claude-codex-code-review",
+      "dsh-codex-review",
+      "alexwakeman/pierre-review",
+      "mallvirus/codereview-ai"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "danmcinerney/architect-loop",
+      "shimo4228/codex-review",
+      "szpadel/codex-mcp-code-review",
+      "grainier/gemini-cli-codex-reviews",
+      "mfelix/quibble"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "openai/codex-action"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "cross-model review",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "wan-huiyan/agent-review-panel",
+      "carlos-dominguez-faber/adversarial-review",
+      "dementev-dev/adversarial-review",
+      "robertoecf/adversarial-review",
+      "alessioalionco/high-stakes",
+      "overflowy/herdr-adversarial-review",
+      "jmosier69/refute",
+      "s977043/river-review",
+      "xuio/claude-code-codex-subagents",
+      "aimer1124/dual-model-review-kit",
+      "kar-tra/review-loop",
+      "justinrow-art/codex-pro-claude-collaboration-workflow",
+      "danzimon-rgb/triangulate",
+      "eyupcimen/twinquiry",
+      "delimit-ai/delimit-mcp-server",
+      "berrzebb/quorum"
+     ],
+     "errors": [],
+     "hits": 58
+    },
+    "github-keyword": {
+     "names": [
+      "razzant/claudexor",
+      "lploc94/cross-review"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "jyumanzor/chatgpt-interlocutor"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "makedirectory/modelpeer",
+      "pietz/moa-cli",
+      "cochatai/mcp-cochat"
+     ],
+     "errors": [],
+     "hits": 9
+    },
+    "exa": {
+     "names": [
+      "tesslio/pr-review-guardrails"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "brettchangus/cross-review",
+      "j-wang/adversarial-review-skill",
+      "ng/adversarial-review",
+      "alecnielsen/adversarial-review",
+      "parthpm/adversarial-dev-plugin",
+      "atompilot/claude-code-cross-review",
+      "xntj-ai/cross-review"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "PR review bot open source",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "moritzwilksch/diffle",
+      "auscaster/silvertongue",
+      "bashovski/reflektor",
+      "devlensio/devlensoss",
+      "tomosia-vietnam/open-pr",
+      "nexpeakcore/deepseek-harness-pr-review",
+      "review-scope/reviewscope",
+      "enif-lee/pr-plus",
+      "dancingteeth/unified-code-review",
+      "codedog-ai/codedog",
+      "baz-scm/awesome-reviewers",
+      "antongulin/robin",
+      "gauravsharmagg/mergejudge-runner",
+      "dyangalih/architecture-guard",
+      "dceoy/opencode-action",
+      "derailed-dash/gemini-review-action",
+      "amirhosseinhonardoust/pr-guardian-ai",
+      "saphan-ai/proven",
+      "zc2638/review-bot"
+     ],
+     "errors": []
+    },
+    "github-keyword": {
+     "names": [
+      "christophehurpeau/reviewflow",
+      "vishal-padia/codejedi",
+      "acatnight/evidence-review-bot"
+     ],
+     "errors": []
+    },
+    "npm": {
+     "names": [
+      "pbakaus/agent-reviews"
+     ],
+     "errors": []
+    },
+    "hn": {
+     "names": [
+      "patched-codes/patchwork",
+      "agynio/gh-pr-review"
+     ],
+     "errors": []
+    },
+    "exa": {
+     "names": [
+      "agentuse/pr-review-agent",
+      "nicholaivogel/pr-reviewer",
+      "automattic/pr-review-agent",
+      "jgunnink/gemini-review-bot"
+     ],
+     "errors": []
+    },
+    "web-en": {
+     "names": [
+      "anc95/ChatGPT-CodeReview"
+     ],
+     "errors": []
+    },
+    "awesome": {
+     "names": [],
+     "errors": []
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": []
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "bug finding agent",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "hyhmrright/logic-lens",
+      "abczsl520/bug-audit-skill",
+      "antonio-petricca/bug-finder",
+      "kratos0718/codehound",
+      "anamasgard/issue-finder",
+      "shivasb42/autonomous-code-audit",
+      "bismaaaa20-cloud/bugscout-mcp"
+     ],
+     "errors": [],
+     "hits": 66
+    },
+    "github-keyword": {
+     "names": [
+      "specular-org/specula",
+      "liatrio-labs/claude-code-gauntlet",
+      "athm793/buggie-skill",
+      "chriswu727/argus",
+      "leoerdman/ultra-audit",
+      "kpole95/llm-code-review-agent"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 2
+    },
+    "skills-sh": {
+     "names": [
+      "trailofbits/skills"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "aurelienbobenrieth/agentlint"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "mesa-dot-dev/saguaro"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "shobrook/suss",
+      "danpeg/bug-hunt",
+      "stanek-michal/bugfinder"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "isdvsv/bug-hunter",
+      "alanchn31/multi-agent-code-review",
+      "Himal-Badu/ai-code-reviewer",
+      "Awarexone/Agentic-Bug-Hunter"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "verification agent",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "reticlehq/reticle",
+      "asklokesh/loki-mode",
+      "najeed/ai-agent-eval-harness",
+      "veriker/veriker",
+      "apageoflove/dsh-changeproof",
+      "the-open-engine/opcore",
+      "kdunee/intentguard",
+      "vertti/se-cove-claude-plugin",
+      "timwood0x10/codescope",
+      "2akouwu/reverify"
+     ],
+     "errors": [],
+     "hits": 60
+    },
+    "github-keyword": {
+     "names": [
+      "cloudflare/security-audit-skill",
+      "code-yeongyu/lazycodex",
+      "llm-as-a-verifier/llm-as-a-verifier",
+      "vibiumdev/vibium",
+      "sahibzada-allahyar/formal-verification-rsi",
+      "teaql/teaql-agent-kit",
+      "maxritter/qualitylayer",
+      "amap-ml/longhorizon-harness"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 19
+    },
+    "npm": {
+     "names": [
+      "humanbased-ai/verifyflow",
+      "attestifyagent/attestify-mcp"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "tzachbon/smart-ralph",
+      "mgasparin67-cmd/agent-verification_assure"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "disler/the-verifier-agent",
+      "romanzdk/verifair",
+      "emreordu/agentcheck",
+      "alidaram99/donelatch",
+      "eragonlonelyboy-lab/horkos",
+      "sdsvn/co-review"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "AI 程式碼審查",
+   "channels": {
+    "github-topic": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "github-keyword": {
+     "names": [
+      "benknightdark/neo-skills",
+      "pdza7777-ops/code-reviewer-lite"
+     ],
+     "errors": [],
+     "hits": 7
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "npm": {
+     "names": [
+      "@siaumau/review-flow"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "hn": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-zh": {
+     "names": [
+      "coderabbitai/ai-pr-reviewer",
+      "oesoll/peer",
+      "ai-push-review"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "code security review",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "kritt-ai/open-kritt",
+      "hugoii/llm-agent-audit",
+      "cdmx-in/security-review",
+      "allsmog/vuln-scout",
+      "dyangalih/security-review",
+      "falcoschaefer99-eng/michael-security-agent",
+      "qwed-ai/qwed-verification",
+      "nocomplexity/codeaudit",
+      "advanced-security/codeql-development-mcp-server",
+      "apiiro/prevent",
+      "antonbabenko/deliberation"
+     ],
+     "errors": [],
+     "hits": 59
+    },
+    "github-keyword": {
+     "names": [
+      "sanyuan0704/sanyuan-skills",
+      "arm/metis",
+      "adshao/flounder",
+      "project-codeguard/rules"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 5
+    },
+    "skills-sh": {
+     "names": [
+      "coderabbitai/skills"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "dsifry/metaswarm"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "zrack/security-audit-skill",
+      "Consensys/repo-security-review",
+      "Netflix-Skunkworks/railguard-skill",
+      "cheezy/stride-security-review",
+      "0xiehnnkta/nemesis-auditor",
+      "TarkinLarson/asvs-auditor",
+      "PlamenTSV/plamen",
+      "basitalisandhu/agent-security-skills",
+      "Chih-Kai-Wang/agentconf-audit"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "git diff review TUI",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "ivankovic/omnidiff",
+      "brunnojob/patchscope",
+      "oil-oil/oil-diff",
+      "jansmrcka/differ",
+      "tothalex/drift",
+      "chmarax/herdr-gitview",
+      "astro-han/diffpane",
+      "fabricesalvaire/codereview",
+      "data-goblin/claude-code-filetree",
+      "robzolkos/pi-slopchop",
+      "dgesteves/signoff-ui",
+      "bramblexu/dsh-revdiff",
+      "wyk4447/dsh-diff-review",
+      "spylogsster/git-ai-review",
+      "linnnn89/lightweight-diff-review",
+      "msabhishek22/specguard"
+     ],
+     "errors": [],
+     "hits": 51
+    },
+    "github-keyword": {
+     "names": [
+      "remorses/critique",
+      "openvulcan/vulcan-code",
+      "rednafi/rexdiff",
+      "polyphilz/glance",
+      "segersniels/rexamine",
+      "stojanovic/hawkshaw"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 0
+    },
+    "skills-sh": {
+     "names": [
+      "umputun/revdiff"
+     ],
+     "errors": [],
+     "hits": 7
+    },
+    "npm": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [
+      "saidsef/mcp-github-pr-issue-analyser"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "flamestro/deff",
+      "kevindutra/crit"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "exa": {
+     "names": [
+      "mutinyhq/mdiff",
+      "jayychoi/diffy",
+      "zemse/gitdiff-tui",
+      "yoshiko-pg/difit",
+      "ataraxy-labs/lazydiff",
+      "adilp/crit-diff"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "josephschmitt/monocle",
+      "crittylabs/critty",
+      "ahmedragab20/diffing",
+      "strelov1/diffray",
+      "jnsahaj/lumen"
+     ],
+     "errors": []
+    }
+   }
+  },
+  {
+   "group": "pre-push code review",
+   "channels": {
+    "github-topic": {
+     "names": [
+      "jeongjaesoon/agent-guard",
+      "dalvgit/vibecheck",
+      "ezzatmakar/ai-code-skills",
+      "spacexcx/pr-check",
+      "stefano-regosa-deel/safe_push"
+     ],
+     "errors": [],
+     "hits": 61
+    },
+    "github-keyword": {
+     "names": [
+      "opticdiff/code-reviewer",
+      "leehueeng/aigate-ai-git-workflow-guard-cli",
+      "elanthus/agentic-preflight",
+      "lntanohuang/pre-push-review",
+      "coinangel-kr/claude-pre-push-skill",
+      "dasonofposeidon/claude-ship",
+      "andreaslehnert/uc-codeguard",
+      "ledger-rocket/rocket-review",
+      "adinathchaudhari/preflight-review",
+      "tphakala/claude-gate-skill",
+      "dshuishui/airev",
+      "jason-jsdg/agent-pr-flow"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "awesome": {
+     "names": [],
+     "errors": [],
+     "hits": 1
+    },
+    "skills-sh": {
+     "names": [
+      "lgtm-hq/ai-skills",
+      "caiomba/code-review-team",
+      "sd0xdev/sd0x-harness"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "npm": {
+     "names": [
+      "erkishanvaishnani/code-review-ai-agent"
+     ],
+     "errors": [],
+     "hits": 20
+    },
+    "mcp-registry": {
+     "names": [],
+     "errors": [],
+     "hits": 20
+    },
+    "hn": {
+     "names": [
+      "tkenaz/semantic_diff",
+      "asamassekou10/ship-safe"
+     ],
+     "errors": [],
+     "hits": 5
+    },
+    "exa": {
+     "names": [
+      "un/gitpreflight"
+     ],
+     "errors": [],
+     "hits": 10
+    },
+    "web-en": {
+     "names": [
+      "84codes/local-review",
+      "win4r/codex-review-workflow-skill",
+      "pentoai/quality-gates-skills"
+     ],
+     "errors": []
+    }
+   }
+  }
+ ],
+ "stars": {
+  "aaronz345/codebase-argus": {
+   "stars": 60,
+   "checked": "2026-11-18"
+  },
+  "adamjgmiller/adamsreview": {
+   "stars": 245,
+   "checked": "2026-11-18"
+  },
+  "addepar/redflag": {
+   "stars": 163,
+   "checked": "2026-11-18"
+  },
+  "addyosmani/adverse": {
+   "stars": 68,
+   "checked": "2026-11-18"
+  },
+  "adshao/chatgpt-code-review-action": {
+   "stars": 80,
+   "checked": "2026-11-18"
+  },
+  "aestheticsuraj234/chai-ai-code-reviewer": {
+   "stars": 59,
+   "checked": "2026-11-18"
+  },
+  "agavra/tuicr": {
+   "stars": 3616,
+   "checked": "2026-11-18"
+  },
+  "agent-0x/claude-codex-review": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "agent-field/pr-af": {
+   "stars": 666,
+   "checked": "2026-11-18"
+  },
+  "agentgg-dev/agentgg": {
+   "stars": 464,
+   "checked": "2026-11-18"
+  },
+  "ahoybuoy/buoy": {
+   "stars": 21,
+   "checked": "2026-11-18"
+  },
+  "aidankinzett/claude-git-pr-skill": {
+   "stars": 54,
+   "checked": "2026-11-18"
+  },
+  "akkie76/code-review-skills": {
+   "stars": 91,
+   "checked": "2026-11-18"
+  },
+  "ali-marandi/ai-code-reviewer": {
+   "stars": 109,
+   "checked": "2026-11-18"
+  },
+  "alibaba/open-code-review": {
+   "stars": 54084,
+   "checked": "2026-11-18"
+  },
+  "alxnddr/reviewer": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "amelnagdy/guard-skills": {
+   "stars": 1316,
+   "checked": "2026-11-18"
+  },
+  "amelnagdy/review-skills": {
+   "stars": 172,
+   "checked": "2026-11-18"
+  },
+  "amix/dunk": {
+   "stars": 31,
+   "checked": "2026-11-18"
+  },
+  "anthropics/claude-code-security-review": {
+   "stars": 6990,
+   "checked": "2026-11-18"
+  },
+  "arm/metis": {
+   "stars": 893,
+   "checked": "2026-11-18"
+  },
+  "aryanbrite/openrabbit": {
+   "stars": 60,
+   "checked": "2026-11-18"
+  },
+  "asyncfuncai/asyncreview": {
+   "stars": 463,
+   "checked": "2026-11-18"
+  },
+  "ataraxy-labs/inspect": {
+   "stars": 215,
+   "checked": "2026-11-18"
+  },
+  "aurite-ai/agent-verifier": {
+   "stars": 44,
+   "checked": "2026-11-18"
+  },
+  "awesome-skills/code-review-skill": {
+   "stars": 2285,
+   "checked": "2026-11-18"
+  },
+  "backnotprop/plannotator": {
+   "stars": 13269,
+   "checked": "2026-11-18"
+  },
+  "barlevysh/code-smells-skill": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "bobmatnyc/ai-code-review": {
+   "stars": 56,
+   "checked": "2026-11-18"
+  },
+  "buxuku/ai-code-reviewer": {
+   "stars": 90,
+   "checked": "2026-11-18"
+  },
+  "ccsert/opencode-review-gitea": {
+   "stars": 77,
+   "checked": "2026-11-18"
+  },
+  "chaseai-yt/claudex-loop": {
+   "stars": 3474,
+   "checked": "2026-11-18"
+  },
+  "chorus-codes/chorus": {
+   "stars": 534,
+   "checked": "2026-11-18"
+  },
+  "cirolini/genai-code-review": {
+   "stars": 373,
+   "checked": "2026-11-18"
+  },
+  "cloudflare-studio/ask-bonk": {
+   "stars": 270,
+   "checked": "2026-11-18"
+  },
+  "codexstar69/bug-hunter": {
+   "stars": 568,
+   "checked": "2026-11-18"
+  },
+  "commitbrief/commitbrief": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "continuum-ai-corp/orca-code-review": {
+   "stars": 187,
+   "checked": "2026-11-18"
+  },
+  "csy-csy123/pr-review-agent-council": {
+   "stars": 89,
+   "checked": "2026-11-18"
+  },
+  "danger/danger": {
+   "stars": 5697,
+   "checked": "2026-11-18"
+  },
+  "danger/danger-js": {
+   "stars": 5520,
+   "checked": "2026-11-18"
+  },
+  "danielt777/sieve": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "davidleitw/xreview": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "dbachelder/slop-review": {
+   "stars": 50,
+   "checked": "2026-11-18"
+  },
+  "devagrawal09/jev-review": {
+   "stars": 704,
+   "checked": "2026-11-18"
+  },
+  "devarshishimpi/codra": {
+   "stars": 125,
+   "checked": "2026-11-18"
+  },
+  "devlyai/agentcheck": {
+   "stars": 48,
+   "checked": "2026-11-18"
+  },
+  "diffohq/diffo": {
+   "stars": 45,
+   "checked": "2026-11-18"
+  },
+  "diffpal/diffpal": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "domvwt/chatgpt-code-review": {
+   "stars": 289,
+   "checked": "2026-11-18"
+  },
+  "eastsword/skill-dfyx_code_security_review": {
+   "stars": 147,
+   "checked": "2026-11-18"
+  },
+  "egma-ai/jev-code-reviewer": {
+   "stars": 152,
+   "checked": "2026-11-18"
+  },
+  "electricsheephq/evaos-code-review-bot-neondiff": {
+   "stars": 50,
+   "checked": "2026-11-18"
+  },
+  "ellenhp/auditlm": {
+   "stars": 53,
+   "checked": "2026-11-18"
+  },
+  "fabriziosalmi/brutal-coding-tool": {
+   "stars": 27,
+   "checked": "2026-11-18"
+  },
+  "factory-ai/droid-code-review": {
+   "stars": 55,
+   "checked": "2026-11-18"
+  },
+  "feiskyer/chatgpt-reviewer": {
+   "stars": 109,
+   "checked": "2026-11-18"
+  },
+  "felixng1022/cf_ai_code_review": {
+   "stars": 219,
+   "checked": "2026-11-18"
+  },
+  "fivetaku/insane-review": {
+   "stars": 127,
+   "checked": "2026-11-18"
+  },
+  "flows-network/github-pr-summary": {
+   "stars": 229,
+   "checked": "2026-11-18"
+  },
+  "frehu/claude-maintainability-review": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "furudo-erika/codingfox": {
+   "stars": 65,
+   "checked": "2026-11-18"
+  },
+  "gaurav-yadav/adversarial-ai-review": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "gentleman-programming/gentleman-guardian-angel": {
+   "stars": 1350,
+   "checked": "2026-11-18"
+  },
+  "get-tmonier/argot": {
+   "stars": 50,
+   "checked": "2026-11-18"
+  },
+  "getsentry/warden": {
+   "stars": 425,
+   "checked": "2026-11-18"
+  },
+  "gggodlin/claude-pr-review": {
+   "stars": 115,
+   "checked": "2026-11-18"
+  },
+  "gil2015/code-gate": {
+   "stars": 127,
+   "checked": "2026-11-18"
+  },
+  "giorgiop/aicodepal": {
+   "stars": 51,
+   "checked": "2026-11-18"
+  },
+  "gitbito/bitoai": {
+   "stars": 299,
+   "checked": "2026-11-18"
+  },
+  "gitbito/codereviewagent": {
+   "stars": 68,
+   "checked": "2026-11-18"
+  },
+  "gitpack-ai/gitpack-ai": {
+   "stars": 67,
+   "checked": "2026-11-18"
+  },
+  "google/mantis": {
+   "stars": 2806,
+   "checked": "2026-11-18"
+  },
+  "greptileai/skills": {
+   "stars": 437,
+   "checked": "2026-11-18"
+  },
+  "gumbel-ai/agent-debate": {
+   "stars": 19,
+   "checked": "2026-11-18"
+  },
+  "hamelsmu/claude-review-loop": {
+   "stars": 734,
+   "checked": "2026-11-18"
+  },
+  "hexmostech/git-lrc": {
+   "stars": 1495,
+   "checked": "2026-11-18"
+  },
+  "hexmostech/livereview": {
+   "stars": 162,
+   "checked": "2026-11-18"
+  },
+  "huoji120/code_review_agent": {
+   "stars": 116,
+   "checked": "2026-11-18"
+  },
+  "hyhmrright/brooks-lint": {
+   "stars": 1582,
+   "checked": "2026-11-18"
+  },
+  "hyperb1iss/lucidity-mcp": {
+   "stars": 90,
+   "checked": "2026-11-18"
+  },
+  "imbue-ai/vet": {
+   "stars": 493,
+   "checked": "2026-11-18"
+  },
+  "in-the-loop-labs/pair-review": {
+   "stars": 74,
+   "checked": "2026-11-18"
+  },
+  "integral-healthcare/robin-ai-reviewer": {
+   "stars": 65,
+   "checked": "2026-11-18"
+  },
+  "ispuppy/ai-pre-commit-reviewer": {
+   "stars": 25,
+   "checked": "2026-11-18"
+  },
+  "itsmesherry/claude-audit": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "jsliapark/preflight": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "juror-ai/juror": {
+   "stars": 101,
+   "checked": "2026-11-18"
+  },
+  "katarmal-ram/codemoot": {
+   "stars": 78,
+   "checked": "2026-11-18"
+  },
+  "kenn-io/roborev": {
+   "stars": 1820,
+   "checked": "2026-11-18"
+  },
+  "kevinten-ai/ai-agent-agentscope-codereview": {
+   "stars": 75,
+   "checked": "2026-11-18"
+  },
+  "killop/code-review-skill": {
+   "stars": 50,
+   "checked": "2026-11-18"
+  },
+  "kivancbilen/ya-code-review": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "kodehash/katichai": {
+   "stars": 52,
+   "checked": "2026-11-18"
+  },
+  "kodustech/kodus-ai": {
+   "stars": 1627,
+   "checked": "2026-11-18"
+  },
+  "koreanhole/koreanhole-code-review-agent": {
+   "stars": 0,
+   "checked": "2026-11-18",
+   "error": "gh: Not Found (HTTP 404)"
+  },
+  "kunkka19xx/lgtm": {
+   "stars": 70,
+   "checked": "2026-11-18"
+  },
+  "kyy-logs/code-review-gate-skill": {
+   "stars": 511,
+   "checked": "2026-11-18"
+  },
+  "lakeday-org/perch": {
+   "stars": 317,
+   "checked": "2026-11-18"
+  },
+  "leocder07/spectra": {
+   "stars": 19,
+   "checked": "2026-11-18"
+  },
+  "lintsinghua/deepaudit": {
+   "stars": 7323,
+   "checked": "2026-11-18"
+  },
+  "logi-cmd/agent-guardrails": {
+   "stars": 28,
+   "checked": "2026-11-18"
+  },
+  "lohani-mohit/shipcheck": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "lucaford/ai-code-reviewer": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "mantacron/manta": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "matheusfillipe/diffler": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "mattzcarey/shippie": {
+   "stars": 2529,
+   "checked": "2026-11-18"
+  },
+  "maxwellccc/autonomous-qa-loop": {
+   "stars": 65,
+   "checked": "2026-11-18"
+  },
+  "mberneti/clab": {
+   "stars": 54,
+   "checked": "2026-11-18"
+  },
+  "mikker/semantic-review": {
+   "stars": 82,
+   "checked": "2026-11-18"
+  },
+  "miracodeai/mira": {
+   "stars": 415,
+   "checked": "2026-11-18"
+  },
+  "modem-dev/hunk": {
+   "stars": 9843,
+   "checked": "2026-11-18"
+  },
+  "momenbasel/vulnhawk": {
+   "stars": 90,
+   "checked": "2026-11-18"
+  },
+  "mr-karan/hodor": {
+   "stars": 116,
+   "checked": "2026-11-18"
+  },
+  "mr-rpchauhan/codereviewai": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "mte90/linus-torvalds-skill": {
+   "stars": 123,
+   "checked": "2026-11-18"
+  },
+  "n24q02m/crg": {
+   "stars": 76,
+   "checked": "2026-11-18"
+  },
+  "narghev/askdiff": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "nathankim0/clean-architecture-skills": {
+   "stars": 115,
+   "checked": "2026-11-18"
+  },
+  "nayjest/gito": {
+   "stars": 476,
+   "checked": "2026-11-18"
+  },
+  "ncoevoet/claude-review-all": {
+   "stars": 45,
+   "checked": "2026-11-18"
+  },
+  "nfacha/openai-gitlab-pr-review": {
+   "stars": 94,
+   "checked": "2026-11-18"
+  },
+  "niazmorshed2007/jev-review": {
+   "stars": 253,
+   "checked": "2026-11-18"
+  },
+  "nicobailon/pi-review-loop": {
+   "stars": 113,
+   "checked": "2026-11-18"
+  },
+  "nikita-filonov/ai-review": {
+   "stars": 610,
+   "checked": "2026-11-18"
+  },
+  "nilbuild/diffity": {
+   "stars": 919,
+   "checked": "2026-11-18"
+  },
+  "octopusreview/octopus": {
+   "stars": 115,
+   "checked": "2026-11-18"
+  },
+  "oneredoak/claude-code-workflows": {
+   "stars": 3921,
+   "checked": "2026-11-18"
+  },
+  "open-document-alliance/agent-review-cli": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "openai/codex-plugin-cc": {
+   "stars": 35249,
+   "checked": "2026-11-18"
+  },
+  "openai/codex-security": {
+   "stars": 14039,
+   "checked": "2026-11-18"
+  },
+  "openedclaude/claude-reviews-claude": {
+   "stars": 1646,
+   "checked": "2026-11-18"
+  },
+  "openqa-cn/codexqa": {
+   "stars": 249,
+   "checked": "2026-11-18"
+  },
+  "openqodex/openqodex": {
+   "stars": 1207,
+   "checked": "2026-11-18"
+  },
+  "oscaar90/opsguard-ai": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "persiyanov/herdr-reviewr": {
+   "stars": 1006,
+   "checked": "2026-11-18"
+  },
+  "presubmit/ai-reviewer": {
+   "stars": 187,
+   "checked": "2026-11-18"
+  },
+  "puemos/lareview": {
+   "stars": 185,
+   "checked": "2026-11-18"
+  },
+  "pullboard-dev/pullboard": {
+   "stars": 846,
+   "checked": "2026-11-18"
+  },
+  "px0-ai/px0": {
+   "stars": 1959,
+   "checked": "2026-11-18"
+  },
+  "qiniu/reviewbot": {
+   "stars": 106,
+   "checked": "2026-11-18"
+  },
+  "raye-deng/open-code-review": {
+   "stars": 41,
+   "checked": "2026-11-18"
+  },
+  "rediga/salesforce-code-review-agent": {
+   "stars": 109,
+   "checked": "2026-11-18"
+  },
+  "reviewdog/reviewdog": {
+   "stars": 9751,
+   "checked": "2026-11-18"
+  },
+  "reviewstage/stage-cli": {
+   "stars": 278,
+   "checked": "2026-11-18"
+  },
+  "reviu-dev/reviu": {
+   "stars": 108,
+   "checked": "2026-11-18"
+  },
+  "sashiko-dev/sashiko": {
+   "stars": 1432,
+   "checked": "2026-11-18"
+  },
+  "scanlinedev/scanline": {
+   "stars": 50,
+   "checked": "2026-11-18"
+  },
+  "selimozten/elek": {
+   "stars": 19,
+   "checked": "2026-11-18"
+  },
+  "seoes/proval": {
+   "stars": 134,
+   "checked": "2026-11-18"
+  },
+  "shivamsaraswat/secora": {
+   "stars": 58,
+   "checked": "2026-11-18"
+  },
+  "simion/reviewd": {
+   "stars": 71,
+   "checked": "2026-11-18"
+  },
+  "snakyvine/codex-maintainer": {
+   "stars": 83,
+   "checked": "2026-11-18"
+  },
+  "snarktank/ai-pr-review": {
+   "stars": 63,
+   "checked": "2026-11-18"
+  },
+  "sno-ai/sno-station": {
+   "stars": 1026,
+   "checked": "2026-11-18"
+  },
+  "somestay07/code-review-agent": {
+   "stars": 30,
+   "checked": "2026-11-18"
+  },
+  "sourcebot-dev/sourcebot": {
+   "stars": 4034,
+   "checked": "2026-11-18"
+  },
+  "sourcery-ai/sourcery": {
+   "stars": 1887,
+   "checked": "2026-11-18"
+  },
+  "spencermarx/open-code-review": {
+   "stars": 388,
+   "checked": "2026-11-18"
+  },
+  "spherical-up/easy-ai-codereview": {
+   "stars": 245,
+   "checked": "2026-11-18"
+  },
+  "sturdy-dev/codeball-action": {
+   "stars": 328,
+   "checked": "2026-11-18"
+  },
+  "syabro/rejudge": {
+   "stars": 166,
+   "checked": "2026-11-18"
+  },
+  "tanviet12/vbsec": {
+   "stars": 331,
+   "checked": "2026-11-18"
+  },
+  "taovc/pr-cockpit": {
+   "stars": 486,
+   "checked": "2026-11-18"
+  },
+  "the-human-mustachio/ai-review-agent": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "the-open-engine/zeroshot": {
+   "stars": 2195,
+   "checked": "2026-11-18"
+  },
+  "the-pr-agent/pr-agent": {
+   "stars": 16365,
+   "checked": "2026-11-18"
+  },
+  "themorpheus407/repolens": {
+   "stars": 305,
+   "checked": "2026-11-18"
+  },
+  "tirth8205/code-review-graph": {
+   "stars": 32839,
+   "checked": "2026-11-18"
+  },
+  "truongnh1992/gemini-ai-code-reviewer": {
+   "stars": 258,
+   "checked": "2026-11-18"
+  },
+  "truskovskiyk/pr-reviewer": {
+   "stars": 73,
+   "checked": "2026-11-18"
+  },
+  "tshemsedinov/reslop": {
+   "stars": 198,
+   "checked": "2026-11-18"
+  },
+  "turingmindai/turingmind-code-review": {
+   "stars": 50,
+   "checked": "2026-11-18"
+  },
+  "umitkavala/revet": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "umputun/revmux": {
+   "stars": 117,
+   "checked": "2026-11-18"
+  },
+  "usagi-org/ai-code-review-helper": {
+   "stars": 92,
+   "checked": "2026-11-18"
+  },
+  "verabravo/diffback": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "vercel-labs/openreview": {
+   "stars": 1709,
+   "checked": "2026-11-18"
+  },
+  "victorserpa/objection": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "vikingmute/review-forge": {
+   "stars": 224,
+   "checked": "2026-11-18"
+  },
+  "vikram-codes-hub/codesense-ai": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "villesau/ai-codereviewer": {
+   "stars": 1047,
+   "checked": "2026-11-18"
+  },
+  "virtuslab/tulip": {
+   "stars": 149,
+   "checked": "2026-11-18"
+  },
+  "voodootikigod/adversarial-review": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "vuphongle/oss-pr-reviewer": {
+   "stars": 113,
+   "checked": "2026-11-18"
+  },
+  "w1ckedxt/cynical-sally": {
+   "stars": 102,
+   "checked": "2026-11-18"
+  },
+  "whitequeen306/code-cortex-loop": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "win4r/agent-skills-code-review-router": {
+   "stars": 124,
+   "checked": "2026-11-18"
+  },
+  "win4r/jev-security-scan": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "witold-andelie/revio": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "wong2/diffx": {
+   "stars": 219,
+   "checked": "2026-11-18"
+  },
+  "wxmb01/review-skill": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "xieziyu/duetlens": {
+   "stars": 49,
+   "checked": "2026-11-18"
+  },
+  "zanetworker/highstakes": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "zephyrdeng/pi-review": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "zixingtangmouren/mr-agent": {
+   "stars": 89,
+   "checked": "2026-11-18"
+  },
+  "zjuncher/mr-agent": {
+   "stars": 91,
+   "checked": "2026-11-18"
+  },
+  "agentskit-io/code-review": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "aiwithremy/claude-skills-llm-council": {
+   "stars": 3126,
+   "checked": "2026-11-18"
+  },
+  "alainabo/aso-dual-agent-review": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "alexwakeman/pierre-review": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "allocator-one/rcl": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "altimateai/claude-consensus": {
+   "stars": 34,
+   "checked": "2026-11-18"
+  },
+  "anthropics/claude-code": {
+   "stars": 156112,
+   "checked": "2026-11-18"
+  },
+  "anthropics/claude-code-action": {
+   "stars": 10000,
+   "checked": "2026-11-18"
+  },
+  "anthropics/claude-plugins-official": {
+   "stars": 47617,
+   "checked": "2026-11-18"
+  },
+  "antropos17/aegis": {
+   "stars": 162,
+   "checked": "2026-11-18"
+  },
+  "boyand/codex-review": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "briggsd/code-reviewer": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "closedloop-ai/claude-plugins": {
+   "stars": 124,
+   "checked": "2026-11-18"
+  },
+  "cogitoforge-ai/cogito-review": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "dagoste/squadra": {
+   "stars": 1283,
+   "checked": "2026-11-18"
+  },
+  "danmcinerney/architect-loop": {
+   "stars": 629,
+   "checked": "2026-11-18"
+  },
+  "deepmyst/mysti": {
+   "stars": 1159,
+   "checked": "2026-11-18"
+  },
+  "duriantaco/skylos": {
+   "stars": 947,
+   "checked": "2026-11-18"
+  },
+  "farfield-dev/deep-review": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "fullstackhouse/cerber": {
+   "stars": 14,
+   "checked": "2026-11-18"
+  },
+  "gmickel/flow-next": {
+   "stars": 725,
+   "checked": "2026-11-18"
+  },
+  "grainier/gemini-cli-codex-reviews": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "greptileai/cli": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "haasonsaas/codex-code-reviewer": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "highgarden-studio/highreview": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "humanbased-ai/crosscheck": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "iamumeransari/claude-show-your-work": {
+   "stars": 313,
+   "checked": "2026-11-18"
+  },
+  "immamdouhaboammar/openreview": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "joleksiysurovtsev/claude-review-plugin": {
+   "stars": 0,
+   "checked": "2026-11-18",
+   "error": "gh: Not Found (HTTP 404)"
+  },
+  "jonathanong/pr-shepherd": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "leonlee/cc-pair": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "lynnswap/codexreviewkit": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "m-ghalib/gemini-plugin-cc": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "mallvirus/codereview-ai": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "malsabbagh/review-sensei": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "manojmallick/sigmap": {
+   "stars": 652,
+   "checked": "2026-11-18"
+  },
+  "mergelightai/mergelight": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "mfelix/quibble": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "mukundzha/avouch": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "ntanwir10/guardscan": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "nuekkis/ai-code-review": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "nyldn/claude-octopus": {
+   "stars": 4467,
+   "checked": "2026-11-18"
+  },
+  "nyxandro/sparring-skill": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "openai/codex-action": {
+   "stars": 1308,
+   "checked": "2026-11-18"
+  },
+  "optimal-ai/optibot-skill": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "p3nchan/deep-review": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "pejmanjohn/cc-plugin-codex": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "pmerwin/codex-review-mcp": {
+   "stars": 0,
+   "checked": "2026-11-18",
+   "error": "gh: Not Found (HTTP 404)"
+  },
+  "praneybehl/code-review-mcp": {
+   "stars": 34,
+   "checked": "2026-11-18"
+  },
+  "pullfrog/pullfrog": {
+   "stars": 1461,
+   "checked": "2026-11-18"
+  },
+  "realabdullah/hunkyard": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "religa/multi_mcp": {
+   "stars": 37,
+   "checked": "2026-11-18"
+  },
+  "sendbird/cc-plugin-codex": {
+   "stars": 235,
+   "checked": "2026-11-18"
+  },
+  "shimo4228/codex-review": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "sno-ai/sno-station-skills": {
+   "stars": 865,
+   "checked": "2026-11-18"
+  },
+  "szpadel/codex-mcp-code-review": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "tianchong-zerotemp/dianxing": {
+   "stars": 858,
+   "checked": "2026-11-18"
+  },
+  "u-ichi/reviewable-html-workbench": {
+   "stars": 303,
+   "checked": "2026-11-18"
+  },
+  "umputun/ralphex": {
+   "stars": 1517,
+   "checked": "2026-11-18"
+  },
+  "uzi0espil/codex-claude-reviewer-bridge": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "vladikk/modularity": {
+   "stars": 604,
+   "checked": "2026-11-18"
+  },
+  "vukhanhtruong/codex-review-cc": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "weave-os/checks": {
+   "stars": 34,
+   "checked": "2026-11-18"
+  },
+  "wnjoon/sparring": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "wzc520pyfm/dsh-git-review": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "xai-org/grok-build-plugin-cc": {
+   "stars": 281,
+   "checked": "2026-11-18"
+  },
+  "0xiehnnkta/nemesis-auditor": {
+   "stars": 251,
+   "checked": "2026-11-18"
+  },
+  "2akouwu/reverify": {
+   "stars": 1347,
+   "checked": "2026-11-18"
+  },
+  "84codes/local-review": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "abczsl520/bug-audit-skill": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "acatnight/evidence-review-bot": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "adilp/crit-diff": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "adinathchaudhari/preflight-review": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "adshao/flounder": {
+   "stars": 527,
+   "checked": "2026-11-18"
+  },
+  "advanced-security/codeql-development-mcp-server": {
+   "stars": 39,
+   "checked": "2026-11-18"
+  },
+  "agentuse/pr-review-agent": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "agynio/gh-pr-review": {
+   "stars": 194,
+   "checked": "2026-11-18"
+  },
+  "ahmedragab20/diffing": {
+   "stars": 21,
+   "checked": "2026-11-18"
+  },
+  "aimer1124/dual-model-review-kit": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "alanchn31/multi-agent-code-review": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "alecnielsen/adversarial-review": {
+   "stars": 51,
+   "checked": "2026-11-18"
+  },
+  "alessioalionco/high-stakes": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "alidaram99/donelatch": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "allsmog/vuln-scout": {
+   "stars": 26,
+   "checked": "2026-11-18"
+  },
+  "amap-ml/longhorizon-harness": {
+   "stars": 1876,
+   "checked": "2026-11-18"
+  },
+  "amirhosseinhonardoust/pr-guardian-ai": {
+   "stars": 18,
+   "checked": "2026-11-18"
+  },
+  "anamasgard/issue-finder": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "anc95/chatgpt-codereview": {
+   "stars": 4479,
+   "checked": "2026-11-18"
+  },
+  "andreaslehnert/uc-codeguard": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "antonbabenko/deliberation": {
+   "stars": 186,
+   "checked": "2026-11-18"
+  },
+  "antongulin/robin": {
+   "stars": 56,
+   "checked": "2026-11-18"
+  },
+  "antonio-petricca/bug-finder": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "apageoflove/dsh-changeproof": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "apiiro/prevent": {
+   "stars": 258,
+   "checked": "2026-11-18"
+  },
+  "asamassekou10/ship-safe": {
+   "stars": 872,
+   "checked": "2026-11-18"
+  },
+  "asklokesh/loki-mode": {
+   "stars": 1119,
+   "checked": "2026-11-18"
+  },
+  "astro-han/diffpane": {
+   "stars": 43,
+   "checked": "2026-11-18"
+  },
+  "ataraxy-labs/lazydiff": {
+   "stars": 163,
+   "checked": "2026-11-18"
+  },
+  "athm793/buggie-skill": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "atompilot/claude-code-cross-review": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "attestifyagent/attestify-mcp": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "aurelienbobenrieth/agentlint": {
+   "stars": 143,
+   "checked": "2026-11-18"
+  },
+  "auscaster/silvertongue": {
+   "stars": 114,
+   "checked": "2026-11-18"
+  },
+  "automattic/pr-review-agent": {
+   "stars": 17,
+   "checked": "2026-11-18"
+  },
+  "awarexone/agentic-bug-hunter": {
+   "stars": 5986,
+   "checked": "2026-11-18"
+  },
+  "bashovski/reflektor": {
+   "stars": 79,
+   "checked": "2026-11-18"
+  },
+  "basitalisandhu/agent-security-skills": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "baz-scm/awesome-reviewers": {
+   "stars": 155,
+   "checked": "2026-11-18"
+  },
+  "benknightdark/neo-skills": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "berrzebb/quorum": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "bismaaaa20-cloud/bugscout-mcp": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "bramblexu/dsh-revdiff": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "brettchangus/cross-review": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "brunnojob/patchscope": {
+   "stars": 265,
+   "checked": "2026-11-18"
+  },
+  "caiomba/code-review-team": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "carlos-dominguez-faber/adversarial-review": {
+   "stars": 36,
+   "checked": "2026-11-18"
+  },
+  "cdmx-in/security-review": {
+   "stars": 30,
+   "checked": "2026-11-18"
+  },
+  "cheezy/stride-security-review": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "chih-kai-wang/agentconf-audit": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "chmarax/herdr-gitview": {
+   "stars": 46,
+   "checked": "2026-11-18"
+  },
+  "christophehurpeau/reviewflow": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "chriswu727/argus": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "cloudflare/security-audit-skill": {
+   "stars": 75114,
+   "checked": "2026-11-18"
+  },
+  "cochatai/mcp-cochat": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "code-yeongyu/lazycodex": {
+   "stars": 3924,
+   "checked": "2026-11-18"
+  },
+  "codedog-ai/codedog": {
+   "stars": 190,
+   "checked": "2026-11-18"
+  },
+  "coderabbitai/ai-pr-reviewer": {
+   "stars": 0,
+   "checked": "2026-11-18",
+   "error": "gh: Not Found (HTTP 404)"
+  },
+  "coderabbitai/skills": {
+   "stars": 221,
+   "checked": "2026-11-18"
+  },
+  "coinangel-kr/claude-pre-push-skill": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "consensys/repo-security-review": {
+   "stars": 36,
+   "checked": "2026-11-18"
+  },
+  "crittylabs/critty": {
+   "stars": 108,
+   "checked": "2026-11-18"
+  },
+  "dalvgit/vibecheck": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "dancingteeth/unified-code-review": {
+   "stars": 19,
+   "checked": "2026-11-18"
+  },
+  "danpeg/bug-hunt": {
+   "stars": 147,
+   "checked": "2026-11-18"
+  },
+  "danzimon-rgb/triangulate": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "dasonofposeidon/claude-ship": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "data-goblin/claude-code-filetree": {
+   "stars": 453,
+   "checked": "2026-11-18"
+  },
+  "dceoy/opencode-action": {
+   "stars": 27,
+   "checked": "2026-11-18"
+  },
+  "delimit-ai/delimit-mcp-server": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "dementev-dev/adversarial-review": {
+   "stars": 21,
+   "checked": "2026-11-18"
+  },
+  "derailed-dash/gemini-review-action": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "devlensio/devlensoss": {
+   "stars": 71,
+   "checked": "2026-11-18"
+  },
+  "dgesteves/signoff-ui": {
+   "stars": 18,
+   "checked": "2026-11-18"
+  },
+  "disler/the-verifier-agent": {
+   "stars": 165,
+   "checked": "2026-11-18"
+  },
+  "dshuishui/airev": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "dsifry/metaswarm": {
+   "stars": 432,
+   "checked": "2026-11-18"
+  },
+  "dyangalih/architecture-guard": {
+   "stars": 32,
+   "checked": "2026-11-18"
+  },
+  "dyangalih/security-review": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "elanthus/agentic-preflight": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "emreordu/agentcheck": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "enif-lee/pr-plus": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "eragonlonelyboy-lab/horkos": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "erkishanvaishnani/code-review-ai-agent": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "eyupcimen/twinquiry": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "ezzatmakar/ai-code-skills": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "fabricesalvaire/codereview": {
+   "stars": 421,
+   "checked": "2026-11-18"
+  },
+  "falcoschaefer99-eng/michael-security-agent": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "flamestro/deff": {
+   "stars": 587,
+   "checked": "2026-11-18"
+  },
+  "gauravsharmagg/mergejudge-runner": {
+   "stars": 35,
+   "checked": "2026-11-18"
+  },
+  "himal-badu/ai-code-reviewer": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "hugoii/llm-agent-audit": {
+   "stars": 62,
+   "checked": "2026-11-18"
+  },
+  "humanbased-ai/verifyflow": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "hyhmrright/logic-lens": {
+   "stars": 25,
+   "checked": "2026-11-18"
+  },
+  "isdvsv/bug-hunter": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "ivankovic/omnidiff": {
+   "stars": 1413,
+   "checked": "2026-11-18"
+  },
+  "j-wang/adversarial-review-skill": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "jansmrcka/differ": {
+   "stars": 62,
+   "checked": "2026-11-18"
+  },
+  "jason-jsdg/agent-pr-flow": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "jayychoi/diffy": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "jeongjaesoon/agent-guard": {
+   "stars": 44,
+   "checked": "2026-11-18"
+  },
+  "jgunnink/gemini-review-bot": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "jmosier69/refute": {
+   "stars": 9,
+   "checked": "2026-11-18"
+  },
+  "jnsahaj/lumen": {
+   "stars": 2921,
+   "checked": "2026-11-18"
+  },
+  "josephschmitt/monocle": {
+   "stars": 74,
+   "checked": "2026-11-18"
+  },
+  "justinrow-art/codex-pro-claude-collaboration-workflow": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "jyumanzor/chatgpt-interlocutor": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "kar-tra/review-loop": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "kdunee/intentguard": {
+   "stars": 36,
+   "checked": "2026-11-18"
+  },
+  "kevindutra/crit": {
+   "stars": 108,
+   "checked": "2026-11-18"
+  },
+  "kpole95/llm-code-review-agent": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "kratos0718/codehound": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "kritt-ai/open-kritt": {
+   "stars": 2432,
+   "checked": "2026-11-18"
+  },
+  "ledger-rocket/rocket-review": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "leehueeng/aigate-ai-git-workflow-guard-cli": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "leoerdman/ultra-audit": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "lgtm-hq/ai-skills": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "liatrio-labs/claude-code-gauntlet": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "linnnn89/lightweight-diff-review": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "llm-as-a-verifier/llm-as-a-verifier": {
+   "stars": 3352,
+   "checked": "2026-11-18"
+  },
+  "lntanohuang/pre-push-review": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "lploc94/cross-review": {
+   "stars": 167,
+   "checked": "2026-11-18"
+  },
+  "makedirectory/modelpeer": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "maxritter/qualitylayer": {
+   "stars": 2151,
+   "checked": "2026-11-18"
+  },
+  "mesa-dot-dev/saguaro": {
+   "stars": 27,
+   "checked": "2026-11-18"
+  },
+  "mgasparin67-cmd/agent-verification_assure": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "moritzwilksch/diffle": {
+   "stars": 203,
+   "checked": "2026-11-18"
+  },
+  "msabhishek22/specguard": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "mutinyhq/mdiff": {
+   "stars": 2,
+   "checked": "2026-11-18"
+  },
+  "najeed/ai-agent-eval-harness": {
+   "stars": 47,
+   "checked": "2026-11-18"
+  },
+  "netflix-skunkworks/railguard-skill": {
+   "stars": 81,
+   "checked": "2026-11-18"
+  },
+  "nexpeakcore/deepseek-harness-pr-review": {
+   "stars": 43,
+   "checked": "2026-11-18"
+  },
+  "ng/adversarial-review": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "nicholaivogel/pr-reviewer": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "nocomplexity/codeaudit": {
+   "stars": 45,
+   "checked": "2026-11-18"
+  },
+  "oesoll/peer": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "oil-oil/oil-diff": {
+   "stars": 105,
+   "checked": "2026-11-18"
+  },
+  "openvulcan/vulcan-code": {
+   "stars": 49,
+   "checked": "2026-11-18"
+  },
+  "opticdiff/code-reviewer": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "overflowy/herdr-adversarial-review": {
+   "stars": 10,
+   "checked": "2026-11-18"
+  },
+  "parthpm/adversarial-dev-plugin": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "patched-codes/patchwork": {
+   "stars": 1581,
+   "checked": "2026-11-18"
+  },
+  "pbakaus/agent-reviews": {
+   "stars": 328,
+   "checked": "2026-11-18"
+  },
+  "pdza7777-ops/code-reviewer-lite": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "pentoai/quality-gates-skills": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "pietz/moa-cli": {
+   "stars": 11,
+   "checked": "2026-11-18"
+  },
+  "plamentsv/plamen": {
+   "stars": 316,
+   "checked": "2026-11-18"
+  },
+  "polyphilz/glance": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "project-codeguard/rules": {
+   "stars": 428,
+   "checked": "2026-11-18"
+  },
+  "qwed-ai/qwed-verification": {
+   "stars": 78,
+   "checked": "2026-11-18"
+  },
+  "razzant/claudexor": {
+   "stars": 525,
+   "checked": "2026-11-18"
+  },
+  "rednafi/rexdiff": {
+   "stars": 47,
+   "checked": "2026-11-18"
+  },
+  "remorses/critique": {
+   "stars": 1290,
+   "checked": "2026-11-18"
+  },
+  "reticlehq/reticle": {
+   "stars": 1289,
+   "checked": "2026-11-18"
+  },
+  "review-scope/reviewscope": {
+   "stars": 28,
+   "checked": "2026-11-18"
+  },
+  "robertoecf/adversarial-review": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "robzolkos/pi-slopchop": {
+   "stars": 64,
+   "checked": "2026-11-18"
+  },
+  "romanzdk/verifair": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "s977043/river-review": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "sahibzada-allahyar/formal-verification-rsi": {
+   "stars": 2908,
+   "checked": "2026-11-18"
+  },
+  "saidsef/mcp-github-pr-issue-analyser": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "sanyuan0704/sanyuan-skills": {
+   "stars": 3986,
+   "checked": "2026-11-18"
+  },
+  "saphan-ai/proven": {
+   "stars": 16,
+   "checked": "2026-11-18"
+  },
+  "sd0xdev/sd0x-harness": {
+   "stars": 196,
+   "checked": "2026-11-18"
+  },
+  "sdsvn/co-review": {
+   "stars": 22,
+   "checked": "2026-11-18"
+  },
+  "segersniels/rexamine": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "shivasb42/autonomous-code-audit": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "shobrook/suss": {
+   "stars": 122,
+   "checked": "2026-11-18"
+  },
+  "spacexcx/pr-check": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "specular-org/specula": {
+   "stars": 660,
+   "checked": "2026-11-18"
+  },
+  "spylogsster/git-ai-review": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "stanek-michal/bugfinder": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "stefano-regosa-deel/safe_push": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "stojanovic/hawkshaw": {
+   "stars": 12,
+   "checked": "2026-11-18"
+  },
+  "strelov1/diffray": {
+   "stars": 27,
+   "checked": "2026-11-18"
+  },
+  "tarkinlarson/asvs-auditor": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "teaql/teaql-agent-kit": {
+   "stars": 2822,
+   "checked": "2026-11-18"
+  },
+  "tesslio/pr-review-guardrails": {
+   "stars": 15,
+   "checked": "2026-11-18"
+  },
+  "the-open-engine/opcore": {
+   "stars": 36,
+   "checked": "2026-11-18"
+  },
+  "timwood0x10/codescope": {
+   "stars": 13,
+   "checked": "2026-11-18"
+  },
+  "tkenaz/semantic_diff": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "tomosia-vietnam/open-pr": {
+   "stars": 46,
+   "checked": "2026-11-18"
+  },
+  "tothalex/drift": {
+   "stars": 52,
+   "checked": "2026-11-18"
+  },
+  "tphakala/claude-gate-skill": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "trailofbits/skills": {
+   "stars": 8267,
+   "checked": "2026-11-18"
+  },
+  "tzachbon/smart-ralph": {
+   "stars": 566,
+   "checked": "2026-11-18"
+  },
+  "umputun/revdiff": {
+   "stars": 960,
+   "checked": "2026-11-18"
+  },
+  "un/gitpreflight": {
+   "stars": 5,
+   "checked": "2026-11-18"
+  },
+  "veriker/veriker": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "vertti/se-cove-claude-plugin": {
+   "stars": 20,
+   "checked": "2026-11-18"
+  },
+  "vibiumdev/vibium": {
+   "stars": 2960,
+   "checked": "2026-11-18"
+  },
+  "vishal-padia/codejedi": {
+   "stars": 3,
+   "checked": "2026-11-18"
+  },
+  "wan-huiyan/agent-review-panel": {
+   "stars": 37,
+   "checked": "2026-11-18"
+  },
+  "win4r/codex-review-workflow-skill": {
+   "stars": 4,
+   "checked": "2026-11-18"
+  },
+  "wyk4447/dsh-diff-review": {
+   "stars": 1,
+   "checked": "2026-11-18"
+  },
+  "xntj-ai/cross-review": {
+   "stars": 6,
+   "checked": "2026-11-18"
+  },
+  "xuio/claude-code-codex-subagents": {
+   "stars": 7,
+   "checked": "2026-11-18"
+  },
+  "yoshiko-pg/difit": {
+   "stars": 3337,
+   "checked": "2026-11-18"
+  },
+  "zc2638/review-bot": {
+   "stars": 8,
+   "checked": "2026-11-18"
+  },
+  "zemse/gitdiff-tui": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  },
+  "zrack/security-audit-skill": {
+   "stars": 0,
+   "checked": "2026-11-18"
+  }
+ }
+}
