@@ -44,6 +44,7 @@ profile：ryan
 - **子對話自動 Settle**：所有由主對話派發的子任務、獨立驗收、唯讀審查或代跑對話，在完成執行並輸出最終回報後，必須主動呼叫 `t3_thread_organize`（`action: 'settle'`）進行結案收合，避免側邊欄對話堆積；若是透過沒有 T3 工具的原生子代理執行，由父對話在收完結果後負責結案。用 `t3 thread` CLI（`t3_cli` 管道）開的 T3 對話，CLI 目前沒有 settle 子指令，對話本身也未必有 T3 工具：父對話收完結果後，有 `t3_thread_organize` 就自己 settle（帶 `action: "settle"`，回讀確認 `settled: true`）；沒有就先看能不能接 T3 的 MCP（`omnikit-capabilities` 會列出怎麼接，`claude mcp login t3` 要在終端機分頁跑、我核准一次，有效 30 天），還是不行才在回報裡列出對話 id 與標題，請我在 T3 結案。僅有失敗、遭遇阻擋或標記為【等你決定】需使用者介入的對話才保留 active。
 - 子任務分派（任務級別、管道、模型、思考程度、升級路徑、委派紀錄）照 OmniKit 共用層 `data/rules/dispatch.md`；我的帳號與供應商實例在這個 profile 的 `dispatch.md`。兩份都會載入，這裡不重複寫。
 - **Gemini 思考程度**（2026-11-18 定案）：所有 Gemini 模型的調用（gemini-pro、gemini-flash，不論 agy_cli、t3_cli、`t3_thread_launch`、delegate_task 哪個管道），思考程度永遠是 high 或更高；不准 low、medium，也不准不寫靠預設值（`t3 thread start` 要把程度寫進模型代號，例如 `gemini-4-hydrogen-high`）。直接呼叫 Gemini API（Vertex 抵免額或其他 Gemini API）時，能用 Gemini 4 Hydrogen 就用，不能用（無權限、429、403）才退到 Gemini 3.8 Flash，兩者思考程度都 high 以上。Claude 的 effort 不受這條影響。
+- **Claude Opus 子任務的 effort**（2026-11-19 定案）：派出去的 Claude Opus 子任務（claude-opus、antigravity-opus，不論哪個管道）effort 一律 medium（Opus 的預設值）；我明確指定才用 high 以上。分派政策 `levels` 寫的 high、xhigh 與升級路徑裡的 Opus 程度，在我這裡都先用 medium，驗收不過要升程度時先問我。主線對話本身的程度照我開對話時指定的，不受這條影響。Gemini 一律 high 以上那條照舊。
 - 狀態標籤：每次收尾的第一句用下列其中一個開頭（Claude 桌面版的 wrap_up recap 第一句會顯示在側邊欄；其他介面寫在最後一則回覆的第一句）：
   - 【完成待收尾】：交付的東西都已 commit 並 push（不能 push 的寫明只在這台），沒有等我的事；我看到就可以封存這段對話；子對話任務完成後應直接呼叫 settle 結案。
   - 【等你決定】：要我拍板或動手才能繼續。
