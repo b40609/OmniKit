@@ -16,13 +16,16 @@ instances:
     driver: antigravity
     account: ava
     classes: [gemini-flash]
+    note: 印度 Jio 方案的 Gemini Pro，只有 Opus 4.6 與 Gemini 3.8 Flash（沒有 Opus 5.5，也沒有 Gemini 4 系列）
     needs_user: antigravity 的 Gemini 額度用完時，請 ryan 開啟 ava、kai 帳號再用
   antigravity_kai:
     driver: antigravity
     account: kai
     classes: [gemini-flash]
+    note: 同 antigravity_ava（印度 Jio 方案的 Gemini Pro，只有 Opus 4.6 與 Gemini 3.8 Flash）
     needs_user: 同 antigravity_ava
 
 # 原生子代理（Agent 工具）用的是目前這段對話的帳號，不用列。
 # 要用 delegate_task 派給 Claude 時，先用目前這段對話的實例（inherited）；那個帳號額度用完，再照上面 instances 的順序（claudeAgent、claudeAgent_2、claudeAgent_claude_kai）換下一個。使用者沒有偏好（2026-11-18 定案）。
+# 2026-11-19 定案：派出去的 Claude Opus 子任務（claude-opus、antigravity-opus，不論哪個管道）effort 預設 medium，只有 ryan 明確指定才用 high 以上（細則在 data/profiles/ryan/AGENTS.md）；主線本身維持使用者指定的設定。Gemini 仍一律 high 以上。
 ```
