@@ -1,0 +1,14 @@
+id: open-code-review
+name: Open Code Review（alibaba/open-code-review）
+kind: cli
+slots:
+- review
+status: pending
+url: https://github.com/alibaba/open-code-review
+works_with:
+- claude
+- codex
+sources:
+- 審查工具飽和調研（2026-11-18）
+notes: ★54,185，Apache-2.0，v1.13.12（2026-11-18），2026-11-19 第 0 層通過；--scan 4 個 skill 都是 SAFE。Go 寫的審查 CLI `ocr`，加上 skill 與 Claude Code plugin。兩種用法：原生模式用 OCR 自己設定的模型端點跑完整流程（要另外的 API key）；delegation 模式由宿主 agent（Claude Code、Codex）用自己的訂閱做分析，OCR 只負責挑檔、對規則、要求覆蓋率與輸出格式。README 說同一個模型下 Precision、F1 比通用 agent 高、token 約九分之一，但 Recall 比較低；這是它自家的 AACR-Bench，待驗證。Windows 有官方執行檔。遙測文件寫的是 OpenTelemetry 整合，預設開不開沒查，待驗證。跟現任的差別：現任是 agent 自己照提示審，它用固定的流程與規則把審查框住，比較穩但會漏。它不是「換一家審」，對上 R1 的是「審得比較穩」那一半；delegation 模式可以讓 Codex 照 OCR 的流程審 Claude 的改動，算是補位。建議排在 codex-plugin-cc、claudex-loop 之後，要評就用 delegation 模式跑 R1。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+added: '2026-11-19'

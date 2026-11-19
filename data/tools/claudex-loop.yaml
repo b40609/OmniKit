@@ -6,5 +6,5 @@ status: pending
 url: https://github.com/chaseai-yt/claudex-loop
 sources:
 - RIA:ADD-01
-notes: Claude 與 Codex 交叉審查加有界迭代；RIA 只查過來源，沒有試跑。原版的 Codex sandbox 設定要再調整。
+notes: Claude 與 Codex 交叉審查加有界迭代；RIA 只查過來源，沒有試跑。原版的 Codex sandbox 設定要再調整。2026-11-19 重評：★3,483，最後 push 2026-10-14，沒有發行版；第 0 層 warn 只因為授權，GitHub 回 NOASSERTION，LICENSE 原文是 MIT，中間插了一段改寫自 mattpocock/skills 的出處說明，實質是 MIT。--scan 6 個 skill：claudex-loop、claudex-route、codex-build、codex-review 都是 INFO，legacy 的 grill-me-codex、grill-with-docs-codex 是 LOW。README 說法：Claude Code plugin 或手動複製 skill（Codex 也能用），需要兩家 CLI 都登入加 Python 3.10 以上，不用另外的 API key；Codex 審查跑唯讀 sandbox、關掉使用者的 plugin 與 MCP，Claude 審查只開讀檔與搜尋；CI 跑 Windows、macOS、Linux（用假的 CLI，不花額度）。兩個方向都能做（Claude 寫 Codex 審，或反過來），比 codex-plugin-cc 更貼 R1，但流程重（需求、計畫審查、實作、終審），小改動用不到。建議跟 codex-plugin-cc 一起跑第 2 層。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
 added: '2026-11-04'

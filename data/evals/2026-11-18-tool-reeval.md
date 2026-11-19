@@ -4,8 +4,9 @@
 
 1. T3 對話「Agent 工具與資源對 OmniKit 的參考價值」（threadId `c1b3c179-887a-4296-acbc-db8fdd355c26`，Kai 帳號的 Opus，2026-11-17 到 11-18，866 筆活動）提過的每個工具與資源。對話用 `t3_thread_read` 從頭讀到尾，報告檔讀了 `2026-11-17-links-review.md`、`A-prompt-audit.md`（都在 `~/.t3/scratch/2026-11-17-https-ultralab-tw-picks-https-dd355c26/`）；P3 與停止條件試用的結果讀 repo 裡的 `data/evals/2026-11-18-product-research-P3.md`、`data/evals/2026-11-18-research-stop-trial.md`。
 2. 使用者新看到的 Lightpanda Browser、REA、OpenDesign，以及後來加的 Claude-BugHunter。
+3. 使用者說「我就是要找審查工具給 OmniKit 使用」之後，為 review 槽位（R1）做的飽和調研，以及前 5 名的第 0、1 層（2026-11-19，第 4.5 節）。
 
-做法：照 `omnikit-eval` 的第 0、1 層重做，不沿用原對話的結論。星數、授權、最後 push 都是 2026-11-18 用 `sweep.py verify` 或 `layer0.py` 實測。沒跑第 2 層，所以「採用」都只是建議，要換工具得跑第 2 層。同類工具的飽和調研見第 4 節。
+做法：照 `omnikit-eval` 的第 0、1 層重做，不沿用原對話的結論。星數、授權、最後 push 都是 2026-11-18 用 `sweep.py verify` 或 `layer0.py` 實測（第 3 批是 2026-11-19）。沒跑第 2 層，所以「採用」都只是建議，要換工具得跑第 2 層。同類工具的飽和調研見第 4 節。
 
 建議三種：**採用**（建議進試用或維持現任）、**觀察**（記卡 `pending`，有情境對得上，值得之後實測）、**不採用**（沒有對得上的情境，或過不了門檻）。
 
@@ -14,6 +15,7 @@
 1. **GPT Researcher、local-deep-research 要不要改成不採用。** 原對話因為只能用 8B 本機模型跑，把兩張卡留在「待評估」，你也決定不付費重跑。我重看 P3 的結果：差距主要來自「只靠網頁搜尋」這個設計（omnikit-research 光 GitHub topic 一個管道就找到 65 個），換更大的模型補不了這一塊；P3 事先寫的決策規則也是判不採用。建議改 `rejected`，理由寫「P3 實測，管道結構造成的差距」。卡片這次沒動。
 2. **OpenDesign、Huashu Design 要不要跑第 2 層**（在 WP1「官網、形象頁」跟 taste-skill 盲選）。OpenDesign 要裝桌面 app 加本機 daemon，安裝前會再問你。
 3. **REA 要不要升到 rea-agents 6.9.0**（名冊固定在 6.8.0；6.9.0 是 2026-11-12 發的）。升級等於改 OmniKit marketplace 發給大家的版本。
+4. **審查工具要不要跑第 2 層。** 建議跑 2 個：openai/codex-plugin-cc 與 chaseai-yt/claudex-loop，在 R1 對照現任的 Codex `/review`。第 2 層實測可以在凍結期跑，要不要採用等 12-01 之後再定。理由見第 4.5 節。
 
 ## 2. 總表
 
@@ -68,6 +70,16 @@
 | **OpenDesign**（nexu-io/open-design） | 設計工作台：叫用你已有的 coding agent，依 DESIGN.md 產生原型、簡報、影片 | ★108,215、Apache-2.0 | **觀察**（卡片 `pending`） | 跟 unslop、taste-skill 不是同一種東西：那兩個在既有程式碼裡改畫面；OpenDesign 另開工作台先出原型。比較的對象是 claude-design（Claude Design）。疑慮：安全遙測一律開、首段推付費點數、要裝桌面 app 加 daemon | 不換 unslop（工具介面）；可能跟 taste-skill 競爭 WP1，要第 2 層盲選才知道 |
 | **Claude-BugHunter**（elementalsouls/Claude-BugHunter） | 授權滲透測試、bug bounty、紅隊用的 skill 包（83 個 skill、15 個指令、Burp MCP） | ★10,362、MIT、v2.1（06-05），11-18 仍有 push | **不採用**（卡片 `rejected`，放在 review 槽位以便比較） | 名字有 bug，但抓的是別人網站的資安漏洞，不是審自己 repo 的 diff。ryan 沒有授權攻擊外部目標的情境；R1 是交叉審 diff，現有的 /code-review、/security-review、Codex /review 才對得上。`layer0 --scan` 有 15 個 CRITICAL、12 個 HIGH，多半是攻擊教材裡的 payload 範例（第 6 節）。README 也提醒 Anthropic 的即時資安防護會擋這類請求或把模型切回舊版。同名的 mbijon/bughunter（★1）才是整個 repo 掃程式 bug 的 plugin，但用的人太少、4 月後沒更新，不建卡 | 不換 |
 
+### 2.3 審查工具調研的前 5 名（2026-11-19）
+
+| 工具 | 一句話 | 現況（2026-11-19） | 建議 | 理由 | 換掉什麼 |
+|---|---|---|---|---|---|
+| **openai/codex-plugin-cc** | 在 Claude Code 裡叫 Codex 唯讀審 diff（`/codex:review`、`/codex:adversarial-review`） | ★35,266、Apache-2.0、v1.0.6（07-08） | **觀察，建議跑第 2 層**（新卡 `pending`） | 直接對上 R1「Claude Code 改完交給 Codex 審」；OpenAI 官方；掃描 3 個 skill 都是 INFO，hook 沒有對外連線。只支援 Claude 寫、Codex 審這個方向 | 可能補在 Codex `/review` 旁邊（不用另開 Codex），要第 2 層才知道 |
+| **chaseai-yt/claudex-loop** | Claude Code 與 Codex 寫審分離的完整流程（需求、計畫審查、實作、終審） | ★3,483、授權實質 MIT、沒有發行版 | **觀察，建議跑第 2 層**（卡片已是 `pending`，補上重評） | 兩個方向都能做，審查端跑唯讀 sandbox；CI 跑 Windows。流程重，小改動用不到 | 同上 |
+| **alibaba/open-code-review** | 用固定流程與規則框住 LLM 審查的 CLI，加 skill 與 plugin | ★54,185、Apache-2.0、v1.13.12（11-18） | **觀察**（新卡 `pending`） | 不是「換一家審」，是「審得比較穩」；delegation 模式可以用宿主 agent 的訂閱。效能數字是自家基準，待驗證 | 無；排在前兩個之後 |
+| **kenn-io/roborev** | 每個 commit 都在背景審，結果帶回 agent，`refine` 反覆修到過 | ★1,821、MIT、v0.75.0（11-09） | **觀察**（新卡 `pending`） | 節奏跟 R1「重要的才交叉審」不同；常駐 daemon、改 git hook 與 agent hook，侵入程度高 | 無 |
+| **tirth8205/code-review-graph** | Tree-sitter 程式碼圖，透過 MCP 給 agent 改動的影響範圍 | ★32,850、MIT、v2.4.0（11-11） | **觀察**（新卡 `pending`，放 code-understanding） | 做的是 C1（影響範圍），不是審查；C1 在 11-16 的第 2 層實測裡內建工具就夠了。`install` 會改這台每個 agent 的設定 | 無 |
+
 ## 3. 跟原對話結論不同的地方
 
 1. **cli-continues：記收件匣 → 不採用。** 原對話記進收件匣時沒看最後 push；實測是 2026-05-07，半年沒更新、沒有發行版。
@@ -80,7 +92,7 @@
 
 ## 4. 同類工具調研（飽和式）
 
-照 `omnikit-research` 派給 Gemini 4 Hydrogen（high）兩條 T3 對話各跑一次，帳本與原始報告在 `2026-11-18-tool-reeval/`。兩題都在 **12 組上限停下，沒有飽和**（★1,000 以上連續 1 組沒有新名字，要 3 組）：題目各自橫跨好幾個子領域，每換一組說法就冒出一批新的高星專案。主控用 `sweep.py status --min-stars 1000` 重算過兩本帳本，跟研究者的回報一致。所以下面只能說「目前找到的」，不能說「找齊了」。
+照 `omnikit-research` 派給 Gemini 4 Hydrogen（high）兩條 T3 對話各跑一次，帳本與原始報告在 `2026-11-18-tool-reeval/`（審查工具是後來另開的第三題，見第 4.5 節，結果一樣）。兩題都在 **12 組上限停下，沒有飽和**（★1,000 以上連續 1 組沒有新名字，要 3 組）：題目各自橫跨好幾個子領域，每換一組說法就冒出一批新的高星專案。主控用 `sweep.py status --min-stars 1000` 重算過兩本帳本，跟研究者的回報一致。所以下面只能說「目前找到的」，不能說「找齊了」。
 
 ### 4.1 Lightpanda 同類（`browser-research.md`，185 個名字，★1,000 以上 70 個）
 
@@ -127,7 +139,31 @@
 | mbijon/bughunter（★1，MIT） | 整個 repo 的行為 bug（Haiku 掃、Opus 複審，報告附重現步驟），掃描 3 個 skill 都只有 INFO | 補得上「整個 repo 掃一遍」，但只有 1 顆星、2026-04-23 後沒更新，不建卡 |
 | 其他叫 bug-hunter／bug-hunt 的 skill（sickn33/agentic-awesome-skills ★49,929 合集裡的一支、chrisallenlane/claude-swe-workflows ★21 等） | 除錯流程 | 沒評，作者都不同，別跟這個搞混 |
 
-這題沒做審查工具的飽和調研：使用者問的是「這個工具」，答案是它不屬於審查槽位。要找更好的審查工具，得另外開一題。
+這題沒做審查工具的飽和調研：使用者問的是「這個工具」，答案是它不屬於審查槽位。要找更好的審查工具，得另外開一題（就是第 4.5 節）。
+
+### 4.5 審查工具（R1，`review-research.md`，477 個名字，★1,000 以上 66 個）
+
+使用者說「我就是要找審查工具給 OmniKit 使用」，另開一題：「給 coding agent（Claude Code、Codex）用的程式碼審查與抓 bug 工具」。照 `omnikit-research` 派給 Gemini 4 Hydrogen（high，T3 對話「OmniKit 審查工具飽和調研」，`mcp:a5f136c4-e763-4225-adfa-e3c449cfa8e7`），帳本 `2026-11-18-tool-reeval/review-ledger.json`。
+
+**驗收（2026-11-19，主控）：** 12 組到上限停下，**沒飽和**（全體 streak 0、★1,000 以上 streak 1）；主控重跑 `sweep.py status --min-stars 1000`，數字跟研究者的報告一致。`gh api` 抽查 7 個（cloudflare/security-audit-skill、alibaba/open-code-review、openai/codex-plugin-cc、chaseai-yt/claudex-loop、kenn-io/roborev、tirth8205/code-review-graph、anthropics/claude-plugins-official），星數、授權、最後 push 都對得上，只有一天份的自然成長。★1,000 以上 66 個，扣掉 7 個誤命中、6 個拿不準，符合納入標準的有 53 個（報告第 3 節）。
+
+**挑前 5 名的標準：** R1 是「Claude Code 改完交給 Codex 審 diff，或反過來；重要的才交叉審」。看重：能不能讓另一家模型審同一份 diff、在本機搭配 Claude Code 或 Codex、Windows 能不能用、侵入程度。53 個裡很多是 PR bot、GitHub Action（R1 在本機，不經 PR）、diff 檢視器（給人看的），或只有單一家模型。
+
+**第 0 層（2026-11-19，`layer0.py --scan`，cisco skill-scanner 靜態模式）：**
+
+| 工具 | 門檻 | skill 掃描 | 掃描沒涵蓋、主控另外看的 |
+|---|---|---|---|
+| openai/codex-plugin-cc | pass | 3 個，都是 INFO | 3 個 hook：SessionStart、SessionEnd 只寫環境變數、清背景工作；Stop hook 只在開了 review gate 才審（預設關）。讀過兩支 hook 程式，沒有對外連線 |
+| chaseai-yt/claudex-loop | warn（授權） | 6 個：4 個 INFO，legacy 的 2 個 LOW | 授權：GitHub 回 NOASSERTION，LICENSE 原文是 MIT 加一段出處說明，實質 MIT |
+| kenn-io/roborev | pass | 48 個，都是 INFO | 常駐 daemon、post-commit hook、各 agent 的 hook 沒掃；Windows 安裝方式是 `irm … \| iex`，要裝改用 Releases 或 `go install` |
+| tirth8205/code-review-graph | pass | 8 個，都是 INFO | `install` 會在每個找到的 agent 寫 MCP 設定、hook、skill 與規則檔，agent 執行時預設回答「是」 |
+| alibaba/open-code-review | pass | 4 個，都是 SAFE | 遙測文件寫 OpenTelemetry 整合，預設開不開沒查 |
+
+**跟現任比（`peers.py review`）：** 現任是內建的 `/code-review`、`/security-review` 與 Codex `/review`，pending 有 codex-security、claudex-loop、pullboard。codex-plugin-cc 把「另開 Codex 跑 `/review`」搬進 Claude Code，結果留在同一條對話；claudex-loop 是完整的寫審分離流程，兩個方向都能做。這兩個是唯一直接回答「換一家審」的；其他三個補的是別的面向（審得穩、每次都審、影響範圍）。
+
+**結論：** 建議 codex-plugin-cc 與 claudex-loop 跑第 2 層（第 1 節第 4 項）：R1 用 OmniKeep 的真實 diff，現任的 Codex `/review` 當基準，Claude 執行、Codex 評，或反過來。open-code-review、roborev、code-review-graph 記 pending，等前兩個的結果再說。名冊 pending 的 codex-security 與 pullboard 這次沒重評。
+
+調研停在 12 組上限沒飽和，下一步不建議整題續查：第 12 組已經沒有新的 ★1,000 以上名字，R1 對得上的前幾名也很清楚。要補的話，只拆「交叉審 diff」一題查 3 組。
 
 ## 5. 收件匣與名冊的變動
 
@@ -135,6 +171,7 @@
 - 收件匣：deja-vu、entire CLI、cli-continues、openwolf 移進名冊；features-overview 已完成，刪掉；mcp-scanner 補一句重評；新增 Obscura、Moli、Open CoDesign、ui-ux-pro-max-skill、hallmark、emilkowalski/skills 與 design.md。
 - `rea`：notes 補上這次的掃描與版本，狀態與版本沒動（升版在第 1 節問）。
 - 沒改：`gpt-researcher`、`local-deep-research`（等你決定）。
+- 2026-11-19 審查工具：新卡 `codex-plugin-cc`、`open-code-review`、`roborev`（review）、`code-review-graph`（code-understanding），都是 pending；`claudex-loop` 的 notes 補上重評。
 
 ## 6. 沒查到、待驗證的
 
@@ -145,7 +182,8 @@
 - Toonflow 找不到確定的 repo。
 - OpenDesign 的遙測實際送什麼，沒讀程式碼。
 - **OpenDesign 的 `layer0 --scan` 沒跑完**：repo 裡有上百個設計範本與 skill，逐一掃了一個多小時還沒結束，2026-11-18 手動停掉，沒有結果。要試用前得重跑（建議只掃它實際會裝的 skill 資料夾，或在背景跑整晚）。Lightpanda 的掃描跑完但「沒有 skill」，等於沒掃到東西（見 mcp-scanner 那列）。
-- 兩份同類調研都在 12 組上限停下、沒有飽和（第 4 節）。
+- 三份同類調研都在 12 組上限停下、沒有飽和（第 4 節）。
+- 審查工具前 5 名的功能、Windows 支援都是 README 的說法，沒裝來試；skill-scanner 只掃 skill，plugin 的 hook、常駐程式、安裝腳本只有 codex-plugin-cc 的 hook 是主控讀過程式碼的。
 - Claude-BugHunter 的 skill 數各來源說法不一（README 開頭 83、搜尋結果與舊文 51 到 82）；以 2026-11-18 的 README 為準。
 - Claude-BugHunter 的 `layer0 --scan`（2026-11-18）：83 個 skill 中 15 個 CRITICAL、12 個 HIGH、1 個 MEDIUM、55 個 INFO。看過片段，命中的幾乎都是攻擊教材裡的 payload 範例（SQL 注入、XSS、`; rm -rf /` 檔名注入、find -exec 抽 APK 字串、講 Codecov 事件的 `curl | bash`、Jenkins 憑證外洩手法），不是安裝時會自動執行的程式；但這也表示裝了之後，agent 會照這些 skill 對目標送攻擊流量。沒有逐個 skill 讀完整程式碼。判定不影響「不採用」，因為理由是情境對不上。
 

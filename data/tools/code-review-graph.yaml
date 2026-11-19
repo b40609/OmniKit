@@ -1,0 +1,14 @@
+id: code-review-graph
+name: code-review-graph（tirth8205/code-review-graph）
+kind: mcp
+slots:
+- code-understanding
+status: pending
+url: https://github.com/tirth8205/code-review-graph
+works_with:
+- claude
+- codex
+sources:
+- 審查工具飽和調研（2026-11-18）
+notes: ★32,850，MIT，v2.4.0（2026-11-11），2026-11-19 第 0 層通過；--scan 8 個 skill 都只有 INFO。用 Tree-sitter 建程式碼結構圖，透過 MCP 給 agent「這次改動碰到哪些函式、呼叫者、測試」，讓審查時少讀檔案；`detect-changes` 可以單獨在命令列用。README 寫沒有遙測、雲端 embedding 要自己開。它雖然叫 review，做的是 C1「找呼叫者與改動的影響範圍」，不是審查本身，所以放 code-understanding。C1 在 2026-11-16 的第 2 層實測裡，內建的 Grep、Read 每次都找齊，graphify、Floorplan 明講要用也沒贏過雜訊；它是同一類，除非換成大型 repo 重測 C1，不然贏面不大。要注意：`install` 會在這台找到的每個 agent 寫 MCP 設定、hook、skill，還會改規則檔；由 agent 執行、沒有終端機時預設回答「是」。要試的話先用 `install --dry-run`，只指定一個 agent。建議先收著。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+added: '2026-11-19'

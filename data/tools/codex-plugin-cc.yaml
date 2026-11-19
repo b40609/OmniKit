@@ -1,0 +1,13 @@
+id: codex-plugin-cc
+name: Codex plugin for Claude Code（openai/codex-plugin-cc）
+kind: plugin
+slots:
+- review
+status: pending
+url: https://github.com/openai/codex-plugin-cc
+works_with:
+- claude
+sources:
+- 審查工具飽和調研（2026-11-18）
+notes: ★35,266，Apache-2.0，v1.0.6（2026-07-08，之後沒有新 push），2026-11-19 第 0 層通過；--scan 的 3 個 skill 都只有 INFO。OpenAI 官方的 Claude Code plugin：在 Claude Code 裡用 `/codex:review`（唯讀審目前改動或 `--base <ref>` 的分支）、`/codex:adversarial-review`（唯讀，可以加要挑戰的重點），另有 `/codex:rescue` 把工作交給 Codex、`/codex:transfer` 把對話轉進 Codex。需求：Node 18.18 以上、已登入的 Codex CLI，用量算進 Codex 的額度（README 說法）。帶 3 個 hook：SessionStart、SessionEnd 只把環境變數寫進 `CLAUDE_ENV_FILE`、清掉這個 session 的背景工作；Stop hook 只在 `/codex:setup` 開了 review gate 才跑審查（預設關，README 警告開了會很快吃掉額度）。兩支 hook 程式讀過，沒有對外連線。skill-scanner 只掃 skill，hook 與 scripts 是主控手動看的。跟現任的差別：現任是「另開 Codex 跑 `/review`」，它把同一件事搬進 Claude Code，結果留在同一條對話。對上 R1 的「Claude Code 改完交給 Codex 審 diff」；反方向（Codex 改完交給 Claude 審）不支援。Windows 能不能用：README 沒寫，待驗證。建議跑第 2 層（R1，對照 Codex `/review`）。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+added: '2026-11-19'

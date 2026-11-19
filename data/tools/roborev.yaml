@@ -1,0 +1,14 @@
+id: roborev
+name: roborev（kenn-io/roborev）
+kind: cli
+slots:
+- review
+status: pending
+url: https://github.com/kenn-io/roborev
+works_with:
+- claude
+- codex
+sources:
+- 審查工具飽和調研（2026-11-18）
+notes: ★1,821，MIT，v0.75.0（2026-11-09，最後 push 2026-11-19），2026-11-19 第 0 層通過；--scan 48 個 skill 都只有 INFO（大多是同一組 skill 給不同 agent 的複本）。Go 寫的背景審查：`roborev init` 裝 post-commit hook，每次 commit 都在背景審；`roborev agent setup` 再接上 Claude Code、Codex 的 hook，把審查結果帶回 agent；`/roborev-refine` 或 `roborev refine` 在獨立 worktree 裡反覆「修、再審」直到過關。可以指定審查用的模型，例如用 Codex 審 Claude 的 commit（README 說法）。Windows 有 `install.ps1`，但安裝方式是 `irm https://roborev.io/install.ps1 | iex`，要裝的話改用 GitHub Releases 的檔案或 `go install`。會常駐一個本機 daemon、改 git hook 與各 agent 的 hook 設定，侵入程度比現任高；skill-scanner 只掃 skill，daemon 與 hook 沒掃。跟現任的差別：現任是「重要的才叫審」，它是「每個 commit 都審」，跟 R1「小改動自己審」的節奏不同。建議先收著，codex-plugin-cc、claudex-loop 的第 2 層結果出來再看要不要評。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+added: '2026-11-19'
