@@ -163,7 +163,7 @@
 
 **結論：** 建議 codex-plugin-cc 與 claudex-loop 跑第 2 層（第 1 節第 4 項）：R1 用 OmniKeep 的真實 diff，現任的 Codex `/review` 當基準，Claude 執行、Codex 評，或反過來。open-code-review、roborev、code-review-graph 記 pending，等前兩個的結果再說。名冊 pending 的 codex-security 與 pullboard 這次沒重評。
 
-調研停在 12 組上限沒飽和，下一步不建議整題續查：第 12 組已經沒有新的 ★1,000 以上名字，R1 對得上的前幾名也很清楚。要補的話，只拆「交叉審 diff」一題查 3 組。
+調研停在 12 組上限沒飽和，下一步不建議整題續查：第 12 組已經沒有新的 ★1,000 以上名字，R1 對得上的前幾名也很清楚。要補的話，只拆「交叉審 diff」一題查 3 組。**2026-11-19 Ryan 定案：不續查。**
 
 ## 5. 收件匣與名冊的變動
 
