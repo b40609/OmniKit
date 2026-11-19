@@ -3,8 +3,10 @@ name: GPT Researcher
 kind: app
 slots:
 - product-research
-status: pending
+status: rejected
 url: https://github.com/assafelovic/gpt-researcher
+decided_at: '2026-11-19'
+reason: 'P3 實測，差距是只靠網頁搜尋的設計造成的：同一題（找能把 repo 畫成架構圖的工具）omnikit-research 光 GitHub topic 一個管道就找到 65 個，至少 162 個相關；GPT Researcher 跑兩次只列出 6 個與 9 個工具、雜訊 67% 與 44%，第 2 次有 3 個編造的工具。換更大的模型補不了管道的缺口，P3 事先寫的決策規則也判不採用，Ryan 也決定不付費重跑。Ryan 2026-11-19 定案。'
 sources:
 - RIA:C015
 notes: ★30,752，Apache-2.0，v3.8.0（PyPI 0.17.0）是 2026-11-09（2026-11-17 gh api），第 0 層通過。預設 Tavily 搜尋加 OpenAI 模型與 embedding。P3 對比實測（找能把 repo 畫成架構圖的工具）因為 OpenAI 沒額度、Gemini 免費版一天只有 20 次，改用本機 qwen3:8b 跑 deep research 兩次：列出 6 個與 9 個工具，兩位評審判相關的只有 1 到 2 個與 2 到 5 個，雜訊 67% 與 44%（第 2 次有 3 個編造的工具），沒找到 Archify；omnikit-research 同題至少 162 個相關。繁中 Windows 要用 Python 的 -X utf8，否則印 emoji 就因 cp950 崩潰；搭 Gemini 4 時 langchain-google-genai 4.5.0 回傳分段 content，要改一處才跑得動。8B 本機模型只能當下限，用前沿模型重跑前不判定。紀錄見 data/evals/2026-11-18-product-research-P3.md。

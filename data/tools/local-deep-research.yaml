@@ -3,8 +3,10 @@ name: Local Deep Research
 kind: app
 slots:
 - product-research
-status: pending
+status: rejected
 url: https://github.com/LearningCircuit/local-deep-research
+decided_at: '2026-11-19'
+reason: 'P3 實測，差距是只靠網頁搜尋的設計造成的：同一題（找能把 repo 畫成架構圖的工具）omnikit-research 光 GitHub topic 一個管道就找到 65 個，至少 162 個相關；Local Deep Research 兩次各編出 18、19 個不存在的 repo、擴充或網址，雜訊 71% 與 60%。換更大的模型補不了管道的缺口，P3 事先寫的決策規則也判不採用，Ryan 也決定不付費重跑。Ryan 2026-11-19 定案。'
 sources:
 - P3 調研（R1 帳本）
 notes: ★9,597，MIT，v2.0.1 是 2026-11-15（2026-11-17 gh api），第 0 層通過。pip 在 Windows 就裝得起來，預設用 Ollama 本機模型與 SearXNG（要自己架伺服器）；研究時由 langgraph-agent 策略自己挑搜尋引擎（GitHub 引擎預設不開，要 token）。P3 對比實測用本機 qwen3:8b、主搜尋改 Tavily 跑 generate_report 兩次（43.6、29.0 分鐘）：兩次都找到 Archify（第 1 次連結錯），列出 75 與 42 個工具，兩位評審判相關的 10 到 22 與 12 到 17 個，雜訊 71% 與 60%；其中 18 與 19 個是編造的 repo、擴充或網址。omnikit-research 同題至少 162 個相關。8B 本機模型只能當下限，用前沿模型重跑前不判定。紀錄見 data/evals/2026-11-18-product-research-P3.md。

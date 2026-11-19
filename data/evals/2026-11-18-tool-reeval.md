@@ -12,7 +12,7 @@
 
 ## 1. 要你決定的事
 
-1. **GPT Researcher、local-deep-research 要不要改成不採用。** 原對話因為只能用 8B 本機模型跑，把兩張卡留在「待評估」，你也決定不付費重跑。我重看 P3 的結果：差距主要來自「只靠網頁搜尋」這個設計（omnikit-research 光 GitHub topic 一個管道就找到 65 個），換更大的模型補不了這一塊；P3 事先寫的決策規則也是判不採用。建議改 `rejected`，理由寫「P3 實測，管道結構造成的差距」。卡片這次沒動。
+1. **GPT Researcher、local-deep-research 要不要改成不採用。** 原對話因為只能用 8B 本機模型跑，把兩張卡留在「待評估」，你也決定不付費重跑。我重看 P3 的結果：差距主要來自「只靠網頁搜尋」這個設計（omnikit-research 光 GitHub topic 一個管道就找到 65 個），換更大的模型補不了這一塊；P3 事先寫的決策規則也是判不採用。建議改 `rejected`，理由寫「P3 實測，管道結構造成的差距」。卡片這次沒動。**2026-11-19 Ryan 定案：改 `rejected`，兩張卡已改。**
 2. **OpenDesign、Huashu Design 要不要跑第 2 層**（在 WP1「官網、形象頁」跟 taste-skill 盲選）。OpenDesign 要裝桌面 app 加本機 daemon，安裝前會再問你。
 3. **REA 要不要升到 rea-agents 6.9.0**（名冊固定在 6.8.0；6.9.0 是 2026-11-12 發的）。升級等於改 OmniKit marketplace 發給大家的版本。
 4. **審查工具要不要跑第 2 層。** 建議跑 2 個：openai/codex-plugin-cc 與 chaseai-yt/claudex-loop，在 R1 對照現任的 Codex `/review`。第 2 層實測可以在凍結期跑，要不要採用等 12-01 之後再定。理由見第 4.5 節。
@@ -170,7 +170,7 @@
 - 新卡：`lightpanda`（rejected）、`open-design`（pending）、`huashu-design`（pending）、`deja-vu`（pending）、`entire-cli`（pending）、`openwolf`（pending）、`cli-continues`（rejected）、`claude-bughunter`（rejected）。
 - 收件匣：deja-vu、entire CLI、cli-continues、openwolf 移進名冊；features-overview 已完成，刪掉；mcp-scanner 補一句重評；新增 Obscura、Moli、Open CoDesign、ui-ux-pro-max-skill、hallmark、emilkowalski/skills 與 design.md。
 - `rea`：notes 補上這次的掃描與版本，狀態與版本沒動（升版在第 1 節問）。
-- 沒改：`gpt-researcher`、`local-deep-research`（等你決定）。
+- `gpt-researcher`、`local-deep-research`：2026-11-19 Ryan 定案後改 `rejected`。
 - 2026-11-19 審查工具：新卡 `codex-plugin-cc`、`open-code-review`、`roborev`（review）、`code-review-graph`（code-understanding），都是 pending；`claudex-loop` 的 notes 補上重評。
 
 ## 6. 沒查到、待驗證的
