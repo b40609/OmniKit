@@ -1,0 +1,180 @@
+[
+  {
+    "name": "orchestrator_neon",
+    "model": "gemini-pro-orchestrator-neon",
+    "returncode": 0,
+    "wall_seconds": 213.46,
+    "duration_seconds": 208.8055588,
+    "num_turns": 1,
+    "status": "SUCCESS",
+    "finished_reason": null,
+    "usage": {
+      "input_tokens": 99276,
+      "output_tokens": 22077,
+      "thinking_tokens": 7982,
+      "cache_read_tokens": 143934,
+      "total_tokens": 121353
+    },
+    "error": null,
+    "py_files": [
+      "model_router\\__init__.py",
+      "model_router\\catalog.py",
+      "model_router\\cli.py",
+      "model_router\\resolver.py",
+      "tests\\test_model_router.py"
+    ],
+    "total_loc": 949,
+    "verify": {
+      "passed": 14,
+      "total": 14,
+      "details": [
+        {
+          "name": "own_unittest_pass",
+          "ok": true
+        },
+        {
+          "name": "parse_t3_capabilities",
+          "ok": true
+        },
+        {
+          "name": "parse_agy_models",
+          "ok": true
+        },
+        {
+          "name": "diff_catalogs",
+          "ok": true
+        },
+        {
+          "name": "resolve_prefer_order",
+          "ok": true
+        },
+        {
+          "name": "resolve_fallback_on_unsupported_thinking",
+          "ok": true
+        },
+        {
+          "name": "resolve_skip_disabled_provider",
+          "ok": true
+        },
+        {
+          "name": "resolve_unknown_role",
+          "ok": true
+        },
+        {
+          "name": "resolve_override_valid",
+          "ok": true
+        },
+        {
+          "name": "resolve_override_forbidden_thinking",
+          "ok": true
+        },
+        {
+          "name": "resolve_override_unavailable",
+          "ok": true
+        },
+        {
+          "name": "resolve_override_unsupported_thinking",
+          "ok": true
+        },
+        {
+          "name": "cli_catalog",
+          "ok": true
+        },
+        {
+          "name": "cli_resolve_exit_codes",
+          "ok": true
+        }
+      ]
+    },
+    "log_size_bytes": 38390
+  },
+  {
+    "name": "neon_high",
+    "model": "gemini-4-neon-high",
+    "returncode": 0,
+    "wall_seconds": 247.89,
+    "duration_seconds": 244.0957868,
+    "num_turns": 1,
+    "status": "SUCCESS",
+    "finished_reason": null,
+    "usage": {
+      "input_tokens": 169591,
+      "output_tokens": 18859,
+      "thinking_tokens": 7947,
+      "cache_read_tokens": 107474,
+      "total_tokens": 188450
+    },
+    "error": null,
+    "py_files": [
+      "model_router\\__init__.py",
+      "model_router\\catalog.py",
+      "model_router\\cli.py",
+      "model_router\\resolver.py",
+      "tests\\test_model_router.py"
+    ],
+    "total_loc": 952,
+    "verify": {
+      "passed": 14,
+      "total": 14,
+      "details": [
+        {
+          "name": "own_unittest_pass",
+          "ok": true
+        },
+        {
+          "name": "parse_t3_capabilities",
+          "ok": true
+        },
+        {
+          "name": "parse_agy_models",
+          "ok": true
+        },
+        {
+          "name": "diff_catalogs",
+          "ok": true
+        },
+        {
+          "name": "resolve_prefer_order",
+          "ok": true
+        },
+        {
+          "name": "resolve_fallback_on_unsupported_thinking",
+          "ok": true
+        },
+        {
+          "name": "resolve_skip_disabled_provider",
+          "ok": true
+        },
+        {
+          "name": "resolve_unknown_role",
+          "ok": true
+        },
+        {
+          "name": "resolve_override_valid",
+          "ok": true
+        },
+        {
+          "name": "resolve_override_forbidden_thinking",
+          "ok": true
+        },
+        {
+          "name": "resolve_override_unavailable",
+          "ok": true
+        },
+        {
+          "name": "resolve_override_unsupported_thinking",
+          "ok": true
+        },
+        {
+          "name": "cli_catalog",
+          "ok": true
+        },
+        {
+          "name": "cli_resolve_exit_codes",
+          "ok": true
+        }
+      ]
+    },
+    "log_size_bytes": 36761
+  }
+]
