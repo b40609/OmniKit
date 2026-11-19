@@ -263,9 +263,24 @@ def highlights(roster):
     )
     return (
         '<section class="highlights" aria-label="重點"><div class="stack">'
+        f'{new_models_panel(roster["config"])}'
         f'<div class="panel"><h2>試用中</h2>{trial_html}</div>'
         f'{install_panel(roster)}{eval_panel(roster["config"])}</div>'
         f'<div class="panel"><h2>最近的決定</h2><ul class="list">{items}</ul></div></section>'
+    )
+
+
+def new_models_panel(cfg):
+    doc_url = f"https://github.com/{cfg['repo']}/blob/HEAD/data/evals/2026-11-19-model-roles-research.md"
+    return (
+        '<div class="panel" id="new-models"><h2>新模型提醒</h2>'
+        '<p class="panel-note">每週比對 T3 可用模型清單、Models.dev 與淘汰公告，發現新模型或舊模型消失時同步送到三個出口（只提建議、不靜默換模型；預定 2026-12-01 解凍後自動更新）：</p>'
+        '<ul class="list">'
+        '<li><time>出口 1</time><span class="what">看板首頁置頂「新模型」</span><span class="why">即此區塊，每次部署更新最新模型差異與建議角色。</span></li>'
+        '<li><time>出口 2</time><span class="what">專案 NOW.md「等 Ryan 決定」</span><span class="why">列出新舊模型異動與建議順位，待拍板後才改分派政策。</span></li>'
+        '<li><time>出口 3</time><span class="what">T3 排程任務對話</span><span class="why">發現異動即開新對話，手機同步收到通知。</span></li>'
+        '</ul>'
+        f'<p class="panel-note" style="margin-top:10px">設計定案見 <a href="{esc(doc_url)}">模型角色化調研與方案 B</a>。</p></div>'
     )
 
 

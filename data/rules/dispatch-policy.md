@@ -220,7 +220,11 @@ antigravity_turns:
     輸出的 done_marker 說明標記檔在不在。
   failed_15min: >-
     對話以「sent nothing for 15 minutes」失敗收場時，先檢查交付檔和完成標記，不要直接重派：東西都在就當作完成、照常驗收並結案；
-    不在就用 send（t3_thread_launch 的對話用 MCP，t3_cli 用 t3 thread send）請它接著做。
+    不在就用 send（t3_thread_launch 的對話用 MCP，t3_cli 用 t3 thread send）請它接著做。Antigravity 主線出現這個橫幅時，
+    同樣先看工作是否已完成，未完成再送「繼續」。
+  main_thread: >-
+    T3 server 原始碼把 Antigravity 的 promptInactivityTimeout 寫死成 "15 minutes"（Claude 與 Codex 都沒有，也沒有設定可以改）。
+    因此長時間跑的主線優先用 Claude 實例；不得不改用 Antigravity 跑主線、又遇到這個橫幅時，先檢查交付與狀態，未完成再送「繼續」（2026-11-19 定案）。
   user_in_t3: 使用者自己在 T3 開的對話：看到回報檔已經出現、對話卻還顯示 working，直接按停止。
   pending:
     - 【待驗證】t3_thread_interrupt 能不能立刻收掉這種卡住的回合

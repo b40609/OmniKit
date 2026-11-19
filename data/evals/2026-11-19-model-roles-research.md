@@ -330,3 +330,19 @@ Ryan 2026-11-19 指示將 Antigravity 的 **Orchestrator 模式**（`gemini-pro-
 | **額度與帳號調度** | 綁定單一付費 Pro/Ultra 帳號（Ryan）；ava／kai 預期不可用【待驗證】 | 可跨帳號與跨供應商輪替調度（Ryan／retis／Kai／ava／kai） |
 | **三方案納入方式** | 方案 A／B／C 皆可將 `gemini-orchestrator` 設為**選配角色**（僅經 `agy_cli` 解析 `agy models` 啟用），專責非高風險、無須跨家寫審分離的「大範圍多檔原型／測試／文件實作」；完成後仍由主線主控驗收 | 維持為 OmniKit 核心編排架構，承擔高風險任務（帳務／風控／下單／設計決策）、跨廠商第二意見審查與需 worktree 隔離的並行工作包 |
 
+---
+
+## 六、Ryan 拍板定案（2026-11-19 晚）
+
+Ryan 對 (a)–(d) 全照建議定案，排入 2026-12-01 解凍後實作：
+
+1. **架構選型（方案 B，中量級）**：`dispatch-policy.md` 改為 `model_roles`，新增 `catalog.py` 讀取 `orchestrator_capabilities`（＋ `agy models`）即時清單，每週做模型目錄差異比對，並提供復用 `floorplan/serve.mjs` 模式的進階用戶本機設定頁（寫入 `workflow-overrides.yaml`，阻擋違規思考等級）。
+2. **每週新模型差異提醒的三個出口**：
+   - **看板首頁置頂「新模型」區塊**：部署於 [https://b40609.github.io/OmniKit/](https://b40609.github.io/OmniKit/)（`pages.yml`「部署看板」）。
+   - **專案 `NOW.md` 的「等 Ryan 決定」**：列出新舊模型異動與建議對應，等人工拍板後才寫入政策（Renovate 原則）。
+   - **T3 排程任務對話（`schedule_task`）**：發現新模型或舊模型消失就開對話，讓 Ryan 手機直接收到推播通知。
+3. **Antigravity Orchestrator 定位**：納為選配角色 `gemini-orchestrator`，經 `agy_cli` 呼叫（不帶 `--effort`），專責非高風險的多檔原型／測試／大量文件實作，完成後仍由主線驗收。
+4. **Gemini 4 Neon 順位**：`gemini-strong` 預設維持 `gemini-4-hydrogen`，`gemini-4-neon` 列為顯式候選與試用，待實測 Antigravity 訂閱池週額度消耗倍率再決定是否晉升預設。
+5. **實作時機**：凍結期（至 2026-11-29）不提前實作；排入 2026-12-01 解凍後與官方功能雷達同批執行。
+
+
