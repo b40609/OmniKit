@@ -1,26 +1,42 @@
 ---
 name: omnikit-handoff
-description: 把做到一半的工作交給新對話，或照交接檔接手。使用者說「交接」「handoff」「接手」「讀 <交接檔路徑> 接著做」時使用；OmniKit 的開新對話提醒出現、而工作還沒做完時，先問使用者要不要交接。Hands unfinished work over to a new conversation, or takes over from a handoff file.
+description: 把做到一半的工作交給新對話，或照交接檔接手；也管每個專案的狀態板 NOW.md（主線開工先讀、每條對話收尾前更新）。使用者說「交接」「handoff」「接手」「讀 <交接檔路徑> 接著做」「更新 NOW.md」時使用；OmniKit 的開新對話提醒出現、而工作還沒做完時，先問使用者要不要交接。Hands unfinished work over to a new conversation, takes over from a handoff file, and keeps each project's NOW.md status board current.
 ---
 
 # 交接與接手
 
-交接檔存在使用者的狀態 repo（私人 repo），位置寫在個人規則的「工作階段」。個人規則沒寫狀態 repo 時，問使用者要放哪裡，不要自己建 repo。
+交接檔與狀態板存在使用者的狀態 repo（私人 repo），位置寫在個人規則的「工作階段」。個人規則沒寫狀態 repo 時，問使用者要放哪裡，不要自己建 repo。
 
 - 交接檔路徑：`<GitHub repo 名稱>\handoffs\<YYYY-MM-DD-HHmm>-<主題>.md`，repo 名稱取自專案的 `git remote`。
 - 格式照狀態 repo 的 `_template\HANDOFF.md`。
 - 不寫金鑰、token、密碼。
 
+## 狀態板 NOW.md
+
+每個專案在狀態 repo 有一份 `<repo 名稱>\NOW.md`，只放現況，細節連到交接檔或報告：
+
+- 開頭：更新時間、主線對話（名稱與 id）、專案路徑與分支。
+- 進行中的線：一行一條，附對話連結或交接檔路徑；工作包開始時寫明完成條件。
+- 等使用者決定的事：每件附建議與理由。
+- 下一步：每項標【agent 可直接做】或【等使用者】。
+
+規則：
+
+1. 主線開工先 `git pull` 狀態 repo，讀 `<repo 名稱>\NOW.md`；沒有就照上面幾節建一份。
+2. 每條對話（主線與子對話）收尾前更新它：做完的拿掉或改寫，新的決定與下一步補上，改更新時間。子對話寫不到狀態 repo（在別台、沒有權限）時，把要改的內容寫進最終回報，由主線更新。
+3. commit 並 push 前先 `git pull --rebase`；別的對話同時改過就合併兩邊的內容，不要整份覆蓋。
+4. 使用者回答了「等決定」的事，就把那一項移到進行中或下一步，不要留著。
+
 ## 交接
 
 1. 工作的修改先 commit 並 push 到工作分支（未完成用 `wip:` 前綴）；不能 push 的，在交接檔寫明「只在這台」。
-2. 先 `git pull` 狀態 repo，照範本寫交接檔，commit 並 push。
+2. 先 `git pull` 狀態 repo，照範本寫交接檔，同時更新 `NOW.md`（進行中的線改連到新交接檔），commit 並 push。
 3. Claude 桌面版：直接開新對話接手，簡報裡寫交接檔路徑。其他介面：給使用者一句可以貼進新對話的起始 prompt：「讀 <交接檔路徑> 接著做」。
 
 ## 接手
 
-1. 先 `git pull` 狀態 repo 與專案 repo。
-2. 讀交接檔。沒給路徑就到 `<repo 名稱>\handoffs\` 拿檔名排序最後的一份。
+1. 先 `git pull` 狀態 repo 與專案 repo，讀 `<repo 名稱>\NOW.md`。
+2. 讀交接檔。沒給路徑就看 `NOW.md` 連到哪一份；沒有 `NOW.md` 就到 `<repo 名稱>\handoffs\` 拿檔名排序最後的一份。
 3. 比對交接檔的規則版本與自己載入的是否一致；不一致先講。
 4. 「接手紀錄」已經有別的對話時，先問使用者再接。
 5. 確認分支與「下三步」，回報看到的狀態再開工。

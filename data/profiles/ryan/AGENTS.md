@@ -40,7 +40,7 @@ profile：ryan
 - commit 前確認 git 身分：全域身分是公司信箱的電腦，個人專案要在 repo 內另設身分。
 
 ## 工作階段
-- 對話結構：一個工作包／里程碑一條主線對話（開始時寫明完成條件，開在對應專案資料夾內；交接或切換里程碑後即 settle）；驗收、切片、側邊研究開子對話，做完就收尾。
+- 對話結構（2026-11-19 定案）：每個專案只留一條主線對話，開在對應專案資料夾內，主線不 settle；要換新對話時照交接做，新主線接手後舊的才 settle。工作包的完成條件寫在 `NOW.md`。驗收、切片、側邊研究開子對話，結果收進主線就 settle。
 - **子對話自動 Settle**：所有由主對話派發的子任務、獨立驗收、唯讀審查或代跑對話，在完成執行並輸出最終回報後，必須主動呼叫 `t3_thread_organize`（`action: 'settle'`）進行結案收合，避免側邊欄對話堆積；若是透過沒有 T3 工具的原生子代理執行，由父對話在收完結果後負責結案。用 `t3 thread` CLI（`t3_cli` 管道）開的 T3 對話，CLI 目前沒有 settle 子指令，對話本身也未必有 T3 工具：父對話收完結果後，有 `t3_thread_organize` 就自己 settle（帶 `action: "settle"`，回讀確認 `settled: true`）；沒有就先看能不能接 T3 的 MCP（`omnikit-capabilities` 會列出怎麼接，`claude mcp login t3` 要在終端機分頁跑、我核准一次，有效 30 天），還是不行才在回報裡列出對話 id 與標題，請我在 T3 結案。僅有失敗、遭遇阻擋或標記為【等你決定】需使用者介入的對話才保留 active。
 - 子任務分派（任務級別、管道、模型、思考程度、升級路徑、委派紀錄）照 OmniKit 共用層 `data/rules/dispatch.md`；我的帳號與供應商實例在這個 profile 的 `dispatch.md`。兩份都會載入，這裡不重複寫。
 - **Gemini 思考程度**（2026-11-18 定案）：所有 Gemini 模型的調用（gemini-pro、gemini-flash，不論 agy_cli、t3_cli、`t3_thread_launch`、delegate_task 哪個管道），思考程度永遠是 high 或更高；不准 low、medium，也不准不寫靠預設值（`t3 thread start` 要把程度寫進模型代號，例如 `gemini-4-hydrogen-high`）。直接呼叫 Gemini API（Vertex 抵免額或其他 Gemini API）時，能用 Gemini 4 Hydrogen 就用，不能用（無權限、429、403）才退到 Gemini 3.8 Flash，兩者思考程度都 high 以上。Claude 的 effort 不受這條影響。
@@ -50,4 +50,5 @@ profile：ryan
   - 【進行中】：還有事在跑或還沒做完。
   - 【卡住】：做不下去，寫明卡在哪。
 - 交接與接手：我說「交接」、要照交接檔接手、或 OmniKit 提醒該開新對話而工作還沒做完時（先問我要不要交接），照 `omnikit-handoff` skill 做。狀態 repo 是私人 repo `b40609/omnikit-status`，本機在 `~/.omnikit/status`；不存在就先 `gh repo clone b40609/omnikit-status "$HOME\.omnikit\status"`。
+- **狀態板 NOW.md**（2026-11-19 定案）：每個專案在狀態 repo 有一份 `<專案>/NOW.md`，寫進行中的線、等我決定的事（附建議）、下一步（標【agent 可直接做】／【等使用者】）。主線開工先讀 `<專案>/NOW.md`；每條對話收尾前更新它，push 前先 `git pull --rebase`。格式與細節照 `omnikit-handoff` skill。
 - 全自動模式：不要用會觸發 T3／Claude 跨目錄審批彈窗的指令。不直接讀寫或 cd 到目前工作目錄以外的資料夾，也不在那裡建 worktree；要動其他專案，就開在那個專案裡的子對話去做。
