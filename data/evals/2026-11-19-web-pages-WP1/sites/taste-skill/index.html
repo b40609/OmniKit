@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="zh-Hant-TW" data-type="software" data-radius="round" data-buttons="pill" data-motion>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OmniKeep：在 Telegram 丟連結的自架收藏工具</title>
+<meta name="description" content="把網頁、影片、社群貼文的連結傳給自己的 Telegram 機器人，OmniKeep 讀完寫成摘要，之後用搜尋或提問找回來；資料存在你自己的電腦。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="OmniKeep：在 Telegram 丟連結的自架收藏工具">
+<meta property="og:description" content="傳連結給自己的機器人，它讀完寫摘要，之後找得到。資料存在你自己的電腦。">
+<meta property="og:image" content="share.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="ok-icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#000000">
+<!-- <link rel="canonical" href="https://[OmniKeep 的網域]/"> 網域確定後再打開 -->
+<meta name="site-kind" content="software">
+<meta name="page-type" content="software">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600&display=swap&text=%E2%80%BA%E3%80%81%E3%80%82%E3%80%8C%E3%80%8D%E4%B8%80%E4%B8%89%E4%B8%8A%E4%B8%8B%E4%B8%8D%E4%B8%9F%E4%B8%AD%E4%B8%BB%E4%B9%8B%E4%B9%9F%E4%BA%8B%E4%BA%9B%E4%BA%A4%E4%BA%BA%E4%BB%A5%E4%BB%BD%E4%BD%8D%E4%BD%A0%E4%BD%B5%E4%BE%86%E4%BE%9D%E5%80%8B%E5%81%9A%E5%82%99%E5%82%B3%E5%84%B2%E5%85%88%E5%85%8D%E5%85%A5%E5%85%A7%E5%85%A8%E5%85%A9%E5%85%B7%E5%86%8D%E5%87%BA%E5%88%86%E5%88%87%E5%88%A5%E5%88%B0%E5%89%87%E5%89%8D%E5%8A%9F%E5%8A%A0%E5%8B%95%E5%8B%99%E5%8D%A1%E5%8E%9F%E5%8F%A3%E5%8F%A5%E5%8F%A6%E5%8F%AA%E5%8F%AF%E5%8F%B0%E5%90%84%E5%90%88%E5%90%8C%E5%90%8D%E5%91%8A%E5%92%8C%E5%93%81%E5%95%86%E5%95%8F%E5%95%9F%E5%96%AE%E5%99%A8%E5%9B%9E%E5%9C%96%E5%9C%A8%E5%9D%80%E5%9F%9F%E5%9F%B7%E5%A0%B1%E5%A2%9E%E5%A4%9A%E5%A4%A9%E5%A5%BD%E5%A7%8B%E5%AD%90%E5%AD%97%E5%AD%98%E5%AE%83%E5%AE%89%E5%AE%8C%E5%AE%9A%E5%AE%B9%E5%AF%A6%E5%AF%AB%E5%B0%88%E5%B0%8B%E5%B0%8D%E5%B0%B1%E5%B7%A5%E5%B7%B1%E5%B8%B6%E5%B9%95%E5%B9%AB%E5%BA%A6%E5%BA%AB%E5%BB%A3%E5%BC%8F%E5%BC%95%E5%BD%B1%E5%BE%8C%E5%BE%91%E5%BE%97%E5%BE%9E%E5%BF%AB%E6%84%8F%E6%87%82%E6%88%90%E6%88%91%E6%88%96%E6%88%AA%E6%89%80%E6%89%8B%E6%89%93%E6%89%BE%E6%8A%8A%E6%8A%93%E6%8C%89%E6%8D%B7%E6%8E%88%E6%8E%89%E6%8E%92%E6%8E%A2%E6%8E%A5%E6%8F%90%E6%90%9C%E6%91%98%E6%94%B6%E6%94%B9%E6%94%BE%E6%95%B4%E6%96%87%E6%96%99%E6%96%B0%E6%96%B9%E6%97%A5%E6%98%AF%E6%9B%B4%E6%9B%BF%E6%9C%80%E6%9C%83%E6%9C%89%E6%9C%8D%E6%9C%AC%E6%9D%96%E6%9E%90%E6%9E%9C%E6%9E%B6%E6%A1%86%E6%A1%88%E6%A8%99%E6%A8%A1%E6%A8%A3%E6%A9%9F%E6%AA%A2%E6%AC%8A%E6%AC%A1%E6%AD%A5%E6%AE%B5%E6%AF%8F%E6%B2%92%E6%B3%95%E6%B8%85%E6%BA%90%E7%82%BA%E7%85%A7%E7%89%87%E7%89%88%E7%94%A2%E7%94%A8%E7%95%AB%E7%99%BD%E7%9A%84%E7%9B%A3%E7%9B%B4%E7%9B%B8%E7%9C%81%E7%9C%8B%E7%9C%9F%E7%9F%AD%E7%A2%BA%E7%A2%BC%E7%A4%BE%E7%A7%81%E7%A8%B1%E7%AB%A0%E7%AB%AF%E7%AC%AC%E7%AD%94%E7%B4%A2%E7%B5%90%E7%B5%A6%E7%B6%81%E7%B6%93%E7%B6%B2%E7%B7%A8%E7%BE%A4%E8%80%85%E8%81%8A%E8%81%AF%E8%81%BD%E8%83%BD%E8%85%A6%E8%85%B3%E8%87%AA%E8%88%87%E8%91%97%E8%97%8F%E8%99%9F%E8%A1%8C%E8%A3%9D%E8%A3%A1%E8%A6%81%E8%A8%AD%E8%A9%9E%E8%A9%B1%E8%AA%8C%E8%AA%9E%E8%AA%AA%E8%AA%BF%E8%AE%80%E8%AE%93%E8%B2%BB%E8%B2%BC%E8%B3%87%E8%B5%B0%E8%B7%AF%E8%B7%B3%E8%BC%AA%E8%BD%89%E9%80%8F%E9%80%99%E9%80%A3%E9%80%B2%E9%81%8E%E9%82%84%E9%82%A3%E9%83%A8%E9%83%BD%E9%87%8D%E9%87%91%E9%8C%84%E9%8D%B5%E9%90%98%E9%91%B0%E9%95%B7%E9%96%89%E9%96%8B%E9%97%9C%E9%99%84%E9%9B%B2%E9%9B%BB%E9%9C%80%E9%9D%A2%E9%9F%B3%E9%A0%81%E9%A0%82%E9%A0%90%E9%A1%8C%E9%A1%9E%E9%A1%A7%E9%A9%97%E9%A9%9F%E9%BB%9E%EF%BC%88%EF%BC%89%EF%BC%8C%EF%BC%9A%EF%BC%9B" rel="stylesheet">
+<link rel="stylesheet" href="assets/system.css">
+<link rel="stylesheet" href="assets/motion/motion.css">
+<link rel="stylesheet" href="assets/layout/layout.css">
+<link rel="stylesheet" href="assets/icons/icon.css">
+<style>
+:root {
+  --p-bg: #000000; --p-surface: #161617; --p-ink: #f5f5f7; --p-muted: #86868b;
+  --p-accent: #007aff; --p-accent-ink: #000000; --p-action: #007aff; --p-action-ink: #000000;
+  --p-inv-bg: #f5f5f7; --p-inv-surface: #dfdfe0; --p-inv-ink: #000000; --p-inv-muted: #3f3f40;
+  --p-inv-accent: #007aff; --p-inv-accent-ink: #000000; --p-inv-action: #007aff; --p-inv-action-ink: #000000;
+  --font-display: "Geist", system-ui, sans-serif;
+  --font-text: "Geist", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --display-weight: 500;
+  --display-tracking: -0.035em;
+  --display-tracking-xl: -0.045em;
+}
+</style>
+<!-- 中文字：上面的 :root 照 start.mjs brand 印的原樣保留（OmniKeep App 自己的 #007aff 與黑底）；Geist 沒有中文字形，這裡只在它後面補上 Noto Sans TC -->
+<style>
+:root {
+  --font-display: "Geist", "Noto Sans TC", system-ui, sans-serif;
+  --font-text: "Geist", "Noto Sans TC", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Noto Sans TC", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+</style>
+<script>document.documentElement.classList.add('m-enter');setTimeout(()=>document.documentElement.classList.add('m-enter-done'),700)</script>
+<script>document.documentElement.classList.add('mo-js');setTimeout(()=>document.documentElement.classList.add('mo-safe'),2500)</script>
+<link rel="modulepreload" href="assets/moments/moments.js">
+<link rel="modulepreload" href="assets/moments/lib.js">
+<link rel="modulepreload" href="assets/moments/liquid-type/moment.js">
+<link rel="modulepreload" href="assets/moments/marquee-row/moment.js">
+<link rel="stylesheet" href="v2.css">
+</head>
+<body>
+<!-- 第二版（2026-11-19）：Ryan 要深色 iOS／Apple 產品官網風格，畫面全部用 OmniKeep App 的真實截圖
+     type: software (site-kind software): a self-hosted link keeper you feed from Telegram
+     look: the client's own colours through start.mjs brand (OmniKeep's #007aff on black, OLED theme), Geist + Noto Sans TC,
+           radius round, buttons pill, nav centred, footer statement, close type, rhythm dark-band
+     pictures: the real app at 1920x1080 (screens in C:\Users\user\.omnikit-wp1-demo\screens, 15 saves Ryan picked)
+     effect: none (Ryan's Apple-style brief: the product screens carry every section; waived in .taste-skill/waivers.json)
+     moments: liquid-type in #data (the sentence to remember), marquee-row in #install (where it installs) -->
+
+<header class="nav nav--centre">
+  <div class="wrap nav__bar">
+    <a class="skip-link" href="#top">跳到主要內容</a>
+    <a class="nav__logo" href="#top"><img class="ok-logo" src="ok-icon.svg" alt="" width="22" height="22">OmniKeep</a>
+    <nav class="nav__links" aria-label="主要導覽">
+      <div class="nav__item"><a class="nav__link" href="#steps">步驟</a></div>
+      <div class="nav__item"><a class="nav__link" href="#read">摘要</a></div>
+      <div class="nav__item"><a class="nav__link" href="#ask">提問</a></div>
+      <div class="nav__item"><a class="nav__link" href="#features">功能</a></div>
+      <div class="nav__item"><a class="nav__link" href="#data">資料</a></div>
+    </nav>
+    <div class="nav__actions">
+      <a class="btn btn--primary btn--sm" href="#install">安裝 OmniKeep</a>
+    </div>
+    <button class="nav__toggle" type="button" aria-expanded="false" aria-label="選單">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 5h14M2 13h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO: the words centred over the real inbox, which runs on past the fold -->
+  <section class="hero ok-hero" data-enter aria-labelledby="hero-h">
+    <div class="wrap"><div class="hero-text ok-hero__in">
+      <div class="ok-hero__copy">
+        <p class="ok-eyebrow">OmniKeep</p>
+        <h1 id="hero-h">Telegram 連結收藏，<br>裝在你自己的電腦。</h1>
+        <p class="ok-hero__lead">把連結傳給自己的機器人，它讀完網頁、影片與社群貼文寫成摘要；之後用搜尋或提問就找得到。</p>
+        <div class="btn-row ok-hero__acts">
+          <a class="btn btn--primary" href="#install">安裝 OmniKeep</a>
+          <a class="ok-more" href="https://github.com/b40609/OmniKeep">到 GitHub 看原始碼</a>
+        </div>
+        <p class="ok-hero__fact">開源，MIT 授權 · Windows、macOS、Linux</p>
+      </div>
+      <div class="ok-hero__shot">
+        <img src="media/inbox.webp" srcset="media/inbox-960.webp 960w, media/inbox.webp 1920w" sizes="(max-width: 1023px) 100vw, 1280px"
+             width="1920" height="1080" alt="OmniKeep 收件匣：15 則收藏排成卡片，每張有封面、一句重點、來源網站與收錄時間" fetchpriority="high">
+      </div>
+    </div></div>
+  </section>
+
+  <!-- STEPS: the README's three steps, each tile with the app's own screen for it -->
+  <section class="section ok-dark" id="steps" aria-labelledby="steps-h">
+    <div class="wrap">
+      <div class="ok-head">
+        <h2 id="steps-h">OmniKeep 只做 3 步。<span class="ok-grey">丟連結、幫你讀完、找得到。</span></h2>
+      </div>
+      <div class="ok-steps">
+        <article class="ok-tile ok-step">
+          <p class="ok-step__n">1</p>
+          <h3>丟連結</h3>
+          <p>在 Telegram 把連結傳給自己的機器人；在電腦上，按頂部的「新增」貼上也行。</p>
+          <div class="ok-step__pic"><img src="media/step-add.webp" srcset="media/step-add-400.webp 400w, media/step-add.webp 600w" sizes="(max-width: 1023px) 340px, 420px" width="600" height="750" alt="OmniKeep 的新增面板，貼上一個 YouTube 連結，下方是收藏連結按鈕" loading="lazy"></div>
+        </article>
+        <article class="ok-tile ok-step">
+          <p class="ok-step__n">2</p>
+          <h3>幫你讀完</h3>
+          <p>網頁、影片、社群貼文都抓下內容，交給你接上的 AI 寫出摘要與重點。</p>
+          <div class="ok-step__pic"><img src="media/step-read.webp" srcset="media/step-read-400.webp 400w, media/step-read.webp 670w" sizes="(max-width: 1023px) 340px, 420px" width="670" height="894" alt="一支 YouTube 影片讀完後的標題、封面與摘要" loading="lazy"></div>
+        </article>
+        <article class="ok-tile ok-step">
+          <p class="ok-step__n">3</p>
+          <h3>找得到</h3>
+          <p>頂部一個搜尋框：按 Enter 搜尋關鍵字，按 Tab 改成對收藏提問。</p>
+          <div class="ok-step__pic"><img src="media/step-find.webp" srcset="media/step-find-400.webp 400w, media/step-find.webp 680w" sizes="(max-width: 1023px) 340px, 420px" width="680" height="906" alt="搜尋框輸入 Claude Code，下拉出搜尋與提問兩個選項" loading="lazy"></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- READ: the open item, big -->
+  <section class="section" id="read" aria-labelledby="read-h">
+    <div class="wrap">
+      <div class="ok-head">
+        <h2 id="read-h">先看摘要，需要再看重點分析。</h2>
+        <p>卡片上是一句說重點的標題和一兩句白話。打開那則收藏，看完整的重點分析、關聯圖與 Markdown 原文。</p>
+      </div>
+      <div class="ok-frame fill">
+        <picture><source media="(max-width: 639px)" srcset="media/detail-phone.webp" width="640" height="913"><img src="media/detail.webp" srcset="media/detail-960.webp 960w, media/detail.webp 1920w" sizes="(max-width: 1023px) 100vw, 1280px"
+             width="1920" height="1080" alt="一則收藏打開後：左邊目錄，中間標題、封面、摘要與最重要的 3 件事，右邊來源資訊與相關收藏" loading="lazy"></picture>
+      </div>
+    </div>
+  </section>
+
+  <!-- ASK: the words beside the real answer -->
+  <section class="section ok-dark" id="ask" aria-labelledby="ask-h">
+    <div class="wrap ok-split">
+      <div class="ok-split__text">
+        <h2 id="ask-h">對收藏提問，<br>回答附上來源。</h2>
+        <p>OmniKeep 先找出相關的收藏，再交給 AI 回答；每一句後面標著引用的收藏編號，點開就是那一則。</p>
+        <ul class="ok-list">
+          <li>全文檢索用 trigram 分詞，中文句子裡的片段也找得到</li>
+          <li>語意搜尋和關鍵字結果合併，字對不上也找得到相關內容</li>
+          <li>在收藏清單按 B，同一個搜尋框切到提問</li>
+        </ul>
+      </div>
+      <div class="ok-split__pic">
+        <img src="media/ask.webp" srcset="media/ask-560.webp 560w, media/ask.webp 896w" sizes="(max-width: 1023px) 100vw, 640px"
+             width="896" height="946" alt="提問「Claude 個人理財會動到我的銀行帳戶嗎？」的回答，每點附上引用編號，下方列出引用的 5 則收藏" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES (two screens): the README's list as tiles, the app's own screens in them -->
+  <section class="section g2" id="features" aria-labelledby="features-h">
+    <div class="wrap">
+      <div class="group">
+        <div class="ok-head">
+          <h2 id="features-h">OmniKeep 能做的事。<span class="ok-grey">收得進來、讀得懂，也找得到。</span></h2>
+          <p>探索、每日回顧、專案監看這些實驗功能還在調整，新安裝預設關閉，要用再到「設定 › 實驗功能」開啟。</p>
+        </div>
+        <div class="ok-bento ok-bento--a fill">
+          <article class="ok-tile ok-b-read">
+            <h3>影片、網頁與社群貼文都讀得懂</h3>
+            <p>YouTube 讀字幕或本機轉錄，短影音用畫面文字加語音；長文清掉廣告，另存一份 HTML 快照。</p>
+            <div class="ok-b-pic"><picture><source media="(max-width: 639px)" srcset="media/videos-phone.webp" width="680" height="364"><img src="media/videos.webp" width="1654" height="444" alt="收藏清單篩選成影片，影片卡片各有封面與一句重點" loading="lazy"></picture></div>
+          </article>
+          <article class="ok-tile ok-b-in">
+            <h3>從 Telegram、LINE 與手機收錄</h3>
+            <p>Telegram 機器人是主要入口，也能用 LINE、iOS 捷徑，或讓 agent 透過 MCP 寫進來。</p>
+            <ul class="ok-icons" aria-label="收錄管道">
+              <li><img src="assets/icons/telegram.svg" alt="Telegram" width="40" height="40" loading="lazy"></li>
+              <li><img src="assets/icons/line.svg" alt="LINE" width="40" height="40" loading="lazy"></li>
+              <li><img class="ok-ink" src="assets/icons/apple.svg" alt="iOS 捷徑" width="34" height="40" loading="lazy"></li>
+              <li><img src="assets/icons/claude-code.svg" alt="Claude Code（MCP）" width="40" height="40" loading="lazy"></li>
+            </ul>
+          </article>
+        </div>
+      </div>
+      <div class="group">
+        <div class="ok-bento ok-bento--b fill">
+          <article class="ok-tile ok-b-post">
+            <h3>X、Threads 的貼文也寫成重點</h3>
+            <p>社群貼文一樣抓下內容，交給 AI 寫摘要。</p>
+            <div class="ok-b-pic"><img src="media/xpost.webp" srcset="media/xpost-400.webp 400w, media/xpost.webp 672w" sizes="(max-width: 639px) 340px, 640px" width="672" height="924" alt="一則 X 貼文讀完後的標題、貼文圖表與摘要" loading="lazy"></div>
+          </article>
+          <article class="ok-tile ok-b-search">
+            <h3>結果依相關度排好</h3>
+            <p>最相關的排前面，上方再切專案、貼文、影片或文章。</p>
+            <div class="ok-b-pic"><img src="media/search-results.webp" srcset="media/search-results-400.webp 400w, media/search-results.webp 828w" sizes="(max-width: 639px) 340px, 640px" width="828" height="1080" alt="搜尋框輸入 Claude Code，下方是依相關度排序的卡片" loading="lazy"></div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DATA: the statement (liquid-type) and three plain facts -->
+  <section class="section ok-dark" id="data" aria-labelledby="data-h">
+    <div class="wrap">
+      <div class="ok-statement" data-moment="liquid-type" data-moment-opts='{"strength": 0.8}'>
+        <h2 class="mo-lt__type" id="data-h"><span class="ok-line">資料在你</span><span class="ok-line">自己手上。</span></h2>
+        <p class="ok-statement__lead">收藏存在你電腦上的一個 SQLite 資料庫，不放在別人的雲端；每天自動備份一次。</p>
+      </div>
+      <div class="ok-facts">
+        <div class="ok-fact">
+          <span class="ok-fact__ic"><img class="ok-sqlite" src="assets/icons/sqlite.svg" alt="SQLite" width="72" height="32" loading="lazy"></span>
+          <h3>一個本機資料庫</h3>
+          <p>WAL 模式；全文索引用 trigram 分詞的 FTS5，語意搜尋用 sqlite-vec。</p>
+        </div>
+        <div class="ok-fact">
+          <span class="ok-fact__ic ok-fact__ic--row">
+            <img src="assets/icons/google-drive.svg" alt="Google Drive" width="28" height="26" loading="lazy">
+            <img src="assets/icons/dropbox.svg" alt="Dropbox" width="28" height="24" loading="lazy">
+            <img src="assets/icons/aws-s3.svg" alt="Amazon S3" width="28" height="28" loading="lazy">
+            <img class="ok-ink" src="assets/icons/github.svg" alt="GitHub" width="28" height="27" loading="lazy">
+          </span>
+          <h3>每天自動備份</h3>
+          <p>本機多份輪替，或用 rclone 同步到 Google Drive、Dropbox、S3，也能自動提交到私有 Git 儲存庫。</p>
+        </div>
+        <div class="ok-fact">
+          <span class="ok-fact__ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg></span>
+          <h3>只綁本機位址</h3>
+          <p>服務預設只聽 127.0.0.1；要從手機連回來，走 Tailscale 這類私有網路。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALL: the two ways the README gives, word for word, then the marquee of where it installs -->
+  <section class="section" id="install" aria-labelledby="install-h">
+    <div class="wrap">
+      <div class="ok-split ok-install">
+        <div class="ok-split__text">
+          <h2 id="install-h">3 分鐘開始用</h2>
+          <p>最省事的裝法：對 Claude Code、Codex 或 Antigravity 說一句話。</p>
+          <div class="ok-cmd ok-cmd--say">
+            <code>幫我安裝 OmniKeep：https://github.com/b40609/OmniKeep</code>
+            <button class="ok-copy" type="button" aria-label="複製這句話"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5v-.5A1.5 1.5 0 0 0 9 1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5"/></svg></button>
+          </div>
+          <p class="ok-install__after">agent 會裝好，再帶你接上 AI、接上 Telegram、丟第一個連結。金鑰與機器人權杖在 OmniKeep 的設定頁自己貼，不經過聊天。</p>
+        </div>
+        <div class="ok-term">
+          <p class="ok-term__label">也可以自己執行安裝腳本。Windows（Windows PowerShell 5.1 或 PowerShell 7）</p>
+          <div class="ok-cmd">
+            <code>&amp; (<span class="tk-p">[</span><span class="tk">scriptblock</span><span class="tk-p">]</span>::Create((irm https://raw.githubusercontent.com/b40609/OmniKeep/main/scripts/install.ps1).TrimStart(<span class="tk-p">[</span><span class="tk">char</span><span class="tk-p">]</span>0xFEFF)))</code>
+            <button class="ok-copy" type="button" aria-label="複製 Windows 安裝指令"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5v-.5A1.5 1.5 0 0 0 9 1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5"/></svg></button>
+          </div>
+          <p class="ok-term__label">macOS、Linux</p>
+          <div class="ok-cmd">
+            <code>curl -fsSL https://raw.githubusercontent.com/b40609/OmniKeep/main/scripts/install.sh | bash</code>
+            <button class="ok-copy" type="button" aria-label="複製 macOS、Linux 安裝指令"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5v-.5A1.5 1.5 0 0 0 9 1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5"/></svg></button>
+          </div>
+          <p class="ok-term__note">需要 git、Python 3.12+、Node.js 20.19+ 或 22.12+。裝好後在這台電腦打開 127.0.0.1:5000，直接進主畫面；還沒接上 AI 也能先收藏。</p>
+        </div>
+      </div>
+      <div class="ok-marquee">
+        <div data-moment="marquee-row" data-moment-opts='{"speed": 32}'>
+          <ul class="mo-mq__track"><li>Windows</li><li>macOS</li><li>Linux</li><li>PowerShell 7</li><li>Windows PowerShell 5.1</li><li>bash</li><li>Docker</li><li>Claude Code</li><li>Codex</li><li>Antigravity</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer closing footer--dark ok-dark" id="contact" aria-labelledby="close-h">
+  <div class="wrap">
+    <div class="closing__cta close--type ok-close">
+      <h2 id="close-h">下一個連結，<br>丟給 OmniKeep。</h2>
+      <p>免費開源，MIT 授權。</p>
+      <div class="btn-row">
+        <a class="btn btn--primary btn--xl" href="#install">安裝 OmniKeep</a>
+        <a class="ok-more" href="https://github.com/b40609/OmniKeep">到 GitHub 看原始碼</a>
+      </div>
+    </div>
+    <div class="closing__links">
+      <div class="grid">
+        <div class="span-4 stack-4 ok-foot-brand">
+          <a class="nav__logo" href="#top"><img class="ok-logo" src="ok-icon.svg" alt="" width="22" height="22" loading="lazy">OmniKeep</a>
+          <p class="footer__lede">自架的連結收藏工具</p>
+        </div>
+        <div class="span-2 footer__col"><h3>產品</h3><ul><li><a href="#steps">3 個步驟</a></li><li><a href="#read">摘要與分析</a></li><li><a href="#ask">提問</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>資料</h3><ul><li><a href="#features">功能</a></li><li><a href="#data">資料與備份</a></li><li><a href="#install">安裝</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>原始碼</h3><ul><li><a href="https://github.com/b40609/OmniKeep">GitHub</a></li><li><a href="https://github.com/b40609/OmniKeep#更新到新版">更新到新版</a></li><li><a href="https://github.com/b40609/OmniKeep/issues">回報問題</a></li></ul></div>
+      </div>
+      <div class="footer__legal">
+        <span>&copy; 2026 OmniKeep</span>
+        <div class="socials"></div>
+        <span class="credits">畫面是 OmniKeep 的真實截圖；第三方名稱與標誌為各自所有者的商標</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script type="module" src="assets/system.js"></script>
+<script type="module" src="assets/motion/motion.js"></script>
+<script type="module" src="assets/layout/layout.js"></script>
+<script type="module" src="page.js"></script>
+</body>
+</html>

@@ -28,7 +28,7 @@ cmd 裡的 {port} 換成分到的 port；port_env 有寫就把 port 放進那個
    這個指令會一直開著，用 stop 關掉（或 Ctrl+C）。
 3. verify：每個標籤的網址要 200、彩色沒有灰階樣式、灰階有、灰階拿掉樣式之後跟彩色一樣；回應最像的必須是這個標籤
    自己的版本的檔（比對行的集合），而且明顯比其他版本像；兩個版本的檔一模一樣就不能盲選。訊息只寫標籤，不寫名稱。
-4. shots（可省略）：Chrome headless 截圖（桌機 1440、手機 375，灰階與彩色），檔名只有標籤，給評審或使用者看。
+4. shots（可省略）：Chrome headless 截圖（預設桌機 1920×1080、手機 390×844，spec 的 sizes 可以換；灰階與彩色），檔名只有標籤，給評審或使用者看。
 5. choose：記下使用者每一段的選擇（--phase gray|color，--pick 標籤或 tie，可以加 --rank 與 --note）。
 6. reveal：每一段都選了才解封（--force 會記下是強制解封的）；比對雜湊，印出對照並寫 result.json。
 
@@ -70,7 +70,8 @@ from pathlib import Path
 MARK = "data-omnikit-gray"
 GRAY_CSS = "html{filter:grayscale(1)!important}"
 PHASES = {"gray": "灰階（版面與操作）", "color": "彩色（只評配色）"}
-SIZES = {"桌機": "1440,1800", "手機": "375,812"}
+# 預設照 ryan 的主要螢幕（2026-11-19：1920×1080）；spec.json 可以用 "sizes": {"名稱": "寬,高"} 換掉。
+SIZES = {"desktop": "1920,1080", "mobile": "390,844"}  # 名稱用英文：Windows 上 Chrome 的 --screenshot 路徑有中文會寫不出檔（2026-11-19 實測）
 MIN_SCORE = 0.5    # 回應跟自己的檔至少這麼像
 MIN_MARGIN = 0.02  # 而且要比第二像的版本高出這麼多
 REF_LABEL = "原版"
@@ -481,13 +482,15 @@ def shots(folder):
     if not exe:
         print("找不到 Chrome 或 Edge（可以設 CHROME 環境變數）")
         return 1
-    out = folder / "shots"
+    out = folder.resolve() / "shots"  # Chrome 不照目前目錄解析相對路徑，要給絕對路徑
     out.mkdir(exist_ok=True)
+    sizes = read_json(folder / "spec.json", {}).get("sizes") or SIZES
     for label, u in run["urls"].items():
         for tone in ("gray", "color"):
-            for kind, size in SIZES.items():
+            for kind, size in sizes.items():
                 f = out / f"{label}-{tone}-{kind}.png"
                 subprocess.run([exe, "--headless=new", "--disable-gpu", "--hide-scrollbars", f"--screenshot={f}",
+                                f"--user-data-dir={tempfile.mkdtemp(prefix='blind-shot-')}",  # 每張各自的設定檔，避免前一個 Chrome 還鎖著
                                 f"--window-size={size}", "--virtual-time-budget=5000", u[tone]], capture_output=True, timeout=120)
     print(f"截圖在 {out}（檔名只有標籤）。")
     return 0

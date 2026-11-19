@@ -57,6 +57,13 @@ Ryan 2026-11-19 定案（NOW.md 決定 3）：第 2 層先只跑 Huashu Design�
 - 這輪的弱點：Ryan 盲選前已看過 taste-skill 的第一版，盲選時可能認得出來；第一版的結果只存檔，不進判定。
 - 第一版的額度中斷：Kai 的 5 小時額度在 12:28 用完，taste-skill、huashu-design 兩組中途停下，14:42 從斷點續跑（不是重來）。
 
+## 第二版的執行（2026-11-19 下午到晚上）
+
+- 三組由桌面版改到 Ryan 帳號的 Claude Opus 5.5（effort 改 medium，見 ryan 規則 2026-11-19 定案），並換上 Ryan 自選的 15 則收藏：taste-skill 組在隔離的示範版產生共用的 11 張真實截圖（`~/.omnikit-wp1-demo/screens/`），另兩組拿同一批截圖換掉自己畫的示意畫面。所以三組的產品畫面都是同一批真實截圖，差別在版面、文案與配色。
+- 三條子對話都在 18:19 settle。成品搬進 `2026-11-19-web-pages-WP1/sites/<組>/`：`collect.py` 從 index.html 追引用到的檔，再照盲選服務的 404 紀錄補上 taste-skill 的響應式圖片與動態載入的 CSS，三組都是 0 筆 404（各約 1 MB；skill 的工作檔、打磨截圖沒搬）。
+- 盲選：`2026-11-19-web-pages-WP1/blind/`（`spec.json`，封存 SHA-256 開頭 `15dd7f74`）。`blind.py shots` 的 1920×1080 與 390×844 截圖在 `blind/shots/`，檔名只有標籤。
+- `blind.py` 順手修了三個問題：截圖尺寸預設改 1920×1080／390×844 並可由 spec 的 `sizes` 指定；傳給 Chrome 的截圖路徑改絕對路徑（相對路徑在 Windows 不會寫出檔）；每張截圖用自己的 `--user-data-dir`。
+
 ## 結果
 
-（實測後填）
+（Ryan 盲選後填）

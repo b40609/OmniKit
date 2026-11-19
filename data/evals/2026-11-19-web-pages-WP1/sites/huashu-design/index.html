@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OmniKeep：在 Telegram 丟連結，它幫你讀完，之後找得到</title>
+<meta name="description" content="OmniKeep 是自架的連結收藏工具：在 Telegram 把連結丟給自己的機器人，它把網頁、影片、社群貼文讀完寫摘要，之後用搜尋或提問找得到。資料存在你自己的電腦上。">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="assets/img/mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<script>document.documentElement.classList.add('js');</script>
+<!--
+  第二版設計系統（方向：參照 apple.com.cn/iphone-18-pro，見 design/v2/directions.md）
+  - 色：#000 與 #161617 交替，卡片 #1d1d1f；文字 #f5f5f7，段落灰 #86868b、關鍵句白色亮起
+        藍：按鈕 #0071e3、連結 #2997ff、光暈 #0a84ff（= App 深色模式主色）；綠 #30d158「已收錄」；黃 #ffd60a 只給搜尋命中
+  - 字：-apple-system（Mac 上是 SF 與蘋方）→ Geist → Noto Sans TC；指令與網址用 Geist Mono
+  - 節奏：首屏置中大標＋實際畫面從底部升起；先看重點橫向卡片；置中大標＋視窗升起
+  - form 來自內容：主角是 OmniKeep 自己的實際畫面（收件匣、詳情、提問），全部是真實截圖
+-->
+</head>
+<body>
+<a class="skip" href="#main">跳到主要內容</a>
+
+<header class="nav" id="top">
+  <div class="nav-in">
+    <a class="brand" href="#top" aria-label="OmniKeep 首頁">
+      <img src="assets/img/mark.svg" alt="" width="24" height="24">
+      <span>OmniKeep</span>
+    </a>
+    <nav aria-label="主要">
+      <ul class="nav-links">
+        <li><a href="#highlights">先看重點</a></li>
+        <li><a href="#how">怎麼運作</a></li>
+        <li><a href="#features">功能</a></li>
+        <li><a href="#data">資料</a></li>
+        <li><a href="https://github.com/b40609/OmniKeep" rel="noopener">GitHub</a></li>
+      </ul>
+    </nav>
+    <a class="pill-btn nav-cta" href="#start">開始用</a>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- 首屏 · hero／1920×1080 一屏／溫度：安靜而篤定／主角：OmniKeep 收件匣的實際畫面 -->
+<section class="hero" aria-labelledby="hero-h">
+  <div class="hero-light" aria-hidden="true"></div>
+
+  <div class="hero-copy wrap center">
+    <p class="hero-name">OmniKeep</p>
+    <h1 id="hero-h">收了的連結，<br class="m">終於找得到。</h1>
+    <p class="hero-lede">在 Telegram 把連結丟給自己的機器人，<b>它把網頁、影片、社群貼文讀完寫成摘要</b>，之後用搜尋或提問找回來。<b>資料存在你自己的電腦上。</b></p>
+    <div class="hero-cta">
+      <a class="pill-btn" href="#start">開始用</a>
+      <a class="link" href="https://github.com/b40609/OmniKeep" rel="noopener">在 GitHub 上看</a>
+    </div>
+  </div>
+
+  <figure class="hero-shot">
+    <div class="screen">
+      <img src="assets/img/screens/inbox.webp" width="1920" height="1080" fetchpriority="high"
+        alt="OmniKeep 的收件匣：收藏排成格狀，每張卡片有封面、標題、一句白話說明與來源網站，例如「Claude 個人理財：唯讀銀行資料，直接問消費與帳單」。">
+    </div>
+  </figure>
+</section>
+
+<!-- 先看重點 · 橫向卡片列 -->
+<section class="highlights" id="highlights" aria-labelledby="hl-h">
+  <div class="wrap hl-head">
+    <h2 id="hl-h" class="h2">先看重點</h2>
+    <a class="more" href="#features">看全部功能</a>
+  </div>
+  <div class="gallery" id="gallery" tabindex="0" aria-label="重點卡片，可以左右捲動">
+    <ul class="tiles">
+      <li class="tile">
+        <p class="tile-cap"><b>丟連結就收好。</b>傳給 Telegram 的機器人，或在網頁按「新增」貼上連結。</p>
+        <div class="tv-shot"><img src="assets/img/screens/c-add.webp" width="720" height="720" loading="lazy" style="object-position: 12% 40%"
+          alt="OmniKeep 的「新增」面板：貼上一條 YouTube 連結，下方顯示「會收藏 1 個連結」與「收藏連結」按鈕。"></div>
+      </li>
+      <li class="tile">
+        <p class="tile-cap"><b>影片也讀成文字。</b>YouTube、Bilibili、短影音都抓下內容，寫成摘要。</p>
+        <div class="tv-shot"><img src="assets/img/screens/c-video.webp" width="672" height="672" loading="lazy"
+          alt="一支 YouTube 影片收錄後的頁面：標題「Claude 個人理財：唯讀銀行資料，直接問消費與帳單」、封面與摘要。"></div>
+      </li>
+      <li class="tile">
+        <p class="tile-cap"><b>先看摘要，需要再看重點。</b>卡片上是標題與一兩句白話說明；打開有完整的重點分析。</p>
+        <div class="tv-shot"><img src="assets/img/screens/c-key.webp" width="672" height="672" loading="lazy"
+          alt="同一則收藏的重點分析：「最重要的 3 件事」三點條列，下方是和其他收藏的關聯。"></div>
+      </li>
+      <li class="tile">
+        <p class="tile-cap"><b>直接提問，回答附引用。</b>先找出相關的收藏，再交給 AI 回答。</p>
+        <div class="tv-shot"><img src="assets/img/screens/c-ask.webp" width="820" height="820" loading="lazy"
+          alt="提問「Claude 個人理財會動到我的銀行帳戶嗎？」，回答每句後面標著引用編號，下方列出引用的收藏。"></div>
+      </li>
+      <li class="tile">
+        <p class="tile-cap"><b>資料在你的電腦上。</b>一個 SQLite 資料庫，每天自動備份，不放在別人的雲端。</p>
+        <div class="tv tv-local" aria-hidden="true">
+          <img src="assets/img/mark.svg" alt="" width="88" height="88">
+          <p class="addr">127.0.0.1</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+  <div class="wrap gal-ctrl">
+    <button class="round" type="button" data-dir="-1" aria-label="上一張" disabled>
+      <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="round" type="button" data-dir="1" aria-label="下一張">
+      <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</section>
+
+<!-- 怎麼運作 · 置中大標＋膠囊分頁＋裝置並排從底部升起 -->
+<section class="how" id="how" aria-labelledby="how-h">
+  <div class="wrap center">
+    <h2 id="how-h" class="h1">從丟進來，<br>到找回來。</h2>
+    <p class="intro">三個動作。<b>你只做第一個</b>，讀完與整理交給 OmniKeep，要用的時候在同一個搜尋框裡找回來。</p>
+    <div class="seg" role="tablist" aria-label="三步驟">
+      <button role="tab" id="tab-1" aria-controls="stage" aria-selected="true" class="is-on">丟連結</button>
+      <button role="tab" id="tab-2" aria-controls="stage" aria-selected="false" tabindex="-1">幫你讀完</button>
+      <button role="tab" id="tab-3" aria-controls="stage" aria-selected="false" tabindex="-1">找得到</button>
+    </div>
+  </div>
+
+  <div class="rig" id="stage" role="tabpanel" aria-labelledby="tab-1" data-step="1">
+    <div class="rig-in">
+      <div class="win">
+        <div class="win-bar" aria-hidden="true"><span class="dots"><i></i><i></i><i></i></span><span class="url">OmniKeep</span></div>
+        <div class="shots">
+          <img class="v1" src="assets/img/screens/add.webp" width="1920" height="1080" loading="lazy"
+            alt="在 OmniKeep 按頂部的「新增」，把一條 YouTube 連結貼進面板。">
+          <img class="v2" src="assets/img/screens/detail.webp" width="1920" height="1080" loading="lazy"
+            alt="那支影片收錄後的頁面：摘要、重點分析、最重要的 3 件事，右側是來源資訊、標籤與相關收藏。">
+          <img class="v3" src="assets/img/screens/ask.webp" width="1920" height="1080" loading="lazy"
+            alt="在搜尋框提問「Claude 個人理財會動到我的銀行帳戶嗎？」，回答附上引用編號與 5 則引用的收藏。">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap center">
+    <p class="step-text" id="step-text" aria-live="polite"><b>丟連結。</b>在 Telegram 把連結傳給自己的機器人，或在 OmniKeep 按頂部的「新增」貼上。</p>
+  </div>
+</section>
+
+<!-- 功能 · 卡片格 -->
+<section class="features" id="features" aria-labelledby="ft-h">
+  <div class="wrap">
+    <h2 id="ft-h" class="h2">它能做什麼</h2>
+    <div class="grid">
+
+      <article class="ft ft-in">
+        <h3>丟連結就收錄</h3>
+        <p class="ft-lede">主要入口是 Telegram。<b>其他管道也都通。</b></p>
+        <ul class="chips" aria-label="收錄管道">
+          <li class="on">Telegram 機器人</li><li>LINE 官方帳號</li><li>網頁上的「新增」</li><li>iOS 捷徑</li><li>PWA</li><li>MCP</li><li>REST API</li>
+        </ul>
+        <dl class="dl">
+          <div><dt>Telegram 機器人</dt><dd>用一次性配對連結綁定你的帳號，收錄後回覆摘要卡。</dd></div>
+          <div><dt>網頁上的「新增」</dt><dd>貼連結、寫筆記、把書籤檔拖進來都從這裡。</dd></div>
+          <div><dt>外部 agent（MCP）</dt><dd>同一台電腦用 stdio，別台電腦用 Streamable HTTP；安裝腳本會自動註冊到 Claude Code、Codex、Antigravity。</dd></div>
+          <div><dt>REST API</dt><dd>附 Swagger 文件，方便腳本與自動化流程串接。</dd></div>
+        </dl>
+      </article>
+
+      <article class="ft ft-read">
+        <h3>網頁、影片、社群貼文<br>都讀得懂</h3>
+        <dl class="dl">
+          <div><dt>YouTube</dt><dd>接上 Google Gemini 時直接解析影片；沒有就讀字幕，沒字幕用本機語音轉錄（中文用台灣華語微調的 Breeze-ASR-25），逐字稿帶 <code>[MM:SS]</code> 時間與章節。</dd></div>
+          <div><dt>Bilibili 長影片</dt><dd>先用官方 CC／AI 逐字稿，沒有時改抓音訊交給本機 faster-whisper 轉錄（選用安裝）。</dd></div>
+          <div><dt>Reels、TikTok、Shorts</dt><dd>關鍵幀 OCR 加語音轉錄，兩邊的文字合併後再分析。</dd></div>
+          <div><dt>長文與永久快照</dt><dd>清掉廣告與雜訊，存一份 HTML 快照；原網頁失效後仍然看得到。</dd></div>
+        </dl>
+      </article>
+
+      <article class="ft ft-find">
+        <h3>找得到</h3>
+        <p class="ft-lede">搜尋、提問、篩選，<b>都在同一個搜尋框。</b></p>
+        <dl class="dl">
+          <div><dt>全文檢索</dt><dd>SQLite FTS5 用 trigram 分詞，中文句子裡的子字串也找得到；不到三個字的詞改用 LIKE 比對。</dd></div>
+          <div><dt>語意搜尋</dt><dd>向量索引和全文檢索的結果合併，關鍵字對不上時也找得到相關內容。</dd></div>
+          <div><dt>提問</dt><dd>先檢索相關的收藏，再交給 AI 回答，回答附上引用的來源編號。</dd></div>
+        </dl>
+      </article>
+
+      <article class="ft ft-shot">
+        <figure>
+          <div class="ft-img"><img src="assets/img/screens/c-search.webp" width="1050" height="480" decoding="async"
+            alt="在頂部的搜尋框打「Claude Code」，下拉出兩個選項：搜尋「Claude Code」與提問「Claude Code」。"></div>
+          <figcaption>打字之後，<b>搜尋與提問就在同一個下拉選單裡。</b></figcaption>
+        </figure>
+        <figure>
+          <div class="ft-img"><img src="assets/img/screens/c-results.webp" width="1660" height="800" decoding="async"
+            alt="搜尋「Claude Code」的結果：10 則收藏，依相關度排列，有 YouTube 影片、X 貼文與 GitHub 專案。"></div>
+          <figcaption>按下搜尋：<b>影片、貼文、GitHub 專案一起列出來。</b></figcaption>
+        </figure>
+      </article>
+
+      <article class="ft ft-sum">
+        <h3>先看摘要，<br>需要再看重點</h3>
+        <dl class="dl">
+          <div><dt>摘要</dt><dd>卡片上是一個說重點的標題、一兩句白話說明，以及標籤。</dd></div>
+          <div><dt>重點分析</dt><dd>打開收藏可以看完整的分析，以及 Markdown 原文閱讀模式。</dd></div>
+        </dl>
+      </article>
+
+      <article class="ft ft-lab">
+        <div class="lab-head"><h3>實驗功能</h3><span class="switch" aria-hidden="true"><i></i></span></div>
+        <p class="ft-lede">功能在、可以開，但介面與行為還會改。<b>新安裝預設關閉。</b></p>
+        <dl class="dl dl-2">
+          <div><dt>探索</dt><dd>定時檢查你加的來源（RSS、YouTube 頻道、GitHub 專案、Google News 關鍵字、網頁變動），挑分數最高的幾篇分析，整理成精選。</dd></div>
+          <div><dt>逐則篩選</dt><dd>一則一則決定要不要留，喜歡與不喜歡會調整之後的排序。</dd></div>
+          <div><dt>每日回顧</dt><dd>每天挑幾則未讀和值得重看的舊收藏。</dd></div>
+          <div><dt>專案監看</dt><dd>掃描你指定的本機資料夾，產生風險與改進的建議。</dd></div>
+        </dl>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- 資料 · 規格列 -->
+<section class="data" id="data" aria-labelledby="data-h">
+  <div class="wrap center">
+    <h2 id="data-h" class="h1">資料，<br>留在你的電腦上。</h2>
+    <p class="intro">收藏都存在本機的一個 SQLite 資料庫，<b>不放在別人的雲端。</b>服務預設只聽這台電腦，別台裝置連不到。</p>
+  </div>
+  <div class="wrap">
+    <ul class="specs">
+      <li><p class="spec-v mono">127.0.0.1</p><p>預設只綁本機位址，別台裝置連不到</p></li>
+      <li><p class="spec-v">每天</p><p>自動備份一次，資料庫與 HTML 快照一起</p></li>
+      <li><p class="spec-v">3 種</p><p>備份去處：本機多份輪替、rclone 雲端同步、私有 Git 儲存庫</p></li>
+      <li><p class="spec-v">末四碼</p><p>你在 App 裡輸入的金鑰加密後才存，之後只顯示末四碼</p></li>
+    </ul>
+    <div class="vs">
+      <div><p class="vs-k">稍後讀服務</p><p>服務可能終止，資料綁在廠商的雲端，而且多半只保存文字。</p></div>
+      <div><p class="vs-k">筆記工具</p><p>收錄流程比較繁瑣，影片不會自動整理成文字與重點。</p></div>
+      <div class="vs-us"><p class="vs-k">OmniKeep</p><p>丟一條連結就收好，影片也讀成文字；資料與備份都在你手上，用 <code>scripts/restore_backup.py</code> 還原。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 開始用 -->
+<section class="start" id="start" aria-labelledby="start-h">
+  <div class="wrap">
+    <h2 id="start-h" class="h2">三分鐘開始用</h2>
+    <div class="start-grid">
+      <div class="st st-agent">
+        <p class="st-k">最省事：對 Claude Code、Codex 或 Antigravity 說一句</p>
+        <p class="say" id="say-q">幫我安裝 OmniKeep：<span class="u">https://github.com/b40609/OmniKeep</span></p>
+        <p class="st-d">agent 會幫你安裝，再帶你接上 AI、接上 Telegram、丟第一個連結。金鑰與機器人權杖一律在 OmniKeep 的設定頁自己貼，不經過聊天。</p>
+        <button class="copy" type="button" data-copy="say-q">複製這句話</button>
+      </div>
+      <div class="st st-cmd">
+        <div class="cmd-head">
+          <p class="st-k">也可以自己執行安裝腳本</p>
+          <div class="seg seg-s" role="tablist" aria-label="作業系統">
+            <button role="tab" id="os-win" aria-controls="os-p-win" aria-selected="true" class="is-on">Windows</button>
+            <button role="tab" id="os-nix" aria-controls="os-p-nix" aria-selected="false" tabindex="-1">macOS、Linux</button>
+          </div>
+        </div>
+        <div class="term" role="tabpanel" id="os-p-win" aria-labelledby="os-win">
+          <p class="term-k">Windows PowerShell 5.1 或 PowerShell 7</p>
+          <pre><code id="cmd-win">&amp; ([scriptblock]::Create((irm https://raw.githubusercontent.com/b40609/OmniKeep/main/scripts/install.ps1).TrimStart([char]0xFEFF)))</code></pre>
+          <button class="copy" type="button" data-copy="cmd-win">複製指令</button>
+        </div>
+        <div class="term" role="tabpanel" id="os-p-nix" aria-labelledby="os-nix" hidden>
+          <p class="term-k">終端機</p>
+          <pre><code id="cmd-nix">curl -fsSL https://raw.githubusercontent.com/b40609/OmniKeep/main/scripts/install.sh | bash</code></pre>
+          <button class="copy" type="button" data-copy="cmd-nix">複製指令</button>
+        </div>
+        <p class="req">需要 git、Python 3.12+、Node.js 20.19+ 或 22.12+。</p>
+      </div>
+    </div>
+    <ol class="after">
+      <li><b>打開</b><span>在這台電腦用瀏覽器打開 <code class="nw">http://127.0.0.1:5000</code>，直接進主畫面，不用登入。安裝後會自動接上不用註冊的免費 AI 服務。</span></li>
+      <li><b>接上 Telegram</b><span>找 @BotFather 傳 <code>/newbot</code> 建立機器人，把權杖貼到「設定 › 收錄管道 › Telegram」，再用配對連結綁定你的帳號。</span></li>
+      <li><b>丟第一個連結</b><span>傳給機器人，處理完它會回一張有摘要的卡片。還沒接上 AI 也能收藏，之後會在背景補分析。</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="end" aria-labelledby="end-h">
+  <div class="wrap center">
+    <img src="assets/img/mark.svg" alt="" width="72" height="72">
+    <h2 id="end-h" class="h1">下一條值得留的連結，<br>丟給它就好。</h2>
+    <div class="end-cta">
+      <a class="pill-btn pill-lg" href="https://github.com/b40609/OmniKeep" rel="noopener">到 GitHub 下載</a>
+      <a class="link" href="#start">看安裝方式</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <p>OmniKeep 是開源專案，以 MIT License 授權。頁面上的畫面是 OmniKeep 實際執行的截圖。</p>
+    <a href="https://github.com/b40609/OmniKeep" rel="noopener">github.com/b40609/OmniKeep</a>
+  </div>
+</footer>
+
+<script src="assets/js/main.js" defer></script>
+</body>
+</html>

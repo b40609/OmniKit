@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="OmniKeep">
+  <rect width="64" height="64" rx="15" fill="#151A26"/>
+  <path d="M21 13h22a2 2 0 0 1 2 2v36.5a1 1 0 0 1-1.6.8L32 43.6l-11.4 8.7a1 1 0 0 1-1.6-.8V15a2 2 0 0 1 2-2Z" fill="#fff"/>
+  <rect x="24" y="25" width="16" height="5" rx="1.2" fill="#F2E15A"/>
+</svg>

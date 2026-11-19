@@ -1,0 +1,47 @@
+{
+ "title": "WP1 OmniKeep 產品介紹頁（第二版，深色 iOS 官網風格）",
+ "versions": {
+  "taste-skill": {
+   "dir": "C:\\Users\\user\\Desktop\\OmniKit\\data\\evals\\2026-11-19-web-pages-WP1\\sites\\taste-skill",
+   "cmd": [
+    "python",
+    "-m",
+    "http.server",
+    "{port}",
+    "--bind",
+    "127.0.0.1"
+   ]
+  },
+  "huashu-design": {
+   "dir": "C:\\Users\\user\\Desktop\\OmniKit\\data\\evals\\2026-11-19-web-pages-WP1\\sites\\huashu-design",
+   "cmd": [
+    "python",
+    "-m",
+    "http.server",
+    "{port}",
+    "--bind",
+    "127.0.0.1"
+   ]
+  },
+  "none": {
+   "dir": "C:\\Users\\user\\Desktop\\OmniKit\\data\\evals\\2026-11-19-web-pages-WP1\\sites\\none",
+   "cmd": [
+    "python",
+    "-m",
+    "http.server",
+    "{port}",
+    "--bind",
+    "127.0.0.1"
+   ]
+  }
+ },
+ "path": "/",
+ "phases": [
+  "gray",
+  "color"
+ ],
+ "sizes": {
+  "desktop": "1920,1080",
+  "mobile": "390,844"
+ }
+}
