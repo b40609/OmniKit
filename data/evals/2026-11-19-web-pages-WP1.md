@@ -66,4 +66,18 @@ Ryan 2026-11-19 定案（NOW.md 決定 3）：第 2 層先只跑 Huashu Design�
 
 ## 結果
 
-（Ryan 盲選後填）
+Ryan 2026-11-19 盲選，解封時 SHA-256 比對相符（`15dd7f74…`）：A = huashu-design、B = 不裝 skill、C = taste-skill。
+
+- **灰階（版面與操作）：平手。** 第一屏選 C（taste-skill），往下捲各有優點、分不出勝負；設計與排版較喜歡 B（不裝 skill）。
+- **彩色（配色）：平手。** B 配色很醜；A（Huashu）上半部很漂亮，但下半部有點簡陋。
+- Gemini 評審（決策規則第 3 點）這次沒跑：Antigravity Ryan 的 Gemini 額度當晚用完，而 Ryan 的盲選已經給出平手，評審只是參考，不會改判定。
+
+## 判定
+
+照決策規則第 4 點：灰階 Huashu 與 taste-skill 沒有分出高下，屬「平手：維持 taste-skill 試用」。
+
+- **taste-skill**：照原本的試用期繼續（到 2026-11-28）。它贏在第一屏。
+- **Huashu Design**：維持 `pending`，不改 `rejected`。上半部配色被點名最漂亮，差在下半部簡陋，差距不大；這輪對 Huashu 本來就不利（它的流程是讓使用者從六個方向挑，這次不准問）。
+- **OpenDesign**：照決定 3，Huashu 沒勝出，不另外評。
+- **不裝 skill 的版面被偏好**（設計與排版較喜歡 B），但配色最差。這表示兩個 skill 的優勢主要在第一屏與配色，不在整頁的資訊架構；試用到期（11-28）決定 taste-skill 轉不轉預設時要把這點算進去。
+- 弱點：每組只跑 1 次；Ryan 盲選前看過 taste-skill 第一版；三組共用同一批截圖，差異只剩版面、文案與配色。

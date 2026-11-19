@@ -11,5 +11,5 @@ works_with:
 - codex
 sources:
 - Ultra Lab 開源工具精選
-notes: ★29,792，MIT，v3.3.0（2026-11-10），2026-11-18 sweep.py verify 與第 0 層（沒加 --scan）。裝進 agent 的設計 skill：一句話產生網頁、App 原型、可編輯的 PPTX、動畫與資訊圖，先給六個候選方向挑三個（repo 說明，簡體中文）。跟 taste-skill（web-pages）、Open Design 同一類。11-17 的 T3 對話把它歸在 Ultra Lab 清單裡「設計、行銷，不用看」，這次重評改記待評估：它是 skill 形式、跨 agent，直接對上 WP1 與 F2。沒實測，裝之前要先跑 layer0 --scan。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+notes: ★29,792，MIT，v3.3.0（2026-11-10），2026-11-18 sweep.py verify 與第 0 層（沒加 --scan）。裝進 agent 的設計 skill：一句話產生網頁、App 原型、可編輯的 PPTX、動畫與資訊圖，先給六個候選方向挑三個（repo 說明，簡體中文）。跟 taste-skill（web-pages）、Open Design 同一類。11-17 的 T3 對話把它歸在 Ultra Lab 清單裡「設計、行銷，不用看」，這次重評改記待評估：它是 skill 形式、跨 agent，直接對上 WP1 與 F2。沒實測，裝之前要先跑 layer0 --scan。評估紀錄：data/evals/2026-11-18-tool-reeval.md。2026-11-19 第 0 層 --scan：CRITICAL 都是用參數陣列呼叫 ffmpeg、ffprobe、node 的影片與配音腳本，讀過程式碼判誤判。2026-11-19 第 2 層（WP1，OmniKeep 產品頁，Ryan 盲選）：跟 taste-skill、不裝 skill 三組灰階與彩色都平手；Huashu 上半部配色被評最漂亮、下半部簡陋。維持 pending，見 data/evals/2026-11-19-web-pages-WP1.md。
 added: '2026-11-18'
