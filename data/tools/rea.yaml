@@ -23,5 +23,5 @@ sources:
 - 訪談
 - 桌機盤點
 - Codex 使用紀錄
-notes: Codex 近 60 天 MCP 呼叫 4 次。plugin 用 npm 套件 rea-agents 6.8.0，作者自己的 marketplace 也是這樣發布；套件附 SLSA provenance、沒有安裝階段腳本，內附 skill 掃描 SAFE。2026-11-04 在隔離環境從 GitHub 上的 OmniKit marketplace 實測安裝成功（Claude Code 與 Codex）。 2026-11-18 重評：★467,233、MIT，npm 最新 rea-agents 6.9.0（2026-11-12），名冊仍固定 6.8.0；layer0 --scan 有 1 個 HIGH（ACTIVE_REMOTE_ACQUIRE_EXECUTE），出在維護者發版用的 .agents/skills/rea-changelog-update/SKILL.md 第 120 行（重抓 PR 內文再跑檢查），6.9.0 的 npm 套件不含這個 skill（只帶 skills/reverse-engineer-anything），判定誤判。同名的 Meta REA 是內部 ML 實驗 agent、ThemeHackers/REAA 是 ★1 的不同專案，都不是這個。維持預設，見 data/evals/2026-11-18-tool-reeval.md。
+notes: Codex 近 60 天 MCP 呼叫 4 次。plugin 用 npm 套件 rea-agents 6.8.0，作者自己的 marketplace 也是這樣發布；套件附 SLSA provenance、沒有安裝階段腳本，內附 skill 掃描 SAFE。2026-11-04 在隔離環境從 GitHub 上的 OmniKit marketplace 實測安裝成功（Claude Code 與 Codex）。 2026-11-18 重評：★467,233、MIT，npm 最新 rea-agents 6.9.0（2026-11-12），名冊仍固定 6.8.0；layer0 --scan 有 1 個 HIGH（ACTIVE_REMOTE_ACQUIRE_EXECUTE），出在維護者發版用的 .agents/skills/rea-changelog-update/SKILL.md 第 120 行（重抓 PR 內文再跑檢查），6.9.0 的 npm 套件不含這個 skill（只帶 skills/reverse-engineer-anything），判定誤判。同名的 Meta REA 是內部 ML 實驗 agent、ThemeHackers/REAA 是 ★1 的不同專案，都不是這個。維持預設，見 data/evals/2026-11-18-tool-reeval.md。2026-11-19 Ryan 定案：維持 6.8.0，不升 6.9.0；升級等於改 OmniKit marketplace 發給大家的版本，現在沒有非升不可的理由，等 X1（逆向）真的用到、或 6.9.x 穩定後再看 changelog。
 added: '2026-11-04'
