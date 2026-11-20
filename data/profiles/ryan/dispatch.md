@@ -30,4 +30,10 @@ instances:
 # 2026-11-19 定案：派出去的 Claude Opus 子任務（claude-opus、antigravity-opus，不論哪個管道）effort 預設 medium，只有 ryan 明確指定才用 high 以上（細則在 data/profiles/ryan/AGENTS.md）；主線本身維持使用者指定的設定。Gemini 仍一律 high 以上。
 # 2026-11-19 更正（Codex）：ryan 已取消 Codex 訂閱，沒有官方 Codex 額度，以後不要假設有官方 Codex 或等官方額度恢復；需要跑 Codex 類審查工具時，改走本機 codex-chatgpt-web 橋接（127.0.0.1:17841）或改派其他模型唯讀審查。
 # 2026-11-19 定案（15 分鐘逾時）：T3 server 把 Antigravity 的 promptInactivityTimeout 寫死成 "15 minutes"（Claude 與 Codex 無此限制且無法改設定）。長時間跑的主線優先用 Claude 實例；Antigravity 主線出現逾時橫幅時，先檢查工作是否已完成，未完成再送「繼續」。
+# 2026-11-20 暫時限制（agy 多帳號）：T3 0.1.11 nightly 搭 agy 1.5.13 時，Google 登入存在 Windows 認證管理員，全機只有一個項目（gemini:antigravity），三個 Antigravity 實例都會變成最後登入的帳號（上游 https://github.com/pingdotgg/t3code/issues/39507）。ryan 決定只留 antigravity_kai，antigravity、antigravity_ava 停用：
+#   - Antigravity 目前只能同時用一個帳號（kai）。
+#   - gemini-pro 類別（Hydrogen、Neon）暫時沒有可用實例：改用 antigravity_kai 的 Gemini 3.8 Flash（thinking high），或改派 Claude。antigravity-opus 同樣沒有實例。
+#   - 等 issue 39507 修好再恢復三帳號，恢復前不要派給 antigravity、antigravity_ava。
 ```
+
+# 2026-11-19 定案（Gemini 3.8 Flash 分派限制）：只要目前對話是由 Gemini 3.8 Flash（如 antigravity_ava、antigravity_kai）所運行，所分配/派發出去的子對話或子任務，一律只能派給 kai 或 ava 的 Gemini 3.8 Flash（providerInstanceId: antigravity_kai 或 antigravity_ava），思考程度固定 high。嚴禁從 Gemini 3.8 Flash 主線跨派給 Claude 或其他模型。
