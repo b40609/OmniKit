@@ -18,8 +18,8 @@
 - 免問核准與 hook：記錄裡的 Claude 權限規則還在 ~/.claude/settings.json；提醒 hook（Stop）與設定目錄檢查
   （SessionStart）有註冊；Codex 的提醒 hook 有註冊。
 - 設定目錄：這台找得到的其他設定目錄（homes.py：多帳號、T3 Code 的實例、CLAUDE_CONFIG_DIR、CODEX_HOME…）
-  都接上了；上面各項也逐一檢查那些目錄。T3 Code 的 Antigravity 實例看 Binary path 是不是 OmniKit 的轉接程式
-  （t3_acp.py），不是的就讀不到 OmniKit 規則，列成失敗。
+  都接上了；上面各項也逐一檢查那些目錄。T3 Code 的 Antigravity 實例：T3 4979 起原生讀規則，
+  Binary path 沒指著停用的轉接程式就通過；更舊的 T3 看 Binary path 是不是轉接程式（t3_acp.py），不是的列成失敗。
 agent 自己的清單：
 - MCP：claude mcp list（會順便測連線）、codex mcp list --json、agy mcp list。
 - skills：三個 agent 都沒有列出 skill 的指令，記「未知」；檔案在不在由寫入檢查確認。
@@ -186,7 +186,7 @@ def check_homes(rec, found, acp=None):
             status, detail = acp.get(f.instance, (t3_acp.MISSING, "Binary path 還沒設成轉接程式：跑 uv run engine/scripts/agents.py sync"))
             if status == t3_acp.CUSTOM:
                 detail += "；要讓它讀得到，在 T3 把這個實例的 Binary path 清空，再跑 agents.py sync"
-            level = OK if status == t3_acp.OK else UNKNOWN if status == t3_acp.UNSUPPORTED else FAIL
+            level = OK if status in (t3_acp.OK, t3_acp.NATIVE) else UNKNOWN if status == t3_acp.UNSUPPORTED else FAIL
             out.append(row("設定目錄", profiles.NAMES[f.agent], f.source, level, detail))
         elif not f.writable or f.agent not in rec["agents"]:
             continue
@@ -458,6 +458,8 @@ def selftest():
         acp = {"agy0": (t3_acp.OK, "Binary path 是 OmniKit 的轉接程式"), "agy1": (t3_acp.CUSTOM, "你自己設的"),
                "agy2": (t3_acp.BROKEN, "檔不全"), "agy4": (t3_acp.UNSUPPORTED, "只支援 Windows")}
         rows = check_homes({"agents": ["antigravity"], "skills": {}}, agy, acp)
+        check("T3 4979 起原生讀規則的實例通過",
+              check_homes({"agents": ["antigravity"], "skills": {}}, agy[:1], {"agy0": (t3_acp.NATIVE, "原生")})[0]["status"] == OK)
         check("T3 的 Antigravity 實例：Binary path 是轉接程式才通過；自己設的、檔不全、還沒設的失敗並說怎麼修；"
               "不是 Windows 的列「不確定」不叫你 sync",
               [r["status"] for r in rows] == [OK, FAIL, FAIL, FAIL, UNKNOWN] and "清空" in rows[1]["detail"]

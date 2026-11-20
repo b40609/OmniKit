@@ -29,6 +29,11 @@ agents.py connect 與 sync 呼叫這裡（只在 Windows；T3 Code 在其他系�
 轉存到那個 app 的私人位置（AppData\\Local\\Packages\\<app>\\LocalCache），T3 看不到，會說自訂執行檔不存在
 （2026-11-18 實際發生）。家目錄底下的 .omnikit 不在 AppData，誰寫的大家都看得到。
 
+T3 0.1.11-nightly.20261120.4979 起（上游 PR 39531）Antigravity 原生讀全域的 AGENTS.md 與 GEMINI.md，
+轉接程式停用：T3 是這個版本以上時，connect 與 sync 不再寫 binaryPath，改做 disconnect 那一步
+（拿掉 OmniKit 寫的 binaryPath、刪掉轉接程式的檔），state 回報 native。T3 版本用 `t3 --version` 讀，
+讀不到就照舊接轉接程式。
+
 之後在 T3 新增的實例，下一次 sync 就接上（home_watch.py 在開新的 Claude Code 對話時發現就在背景跑 sync）。
 
 用法：uv run engine/scripts/t3_acp.py            列出每個實例接上了沒有
@@ -36,6 +41,9 @@ agents.py connect 與 sync 呼叫這裡（只在 Windows；T3 Code 在其他系�
 """
 import json
 import os
+import re
+import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -49,7 +57,37 @@ SHIM, LAUNCHER, PLACEHOLDER = "acp_shim.py", "omnikit-acp.cmd", "localharness_ex
 LOGS = ("shim.log", "shim.log.old")
 SOURCE = Path(__file__).resolve().with_name(SHIM)
 DRIVER = "antigravity"
-OK, MISSING, CUSTOM, BROKEN, UNSUPPORTED = "ok", "missing", "custom", "broken", "unsupported"
+OK, MISSING, CUSTOM, BROKEN, UNSUPPORTED, NATIVE = "ok", "missing", "custom", "broken", "unsupported", "native"
+NATIVE_SINCE = (0, 1, 11, 20261120, 4979)  # T3 從這版起原生讀 AGENTS.md 與 GEMINI.md（PR 39531），轉接程式停用
+
+
+def parse_version(text):
+    """`t3 --version` 的輸出 → 可比大小的 tuple。nightly 是 (a, b, c, 日期, 編號)；正式版沒有 nightly 尾巴，
+    當成排在同版號所有 nightly 之後。看不懂回 None。"""
+    m = re.search(r"(\d+)\.(\d+)\.(\d+)(?:-nightly\.(\d+)\.(\d+))?", text or "")
+    if not m:
+        return None
+    a, b, c, d, n = m.groups()
+    return (int(a), int(b), int(c), int(d) if d else 99999999, int(n) if n else 0)
+
+
+def t3_version():
+    """本機 T3 的版本（parse_version 的結果）；找不到 t3 或跑不起來回 None。"""
+    exe = shutil.which("t3") or shutil.which("t3.cmd")
+    if not exe:
+        return None
+    try:
+        out = subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=20,
+                             stdin=subprocess.DEVNULL, encoding="utf-8", errors="replace")
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return parse_version(out.stdout + out.stderr)
+
+
+def native(version=None):
+    """T3 是不是已經原生讀規則（不需要轉接程式）。version 不給就問 t3。"""
+    v = t3_version() if version is None else version
+    return v is not None and v >= NATIVE_SINCE
 
 
 def acp_dir(home):
@@ -169,9 +207,11 @@ def place(folder, uv):
     return changed
 
 
-def state(home, folder, platform=sys.platform):
+def state(home, folder, platform=sys.platform, is_native=None):
     """每個 Antigravity 實例：{實例 id: (狀態, 說明)}。狀態：ok、missing（沒設）、custom（使用者自己設的）、
-    broken（設了轉接程式但檔案不全）、unsupported（不是 Windows）。"""
+    broken（設了轉接程式但檔案不全）、unsupported（不是 Windows）、native（T3 原生讀規則，不用轉接程式）。"""
+    if is_native is None:
+        is_native = native()
     launcher = folder / LAUNCHER
     files_ok = all((folder / n).is_file() for n in (SHIM, LAUNCHER, PLACEHOLDER))
     out = {}
@@ -179,7 +219,10 @@ def state(home, folder, platform=sys.platform):
         if not isinstance(inst, dict) or inst.get("driver") != DRIVER:
             continue
         value = binary_of(inst)
-        if platform != "win32":
+        if is_native:
+            leftover = isinstance(value, str) and value.strip() and same_path(value, launcher)
+            out[iid] = (BROKEN, "T3 已原生讀規則，但 Binary path 還指著停用的轉接程式：跑 uv run engine/scripts/agents.py sync")                 if leftover else (NATIVE, "T3 原生讀 AGENTS.md 與 GEMINI.md（0.1.11-nightly.20261120.4979 起），不用轉接程式")
+        elif platform != "win32":
             out[iid] = (UNSUPPORTED, "轉接程式目前只支援 Windows，這個實例讀不到 OmniKit 規則")
         elif isinstance(value, str) and value.strip() and same_path(value, launcher):
             out[iid] = (OK, "Binary path 是 OmniKit 的轉接程式") if files_ok else \
@@ -217,13 +260,17 @@ def point(home, launcher, ids):
     return pointed, custom
 
 
-def apply(home, folder, uv, platform=sys.platform):
+def apply(home, folder, uv, platform=sys.platform, is_native=None):
     """接上 T3 的每個 Antigravity 實例。回傳（訊息, 處理過的實例 key）；使用者自己設了 Binary path 的也算處理過
     （記在 agents.json 的 homes，home_watch 不會一直重試），doctor 會列出來。"""
     ids = instances(home)
     if not ids:
         return [], []
     keys = [instance_key(home, iid) for iid in ids]
+    if is_native is None:
+        is_native = native()
+    if is_native:  # 轉接程式停用：OmniKit 寫過的 binaryPath 拿掉、檔刪掉
+        return remove(home, folder), keys
     if platform != "win32":
         return ["T3 Code 的 Antigravity：轉接程式目前只支援 Windows，這台的實例讀不到 OmniKit 規則"], keys
     lines = []
@@ -313,6 +360,13 @@ def selftest():
         if not ok:
             fails.append(name)
 
+    global t3_version
+    real_version, t3_version = t3_version, lambda: None  # 下面舊路徑的測試當成舊版 T3
+    check("版本：nightly 4979 以上原生、以下不是、正式版 0.1.11 算原生",
+          native(parse_version("t3 v0.1.11-nightly.20261120.4979")) and native(parse_version("0.1.12"))
+          and native(parse_version("0.1.11")) and not native(parse_version("t3 v0.1.11-nightly.20261120.4978"))
+          and not native(parse_version("0.1.11-nightly.20261119.9999")) and parse_version("hello") is None
+          and not native(None))
     with tempfile.TemporaryDirectory() as t:
         home, folder = Path(t) / "home", Path(t) / "state" / "acp"
         check("沒有 T3：什麼都不做", apply(home, folder, "uv") == ([], []) and not folder.exists())
@@ -450,6 +504,25 @@ def selftest():
         check("T3 跑過但還沒存過設定：新建 settings.json，只有預設實例這一筆",
               json.loads(settings2.read_text(encoding="utf-8")) == {"providerInstances": {"antigravity": {
                   "driver": "antigravity", "config": {"binaryPath": launcher2}}}})
+    with tempfile.TemporaryDirectory() as t:
+        home3, folder3 = Path(t) / "home", Path(t) / "acp"
+        s3 = settings_file(home3)
+        s3.parent.mkdir(parents=True)
+        apply(home3, folder3, "uv", platform="win32", is_native=False)  # 先沒有 settings.json：不建
+        s3.write_text(json.dumps({"providerInstances": {"antigravity_ryan": {"driver": "antigravity"},
+                                                         "antigravity_kai": {"driver": "antigravity"}}}), encoding="utf-8")
+        apply(home3, folder3, "uv", platform="win32", is_native=False)
+        check("舊版 T3：照舊寫 binaryPath", state(home3, folder3, "win32", is_native=False)["antigravity_kai"][0] == OK)
+        check("新版 T3、binaryPath 還在：state 回 broken", state(home3, folder3, "win32", is_native=True)["antigravity_kai"][0] == BROKEN)
+        lines, keys = apply(home3, folder3, "uv", platform="win32", is_native=True)
+        got = json.loads(s3.read_text(encoding="utf-8"))["providerInstances"]
+        check("新版 T3：sync 拿掉 binaryPath、刪掉轉接程式、實例仍記成處理過",
+              all(v == {"driver": "antigravity"} for v in got.values())
+              and not folder3.exists() and len(keys) == len(got))
+        check("新版 T3：state 回 native", {v[0] for v in state(home3, folder3, "win32", is_native=True).values()} == {NATIVE})
+        apply(home3, folder3, "uv", platform="win32", is_native=True)
+        check("新版 T3：再 sync 一次不會接回去", "binaryPath" not in s3.read_text(encoding="utf-8") and not folder3.exists())
+    t3_version = real_version
     print("t3_acp selftest", "FAIL" if fails else "OK")
     return 1 if fails else 0
 

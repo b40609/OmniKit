@@ -2,7 +2,10 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""T3 Code 的 Antigravity 轉接程式：讓 T3 裡的 Antigravity 也讀得到使用者的全域規則（~/.gemini/GEMINI.md，含 OmniKit 規則）。
+"""【停用，2026-11-20】T3 0.1.11-nightly.20261120.4979 起（PR 39531）Antigravity 原生讀全域 AGENTS.md 與 GEMINI.md，
+agents.py sync 在這版以上會拿掉 Binary path、刪掉 ~/.omnikit/acp；這支只留給更舊的 T3。實測見 t3_acp.py。
+
+T3 Code 的 Antigravity 轉接程式：讓 T3 裡的 Antigravity 也讀得到使用者的全域規則（~/.gemini/GEMINI.md，含 OmniKit 規則）。
 
 為什麼要轉接：T3 Code 給每個 Antigravity 實例一個自己的 GEMINI_HOME（~/.t3/userdata/providers/antigravity/<雜湊>），
 用 ACP 模式跑 T3 自己裝的 agy_acp_server。這個 server 不從任何檔案讀全域規則（GEMINI.md、hooks.json 的

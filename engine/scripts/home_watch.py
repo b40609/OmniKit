@@ -52,7 +52,7 @@ def pending(state, found):
     if not isinstance(known, list):  # 舊版記錄沒有 homes：其他 Claude 設定目錄當時有放 skills
         known = [k for k in rec.get("skills") or {} if "@" in k]
     known = {os.path.normcase(k) for k in known}
-    # T3 的 Antigravity 實例不寫目錄裡的檔，但要接上轉接程式（t3_acp.py），也算
+    # T3 的 Antigravity 實例不寫目錄裡的檔，但 sync 要處理轉接程式（舊版 T3 接上、4979 起拿掉，t3_acp.py），也算
     return [f for f in found if (f.writable or f.instance) and f.agent in agents and os.path.normcase(f.key) not in known]
 
 

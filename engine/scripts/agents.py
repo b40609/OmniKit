@@ -34,7 +34,8 @@ git hook 與 agent 在背景同步時常失敗。支援的 agent 固定是這三
 - Claude Code 的其他設定目錄也同步使用者自己裝在 ~/.claude 的 skill（連結）與啟用中的 plugin（claude plugin install，
   CLAUDE_CONFIG_DIR 指過去），見下面「~/.claude 使用者自己的 skill 與 plugin」那段
 - Codex（CODEX_HOME 等）：規則區塊（<目錄>/AGENTS.md）、MCP（<目錄>/config.toml）；skills 在 ~/.agents/skills，共用
-- T3 Code 的 Antigravity 實例：ACP 模式不讀規則檔；t3_acp.py 把實例的 Binary path 指到 OmniKit 的轉接程式
+- T3 Code 的 Antigravity 實例：T3 0.1.11-nightly.20261120.4979 起原生讀全域 AGENTS.md 與 GEMINI.md，sync 只拿掉
+  舊版留下的 Binary path、刪掉轉接程式（停用）；更舊的 T3 才由 t3_acp.py 把 Binary path 指到轉接程式
   （acp_shim.py，放在 ~/.omnikit/acp），開新對話時帶入 ~/.gemini/GEMINI.md
 記錄的 key 是 <agent>@<目錄>。install 時接上當時找得到的；之後新增的，sync 會接上
 （home_watch.py 在開新對話時發現新的目錄就在背景跑 sync）。
@@ -1261,7 +1262,7 @@ def connect(env, profile=None, agents=None, ask=None):
 
 
 def connect_t3(env, agents):
-    """T3 Code 的 Antigravity 實例：Binary path 指到 OmniKit 的轉接程式（t3_acp.py）。回傳（訊息, 處理過的實例 key）。
+    """T3 Code 的 Antigravity 實例：舊版 T3 把 Binary path 指到 OmniKit 的轉接程式，4979 起改成拿掉（t3_acp.py）。回傳（訊息, 處理過的實例 key）。
     出錯只印一行，規則、skills 與 MCP 照常；下次 sync 再試。"""
     if "antigravity" not in agents:
         return [], []
@@ -1481,6 +1482,7 @@ def after_migrate(env, moved):
 
 def selftest():
     failures = []
+    t3_acp.t3_version = lambda: None  # 轉接程式的測試當成舊版 T3；新版的路徑在 t3_acp.py --selftest
 
     def check(label, ok):
         print(f"{'通過' if ok else '失敗'}：{label}")
