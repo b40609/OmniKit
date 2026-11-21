@@ -16,7 +16,7 @@
 - skills：記錄裡的每個 skill 都在；連結指向 repo，複製品的雜湊跟 repo 一樣。
 - MCP：帳本裡的每個 server 都在，OmniKit 管的欄位雜湊跟寫入時一樣（被改過就用 agents.py resolve 決定）。
 - 免問核准與 hook：記錄裡的 Claude 權限規則還在 ~/.claude/settings.json；提醒 hook（Stop）與設定目錄檢查
-  （SessionStart）有註冊；Codex 的提醒 hook 有註冊。
+  （SessionStart）、T3 MCP 斷線防護（SessionStart）有註冊；Codex 的提醒 hook 有註冊。
 - 設定目錄：這台找得到的其他設定目錄（homes.py：多帳號、T3 Code 的實例、CLAUDE_CONFIG_DIR、CODEX_HOME…）
   都接上了；上面各項也逐一檢查那些目錄。T3 Code 的 Antigravity 實例：T3 4979 起原生讀規則，
   Binary path 沒指著停用的轉接程式就通過；更舊的 T3 看 Binary path 是不是轉接程式（t3_acp.py），不是的列成失敗。
@@ -49,7 +49,7 @@ import t3_acp  # noqa: E402
 
 OK, FAIL, UNKNOWN = "ok", "fail", "unknown"
 MARK = {OK: "✓", FAIL: "✗", UNKNOWN: "？"}
-CODEX_SCRIPTS = (claude_allow.NUDGE, claude_allow.CLAIM)  # OmniKit 在 Codex 註冊的 Stop hook
+CODEX_SCRIPTS = (claude_allow.NUDGE, claude_allow.CLAIM, claude_allow.T3W)  # OmniKit 在 Codex 註冊的 hook
 
 
 def row(area, agent, item, status, detail=""):

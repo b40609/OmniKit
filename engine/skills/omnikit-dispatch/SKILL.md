@@ -64,6 +64,7 @@ agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一
   - 核准一次有效 30 天；每個 `CLAUDE_CONFIG_DIR`、`CODEX_HOME` 都要各做一次。
   - Codex：`codex mcp add t3 --url http://127.0.0.1:3773/mcp` 再 `codex mcp login t3`（2026-11-19 實測 codex-cli 0.168.0：`add` 會寫進 `~/.codex/config.toml` 的 `[mcp_servers.t3]`，並偵測到 OAuth、直接印出授權網址等瀏覽器回呼；沒有核准時 `codex mcp list` 顯示 Not logged in。登入核准後能不能叫用 T3 工具【待驗證】）。
 - 在外部 agent 用 `t3_thread_launch`，不要用 `delegate_task`（會回錯）。
+- 斷線（2026-11-21 查證）：看到 `t3 (ECONNREFUSED)` 或工具清單沒有 `mcp__t3__*`，代表這段對話開的時候 T3 在重啟、更新或沒開，不是沒裝。agent 不能自己重撥：請使用者在本對話打 `/mcp` 選 t3 按 Reconnect，同時改走 `t3_cli`，不要回答派不了。SessionStart hook `t3_watch.py` 會在連不上時叫起 T3 並留提醒。
 - 思考程度：`modelSelection.options` 是陣列，例如 `[{id: "thinking_level", value: "high"}]`。claudeAgent 系列的 id 是 `effort`（low、medium、high、xhigh、max、ultrathink），antigravity 是 `thinking_level`（low、medium、high；Gemini 只能用 high，政策禁用 low、medium）；值以 `orchestrator_capabilities` 查到的為準。【待驗證】antigravity_ava、antigravity_kai 的 capabilities 模型清單是空的，帶 `thinking_level` 開 Flash 能跑完，但在 Gemini 端有沒有生效還不知道。
 - 結案：`t3_thread_organize` 帶 `action: "settle"` 與 `threadId`，再用 `t3_thread_read` 回讀確認 `settled: true`。
 - 記紀錄時 `--channel t3_thread_launch --instance <實例>`。

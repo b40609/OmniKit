@@ -5,6 +5,7 @@
 """把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的 permissions.allow，並註冊 OmniKit 的 hook：
 - hooks.Stop：開新對話提醒（session_nudge.py）、說做不到查證（claim_check.py：回覆說做不到卻沒附查證時擋回去一次）
 - hooks.SessionStart：設定目錄檢查（home_watch.py）：這台多了新的 agent 設定目錄（新帳號、新的 T3 實例）就在背景接上
+- hooks.SessionStart：T3 MCP 斷線防護（t3_watch.py）：T3 的 MCP 埠連不上就試著叫起 T3，並提醒 agent 請使用者 /mcp 重連、先改用 t3 CLI
 其他 Claude 設定目錄（CLAUDE_CONFIG_DIR、T3 Code 每個 Claude 實例的 homePath 等，見 homes.py）的 settings.json
 也一樣寫，紀錄放在安裝紀錄的 claude_extra（以設定檔路徑分開記）。
 
@@ -38,9 +39,11 @@ RECORD = statedir.STATE / "install-record.json"
 NUDGE = "session_nudge.py"
 WATCH = "home_watch.py"
 CLAIM = "claim_check.py"
+T3W = "t3_watch.py"
 # OmniKit 註冊的 Claude Code hook：(事件, 腳本, 逾時秒數)
-HOOKS = (("Stop", NUDGE, 10), ("SessionStart", WATCH, 15), ("Stop", CLAIM, 10))
-HOOK_NAMES = {NUDGE: "開新對話提醒", WATCH: "設定目錄檢查", CLAIM: "說做不到查證"}
+# t3_watch.py 自己把時間壓在 25 秒內（最多等 T3 開埠 20 秒）
+HOOKS = (("Stop", NUDGE, 10), ("SessionStart", WATCH, 15), ("Stop", CLAIM, 10), ("SessionStart", T3W, 30))
+HOOK_NAMES = {NUDGE: "開新對話提醒", WATCH: "設定目錄檢查", CLAIM: "說做不到查證", T3W: "T3 MCP 斷線防護"}
 SCRIPTS = [script for _, script, _ in HOOKS]
 GRANT = "uv run engine/scripts/agents.py approvals --grant <名稱>"
 LATEST = "Claude 的權限規則與 OmniKit 的 hook 已是最新。"
@@ -229,7 +232,7 @@ def apply(settings_path: Path, record_path: Path, state: Path, repo: Path = ROOT
         if added:
             changed.append(f"已加入 Claude 的權限規則{where}：{', '.join(added)}")
         if hooked:
-            changed.append(f"已註冊 OmniKit 的 hook（Stop 開新對話提醒與說做不到查證、SessionStart 設定目錄檢查）{where}")
+            changed.append(f"已註冊 OmniKit 的 hook（Stop 開新對話提醒與說做不到查證、SessionStart 設定目錄檢查與 T3 MCP 斷線防護）{where}")
     if "claude_extra" in record:
         record["claude_extra"] = {p: e for p, e in record["claude_extra"].items() if e}
         if not record["claude_extra"]:
@@ -292,7 +295,7 @@ def selftest() -> int:
         stop = [h for g in load(old)["hooks"]["Stop"] for h in g["hooks"]]
         check("舊版紀錄只有 NUDGE：移除時只拿掉提醒 hook",
               not any(is_nudge(h) for h in stop) and any(is_ours(h, CLAIM) for h in stop)
-              and len(load(old)["hooks"]["SessionStart"]) == 2)
+              and len(load(old)["hooks"]["SessionStart"]) == 3)  # 使用者的、設定目錄檢查、T3 MCP 斷線防護
 
         edition.record(state, "chrome_devtools", True)
         edition.record(state, "other", False)

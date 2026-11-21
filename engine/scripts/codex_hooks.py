@@ -2,8 +2,9 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""在 Codex 的 ~/.codex/config.toml 註冊 OmniKit 的 Stop hook：開新對話提醒（session_nudge.py）與
-說做不到查證（claim_check.py）。每支各寫成一段 [[hooks.Stop]]，可以分開加、分開拿掉。
+"""在 Codex 的 ~/.codex/config.toml 註冊 OmniKit 的 hook：Stop 的開新對話提醒（session_nudge.py）與
+說做不到查證（claim_check.py），SessionStart 的 T3 MCP 斷線防護（t3_watch.py）。
+每支各寫成一段 [[hooks.<事件>]]，可以分開加、分開拿掉。
 
 寫進 config.toml 而不是 hooks.json：同一層兩種都有時 Codex 每次啟動都會警告，
 而 config.toml 常已有別的工具寫的 [hooks]。Python 沒有保留格式的 TOML 寫入器（tomlkit 會重排表格），
@@ -26,10 +27,12 @@ import tempfile
 import tomllib
 from pathlib import Path
 
-from claude_allow import CLAIM, HOOK_NAMES, NUDGE, RECORD, hook_command, is_ours, load, save
+from claude_allow import CLAIM, HOOK_NAMES, NUDGE, RECORD, T3W, hook_command, is_ours, load, save
 from fsretry import flaky, retry  # 防毒短暫鎖住檔案時等一下再試（FR-34）
 
-SCRIPTS = (NUDGE, CLAIM)  # OmniKit 在 Codex 註冊的 Stop hook，照這個順序寫
+SCRIPTS = (NUDGE, CLAIM, T3W)  # OmniKit 在 Codex 註冊的 hook，照這個順序寫
+EVENTS = {NUDGE: "Stop", CLAIM: "Stop", T3W: "SessionStart"}
+TIMEOUTS = {NUDGE: 10, CLAIM: 10, T3W: 30}
 MARKS = {script: f"# OmniKit：{HOOK_NAMES[script]}（install.ps1 加入、uninstall.ps1 移除）" for script in SCRIPTS}
 MARK = MARKS[NUDGE]
 
@@ -40,7 +43,11 @@ def command_line(script: str):
 
 COMMAND_LINE = command_line(NUDGE)
 HEADER = re.compile(r"^\s*\[")
-GROUP = re.compile(r"^\s*\[\[\s*hooks\.Stop\s*\]\]\s*$")
+def group_line(event: str):
+    return re.compile(r"^\s*\[\[\s*hooks\." + event + r"\s*\]\]\s*$")
+
+
+GROUP = group_line("Stop")
 PARTS = re.compile(r'"([^"]+)" run --quiet --script "([^"]+)"')
 
 
@@ -55,19 +62,25 @@ def toml_str(s: str) -> str:
     return json.dumps(s, ensure_ascii=False)  # JSON 字串的跳脫寫法也是合法的 TOML basic string
 
 
+def event_groups(doc: dict, event: str) -> list:
+    return doc.get("hooks", {}).get(event, [])
+
+
 def stop_groups(doc: dict) -> list:
-    return doc.get("hooks", {}).get("Stop", [])
+    return event_groups(doc, "Stop")
 
 
 def without(doc: dict, script: str = NUDGE) -> dict:
-    """預期的移除結果：拿掉這支 hook，變空的 group、Stop、hooks 一併拿掉。"""
+    """預期的移除結果：拿掉這支 hook，變空的 group、事件、hooks 一併拿掉。"""
     doc = copy.deepcopy(doc)
-    groups = [{**g, "hooks": [h for h in g.get("hooks", []) if not is_ours(h, script)]} for g in stop_groups(doc)]
+    event = EVENTS[script]
+    groups = [{**g, "hooks": [h for h in g.get("hooks", []) if not is_ours(h, script)]}
+              for g in event_groups(doc, event)]
     groups = [g for g in groups if g["hooks"]]
     if groups:
-        doc["hooks"]["Stop"] = groups
-    elif "Stop" in doc.get("hooks", {}):
-        del doc["hooks"]["Stop"]
+        doc["hooks"][event] = groups
+    elif event in doc.get("hooks", {}):
+        del doc["hooks"][event]
         if not doc["hooks"]:
             del doc["hooks"]
     return doc
@@ -82,26 +95,29 @@ def checked(new: str, expected: dict) -> str:
 def add(text: str, command: str, script: str = NUDGE) -> str | None:
     """回傳改好的內容；已是最新就回傳 None。uv 不見了或 repo 換位置時，只換掉 command 那一行。"""
     doc = tomllib.loads(text)
-    ours = [h for g in stop_groups(doc) for h in g.get("hooks", []) if is_ours(h, script)]
+    event, timeout = EVENTS[script], TIMEOUTS[script]
+    ours = [h for g in event_groups(doc, event) for h in g.get("hooks", []) if is_ours(h, script)]
     if ours and all(h.get("command") == command or still_valid(h.get("command", ""), command) for h in ours):
         return None
     expected = copy.deepcopy(doc)
     if ours:
-        for g in stop_groups(expected):
+        for g in event_groups(expected, event):
             for h in g.get("hooks", []):
                 if is_ours(h, script):
                     h["command"] = command
         return checked(command_line(script).sub(lambda _: f"command = {toml_str(command)}", text), expected)
-    expected.setdefault("hooks", {}).setdefault("Stop", []).append(
-        {"hooks": [{"type": "command", "command": command, "timeout": 10}]})
-    block = f'{MARKS[script]}\n[[hooks.Stop]]\n\n[[hooks.Stop.hooks]]\ntype = "command"\ncommand = {toml_str(command)}\ntimeout = 10\n'
+    expected.setdefault("hooks", {}).setdefault(event, []).append(
+        {"hooks": [{"type": "command", "command": command, "timeout": timeout}]})
+    block = (f'{MARKS[script]}\n[[hooks.{event}]]\n\n[[hooks.{event}.hooks]]\ntype = "command"\n'
+             f'command = {toml_str(command)}\ntimeout = {timeout}\n')
     return checked((text.rstrip("\n") + "\n\n" if text.strip() else "") + block, expected)
 
 
 def remove(text: str, script: str = NUDGE) -> str | None:
-    """拿掉這支 hook 所在的 [[hooks.Stop.hooks]] 表；group 因此變空就連 [[hooks.Stop]] 標頭一起拿掉。"""
+    """拿掉這支 hook 所在的 [[hooks.<事件>.hooks]] 表；group 因此變空就連 [[hooks.<事件>]] 標頭一起拿掉。"""
     doc = tomllib.loads(text)
-    if not any(is_ours(h, script) for g in stop_groups(doc) for h in g.get("hooks", [])):
+    group = group_line(EVENTS[script])
+    if not any(is_ours(h, script) for g in event_groups(doc, EVENTS[script]) for h in g.get("hooks", [])):
         return None
     expected = without(doc, script)
     lines = text.split("\n")
@@ -115,7 +131,7 @@ def remove(text: str, script: str = NUDGE) -> str | None:
         end -= 1  # 後面的空行與下一個表上方的註解留給下一個表
     # 候選：連同最近的 [[hooks.Stop]] 標頭（與上方的 OmniKit 註解）一起拿掉；或只拿掉 hooks 表
     drops = [set(range(start, end)) | {g} | ({g - 1} if g and lines[g - 1] == MARKS[script] else set())
-             for g in range(start - 1, -1, -1) if GROUP.match(lines[g])]
+             for g in range(start - 1, -1, -1) if group.match(lines[g])]
     drops.append(set(range(start, end)))
     for drop in drops:
         for i in sorted(drop):  # 每段拿掉的行，連同前面的空行一起拿掉
@@ -177,6 +193,13 @@ def selftest() -> int:
     assert MARK not in only_claim and MARKS[CLAIM] in only_claim
     assert [h["command"] for g in stop_groups(tomllib.loads(only_claim)) for h in g["hooks"]] == [claim]
     assert remove(base, CLAIM) is None
+    # SessionStart 的 T3 MCP 斷線防護：寫成 [[hooks.SessionStart]]、timeout 30，跟 Stop 的分開加、分開拿掉
+    t3w = cmd.replace(NUDGE, T3W)
+    three = add(both, t3w, T3W)
+    assert "[[hooks.SessionStart]]" in three and add(three, t3w, T3W) is None
+    assert [h["timeout"] for g in event_groups(tomllib.loads(three), "SessionStart") for h in g["hooks"]] == [30]
+    assert len(stop_groups(tomllib.loads(three))) == 2 and remove(three, T3W) == both
+    assert remove(remove(remove(three), CLAIM), T3W) == base
     # 防毒短暫鎖住 config.toml（FR-34）：等一下再試，寫進去的內容與換行照原本的
     with tempfile.TemporaryDirectory() as tmp:
         config = Path(tmp) / "config.toml"
@@ -202,7 +225,7 @@ def main() -> int:
     try:
         return apply(args)
     except (ValueError, tomllib.TOMLDecodeError) as e:
-        print(f"沒有改動 {args.config}：{e}。請手動處理 [[hooks.Stop]] 裡的 {'、'.join(SCRIPTS)}。", file=sys.stderr)
+        print(f"沒有改動 {args.config}：{e}。請手動處理 [[hooks.Stop]]、[[hooks.SessionStart]] 裡的 {'、'.join(SCRIPTS)}。", file=sys.stderr)
         return 1
 
 
@@ -248,7 +271,7 @@ def apply(args: argparse.Namespace) -> int:
     write(args.config, text, newline)
     record["codex_hooks"] = list(dict.fromkeys([*(record.get("codex_hooks") or []), *added]))
     save(args.record, record)
-    print(f"已註冊或更新 Codex 的 Stop hook：{names(added)}。Codex 要信任後才會執行：CLI 輸入 /hooks，桌面版到設定的 Hooks。")
+    print(f"已註冊或更新 Codex 的 hook：{names(added)}。Codex 要信任後才會執行：CLI 輸入 /hooks，桌面版到設定的 Hooks。")
     return 0
 
 

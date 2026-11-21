@@ -25,6 +25,15 @@ uv run scripts/run.py --versions      加印每個指令的版本
 
 新工具、新功能常比模型的訓練資料新，以官方文件為準，不以記憶為準：該工具的官方文件、repo 的 `docs/`、CHANGELOG、release notes，必要時讀原始碼（GitHub 用 `gh api` 或 `gh search code`）。同一件事常有 CLI、MCP、API 好幾種接法；自己的工具清單裡沒有，不代表其他接法也沒有。
 
+## 看到 `t3 (ECONNREFUSED)`：T3 當時在重啟，不是沒裝
+
+`/mcp` 或啟動訊息顯示 `t3 (ECONNREFUSED)`、`failed`，或工具清單少了 `mcp__t3__*`，多半是這段對話開的時候 T3 Code 正在重啟、更新或沒開（t3 MCP 跑在 T3 桌面程式裡，`http://127.0.0.1:3773/mcp`）。user scope 的 MCP server agent 不能自己重撥（`reconnect_session_connector` 會回 not a connector），一斷整段對話都沒有 T3 工具。處理順序：
+
+1. 請使用者在這段對話打 `/mcp`，選 t3 按 Reconnect（這是非他不可的一步，一次講清楚）。
+2. 同時改走 `t3 thread` CLI（`t3_cli` 管道；PowerShell 打 `t3`，Git Bash 打 `t3.cmd`）。CLI 每次都重新連線，T3 起來了就能用。不要回答「派不了」。
+
+OmniKit 的 SessionStart hook（`engine/scripts/t3_watch.py`）會在開對話時檢查埠：連不上就把 T3 叫起來，並在 context 留一段同樣的提醒。
+
 ## 4. 回答
 
 - 有路就直接做。要使用者動手的只有非他不可的步驟（帳號登入核准、付款、需要他拍板的決定，以及安全底線列的項目），而且一次講清楚。

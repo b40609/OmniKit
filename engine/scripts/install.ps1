@@ -387,7 +387,7 @@ function Grant-ClaudePermissions {
 # 失敗時警告就好，不擋後面的步驟
 function Register-CodexHook {
   $r = Invoke-UvRun (Get-Uv) @('run', '--quiet', (Join-Path $Repo 'engine\scripts\codex_hooks.py'))
-  if ($r.Code -ne 0) { Write-Warning "codex_hooks.py 失敗（exit $($r.Code)），Codex 的 Stop hook 沒有註冊" }
+  if ($r.Code -ne 0) { Write-Warning "codex_hooks.py 失敗（exit $($r.Code)），Codex 的 hook 沒有註冊" }
 }
 
 # 只留下 OmniKit 的受管區塊；舊內容先備份

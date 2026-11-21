@@ -179,6 +179,10 @@ channels:
       T3 的 MCP 工具（t3_thread_launch、t3_thread_wait、t3_thread_read、t3_thread_organize）。T3 外的 Claude Code、Codex
       接上 T3 MCP 之後，要指定 T3 的帳號實例與模型、要設思考程度、要自己結案時優先用它，比 t3_cli 完整；
       跨專案的工作也用它，開在那個專案裡。外部 agent 呼叫 delegate_task 會回錯，要用 t3_thread_launch。
+      斷線（2026-11-21 查證，Claude Code 2.1.329、T3 0.1.12-nightly.20261120.4994）：t3 MCP 跑在 T3 桌面程式裡，
+      看到 t3 (ECONNREFUSED) 或工具清單沒有 mcp__t3__*，是這段對話開的時候 T3 在重啟、更新或沒開，不是沒裝。
+      user scope 的 MCP server agent 不能自己重撥，請使用者在本對話打 /mcp 選 t3 按 Reconnect；同時改走 t3_cli
+      （CLI 每次重新連線），不要回答派不了。SessionStart hook engine/scripts/t3_watch.py 連不上時會叫起 T3 並留提醒。
     how: >-
       接法（2026-11-18 在這台用 Claude Code 實測通過）：claude mcp add --scope user --transport http t3 http://127.0.0.1:3773/mcp，
       再 claude mcp login t3。login 要在互動式終端機跑（agent 的 Bash 工具會回 this isn't an interactive terminal，改用終端機分頁）。
