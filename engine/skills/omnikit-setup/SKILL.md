@@ -123,6 +123,10 @@ profile 套用完，再逐項問這三項。每一項都是改使用者的設定
 1. **訂了哪幾家？**（Claude、Codex、Antigravity，可複選）
    - 只有一家：不用做事。分派只用這個 agent 的原生子代理，照載入的分派原則。
    - 兩家以上，而且想從一家派工作給另一家（例如 Claude 派調研給 Antigravity 的 Gemini）：在 profile 資料夾（掃描結果的 `profiles_dir` 下這個 profile）寫一份 `dispatch.md`，格式照 repo 的 `data/profiles/ryan/dispatch.md`：`instances` 底下每個實例寫 `driver`、`account`、`classes`（可用的模型類別見 `data/rules/dispatch-policy.md` 的 `model_classes`）。寫完在 repo 根目錄跑 `uv run engine/scripts/validate.py` 與 `uv run engine/scripts/profiles.py`，再用 `omnikit-dispatch` 的 `run.py show` 給使用者看結果。不知道實例名稱就先不寫，只用原生子代理。
+   - 寫了 `dispatch.md` 的，接著問：「派出去的子任務，你想在 T3 看到過程，還是只要結果？」
+     - 想看過程 → `visibility: visible`：子任務開成 T3 裡的對話，看得到它收到的指示和做到哪，可以中途追問或停下來；T3 沒開時會自動改成只回結果。
+     - 只要結果 → `visibility: headless`：在背景跑、比較省事，做完只回結果，T3 看不到過程。
+     - 沒意見就不寫，用政策的預設（`dispatch-policy.md` 的 `visibility.default`）。寫在 `dispatch.md` 的 yaml 最上面，例如 `visibility: visible`，再跑一次 `run.py show` 確認印出的管道。
 2. **回覆要不要精簡？**（第 3 題選精簡的才問）
    - Claude Code：在 `~/.claude/settings.json` 設 `"outputStyle": "Concise"`（先講結果，不寫開場與回顧；工作一樣仔細）。
    - Codex：在 `~/.codex/config.toml` 設 `model_verbosity = "low"`。

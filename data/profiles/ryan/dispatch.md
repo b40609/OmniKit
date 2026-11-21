@@ -3,6 +3,10 @@
 分派規則（任務類型、級別、模型類別、思考程度、升級）照共用層 `data/rules/dispatch.md`；這份只寫 ryan 有哪些供應商實例，以及每個模型類別用哪個實例。`instances` 的 key 是 T3 的供應商實例 id：在 T3 裡是 `delegate_task` 的 `target.providerInstanceId`，不在 T3 裡（Claude Code、Codex、Antigravity）就是 `t3 thread start --provider` 的值（例如 `t3 thread start . "<任務>" --provider antigravity_kai --model gemini-3.8-flash --json --wait`，在 PowerShell 跑；Git Bash 要打 `t3.cmd`；見政策的 `t3_cli` 管道；這個例子的 Flash 沒帶思考程度，依 2026-11-18 定案 Gemini 一律 high 以上，CLI 要帶程度就寫進代號，例如 `gemini-3.8-flash-high`，但 Flash 帶程度的代號未實測，要確定程度改用 `t3_thread_launch` 加 `thinking_level: high`）；`classes` 裡同一個類別列了好幾個實例時，由上往下用。
 
 ```yaml
+# 2026-11-21 ryan 定案：派出去的子任務要開在 T3 看得到的對話（要能確認 prompt 符不符合預期、看過程），
+# 無頭派送（agy_cli）只在 ryan 同意或 T3 沒在跑時用。這是 ryan 的個人偏好，共用層的說明在 dispatch-policy.md 的 visibility。
+visibility: visible
+
 instances:
   claudeAgent:            {driver: claudeAgent, account: Ryan,  classes: [claude-opus, claude-sonnet]}
   claudeAgent_2:          {driver: claudeAgent, account: retis, classes: [claude-opus, claude-sonnet]}

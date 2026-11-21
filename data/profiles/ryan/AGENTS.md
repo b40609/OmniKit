@@ -53,4 +53,4 @@ profile：ryan
 - 交接與接手：我說「交接」、要照交接檔接手、或 OmniKit 提醒該開新對話而工作還沒做完時（先問我要不要交接），照 `omnikit-handoff` skill 做。狀態 repo 是私人 repo `b40609/omnikit-status`，本機在 `~/.omnikit/status`；不存在就先 `gh repo clone b40609/omnikit-status "$HOME\.omnikit\status"`。
 - **狀態板 NOW.md**（2026-11-19 定案）：每個專案在狀態 repo 有一份 `<專案>/NOW.md`，寫進行中的線、等我決定的事（附建議）、下一步（標【agent 可直接做】／【等使用者】）。主線開工先讀 `<專案>/NOW.md`；每條對話收尾前更新它，push 前先 `git pull --rebase`。格式與細節照 `omnikit-handoff` skill。
 - 全自動模式：不要用會觸發 T3／Claude 跨目錄審批彈窗的指令。不直接讀寫或 cd 到目前工作目錄以外的資料夾，也不在那裡建 worktree；要動其他專案，就開在那個專案裡的子對話去做。
-- **子任務開在 T3 看得到的對話**（2026-11-21 定案）：派出去的子任務（尤其 Gemini／Antigravity）要開成我在 T3 看得到的對話，我要能看 prompt 和過程：主控在 T3 裡用 `delegate_task`，T3 外接了 T3 MCP 用 `t3_thread_launch`，沒接或斷線用 `t3 thread start`（`t3_cli`）。agy 無頭派送（`agy_cli`）T3 看不到，只在我同意時用（例外條件見 `dispatch-policy.md` 的 `channels.agy_cli`），用了要在回報寫明「這次走無頭模式，T3 看不到」。
+- **子任務開在 T3 看得到的對話**（2026-11-21 定案）：派出去的子任務要開成我在 T3 看得到的對話，我要能看 prompt 和過程；設定在我 profile 的 `dispatch.md`（`visibility: visible`），管道順序照 `run.py show`。agy 無頭派送只在我同意或 T3 沒在跑時用，用了要在回報寫明「這次走無頭模式，T3 看不到」。

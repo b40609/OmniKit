@@ -31,7 +31,7 @@ T3 透過 Agent SDK 跑 Claude 時狀態列會不會執行，還沒實測（待�
   uv run engine/scripts/dispatch.py usage [--json]                                   本週 Claude 用量（快照）
   uv run engine/scripts/dispatch.py statusline [--then "<原本的狀態列指令>"]          給 Claude Code 狀態列用
   uv run engine/scripts/dispatch.py agy --class <類別> --thinking <程度> (--brief <文字> | --brief-file <檔>) [--cwd <資料夾>]
-        [--timeout 秒] [--log-file <檔>]                                              例外：用 agy 無頭派（T3 看不到；預設走 T3 對話）
+        [--timeout 秒] [--log-file <檔>]                                              用 agy 無頭派（visibility: headless；T3 看不到）
   uv run engine/scripts/dispatch.py --selftest
 """
 import argparse
@@ -55,6 +55,8 @@ THINKING = ["low", "medium", "high", "xhigh", "max"]
 VERDICTS = ("pass", "fail", "partial", "skipped")
 # 管道名稱要和共用層 channels 的 key 一致（check 會比對）。t3_cli：不在 T3 裡，用本機 t3 thread CLI 開 T3 對話。
 CHANNELS = ("native", "agy_cli", "t3_cli", "delegate_task", "t3_thread_launch")
+# 派給 Antigravity 時看不看得到過程：個人層 dispatch.md 的 visibility，沒寫用共用層 visibility.default（2026-11-21）。
+VISIBILITY = ("visible", "headless")
 AGY_MAX_BRIEF = 30000  # Windows 命令列上限約 32k 字元，任務說明走參數，留一點餘裕
 AGENT_DRIVER = {"claude": "claudeAgent", "codex": "codex", "antigravity": "antigravity"}
 FENCE = re.compile(r"```ya?ml\s*\n(.*?)\n```", re.S)
@@ -124,7 +126,7 @@ def check(pol, mine=None):
     errors = []
     classes = pol.get("model_classes") or {}
     levels = pol.get("levels") or {}
-    for key in ("model_classes", "tasks", "levels", "escalation", "channels", "antigravity_turns", "usage_signal", "trials", "log"):
+    for key in ("model_classes", "tasks", "levels", "escalation", "channels", "visibility", "antigravity_turns", "usage_signal", "trials", "log"):
         if key not in pol:
             errors.append(f"共用層少了 {key}")
     turns = pol.get("antigravity_turns") or {}
@@ -134,12 +136,21 @@ def check(pol, mine=None):
         for k in ("verify", "failed_15min"):
             if not turns.get(k):
                 errors.append(f"antigravity_turns 少了 {k}")
-        # 2026-11-21：派給 Antigravity 的預設管道要開成 T3 看得到的對話，agy_cli（無頭）只當例外
-        order = [(c or {}).get("channel") for c in (turns.get("default_channels") or [])]
-        if not order:
-            errors.append("antigravity_turns 少了 default_channels（派給 Antigravity 的預設管道順序）")
-        elif "agy_cli" in order or any(c not in CHANNELS for c in order):
-            errors.append(f"antigravity_turns.default_channels 只能列 T3 看得到的管道，不能有 agy_cli 或不存在的管道：{order}")
+    vis = pol.get("visibility") or {}
+    modes = vis.get("modes") or {}
+    if "visibility" in pol:
+        if set(modes) != set(VISIBILITY):
+            errors.append(f"visibility.modes 要剛好是 {list(VISIBILITY)}：{sorted(modes)}")
+        if vis.get("default") not in VISIBILITY:
+            errors.append(f"visibility.default 要是 {list(VISIBILITY)} 之一：{vis.get('default')}")
+        for m, spec in modes.items():
+            chs = [(c or {}).get("channel") for c in ((spec or {}).get("channels") or [])]
+            if not chs or any(c not in CHANNELS for c in chs):
+                errors.append(f"visibility.modes.{m}.channels 要列存在的管道：{chs}")
+            if not (spec or {}).get("fallback"):
+                errors.append(f"visibility.modes.{m} 少了 fallback（這個偏好的管道用不了時怎麼退）")
+        if "agy_cli" in [(c or {}).get("channel") for c in ((modes.get("visible") or {}).get("channels") or [])]:
+            errors.append("visibility.modes.visible.channels 不能有 agy_cli（T3 看不到）")
     chans = set(pol.get("channels") or {})
     if "channels" in pol and chans != set(CHANNELS):
         errors.append(f"channels 和 dispatch.py 的 CHANNELS 對不上：政策多了 {sorted(chans - set(CHANNELS))}，"
@@ -196,7 +207,19 @@ def check(pol, mine=None):
                     errors.append(f"個人層 instances.{inst}：模型類別不存在：{cls}")
                 elif spec.get("driver") and classes[cls].get("driver") != spec["driver"]:
                     errors.append(f"個人層 instances.{inst}：{cls} 要用 {classes[cls]['driver']} 的實例，這個是 {spec['driver']}")
+        if "visibility" in mine and mine.get("visibility") not in VISIBILITY:
+            errors.append(f"個人層 visibility 要是 {list(VISIBILITY)} 之一：{mine.get('visibility')}")
     return errors
+
+
+def visibility(pol, mine=None):
+    """這個使用者派給 Antigravity 時的偏好與對應管道：個人層的 visibility，沒寫用共用層的預設。"""
+    vis = pol.get("visibility") or {}
+    mode = (mine or {}).get("visibility") or vis.get("default") or "visible"
+    spec = (vis.get("modes") or {}).get(mode) or {}
+    return {"mode": mode, "source": "profile" if (mine or {}).get("visibility") else "default",
+            "desc": spec.get("desc", ""), "channels": list(spec.get("channels") or []),
+            "fallback": re.sub(r"(?<=[，。；：、（）])\s+", "", " ".join(str(spec.get("fallback", "")).split()))}
 
 
 def instances_for(pol, mine, cls, agent="claude"):
@@ -414,15 +437,18 @@ def channel_lines(pol):
     return lines
 
 
-def antigravity_lines(pol):
-    """派給 Antigravity 時任務說明要寫的四件事與驗收方式；完整證據在 dispatch-policy.md 的 antigravity_turns。"""
+def antigravity_lines(pol, mine=None):
+    """派給 Antigravity 時用哪個管道（照使用者偏好 visibility）、任務說明要寫的四件事與驗收方式。"""
     t = pol.get("antigravity_turns") or {}
     if not t:
         return []
-    lines = ["\n派給 Antigravity 的預設管道（開成 T3 看得到的對話，由上往下第一個成立的）："]
-    lines += [f"  {i}. {c.get('channel')}：{c.get('when', '')}" for i, c in enumerate(t.get("default_channels") or [], 1)]
-    lines.append("  agy_cli（無頭，T3 看不到）只當例外：使用者明確要求、要看 thinking_tokens 確認程度、或 T3 沒在跑；"
-                 "用了要在回報寫明「這次走無頭模式，T3 看不到」")
+    lines = []
+    if pol.get("visibility"):
+        v = visibility(pol, mine)
+        src = "profile 的 dispatch.md" if v["source"] == "profile" else "沒有設定，用政策的預設"
+        lines.append(f"\n派給 Antigravity 的管道：偏好 {v['mode']}（{src}）：{v['desc']}；由上往下第一個成立的：")
+        lines += [f"  {i}. {c.get('channel')}：{c.get('when', '')}" for i, c in enumerate(v["channels"], 1)]
+        lines.append(f"  退路：{v['fallback']}")
     lines.append("\n派給 Antigravity（所有管道）：任務說明固定寫這四件事（證據與待驗證看 antigravity_turns）：")
     lines += [f"  {i}. {b}" for i, b in enumerate(t.get("brief") or [], 1)]
     verify = re.sub(r"(?<=[，。；：、（）])\s+", "", " ".join(str(t.get("verify", "")).split()))  # YAML 換行變成的空白
@@ -431,7 +457,7 @@ def antigravity_lines(pol):
     return lines
 
 
-def show_text(table, profile, has_personal, usage=None, pol=None):
+def show_text(table, profile, has_personal, usage=None, pol=None, mine=None):
     lines = [f"profile：{profile}；{'個人實例：有' if has_personal else '沒有個人分派設定，只用原生子代理'}"]
     if usage:
         lines.append(usage_text(usage))
@@ -447,7 +473,7 @@ def show_text(table, profile, has_personal, usage=None, pol=None):
             if o["pending"]:
                 lines.append(f"     {o['pending'].strip()}")
     if pol:
-        lines += channel_lines(pol) + antigravity_lines(pol)
+        lines += channel_lines(pol) + antigravity_lines(pol, mine)
     return "\n".join(lines)
 
 
@@ -583,7 +609,7 @@ def run_agy(pol, args):
     out = agy_result((r.stdout + r.stderr).decode("utf-8", "replace"))
     out.update({"model": model, "elapsed_seconds": round(time.monotonic() - t0), "exit_code": r.returncode})
     out.update(agy_marks(result))
-    out["headless_note"] = "這次走無頭模式，T3 看不到；回報要寫明原因（使用者要求、要看 thinking_tokens，或 T3 沒在跑）"
+    out["headless_note"] = "這次走無頭模式，T3 看不到；偏好是 visible 的使用者，回報要寫明原因（T3 沒在跑、使用者同意）"
     return out
 
 
@@ -626,7 +652,7 @@ def main(argv=None):
     p.add_argument("--json", action="store_true")
     p = sub.add_parser("statusline")
     p.add_argument("--then", help="原本的狀態列指令：收到的 JSON 照樣轉給它，印它的輸出")
-    p = sub.add_parser("agy", help="例外管道：用 agy 無頭派給 Antigravity 的模型，T3 看不到（預設走 T3 對話，見 show）")
+    p = sub.add_parser("agy", help="用 agy 無頭派給 Antigravity 的模型（visibility: headless 的管道；T3 看不到過程）")
     p.add_argument("--class", dest="cls", required=True)
     p.add_argument("--thinking", required=True)
     p.add_argument("--brief")
@@ -663,8 +689,9 @@ def main(argv=None):
     if args.cmd == "show":
         table = resolved(pol, mine, args.agent)
         u = weekly_usage(state, pol["usage_signal"]["claude_weekly_threshold_pct"])
-        print(json.dumps({"usage": u, "levels": table, "channels": pol.get("channels")}, ensure_ascii=False, indent=2)
-              if args.json else show_text(table, name, mine is not None, u, pol))
+        print(json.dumps({"usage": u, "levels": table, "channels": pol.get("channels"),
+                          "visibility": visibility(pol, mine)}, ensure_ascii=False, indent=2)
+              if args.json else show_text(table, name, mine is not None, u, pol, mine))
         return 0
     if args.cmd == "log":
         rec = make_record(pol, args, rules_version(data), name, project_name())
@@ -728,15 +755,26 @@ def selftest():
     ok("t3_thread_launch 管道寫明 T3 外怎麼接 MCP、思考程度用 modelSelection.options、settle 後回讀 settled",
        "claude mcp login t3" in mcp.get("how", "") and "modelSelection.options" in mcp.get("thinking", "")
        and "settled" in mcp.get("settle", ""))
-    shown = show_text(resolved(pol, ryan, "claude"), "ryan", True, None, pol)
+    shown = show_text(resolved(pol, ryan, "claude"), "ryan", True, None, pol, ryan)
     ok("show 的輸出列出每個管道，包含 t3_cli", all(f"  {c}：" in shown for c in CHANNELS))
-    order = [c["channel"] for c in pol["antigravity_turns"]["default_channels"]]
-    ok("派給 Antigravity 的預設管道是 T3 看得到的三個（delegate_task、t3_thread_launch、t3_cli），agy_cli 不在預設裡",
-       order == ["delegate_task", "t3_thread_launch", "t3_cli"] and "1. delegate_task：" in shown
-       and "agy_cli（無頭，T3 看不到）只當例外" in shown)
-    headless = json.loads(json.dumps(pol))
-    headless["antigravity_turns"]["default_channels"].insert(0, {"channel": "agy_cli"})
-    ok("default_channels 放進 agy_cli 會報錯", any("default_channels" in e for e in check(headless)))
+    vr = visibility(pol, ryan)
+    ok("ryan 的 visibility 是 visible（profile 設定）：show 依序印 delegate_task、t3_thread_launch、t3_cli 與退路",
+       vr["mode"] == "visible" and vr["source"] == "profile"
+       and [c["channel"] for c in vr["channels"]] == ["delegate_task", "t3_thread_launch", "t3_cli"]
+       and "偏好 visible（profile 的 dispatch.md）" in shown and "1. delegate_task：" in shown and "退路：" in shown)
+    vh = visibility(pol, {"instances": {}, "visibility": "headless"})
+    hs = show_text(resolved(pol, ryan, "claude"), "x", True, None, pol, {"visibility": "headless"})
+    ok("visibility: headless 的使用者：管道是 agy_cli，show 印偏好 headless",
+       [c["channel"] for c in vh["channels"]] == ["agy_cli"] and "偏好 headless" in hs and "1. agy_cli：" in hs)
+    vd = visibility(pol, {"instances": {}})
+    ok("沒寫 visibility：用政策的預設，source 是 default", vd["mode"] == pol["visibility"]["default"] and vd["source"] == "default")
+    ok("個人層 visibility 寫錯會報錯", any("個人層 visibility" in e for e in check(pol, {"visibility": "both"})))
+    bad_vis = json.loads(json.dumps(pol))
+    bad_vis["visibility"]["modes"]["visible"]["channels"].insert(0, {"channel": "agy_cli"})
+    bad_vis["visibility"]["default"] = "maybe"
+    errs_vis = check(bad_vis)
+    ok("政策的 visible 放進 agy_cli、預設值寫錯都會報錯",
+       any("visible.channels 不能有 agy_cli" in e for e in errs_vis) and any("visibility.default" in e for e in errs_vis))
     drift = json.loads(json.dumps(pol))
     drift["channels"].pop("t3_cli")
     drift["channels"]["t3_typo"] = {"use": "x"}

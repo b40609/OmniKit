@@ -15,19 +15,14 @@ uv run scripts/run.py show
 
 印出套上你的實例之後，每一級依序可以用的選項，開頭附本週 Claude 用量。由上往下挑第一個「有實例、額度沒用完、條件成立」的。用量是「未知」時不要假設已達 80%。開子對話或派子代理時，在任務說明寫明級別與思考程度（Claude 寫 effort，Gemini／Antigravity 寫 thinking_level）。
 
-## 派給 Antigravity 的模型：預設開成 T3 看得到的對話
+## 派給 Antigravity 的模型：照使用者的 visibility 偏好選管道
 
-選到的類別是 Antigravity 的（gemini-pro、gemini-flash、antigravity-opus）時，一律開成使用者在 T3 看得到的對話（2026-11-21 定案：使用者要能看 prompt 和過程）。由上往下用第一個成立的：
+選到的類別是 Antigravity 的（gemini-pro、gemini-flash、antigravity-opus）時，管道照使用者 profile `dispatch.md` 的 `visibility`（沒寫用 `dispatch-policy.md` 的 `visibility.default`）。`show` 會印出這個使用者的偏好、該用的管道順序與退路。
 
-1. 主控在 T3 裡 → `delegate_task`。
-2. 主控在 T3 外、接了 T3 MCP → `t3_thread_launch`（能設 `thinking_level`、能自己結案）。
-3. 主控在 T3 外、沒接 T3 MCP 或 MCP 斷線（`ECONNREFUSED`）→ `t3_cli`：`t3 thread start . - --provider <實例> --model <帶程度的代號> --title "<標題>" --json`（見下面「t3 thread CLI」）。
+- **visible**：開成 T3 看得到的對話，使用者能看 prompt 與過程。由上往下：主控在 T3 裡用 `delegate_task`；T3 外接了 T3 MCP 用 `t3_thread_launch`；沒接或 MCP 斷線（`ECONNREFUSED`）用 `t3_cli`（`t3 thread start . - --provider <實例> --model <帶程度的代號> --title "<標題>" --json`，見下面「t3 thread CLI」）。T3 沒在跑才退到 agy_cli，回報寫明「這次走無頭模式，T3 看不到」與原因。
+- **headless**：走 agy 無頭模式（agy_cli，下面這節），在背景跑、比較省事，只看結果。要指定 agy 沒登入的帳號實例，或這台沒有 agy 時，改用 visible 的管道。
 
-`show` 的輸出也會印這個順序。
-
-### 例外：agy 無頭模式（agy_cli 管道）
-
-agy_cli 不會在 T3 開對話，使用者看不到 prompt 和過程，只在這三種情況用：使用者明確要求或同意、要看 `thinking_tokens` 確認思考程度有沒有生效、T3 沒在跑（`t3 thread list` 連不上）。用了要在回報裡寫明「這次走無頭模式，T3 看不到」與原因（腳本輸出的 `headless_note` 會提醒）。
+### agy 無頭模式（agy_cli 管道）
 
 ```
 uv run scripts/run.py agy --class gemini-pro --thinking high --brief-file <任務說明檔> [--cwd <工作資料夾>] [--timeout 1800] [--result-file <交付檔>]
@@ -98,7 +93,7 @@ agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一
 
 ### 和其他管道的分工
 
-同供應商、不用指定帳號 → 原生子代理；Antigravity 的模型或要指定 T3 的帳號實例 → 開成 T3 看得到的對話：主控本身在 T3 裡用 delegate_task，T3 外接了 T3 MCP 用 `t3_thread_launch`，沒接用 `t3_cli`；agy_cli（無頭）只在上面寫的三種例外情況用。結果一律由主控驗收。
+同供應商、不用指定帳號 → 原生子代理；Antigravity 的模型 → 照使用者的 `visibility`（visible：主控本身在 T3 裡用 delegate_task，T3 外接了 T3 MCP 用 `t3_thread_launch`，沒接用 `t3_cli`；headless：agy_cli）；要指定 T3 的帳號實例一律走 T3 的管道。結果一律由主控驗收。
 
 ## 收完結果、settle 之前：記一行
 

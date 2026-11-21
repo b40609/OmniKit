@@ -7,7 +7,7 @@
 怎麼用：
 1. 照 `tasks` 判斷任務類型，得到級別；在 `levels.<級別>.route` 由上往下挑第一個「你有實例、額度沒用完、`when` 成立（沒寫就算成立）、`tasks` 有列就要包含這個任務」的選項。
 2. 思考程度照選項寫明，不要沿用主線的設定，也不要靠預設值。
-3. 照 `channels` 選管道；開子對話或派子代理時，在任務說明寫明級別與思考程度。派給 Antigravity 的模型時，任務說明還要照 `antigravity_turns.brief` 寫明交付檔與完成標記，驗收照 `antigravity_turns.verify`。
+3. 照 `channels` 選管道；派給 Antigravity 的模型時，管道照你的偏好 `visibility`（個人層 `dispatch.md` 的 `visibility`，沒寫用這裡的 `visibility.default`）；開子對話或派子代理時，在任務說明寫明級別與思考程度。派給 Antigravity 的模型時，任務說明還要照 `antigravity_turns.brief` 寫明交付檔與完成標記，驗收照 `antigravity_turns.verify`。
 4. 子任務結果收回、驗收完、要 settle 之前，記一行委派紀錄（`run.py log`）；一次委派一行，重跑與升級記在同一行。
 5. 驗收不過照 `escalation` 升級，升級也要記。
 6. 專案規則對模型分工或驗收另有規定時，照專案規則。
@@ -53,7 +53,7 @@ tasks:
   verify:          {level: verify, desc: 獨立驗收}
 
 # 分工原則（2026-11-16，ryan：Claude 只拿來做真正重要的事）：跨模型、跨應用的主控與工作者。
-# - 主控（規劃、拆解、定案、最後驗收）是主線的 Claude；量大、不關鍵的工作派 Hydrogen，開成 T3 看得到的對話（順序見 antigravity_turns.default_channels；agy_cli 無頭模式只當例外）。
+# - 主控（規劃、拆解、定案、最後驗收）是主線的 Claude；量大、不關鍵的工作派 Hydrogen（管道照使用者偏好 visibility，見下面的 visibility）。
 # - 寫的模型與審的模型不同家：Hydrogen 寫的由主控驗收；Opus 做的重要任務由 Hydrogen xhigh 唯讀審查（second_opinion）。
 # - 重要任務先派 Hydrogen 做前置苦工（prework），Opus 只花在判斷與定案。
 # 業界對照與實測在 docs/proposals/2026-11-16-cross-model-dispatch.md。
@@ -68,7 +68,7 @@ levels:
         thinking: medium
         when: 專案規則要求 Claude，或任務要用的工具 agy 沒有（寫明是哪個工具）；「主控是 Claude」不算理由
         trial: sonnet-trial
-      - {class: gemini-pro, thinking: high, note: 中級的預設；禁用 low；Gemini 的 token 不用省。管道照 antigravity_turns.default_channels（開成 T3 看得到的對話），agy_cli 只當例外}
+      - {class: gemini-pro, thinking: high, note: 中級的預設；禁用 low；Gemini 的 token 不用省。管道照使用者偏好 visibility（見 visibility）}
       - class: gemini-flash
         thinking: high
         when: gemini-pro 的額度用完
@@ -138,15 +138,15 @@ channels:
       t3 v0.1.10 沒有設定思考程度的參數（上游 main 的文件有 --option effort=...，要等 T3 更新）。要設思考程度就改走
       t3_thread_launch 管道（T3 MCP）。只能用 CLI 時，Antigravity 的模型照 delegate_task 的做法把程度寫進模型代號
       （gemini-4-hydrogen-xhigh）；Gemini 一定要帶 -high 以上，不帶就不知道後端用哪一級。【待驗證】代號帶程度經 t3 thread start 生效，
-      是 2026-11-16 的實測，只測過 Hydrogen；Flash 的 gemini-3.8-flash-high 還沒實測，要確定程度就改走 t3_thread_launch（agy_cli 看得到 thinking_tokens，但屬例外，見 agy_cli）。
+      是 2026-11-16 的實測，只測過 Hydrogen；Flash 的 gemini-3.8-flash-high 還沒實測，要確定程度就改走 t3_thread_launch 或 agy_cli（agy_cli 的輸出有 thinking_tokens，但 T3 看不到過程）。
     settle: >-
       v0.1.10 沒有 settle 子指令。主控有 T3 MCP 就用 t3_thread_organize 結案（見 t3_thread_launch）；沒有就在回報裡
       列出對話 id 與標題，請使用者在 T3 結案。
     vs: >-
       和其他管道的分工：同供應商、不需要指定帳號、不用在 T3 看到的，用原生子代理（最省事、結果直接回主線）；
-      派給 Antigravity 的模型一律開成 T3 看得到的對話（2026-11-21 定案，順序見 antigravity_turns.default_channels）：
-      主控在 T3 裡用 delegate_task；T3 外接了 T3 MCP 用 t3_thread_launch；沒接（或 MCP 斷線）用 t3_cli。
-      要指定 T3 上的帳號實例（antigravity_kai、claudeAgent_2…）也走這三個。agy_cli 只在它 use 寫的三種例外情況用。
+      派給 Antigravity 的模型照使用者偏好 visibility 選（見 visibility）：visible 依序用 delegate_task（主控在 T3 裡）、
+      t3_thread_launch（T3 外、接了 T3 MCP）、t3_cli（沒接或 MCP 斷線）；headless 用 agy_cli。
+      要指定 T3 上的帳號實例（antigravity_kai、claudeAgent_2…）一律走 T3 的三個管道（agy_cli 只有 antigravity_ryan 一個帳號）。
     note: >-
       2026-11-18 實測（t3 v0.1.10）：t3 thread start . "只回 OK" --provider antigravity_kai --model gemini-3.8-flash --wait --json
       回傳 {"status":"completed","reply":"OK"}，不用登入。
@@ -157,7 +157,7 @@ channels:
       T3 介面在模型旁標 Unavailable（T3 的模型目錄只有 gemini-4-hydrogen），但 T3 經 antigravity-acp 送到後端的就是這個代號，
       後端紀錄寫「running ... as gemini-4-hydrogen-xhigh」，回覆正確；只寫 gemini-4-hydrogen 時後端用 high。
       所以 Unavailable 可以不理：這是介面的標示，不是代號錯誤，不要因此改代號或當成幻覺（2026-11-17 ryan 確認繼續用 xhigh）。【待驗證】思考 token 在 T3 的紀錄裡看不到，xhigh 有沒有多想只有耗時佐證（77 秒對 high 54 秒，各 1 次）；
-      一定要確認思考程度時才用 agy_cli（輸出有 thinking_tokens；屬例外，回報要寫明這次走無頭模式）。
+      要確定思考程度時用 agy_cli（輸出有 thinking_tokens；T3 看不到過程，visible 偏好的使用者要先同意）。
     note: >-
       現行規則：delegate_task 不能指定別的專案。【待驗證】T3 的 delegate_task 參數裡有 target.projectId，
       實際能不能把子任務開在別的專案還沒實測，驗證前照現行規則。
@@ -189,8 +189,8 @@ channels:
 
   agy_cli:
     use: >-
-      例外管道（2026-11-21 起不是預設）：用 agy 無頭模式派給 Antigravity 的模型，T3 看不到這條對話，使用者看不到 prompt 和過程。
-      只在這三種情況用：使用者明確要求或同意走無頭模式、要看 thinking_tokens 確認思考程度有沒有生效、T3 沒在跑（t3 thread list 連不上）。
+      用 agy 無頭模式派給 Antigravity 的模型：在背景跑、比較省事，但 T3 看不到這條對話，使用者看不到 prompt 和過程。
+      visibility 是 headless 的使用者預設用它；visible 的使用者只在 T3 沒在跑、或使用者同意時用（見 visibility.modes.visible.fallback），
       用了要在回報裡寫明「這次走無頭模式，T3 看不到」與原因。
       用 omnikit-dispatch skill 的 run.py agy --class <類別> --thinking <程度> --brief-file <任務說明>；
       思考程度寫進模型代號（gemini-4-hydrogen-xhigh），只寫 gemini-4-hydrogen 會落到 medium，違反 Gemini 至少 high 的規則，一定要帶程度。
@@ -202,15 +202,32 @@ channels:
       以及 antigravity_turns.brief 的收尾規定（交付檔沒指定時寫進 --result-file，預設在暫存資料夾）；
       結果一律由主控讀檔、跑測試驗收。用的是 antigravity_ryan 實例（ryan 帳號）。
 
+# 使用者偏好：派給 Antigravity 的子任務要不要開在 T3 看得到的對話。每個人在自己 profile 的 dispatch.md 寫
+# visibility: visible 或 headless（omnikit-setup 訪談會問）；沒寫就用 default。dispatch.py show 會讀它，印出對應的管道。
+visibility:
+  default: visible
+  default_why: >-
+    沒設定時用 visible：使用者看得到派出去的 prompt 與過程，比較容易發現說明寫錯；T3 沒在跑時會自動退到 headless，
+    不會因此派不出去。想要省事、只看結果的，在 profile 寫 headless。
+  modes:
+    visible:
+      desc: 開成 T3 看得到的對話，能看 prompt 與過程、中途追問或停止
+      channels:
+        - {channel: delegate_task, when: 主控在 T3 裡}
+        - {channel: t3_thread_launch, when: 主控在 T3 外、接了 T3 MCP}
+        - {channel: t3_cli, when: 主控在 T3 外、沒接 T3 MCP 或 MCP 斷線（ECONNREFUSED）；t3 thread start ... --provider <實例> --model <帶程度的代號> --title "<標題>"}
+      fallback: >-
+        T3 沒在跑（t3 thread list 連不上，叫起 T3 也起不來）時退到 agy_cli，回報裡寫明「這次走無頭模式，T3 看不到」與原因；
+        這台沒有 agy 就停下來請使用者開 T3。要看 thinking_tokens 確認思考程度而改走 agy_cli 時，先問使用者。
+    headless:
+      desc: 走 agy 無頭模式，在背景跑、比較省事，只看結果；T3 看不到過程
+      channels:
+        - {channel: agy_cli, when: 這台有 agy（Antigravity CLI），而且用的是 agy 登入的那個帳號}
+      fallback: >-
+        要指定 agy 沒登入的帳號實例（例如 antigravity_kai、antigravity_ava），或這台沒有 agy 時，改用 visible 的三個管道。
+
 # 派給 Antigravity 的回合怎麼收尾。所有管道都適用：agy_cli、t3_cli、t3_thread_launch，主控在 T3 裡用 delegate_task 也一樣。
 antigravity_turns:
-  default_channels:
-    - {channel: delegate_task, when: 主控在 T3 裡}
-    - {channel: t3_thread_launch, when: 主控在 T3 外、接了 T3 MCP}
-    - {channel: t3_cli, when: 主控在 T3 外、沒接 T3 MCP 或 MCP 斷線（ECONNREFUSED）；t3 thread start ... --provider <實例> --model <帶程度的代號> --title "<標題>"}
-  default_channels_why: >-
-    2026-11-21 ryan 回報：T3 主線與 Claude 桌面版派出去的 Gemini 任務都走 agy_cli 無頭模式，T3 看不到對話，
-    沒辦法確認 prompt 符不符合預期、看過程。所以派給 Antigravity 的模型預設開成 T3 看得到的對話；agy_cli 降為例外（見 channels.agy_cli）。
   why: >-
     2026-11-18 實測：antigravity_kai（gemini-3.8-flash）的 T3 對話在 08:31:29 UTC 跑完最後一個指令，回報檔早就寫好，
     之後 15 分 14 秒沒有任何活動；08:46:43 T3 印「Antigravity sent nothing for 15 minutes, so T3 Code stopped the turn
