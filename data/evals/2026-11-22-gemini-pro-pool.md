@@ -1,6 +1,14 @@
 # Gemini Pro 帳號池：Neon 能接多難的工作、6 個帳號怎麼用（2026-11-22）
 
-狀態：討論中，等 Ryan 決定（第五節）。查證日期 2026-11-22。
+狀態：Ryan 2026-11-22 定案 1A＋2B（第五節）。查證日期 2026-11-22。
+
+## 定案（Ryan 2026-11-22）
+
+- 決定 1 選 1A：5 個新帳號只給 Ryan 自己開的對話用，一次一個，額度用完手動換；不進自動派工。
+- 決定 2 選 2B：Claude 自動派給 Gemini 維持 `antigravity_ryan` 訂閱帳號。Ryan 問「用 T3 互相派應該沒問題吧」，回答：T3 本身是官方支援的 ACP 用戶端，Ryan 自己在 T3 開對話沒問題；有疑慮的是 Claude 主控自動派工這一段，經過 T3 不會改變它的性質，風險跟 11-19 以來一樣、沒有變大。Ryan 知情後照選 2B。執行上固定這一個帳號、不輪換、一次一條。
+- 5 個帳號都是正式付費方案，都能用 Neon（Ryan 確認）。
+- 同意第二節的分工：ava、kai 退出派工（`data/profiles/ryan/dispatch.md` classes 留空）。`data/profiles/ryan/AGENTS.md` 的 Flash 主線限制已無作用，等 12-01 規則整理時拿掉。
+- 延伸：Ryan 要 OmniKit 依每個使用者的訂閱組合自動適配分工，已派調研（`data/evals/2026-11-22-multi-user-model-roles-research.md`），結果併進 12-01 的 Plan B。
 
 ## 背景
 
