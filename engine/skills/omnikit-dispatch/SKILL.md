@@ -15,9 +15,19 @@ uv run scripts/run.py show
 
 印出套上你的實例之後，每一級依序可以用的選項，開頭附本週 Claude 用量。由上往下挑第一個「有實例、額度沒用完、條件成立」的。用量是「未知」時不要假設已達 80%。開子對話或派子代理時，在任務說明寫明級別與思考程度（Claude 寫 effort，Gemini／Antigravity 寫 thinking_level）。
 
-## 派給 Antigravity 的模型（agy_cli 管道）
+## 派給 Antigravity 的模型：預設開成 T3 看得到的對話
 
-主控是 Claude Code 或 Codex、而選到的類別是 Antigravity 的（gemini-pro、gemini-flash、antigravity-opus）時，用 agy 無頭派：
+選到的類別是 Antigravity 的（gemini-pro、gemini-flash、antigravity-opus）時，一律開成使用者在 T3 看得到的對話（2026-11-21 定案：使用者要能看 prompt 和過程）。由上往下用第一個成立的：
+
+1. 主控在 T3 裡 → `delegate_task`。
+2. 主控在 T3 外、接了 T3 MCP → `t3_thread_launch`（能設 `thinking_level`、能自己結案）。
+3. 主控在 T3 外、沒接 T3 MCP 或 MCP 斷線（`ECONNREFUSED`）→ `t3_cli`：`t3 thread start . - --provider <實例> --model <帶程度的代號> --title "<標題>" --json`（見下面「t3 thread CLI」）。
+
+`show` 的輸出也會印這個順序。
+
+### 例外：agy 無頭模式（agy_cli 管道）
+
+agy_cli 不會在 T3 開對話，使用者看不到 prompt 和過程，只在這三種情況用：使用者明確要求或同意、要看 `thinking_tokens` 確認思考程度有沒有生效、T3 沒在跑（`t3 thread list` 連不上）。用了要在回報裡寫明「這次走無頭模式，T3 看不到」與原因（腳本輸出的 `headless_note` 會提醒）。
 
 ```
 uv run scripts/run.py agy --class gemini-pro --thinking high --brief-file <任務說明檔> [--cwd <工作資料夾>] [--timeout 1800] [--result-file <交付檔>]
@@ -30,7 +40,7 @@ uv run scripts/run.py agy --class gemini-pro --thinking high --brief-file <任�
 - 腳本用略過權限模式跑（無頭模式不能核准指令），並在任務說明前面固定加硬性限制：不 commit、不 push、不刪檔、不對外發送、不安裝。所以要 commit 或 push 的，由主控自己做。
 - 腳本也固定加下一節的收尾規定。任務說明沒指定交付位置時，它寫進 `--result-file`（預設在暫存資料夾的 `omnikit-agy`）；輸出的 `result_file`、`done_marker` 說明交付檔與完成標記在不在。沒有標記只會出 `warnings`，不改 `ok`。
 - 結果一律由主控驗收（讀它改的檔、跑測試），不要只看它的回覆。
-- 記紀錄時 `--channel agy_cli --instance antigravity`。
+- 記紀錄時 `--channel agy_cli --instance antigravity_ryan`。
 
 ## 派給 Antigravity 的回合怎麼收尾（所有管道）
 
@@ -88,7 +98,7 @@ agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一
 
 ### 和其他管道的分工
 
-同供應商、不用指定帳號 → 原生子代理；要 Antigravity 模型、要看思考 token 或在背景跑 → agy_cli；要指定 T3 的帳號實例、要在 T3 看到 → 接了 T3 MCP 用 `t3_thread_launch`，沒接用 `t3_cli`；主控本身在 T3 裡 → delegate_task。結果一律由主控驗收。
+同供應商、不用指定帳號 → 原生子代理；Antigravity 的模型或要指定 T3 的帳號實例 → 開成 T3 看得到的對話：主控本身在 T3 裡用 delegate_task，T3 外接了 T3 MCP 用 `t3_thread_launch`，沒接用 `t3_cli`；agy_cli（無頭）只在上面寫的三種例外情況用。結果一律由主控驗收。
 
 ## 收完結果、settle 之前：記一行
 

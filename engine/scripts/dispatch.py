@@ -31,7 +31,7 @@ T3 透過 Agent SDK 跑 Claude 時狀態列會不會執行，還沒實測（待�
   uv run engine/scripts/dispatch.py usage [--json]                                   本週 Claude 用量（快照）
   uv run engine/scripts/dispatch.py statusline [--then "<原本的狀態列指令>"]          給 Claude Code 狀態列用
   uv run engine/scripts/dispatch.py agy --class <類別> --thinking <程度> (--brief <文字> | --brief-file <檔>) [--cwd <資料夾>]
-        [--timeout 秒] [--log-file <檔>]                                              用 agy 無頭派給 Antigravity 的模型
+        [--timeout 秒] [--log-file <檔>]                                              例外：用 agy 無頭派（T3 看不到；預設走 T3 對話）
   uv run engine/scripts/dispatch.py --selftest
 """
 import argparse
@@ -134,6 +134,12 @@ def check(pol, mine=None):
         for k in ("verify", "failed_15min"):
             if not turns.get(k):
                 errors.append(f"antigravity_turns 少了 {k}")
+        # 2026-11-21：派給 Antigravity 的預設管道要開成 T3 看得到的對話，agy_cli（無頭）只當例外
+        order = [(c or {}).get("channel") for c in (turns.get("default_channels") or [])]
+        if not order:
+            errors.append("antigravity_turns 少了 default_channels（派給 Antigravity 的預設管道順序）")
+        elif "agy_cli" in order or any(c not in CHANNELS for c in order):
+            errors.append(f"antigravity_turns.default_channels 只能列 T3 看得到的管道，不能有 agy_cli 或不存在的管道：{order}")
     chans = set(pol.get("channels") or {})
     if "channels" in pol and chans != set(CHANNELS):
         errors.append(f"channels 和 dispatch.py 的 CHANNELS 對不上：政策多了 {sorted(chans - set(CHANNELS))}，"
@@ -413,7 +419,11 @@ def antigravity_lines(pol):
     t = pol.get("antigravity_turns") or {}
     if not t:
         return []
-    lines = ["\n派給 Antigravity（所有管道）：任務說明固定寫這四件事（證據與待驗證看 antigravity_turns）："]
+    lines = ["\n派給 Antigravity 的預設管道（開成 T3 看得到的對話，由上往下第一個成立的）："]
+    lines += [f"  {i}. {c.get('channel')}：{c.get('when', '')}" for i, c in enumerate(t.get("default_channels") or [], 1)]
+    lines.append("  agy_cli（無頭，T3 看不到）只當例外：使用者明確要求、要看 thinking_tokens 確認程度、或 T3 沒在跑；"
+                 "用了要在回報寫明「這次走無頭模式，T3 看不到」")
+    lines.append("\n派給 Antigravity（所有管道）：任務說明固定寫這四件事（證據與待驗證看 antigravity_turns）：")
     lines += [f"  {i}. {b}" for i, b in enumerate(t.get("brief") or [], 1)]
     verify = re.sub(r"(?<=[，。；：、（）])\s+", "", " ".join(str(t.get("verify", "")).split()))  # YAML 換行變成的空白
     lines.append("  驗收：" + verify.split("。")[0])
@@ -573,6 +583,7 @@ def run_agy(pol, args):
     out = agy_result((r.stdout + r.stderr).decode("utf-8", "replace"))
     out.update({"model": model, "elapsed_seconds": round(time.monotonic() - t0), "exit_code": r.returncode})
     out.update(agy_marks(result))
+    out["headless_note"] = "這次走無頭模式，T3 看不到；回報要寫明原因（使用者要求、要看 thinking_tokens，或 T3 沒在跑）"
     return out
 
 
@@ -615,7 +626,7 @@ def main(argv=None):
     p.add_argument("--json", action="store_true")
     p = sub.add_parser("statusline")
     p.add_argument("--then", help="原本的狀態列指令：收到的 JSON 照樣轉給它，印它的輸出")
-    p = sub.add_parser("agy", help="用 agy 無頭派給 Antigravity 的模型（思考程度寫進模型代號）")
+    p = sub.add_parser("agy", help="例外管道：用 agy 無頭派給 Antigravity 的模型，T3 看不到（預設走 T3 對話，見 show）")
     p.add_argument("--class", dest="cls", required=True)
     p.add_argument("--thinking", required=True)
     p.add_argument("--brief")
@@ -719,6 +730,13 @@ def selftest():
        and "settled" in mcp.get("settle", ""))
     shown = show_text(resolved(pol, ryan, "claude"), "ryan", True, None, pol)
     ok("show 的輸出列出每個管道，包含 t3_cli", all(f"  {c}：" in shown for c in CHANNELS))
+    order = [c["channel"] for c in pol["antigravity_turns"]["default_channels"]]
+    ok("派給 Antigravity 的預設管道是 T3 看得到的三個（delegate_task、t3_thread_launch、t3_cli），agy_cli 不在預設裡",
+       order == ["delegate_task", "t3_thread_launch", "t3_cli"] and "1. delegate_task：" in shown
+       and "agy_cli（無頭，T3 看不到）只當例外" in shown)
+    headless = json.loads(json.dumps(pol))
+    headless["antigravity_turns"]["default_channels"].insert(0, {"channel": "agy_cli"})
+    ok("default_channels 放進 agy_cli 會報錯", any("default_channels" in e for e in check(headless)))
     drift = json.loads(json.dumps(pol))
     drift["channels"].pop("t3_cli")
     drift["channels"]["t3_typo"] = {"use": "x"}
@@ -741,7 +759,7 @@ def selftest():
     t = resolved(pol, ryan, "claude")
     med = t["medium"]["options"]
     ok("ryan：中級第一個 Gemini 選項是 Hydrogen（antigravity，thinking_level high），Flash 用 ava、kai",
-       [o for o in med if o["class"] == "gemini-pro"][0]["instances"] == ["antigravity"]
+       [o for o in med if o["class"] == "gemini-pro"][0]["instances"] == ["antigravity_ryan"]
        and [o for o in med if o["class"] == "gemini-flash"][0]["instances"] == ["antigravity_ava", "antigravity_kai"]
        and [o for o in med if o["class"] == "gemini-pro"][0]["thinking_name"] == "thinking_level")
     ok("Claude 類別在 Claude 底下原生子代理排第一",
