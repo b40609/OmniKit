@@ -1,13 +1,13 @@
 # 對話收斂：現況統整、業界做法與建議
 
-日期：2026-11-21。狀態：提案，等使用者決定。
+日期：2026-11-21。狀態：使用者 2026-11-21「暫定全照建議」；第 5 節照使用者的修正改寫成蒸餾的工作流，不用固定數字的規定。
 起因：使用者說最近常開發到一半對話越來越發散，不知道離完工還有多遠、下一步是什麼；問業界頂尖工程師怎麼做、有沒有工具。另附一則 OmniKeep 摘要（AI 糾正改寫成自動檢查），問能不能拿來優化 OmniKit。
 
 ## 0. 要你決定的事
 
 | # | 決定 | 我的建議 |
 |---|---|---|
-| 1 | 收斂做法要不要採用（第 5 節的 A 到 D） | 採用。A 已先做（NOW.md 頂端加了「完工路徑」），B、C、D 是習慣，今天起就能照做，不用寫程式 |
+| 1 | 收斂做法要不要採用（第 5 節） | 已採用（暫定）。使用者修正：不要「最多開幾條」的死規定，要蒸餾頂尖工程師的工作流，第 5 節已改寫 |
 | 2 | 「糾正改成檢查」（第 6 節）什麼時候做 | 12-01 解凍後試點 3 條；凍結期不加 hook |
 | 3 | 主線要不要換新對話 | 換。舊主線 1,033 項、27 回合，新主線讀 NOW.md 接手；舊的接手後再 settle |
 | 4 | 沒設定 `visibility` 的新使用者預設哪一種；規則版本要不要升 | 預設 `visible` 照 540f27c 不改；規則版本升到 2026-11-21-1（這週 AGENTS.md 改了兩條：visibility、Gemini 3.8 Flash 分派限制） |
@@ -75,21 +75,40 @@
 
 結論：**現在不建議裝新工具。** 一是凍結到 11-29；二是 OmniKit 已經有狀態板與交接，缺的是第 2 節講的三個機制，裝工具補不了。如果之後要工具，beads 最值得評，12-01 跟收件匣一起用 `omnikit-eval` 評（已記進 `data/inbox.md`）。
 
-## 5. 建議做法
+## 5. 頂尖工程師的共通工作流
 
-**A. 完工路徑放在 NOW.md 最上面（已做）**
-把 11-17 定案的 4 步搬到 NOW.md 頂端，每步寫完成條件與目前進度，例如「問法庫實測 0/10 筆」。看 NOW.md 第一段就知道離完工多遠、卡在誰身上。不在這 4 步裡的線，放到下面「其他線」。
+第一版寫的是「同時最多 1 條主線加 2 條子對話」這種數字規定，使用者指出那不是頂尖工程師的做法。改看 6 個人實際怎麼做：Mitchell Hashimoto（Ghostty、HashiCorp）、Kent Beck（TDD 提出者）、Boris Cherny（Claude Code 作者）、Harper Reed、Simon Willison、Peter Steinberger。他們沒有人用固定數字限制對話數；共同的限制是：**每條在跑的對話，都對到清單上一個還沒勾的項目**。蒸餾成 7 步的循環：
 
-**B. 同時進行最多 1 條主線加 2 條子對話**
-第 3 條要開之前，先收完一條。T3 壞掉這類急件可以插隊，但在 NOW.md 記一行「插單：原因」，修完就停，不順手延伸；延伸的想法進收件匣。
+1. **規劃和執行分開。** 想法還模糊時，先開一條只做規劃的對話，產物是一份清單，不寫程式。
+   - Mitchell：「split the work into separate planning vs. execution sessions」（原文）。
+   - Harper Reed：先讓 LLM 一次問一題、把需求問成 spec.md，再拆成 prompt_plan.md 與 todo.md 勾選清單（二手整理）。
+   - Boris：先用 plan mode 把計畫對好再動手（二手整理）。
+2. **清單每一項都能驗證。** 用測試、截圖、實際輸出讓 agent 自己判斷過了沒；離完工多遠，就是還沒勾的項目數。
+   - Mitchell：「give an agent a way to verify its work」，它多半會自己修好錯（原文）。
+   - Beck：plan.md 裡放一個個測試，「find the next unmarked test」（原文，附錄的 system prompt）。
+   - Anthropic：第一回合先把所有功能列成清單、全部標未通過，通過一項才改一項。
+   - Willison：測試已經「no longer even remotely optional」。
+   - Boris：每個改動都讓 Claude 開瀏覽器自己測到能動（二手整理）。
+3. **一條執行對話只做一項；下一步永遠是清單上第一個沒勾的。**
+   - Mitchell：「Don't try to 'draw the owl' in one mega session」（原文）。
+   - Beck：說「go」就做下一個沒標記的測試（原文）。
+4. **看到偏離訊號就停。** Beck 列了三個訊號（原文）：在繞圈；做了沒要求的功能，就算是合理的下一步；作弊，例如關掉或刪掉測試。第二個就是 OmniKit 這週的主因（第 2 節第 3 點）：插單修完順手延伸。停下來的做法是把延伸的想法記進收件匣，這條對話照原本的完成條件收掉。
+5. **並行看你審得過來多少，不是固定數字。**
+   - Boris 同時跑 5 條、Steinberger 3 到 8 條，每條都是彼此獨立、目標明確的工作（二手整理）。
+   - Mitchell 反過來，刻意不跑多條（「I don't want to run agents for the sake of running agents」）、關掉 agent 的桌面通知，在自己的空檔才去看（原文）。
+   - 兩種都成立，前提都是每條都是清單上的一項。
+6. **研究、評估、分類排到一天的尾巴。** Mitchell 每天最後 30 分鐘派背景 agent 做調研、探索模糊的想法、分類 issue，隔天先看結果，只挑 agent 一定做得好的去執行（原文）。OmniKit 的工具評估與調研屬於這一類，現在卻是白天插進主線。
+7. **每次糾正都變成 harness。** Mitchell：「anytime you find an agent makes a mistake, you take the time to engineer a solution」（原文）。他 AGENTS.md 的每一行都來自一次 agent 犯錯，能寫成工具的就寫成工具。poteto 的倒金字塔講的是同一件事（第 6 節）。
 
-**C. 新想法進收件匣，不開新對話**
-看到新工具、新文章、新點子（像今天這則 OmniKeep 摘要），記一行到 `data/inbox.md`，每週看一次。凍結期的規則本來就這樣寫，這次是把它當成每條對話都要遵守的事。
+套到 OmniKit：
 
-**D. 每條對話開頭講一句完成條件，收尾時對照**
-例如「R1 剩下 4 題跑完並做完盲評，就算完成」。收尾時寫有沒有達成；沒達成的寫進 NOW.md，不在原對話裡越聊越遠。
+- **第 1、2 點**：NOW.md 頂端的「完工路徑」就是這份清單，每步都寫了完成條件與進度（已做）。`omnikit-handoff` 的 NOW.md 格式加了這一節，其他專案也照用。
+- **第 3 點**：每條對話開頭寫一句「這條做清單上的哪一項、做到什麼算完成」。清單上沒有的事，先在規劃對話裡加進清單，再開執行對話。
+- **第 4 點**：清單外的想法記 `data/inbox.md`；急件修完就停，在 NOW.md 的「插單紀錄」記一行。
+- **第 6 點**：工具評估與調研改成傍晚派、隔天看，不在白天的主線裡開。
+- **第 7 點**：12-01 試點第 6 節的 3 個檢查。之後可以加一個 Stop 檢查，收尾時對照完成條件，問這回合有沒有做清單外的事，把第 4 點也變成檢查。
 
-B 和 D 之後可以照第 6 節的做法改成檢查（例如開對話時 hook 數 active 對話，超過 3 條就提醒），先用兩週看看有沒有用。
+來源：[Mitchell〈My AI Adoption Journey〉](https://mitchellh.com/writing/my-ai-adoption-journey)、[Kent Beck〈Augmented Coding: Beyond the Vibes〉](https://newsletter.kentbeck.com/p/augmented-coding-beyond-the-vibes)、[Harper Reed〈My LLM codegen workflow atm〉](https://harper.blog/2025/02/16/my-llm-codegen-workflow-atm/)、[Simon Willison〈Vibe engineering〉](https://simonwillison.net/2025/Oct/7/vibe-engineering/)、[InfoQ：Claude Code 作者的工作流](https://www.infoq.com/news/2026/01/claude-code-creator-workflow)、[Simon Willison 轉述 Steinberger](https://simonwillison.net/2025/Oct/14/agentic-engineering/)、[Anthropic：long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)。Mitchell 與 Beck 是 2026-11-21 讀原文；Boris、Harper、Steinberger 只看到二手整理，細節標待驗證。
 
 ## 6. 題外話：糾正改成檢查，套到 OmniKit
 
