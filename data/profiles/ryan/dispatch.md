@@ -32,7 +32,7 @@ instances:
 # 原生子代理（Agent 工具）用的是目前這段對話的帳號，不用列。
 # 要用 delegate_task 派給 Claude 時，先用目前這段對話的實例（inherited）；那個帳號額度用完，再照上面 instances 的順序（claudeAgent、claudeAgent_2、claudeAgent_claude_kai）換下一個。使用者沒有偏好（2026-11-18 定案）。
 # 2026-11-19 定案：派出去的 Claude Opus 子任務（claude-opus、antigravity-opus，不論哪個管道）effort 預設 medium，只有 ryan 明確指定才用 high 以上（細則在 data/profiles/ryan/AGENTS.md）；主線本身維持使用者指定的設定。Gemini 仍一律 high 以上。
-# 2026-11-19 更正（Codex），2026-11-21 再更正：ryan 取消的是 Codex 訂閱的續訂，不是沒有額度；到期前官方 Codex 照常能用，額度照 Codex 自己的用量上限（會撞 usage limit、等重置）。到期日待確認，到期後才沒有官方 Codex。不要寫成「沒有額度」；長期要用的審查流程不要依賴官方 Codex，改走本機 codex-chatgpt-web 橋接（127.0.0.1:17841）或改派其他模型唯讀審查。
+# 2026-11-19 更正（Codex），2026-11-21 再更正：ryan 取消了 Codex 訂閱的續訂，訂閱在 2026-11-21 的上上週到期（約 11-02 到 11-08 那週，哪天 ryan 也不確定）。到期後官方 Codex 仍跑得動：11-19 R1 跑完 8 次才撞 usage limit（寫 12-11 重置），推測是免費方案的額度（待驗證）。不要寫成「沒有額度」，也不要假設有付費方案的額度；長期要用的審查流程不要依賴官方 Codex，改走本機 codex-chatgpt-web 橋接（127.0.0.1:17841）或改派其他模型唯讀審查。
 # 2026-11-19 定案（15 分鐘逾時）：T3 server 把 Antigravity 的 promptInactivityTimeout 寫死成 "15 minutes"（Claude 與 Codex 無此限制且無法改設定）。長時間跑的主線優先用 Claude 實例；Antigravity 主線出現逾時橫幅時，先檢查工作是否已完成，未完成再送「繼續」。
 # 2026-11-20 更新（agy 多帳號已修好）：T3 0.1.11-nightly.20261120.4979 合入上游 PR 39485（原 issue #37587），三個 Antigravity 實例各自登入（實測 Ryan 23 個模型、kai 6 個、ava 6 個）。Ryan 的實例 id 改為 antigravity_ryan（原 antigravity），kai、ava 沿用原 id。
 ```
