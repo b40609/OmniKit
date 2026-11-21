@@ -1,0 +1,48 @@
+{
+ "T1-judge1": {
+  "甲": "incumbent",
+  "乙": "claudex-loop",
+  "丙": "gemini-hydrogen-xhigh",
+  "丁": "codex-plugin-cc"
+ },
+ "T1-judge2": {
+  "甲": "claudex-loop",
+  "乙": "gemini-hydrogen-xhigh",
+  "丙": "codex-plugin-cc",
+  "丁": "incumbent"
+ },
+ "T2-judge1": {
+  "甲": "codex-plugin-cc",
+  "乙": "claudex-loop",
+  "丙": "gemini-hydrogen-xhigh",
+  "丁": "incumbent"
+ },
+ "T2-judge2": {
+  "甲": "gemini-hydrogen-xhigh",
+  "乙": "incumbent",
+  "丙": "codex-plugin-cc",
+  "丁": "claudex-loop"
+ },
+ "T3-judge1": {
+  "甲": "gemini-hydrogen-xhigh",
+  "乙": "codex-plugin-cc",
+  "丙": "incumbent"
+ },
+ "T3-judge2": {
+  "甲": "incumbent",
+  "乙": "gemini-hydrogen-xhigh",
+  "丙": "codex-plugin-cc"
+ },
+ "T4-judge1": {
+  "甲": "gemini-hydrogen-xhigh"
+ },
+ "T4-judge2": {
+  "甲": "gemini-hydrogen-xhigh"
+ },
+ "T5-judge1": {
+  "甲": "gemini-hydrogen-xhigh"
+ },
+ "T5-judge2": {
+  "甲": "gemini-hydrogen-xhigh"
+ }
+}

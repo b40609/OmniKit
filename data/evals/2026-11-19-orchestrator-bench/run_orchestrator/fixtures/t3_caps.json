@@ -1,0 +1,171 @@
+{
+  "providers": [
+    {
+      "providerInstanceId": "codex",
+      "driverKind": "codex",
+      "models": [],
+      "canRunChildTask": false,
+      "constraints": [
+        "Provider instance is disabled."
+      ]
+    },
+    {
+      "providerInstanceId": "grok",
+      "driverKind": "grok",
+      "models": [
+        {
+          "id": "grok-build",
+          "label": "Grok Build"
+        }
+      ],
+      "canRunChildTask": false,
+      "constraints": [
+        "Provider instance is disabled."
+      ]
+    },
+    {
+      "providerInstanceId": "claudeAgent",
+      "driverKind": "claudeAgent",
+      "models": [
+        {
+          "id": "claude-opus-5-5",
+          "label": "Claude Opus 5.5",
+          "options": [
+            {
+              "id": "effort",
+              "values": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max",
+                "ultrathink"
+              ],
+              "default": "medium"
+            },
+            {
+              "id": "ultracode",
+              "values": [
+                false,
+                true
+              ]
+            }
+          ]
+        },
+        {
+          "id": "claude-sonnet-5-5",
+          "label": "Claude Sonnet 5.5",
+          "options": [
+            {
+              "id": "effort",
+              "values": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max",
+                "ultrathink"
+              ],
+              "default": "high"
+            }
+          ]
+        }
+      ],
+      "canRunChildTask": true,
+      "constraints": []
+    },
+    {
+      "providerInstanceId": "antigravity",
+      "driverKind": "antigravity",
+      "models": [
+        {
+          "id": "gemini-4-hydrogen",
+          "label": "Gemini 4 Hydrogen",
+          "options": [
+            {
+              "id": "thinking_level",
+              "values": [
+                "low",
+                "medium",
+                "high",
+                "xhigh"
+              ],
+              "default": "high"
+            }
+          ]
+        },
+        {
+          "id": "gemini-4-argon",
+          "label": "Gemini 4 Argon",
+          "options": [
+            {
+              "id": "thinking_level",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "high"
+            }
+          ]
+        },
+        {
+          "id": "gemini-4-neon",
+          "label": "Gemini 4 Neon",
+          "options": [
+            {
+              "id": "thinking_level",
+              "values": [
+                "low",
+                "medium",
+                "high",
+                "xhigh"
+              ],
+              "default": "high"
+            }
+          ]
+        },
+        {
+          "id": "claude-opus-5-5",
+          "label": "Claude Opus 5.5",
+          "options": [
+            {
+              "id": "thinking_level",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "medium"
+            }
+          ]
+        }
+      ],
+      "canRunChildTask": true,
+      "constraints": []
+    },
+    {
+      "providerInstanceId": "antigravity_ava",
+      "driverKind": "antigravity",
+      "models": [
+        {
+          "id": "gemini-3.8-flash",
+          "label": "Gemini 3.8 Flash",
+          "options": [
+            {
+              "id": "thinking_level",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "high"
+            }
+          ]
+        }
+      ],
+      "canRunChildTask": true,
+      "constraints": []
+    }
+  ]
+}

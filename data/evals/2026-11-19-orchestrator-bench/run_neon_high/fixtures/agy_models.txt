@@ -1,0 +1,9 @@
+Fetching available models...
+gemini-4-neon-high	Gemini 4 Neon (High)
+gemini-4-neon-xhigh	Gemini 4 Neon (XHigh)
+gemini-4-hydrogen-high	Gemini 4 Hydrogen (High)
+gemini-pro-orchestrator-neon	Orchestrator (Neon)
+gemini-pro-orchestrator-g1-pro	Orchestrator (Argon)
+gemini-3.8-flash-high	Gemini 3.8 Flash (High)
+claude-opus-5-5-medium	Claude Opus 5.5 (Medium)
+gpt-oss-120b-medium	GPT-OSS 120B (Medium)
