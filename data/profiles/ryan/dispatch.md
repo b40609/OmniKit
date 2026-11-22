@@ -16,16 +16,14 @@ instances:
     account: ryan
     classes: [gemini-pro, antigravity-opus]
     note: Gemini 4 Hydrogen 的 thinking_level 最高 xhigh；這裡的 Claude 最高只到 high
-  antigravity_ava:
-    driver: antigravity
-    account: ava
-    classes: []
-    note: 印度 Jio 方案，T3 只列 Gemini 3.8 Flash（Claude 4.6 在 2026-11-30 從 Pro 下架）；2026-11-22 ryan 同意 3.8 Flash 不再用，退出派工
-  antigravity_kai:
-    driver: antigravity
-    account: kai
-    classes: []
-    note: 同 antigravity_ava（2026-11-22 退出派工）
+  # 以下 5 個是 2026-11-22 新買的 Gemini Pro（1A：只給 ryan 自己開的對話用，classes 留空，agent 不自動派、不輪換）。
+  # 2026-11-22 orchestrator_capabilities 實測：1 到 4 都列出 Neon、Argon、Hydrogen、Orchestrator (Neon／Argon)、3.8 Flash、Claude Opus／Sonnet 5.5；5 還沒登入（模型清單是空的）。
+  antigravity_1: {driver: antigravity, account: 新 Pro 1, classes: []}
+  antigravity_2: {driver: antigravity, account: 新 Pro 2, classes: []}
+  antigravity_3: {driver: antigravity, account: 新 Pro 3, classes: []}
+  antigravity_4: {driver: antigravity, account: 新 Pro 4, classes: []}
+  antigravity_5: {driver: antigravity, account: 新 Pro 5, classes: [], note: 2026-11-22 ryan 忘記密碼、還沒登入}
+  # antigravity_ava、antigravity_kai（印度 Jio 方案，只剩 3.8 Flash）：11-22 退出派工，同日 orchestrator_capabilities 已查不到這兩個實例，從清單拿掉。
 
 # 2026-11-22 ryan 定案（帳號池 1A＋2B，細節 data/evals/2026-11-22-gemini-pro-pool.md）：
 # - ryan 新買 5 個 Gemini Pro（正式付費、能用 Neon），只給 ryan 自己開的對話用，一次一個帳號，額度用完 ryan 在 T3 手動換；
