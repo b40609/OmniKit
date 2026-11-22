@@ -195,3 +195,7 @@
 | `lemony-ai/cascadeflow` | 3,922 | MIT | false | 2026-09-25 |
 | `vybestack/llxprt-code` | 704 | Apache-2.0 | false | 2026-11-21 |
 | `code-yeongyu/senpi` | 523 | MIT | false | 2026-11-21 |
+
+## 定案（Ryan 2026-11-22）
+
+併進 12-01 的模型角色化 Plan B 一起實作，不加進完工路徑。
