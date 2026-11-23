@@ -12,10 +12,19 @@ visibility: visible
 # dispatch.py 還沒讀這個欄位（待帳號池機制實作）；派工時由主控照這條寫明程度。
 thinking_preference: max_available
 
+# 2026-11-23 ryan 定案（D2）：額度用完先照接手順序（antigravity_ryan Gemini → 同帳號 Argon 桶 → 同帳號 Claude & GPT 桶的 Opus／Sonnet →
+# Claude 三個實例依額度挑 → 停下來列各帳號剩多少、幾點重置、建議換哪個）。派給 Gemini 是為了跨家審查 Claude 的產出時，跳過換成 Claude 的兩步。
+# 細節 docs/proposals/2026-11-23-account-pool.md 第四節。dispatch.py 還沒讀這兩個欄位（第一、二階段實作）。
+on_exhausted: prompt_manual_switch
+
+# 2026-11-23 ryan 定案（D7）：3.8 Flash 有後繼 Hydrogen、GPT-OSS 120B 沒有角色使用，退出分工；OmniKit 的模型淘汰過濾預設開，這裡是額外排除。
+exclude_models: [gemini-3.8-flash, gpt-oss-120b]
+
 instances:
-  claudeAgent:            {driver: claudeAgent, account: Ryan,  classes: [claude-opus, claude-sonnet]}
-  claudeAgent_2:          {driver: claudeAgent, account: retis, classes: [claude-opus, claude-sonnet]}
-  claudeAgent_claude_kai: {driver: claudeAgent, account: Kai,   classes: [claude-opus, claude-sonnet]}
+  # 2026-11-23 ryan 確認（D3）：3 個 Claude 帳號都在 ryan 本人名下；開新子對話時依額度在工作包邊界自動挑，同一條對話不中途換（tos_ack 2026-11-23）。
+  claudeAgent:            {driver: claudeAgent, account: Ryan,  owner: self, classes: [claude-opus, claude-sonnet]}
+  claudeAgent_2:          {driver: claudeAgent, account: retis, owner: self, classes: [claude-opus, claude-sonnet]}
+  claudeAgent_claude_kai: {driver: claudeAgent, account: Kai,   owner: self, classes: [claude-opus, claude-sonnet]}
   antigravity_ryan:
     driver: antigravity
     account: ryan
@@ -36,6 +45,7 @@ instances:
 #   不列進上面的 classes，agent 不自動派、不自動輪換（Google 官方 FAQ：個人方案不支援自動輪換帳號）。接進 T3 後在這裡登記實例 id，classes 留空。
 # - Claude 自動派給 Gemini 維持 antigravity_ryan（2B）：Google 官方 FAQ 寫別家 coding agent 驅動 agy 在個人方案不支援、可能停權，ryan 知情後選擇照舊；
 #   固定這一個帳號、不輪換、一次一條（staff 2026-10-07 建議低並行）。
+#   2026-11-23 ryan 再確認（D1）：不改走 Vertex（之前用過抵免額，流程繁雜、設定困難），維持 2B；用完照上面 on_exhausted 的接手順序。
 # 原生子代理（Agent 工具）用的是目前這段對話的帳號，不用列。
 # 要用 delegate_task 派給 Claude 時，先用目前這段對話的實例（inherited）；那個帳號額度用完，再照上面 instances 的順序（claudeAgent、claudeAgent_2、claudeAgent_claude_kai）換下一個。使用者沒有偏好（2026-11-18 定案）。
 # 2026-11-19 定案：派出去的 Claude Opus 子任務（claude-opus、antigravity-opus，不論哪個管道）effort 預設 medium，只有 ryan 明確指定才用 high 以上（細則在 data/profiles/ryan/AGENTS.md）；主線本身維持使用者指定的設定。Gemini 仍一律 high 以上。

@@ -1,29 +1,31 @@
-# 帳號池與多模型分工機制（討論稿 v2）
+# 帳號池與多模型分工機制（v3，D1 到 D6 已定案）
 
-狀態：討論中。Ryan 2026-11-23 的要求：完整配套機制、不要寫死的規則；業界頂尖的多模型分工；之後開源，每個使用者的帳號與習慣都不同，要能自己選或照分析給建議。
+狀態：定案，第一階段實作中。Ryan 2026-11-23 的要求：完整配套機制、不要寫死的規則；業界頂尖的多模型分工；之後開源，每個使用者的帳號與習慣都不同，要能自己選或照分析給建議。
 依據：3 份調研（`data/evals/2026-11-23-account-pool-research-A1.md`、`-A2.md`、`2026-11-23-multimodel-workflow-research.md`）、11-22 的帳號池評估與多使用者角色調研、2026-11-23 實測。
 
-## 要 Ryan 決定的事
+## Ryan 的決定（2026-11-23）
 
-| # | 決定 | 選項 | 建議 |
-|---|---|---|---|
-| D1 | 自動派工的 Gemini 走哪條路（解決「antigravity_ryan 用完怎辦」） | (a) 新增一個用 Vertex（T3 的 Agent Platform 登入方式）的 Antigravity 實例，自動派工都走它，吃 Vertex 抵免額；訂閱帳號只給你自己開對話 (b) 維持 2B，`antigravity_ryan` 繼續自動派工，用完照 D2 (c) 自動派工輪流用 6 個訂閱帳號 | (a)。Google 官方 FAQ 明寫建議自動化走 API 金鑰或 Vertex，是唯一不碰停權紅線的路。要你在 T3 新增實例、填 GCP 專案與區域（帳務與登入只有你能做）；我先查 Vertex 上有沒有 Neon、Hydrogen 與價格。(c) FAQ 明寫不支援，最壞 6 個一起停 |
-| D2 | 額度用完時怎麼辦（每個使用者在 profile 選，`on_exhausted`） | `fail_closed` 停下來等重置／`prompt_manual_switch` 停下來列各帳號剩餘額度與重置時間、建議換哪個，你決定／`fallback_paid_api` 自動轉 API 或 Vertex，訂閱重置後自動切回 | 自動派工：先換家（Claude）再 `fallback_paid_api`（D1 選 a 時）；你自己開的對話：`prompt_manual_switch` |
-| D3 | 3 個 Claude 帳號要不要在「開新子對話時」依額度自動挑帳號 | 要／不要 | 要，但只在工作包邊界挑，同一條對話不中途換（保護 prompt cache）。前提：3 個帳號都在你本人名下（三家條款都禁止把帳號給別人用）；Anthropic 官方文件有寫同一人多帳號的做法，但「自動化存取」條款對訂閱是灰色，記成你知情同意 |
-| D4 | 解凍與實作順序 | 今天開始，分三階段（第十節） | 照建議 |
-| D5 | 調研要不要再查 | 三份都跑滿 12 組沒飽和（★1,000 以上的新名字已連 2 組沒出現）；兩位帳號池研究者用不同起手詞，結論一致 | 接受現有結果。沒飽和的長尾大多是訂閱代理小工具，規約上本來就不採用 |
-| D6 | 要不要向 T3 回報兩件事（對外發送，要你同意） | (1) 登入後預設思考程度不固定的 bug (2) 請 T3 把它已經在查的各帳號額度開放給 agent 讀 | 要。(2) 是「額度快用完建議換帳號」最乾淨的資料來源 |
+| # | 決定 | 結果 |
+|---|---|---|
+| D1 | 自動派工的 Gemini 走哪條路 | **不用 Vertex**（Ryan：之前用過抵免額，流程繁雜、設定困難）。維持 2B：自動派工只用 `antigravity_ryan`，不輪換、一次一條；用完照 D2 的接手順序 |
+| D2 | 額度用完怎麼辦 | 自動派工照第四節的接手順序，先用同一個帳號的 Claude 額度桶，再換 Claude 帳號，最後停下來列出各帳號剩多少、幾點重置、建議換哪個（`prompt_manual_switch`）。Ryan 自己開的對話也用 `prompt_manual_switch` |
+| D3 | 3 個 Claude 帳號依額度自動挑 | 同意。3 個帳號都在 Ryan 本人名下（`owner: self`），只在工作包邊界挑，同一條對話不中途換；`tos_ack` 2026-11-23 |
+| D4 | 解凍與實作 | 同意，今天開始，分三階段（第十節） |
+| D5 | 調研 | 不再查，接受現有結果 |
+| D6 | 回報 T3 | 已送出：(1) bug [pingdotgg/t3code#41197](https://github.com/pingdotgg/t3code/issues/41197)（登入後預設思考程度不固定）(2) 額度開放給 agent：上游規定 feature request 走 Discussions，同類 issue #28202、#31699、#39185 都以 not planned 關掉，所以改在既有討論 [#15137](https://github.com/pingdotgg/t3code/discussions/15137) 補 Antigravity 分桶的用例並按讚（PR #24412 曾實作 `provider_usage` 工具，10-30 關閉未合併） |
+| D7 | 舊又 CP 值低的模型（Ryan 11-23 追加） | 3.8 Flash、GPT-OSS 120B 退出 Ryan 的分工；OmniKit 自動過濾這類模型（第七節「模型淘汰過濾」） |
 
 ## 一頁統整（每輪討論更新）
 
 | # | 問題 | 現況 | 狀態 |
 |---|---|---|---|
 | 1 | 第 5 個帳號 | 實例 `antigravity_itri`，6 個模型都能用 | 完成 |
-| 2 | 額度用完怎麼辦 | 帳號池五層機制（第三節）＋接手模式（第四節） | 等 D1、D2、D3 |
-| 3 | Neon Extra、Plan B 何時做 | Neon Extra 就是 xhigh，伺服器端生效；Ryan 暫定 `max_available`（已寫進 profile），其他使用者可選四種模式（第八節）；Plan B 今天解凍 | 等 D4 |
+| 2 | 額度用完怎麼辦 | 帳號池五層機制（第三節）＋接手順序（第四節），D1 到 D3 已定 | 第一、二階段實作 |
+| 3 | Neon Extra、Plan B 何時做 | Neon Extra 就是 xhigh，伺服器端生效；Ryan 暫定 `max_available`（已寫進 profile），其他使用者可選四種模式（第八節）；Plan B 今天解凍 | 實作中 |
 | 4 | 舊資料夾 | 11 個、約 1.9 GB 已刪，剩 6 個現役實例 | 完成 |
-| 5 | 預設思考程度不一樣 | T3 探測模型清單時的時序問題，跟帳號無關（第五節） | 完成（回報 T3 等 D6） |
-| 6 | 頂尖多模型分工 | 調研證據已併入（第七節） | 等你看第七節 |
+| 5 | 預設思考程度不一樣 | T3 探測模型清單時的時序問題，跟帳號無關（第五節） | 完成，已回報 T3 #41197 |
+| 6 | 頂尖多模型分工 | 調研證據已併入（第七節） | 已定 |
+| 7 | 3.8 Flash、GPT-OSS 這類模型 | 退出分工；OmniKit 自動過濾（第七節） | 第一階段實作 |
 
 ## 二、2026-11-23 實測
 
@@ -55,11 +57,18 @@
 
 ## 四、額度用完的接手
 
-- 順序（每段都能在 profile 開關）：合規的自動通道（D1 的 Vertex 實例）→ 換一家（Claude）→ 同家換帳號（只限允許的帳號；Antigravity 訂閱不自動換）→ 照 `on_exhausted` 處理（D2）。
+- 一手證據（T3 v0.1.12 server 原始碼 `summaryWindows`，2026-11-23 讀）：一個 Antigravity 帳號的額度分好幾桶，依 `bucketId` 分家族：`gemini-*` 算「Gemini」、`gemini-argon-*` 算「Gemini Argon」（自己一桶）、`gemini-carbon-*` 算「Gemini Carbon」、`3p-*` 算「Claude & GPT (shared)」；每桶各有 5 小時與每週兩個窗口，各自的剩餘比例與重置時間。所以 Gemini 用完時，同帳號的 Claude 額度桶多半還在（Opus 與 Sonnet 共用這一桶，量少）。哪個模型扣哪一桶，等讀得到額度後實測（待驗證）。
+- 自動派工的接手順序（Ryan D1、D2 定案；每段都能在 profile 開關）：
+  1. `antigravity_ryan` 的 Gemini（Neon、Hydrogen）。
+  2. 同一個帳號的另一個 Gemini 桶（Argon，自己一桶；Argon 還在試用，只接它能做的角色）。
+  3. 同一個帳號的「Claude & GPT」桶：Claude Opus 5.5 或 Sonnet 5.5（最高 high；Opus 子任務照 Ryan 規則用 medium）。仍是 2B 這一個帳號，不算輪換。
+  4. Claude 實例（`claudeAgent`、`claudeAgent_2`、`claudeAgent_claude_kai`），在工作包邊界依額度挑（D3）。
+  5. `prompt_manual_switch`：停下來列出每個帳號剩多少、幾點重置，建議換哪個，等 Ryan 決定。
+  - 例外：派給 Gemini 的理由是「跨家審查 Claude 寫的東西」時，跳過第 3、4 步（換成 Claude 就失去跨家的意義），直接到第 5 步，或改用同模型新對話審。
 - 你自己開的對話（`prompt_manual_switch`）：顯示「ryan 剩 3%、7 小時後重置；建議下一條改用 km0529（剩 80%）」。換帳號接續靠交接檔，因為每個帳號的 Antigravity 對話記憶是分開的。
 - 額度資料來源：
   - Claude：Claude Code 狀態列本來就有 5 小時與 7 天用量（OmniKit 已接 `~/.claude`；要擴到 `~/.claude-kai`、`~/.claude-retis`）。
-  - Antigravity：T3 已經在查各帳號剩餘比例與重置時間，但沒開放給 agent（D6 的 (2)）；備案是官方 `agy -p /usage --output-format json`（A2：agy 1.1.11 起支援，這台是 1.5.14），能不能指定帳號待驗證。
+  - Antigravity：T3 的 Usage → Limits 頁面看得到各帳號各桶的剩餘與重置時間，但 MCP 與 CLI 都沒開放（2026-11-23 查：`t3 --help` 沒有用量子指令，`agy --help` 沒有用量選項，T3 不把額度寫進硬碟）。上游討論 #15137 在等；開放前 `prompt_manual_switch` 列出 OmniKit 自己記到的（429 錯誤帶的重置時間、上次讀到的值，標「舊資料」），其餘請你看 Usage → Limits。A2 提的 `agy -p /usage --output-format json` 不在 help 裡，能不能用、能不能指定帳號待驗證。
   - OmniKit 一律不讀 token。
 
 ## 五、為什麼 T3 預設思考程度會不一樣
@@ -94,11 +103,22 @@
   |---|---|---|
   | 主控、定案、高風險 | Claude Opus | 帳務、風控、下單的紅線不變 |
   | 主力實作 | Claude Opus 或 Sonnet；你自己開的對話可用 Neon xhigh | |
-  | 前置苦工、調研 | Neon xhigh | 走 D1 決定的通道 |
-  | 審查 | 同模型新對話；高風險加 Neon xhigh 或 Hydrogen xhigh（作者是 Claude 時） | 3.8 Flash 不擔任審查 |
+  | 前置苦工、調研 | Neon xhigh | 自動派工走 `antigravity_ryan`（D1），用完照第四節 |
+  | 審查 | 同模型新對話；高風險加 Neon xhigh 或 Hydrogen xhigh（作者是 Claude 時） | |
   | 可平行的研究、審查、文件大工作包 | Orchestrator (Neon) | 寫碼不拆 |
-  | 快速雜事、文件 | 3.8 Flash high | |
+  | 快速雜事、文件 | Hydrogen | 取代 3.8 Flash（D7） |
   | 待定 | Argon | 進試用，用煙霧題組決定擺哪 |
+  | 不用 | 3.8 Flash、GPT-OSS 120B | 被過濾（見下） |
+
+### 模型淘汰過濾（D7，Ryan 11-23：「OmniKit 應該幫用戶自動過濾這種舊又 CP 值低的爛模型」）
+
+- 證據（2026-11-23 查）：T3 每天下載的模型單價表（`~/.t3/userdata/usage-model-rates.json`，內容是 LiteLLM 的模型價格資料）裡，`github_copilot/gemini-3.8-flash` 與 3.6、3.7 Flash 的 `successor_model` 都寫 `gemini-4-hydrogen`（Google 自己的 `gemini/`、`vertex_ai/` 3.8 Flash 條目還沒標，所以規則 1 要跨供應商比對同名模型）；同一份表的 API 單價 Hydrogen 是 3.8 Flash 的 2 倍（每百萬 token 輸入 1.5 對 0.75 美元、輸出 7.5 對 3.75），所以淘汰的理由是「有後繼模型」，不是「比較便宜」。訂閱方案看的是每輪扣多少額度，兩者扣不扣同一桶、各扣多少，等讀得到額度後實測（待驗證）。
+- 規則（資料驅動，不寫死模型名）：
+  1. **有後繼模型或已公告下架**：價格表的 `successor_model`、`deprecation_date` 有值 → 標「已淘汰」，原因寫出後繼是誰。
+  2. **被同帳號的模型完全壓過**：同一個帳號、同一個額度桶裡，有另一個模型的能力等級不低於它、而且已通過探測 → 標「被取代」。
+  3. **沒有任何角色會選它**：不在任何角色的候選鏈裡，也沒在試用（例如 GPT-OSS 120B）→ 標「不使用」。
+- 被過濾的模型：探測時跳過（省時間），`run.py show` 不列進候選，只在最後一行寫「已過濾：3.8 Flash（後繼 Hydrogen）、GPT-OSS 120B（沒有角色使用）」；使用者可以在 profile 用 `include_models` 撈回來，或用 `exclude_models` 再多排除。
+- 給新使用者：只有舊模型可用的帳號（例如 11-22 退掉的 Jio 方案只剩 3.8 Flash）不會被過濾掉，因為規則 2 只在同帳號有更好的模型時才生效；規則 1 也只降順位，該帳號沒別的選擇時仍可用，並標原因。
 
 ## 八、每個使用者自己選的設定（開源時的核心）
 
@@ -107,9 +127,10 @@
 | 選項 | 模式 | Ryan 現在 | 給新使用者的建議規則 |
 |---|---|---|---|
 | 思考程度 `thinking_preference` | `max_available`（每個模型最高檔）、`balanced`（定案、審查、前置苦工最高，其他 high）、`economy`（只有定案與審查最高）、`custom` | `max_available`（暫定，兩週後用自己的數據檢查） | 同家多帳號且近 7 天很少撞額度 → `max_available`；一到兩個帳號 → `balanced`；單帳號常撞額度 → `economy`；選了最高卻一週撞額度好幾次就提醒降一級 |
-| 額度用完 `on_exhausted` | `fail_closed`、`prompt_manual_switch`、`fallback_paid_api` | 等 D2 | 有 API 金鑰或 Vertex → `fallback_paid_api`；怕意外帳單 → `fail_closed`；其他 → `prompt_manual_switch` |
+| 額度用完 `on_exhausted` | `fail_closed`、`prompt_manual_switch`、`fallback_paid_api` | `prompt_manual_switch`（D2），前面先走第四節的接手順序 | 有 API 金鑰或 Vertex 而且設定得起來 → `fallback_paid_api`；怕意外帳單 → `fail_closed`；其他 → `prompt_manual_switch` |
+| 模型過濾 | 預設開；`include_models`、`exclude_models` 覆寫 | 開，排除 3.8 Flash、GPT-OSS 120B（D7） | 預設開，每個被過濾的模型附原因 |
 | 帳號用途 `usage_scope` | `manual_only`、`auto_dispatch`、`fallback_only` | Antigravity 訂閱 `manual_only`（除了 2B 的 ryan） | 預設 `manual_only`；規約表 `avoid` 的要填 `tos_ack` 才能改 |
-| 選帳號策略 | `sticky`、`weekly-first`、`priority`、`least-used` | 等 D3 | 1 個帳號 → `sticky`；同家多帳號 → `weekly-first`＋黏著 |
+| 選帳號策略 | `sticky`、`weekly-first`、`priority`、`least-used` | Claude 三個帳號 `weekly-first`＋黏著（D3）；Antigravity 自動派工固定 `antigravity_ryan` | 1 個帳號 → `sticky`；同家多帳號 → `weekly-first`＋黏著 |
 | 派工可見度 `visibility` | `visible`、`headless` | `visible`（11-21 定案） | 預設 `visible` |
 | 通知 | 無、桌面、手機推播 | 待定 | 有帳號進入 `validation_required`、`auth_expired` 時一律通知 |
 
@@ -128,7 +149,7 @@
 
 ## 十、實作階段（D4，解凍後）
 
-1. **第一階段：名冊與探測**：名冊欄位與規約表（遷移 `data/profiles/ryan/dispatch.md`）、`provider-terms-policy`、探測指令（T3 MCP，一個帳號一條對話、自動結案）、`run.py show` 每格附原因、Ryan 的選項寫進 profile。
+1. **第一階段：名冊與探測**：名冊欄位與規約表（遷移 `data/profiles/ryan/dispatch.md`）、`provider-terms-policy`、模型淘汰過濾、探測指令（T3 MCP，一個帳號一條對話、自動結案、跳過被過濾的模型）、`run.py show` 每格附原因、Ryan 的選項寫進 profile。
 2. **第二階段：狀態與接手**：錯誤分類寫進委派紀錄、`pool-state.json`、`on_exhausted` 接手、額度視圖（Claude 狀態列擴到三個設定目錄；Antigravity 等 T3 介面或 `agy /usage`）、通知。
 3. **第三階段：評測與新使用者**：煙霧題組（含同題 high 對 xhigh）、試用狀態、每週差異提醒、`omnikit-setup` 訪談與建議器。
 
