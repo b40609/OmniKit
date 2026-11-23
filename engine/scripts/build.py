@@ -39,7 +39,7 @@ MARKETPLACES = {
     "codex": ROOT / ".agents" / "plugins" / "marketplace.json",
 }
 
-STATUS = {"default": "預設", "trial": "試用", "pending": "待評估", "rejected": "拒絕", "retired": "退役"}
+STATUS = {"default": "預設", "trial": "試用", "on_demand": "按需備案", "pending": "待評估", "rejected": "拒絕", "retired": "退役"}
 FOCUS = {"active": "主動找", "watch": "有新工具才看", "frozen": "凍結"}
 # 模組的三層：領域是要交付的成果，能力是 agent 碰得到什麼，基礎是 agent 自己怎麼運作
 LAYER = {"domain": "領域", "capability": "能力", "foundation": "基礎"}
@@ -49,7 +49,7 @@ KIND = {
 }
 AGENT = {"claude": "Claude Code", "codex": "Codex"}
 # 卡片在槽位裡的排列：先看已經決定的，待評估放最後
-ORDER = {"default": 0, "trial": 1, "rejected": 2, "retired": 3, "pending": 4}
+ORDER = {"default": 0, "trial": 1, "on_demand": 2, "rejected": 3, "retired": 4, "pending": 5}
 # 內嵌的 favicon，省掉一個請求，也不會 404
 FAVICON = (
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E"
@@ -131,7 +131,7 @@ def install_lines(tool, cfg):
 def card(tool, roster):
     cfg = roster["config"]
     status = tool["status"]
-    text = [tool["id"], tool["name"], KIND.get(tool.get("kind"), ""), tool.get("reason", ""), tool.get("notes", ""),
+    text = [tool["id"], tool["name"], KIND.get(tool.get("kind"), ""), tool.get("reason", ""), tool.get("trigger_when", ""), tool.get("notes", ""),
             *tool.get("sources", []), slot_label(roster, tool) if tool["slots"] else ""]
     title = f'<a href="{esc(tool["url"])}">{esc(tool["name"])}</a>' if tool.get("url") else esc(tool["name"])
     meta = " · ".join(x for x in [KIND.get(tool.get("kind"), ""), "、".join(AGENT[a] for a in tool.get("works_with", []))] if x)
@@ -143,6 +143,8 @@ def card(tool, roster):
         parts.append(f'<p class="card-meta">{esc(meta)}</p>')
     if tool.get("reason"):
         parts.append(f'<p class="reason"><time datetime="{tool["decided_at"]}">{tool["decided_at"]}</time>{esc(tool["reason"])}</p>')
+    if tool.get("trigger_when"):
+        parts.append(f'<p class="trigger">觸發條件：{esc(tool["trigger_when"])}</p>')
     if tool.get("trial_until"):
         until = tool["trial_until"]
         parts.append(f'<p class="trial">試用到 <time datetime="{until}">{until}</time>（<span class="left" data-until="{until}">到期日</span>）</p>')
@@ -258,7 +260,7 @@ def highlights(roster):
     items = "".join(
         f'<li><time datetime="{t["decided_at"]}">{t["decided_at"]}</time>'
         f'<span class="what">{esc(t["name"])}<span class="badge st-{t["status"]}">{STATUS[t["status"]]}</span></span>'
-        f'<span class="why">{esc(t["reason"])}</span></li>'
+        f'<span class="why">{esc(t.get("reason") or t.get("trigger_when") or "")}</span></li>'
         for t in decided
     )
     return (

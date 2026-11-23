@@ -19,8 +19,13 @@
       "items": { "$ref": "#/$defs/id" }
     },
     "status": {
-      "description": "default 預設、trial 試用、pending 待評估、rejected 拒絕、retired 退役",
-      "enum": ["default", "trial", "pending", "rejected", "retired"]
+      "description": "default 預設、trial 試用、on_demand 按需備案（Progressive Disclosure，不常駐）、pending 待評估、rejected 拒絕、retired 退役",
+      "enum": ["default", "trial", "on_demand", "pending", "rejected", "retired"]
+    },
+    "trigger_when": {
+      "description": "on_demand 工具的按需觸發條件索引（Progressive Disclosure，不載入常駐規則或工作流）",
+      "type": "string",
+      "minLength": 1
     },
     "url": { "type": "string", "pattern": "^https://" },
     "works_with": {
@@ -72,9 +77,19 @@
   },
   "allOf": [
     {
-      "description": "換或不換都要留理由與日期，而且要放在某個槽位",
-      "if": { "properties": { "status": { "enum": ["default", "trial", "rejected", "retired"] } } },
+      "description": "正式採用、試用或退役都要留理由與日期，而且要放在某個槽位",
+      "if": { "properties": { "status": { "enum": ["default", "trial", "retired"] } } },
       "then": { "required": ["reason", "decided_at"], "properties": { "slots": { "minItems": 1 } } }
+    },
+    {
+      "description": "拒絕要留理由與日期（不在任何槽位範圍的工具可留空 slots）",
+      "if": { "properties": { "status": { "const": "rejected" } } },
+      "then": { "required": ["reason", "decided_at"] }
+    },
+    {
+      "description": "按需備案要寫觸發條件索引與決定日期（Progressive Disclosure，不常駐）",
+      "if": { "properties": { "status": { "const": "on_demand" } } },
+      "then": { "required": ["trigger_when", "decided_at"] }
     },
     {
       "description": "新工具先試用兩週，要寫到期日",

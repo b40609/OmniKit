@@ -61,7 +61,7 @@ AGENTS = {"claude": "claude-code", "codex": "codex"}  # 名冊與答案用的名
 LABELS = {"claude": "Claude Code", "codex": "Codex"}
 KINDS = ("install", "replace", "remove", "native", "rules")
 TITLES = {"install": "裝", "replace": "換", "remove": "拿掉", "native": "用內建的就好", "rules": "規則檔瘦身"}
-STATUS = {"default": "預設", "trial": "試用", "pending": "待評估", "rejected": "拒絕", "retired": "退役"}
+STATUS = {"default": "預設", "trial": "試用", "on_demand": "按需備案", "pending": "待評估", "rejected": "拒絕", "retired": "退役"}
 # 掃得到有沒有裝的種類；獨立程式、線上服務、命令列工具、程式庫、裝在專案裡的集合與規則包掃不到
 DETECTABLE = {"skill", "plugin", "mcp"}
 OVERLAP_DAYS = 7  # 跟內建功能重疊、裝了這麼多天都沒用到，才列進拿掉（不用等 30 天）

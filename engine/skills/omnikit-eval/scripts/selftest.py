@@ -76,6 +76,30 @@ def main():
     ])
     check("掃描摘要：同一份 skill 重複標記只算一份", [(f["skills"], f["hits"]) for f in merged] == [(2, 5)])
 
+    import tempfile
+    safe_scanner = lambda _p: {"max_severity": "SAFE", "findings": []}  # noqa: E731
+    high_scanner = lambda _p: {"max_severity": "HIGH", "findings": [{"severity": "HIGH", "rule": "EXEC", "where": "SKILL.md"}]}  # noqa: E731
+    with tempfile.TemporaryDirectory(prefix="okl0-badge-") as td:
+        base = Path(td)
+        pure = base / "pure"
+        pure.mkdir()
+        (pure / "SKILL.md").write_text("# Pure Skill\n", encoding="utf-8")
+        check("安全徽章：純靜態 SKILL.md 判為 skill_scan_pass",
+              layer0.scan_local(pure, scanner_fn=safe_scanner)["security_badge"] == "skill_scan_pass")
+        exec_repo = base / "exec"
+        exec_repo.mkdir()
+        (exec_repo / "SKILL.md").write_text("# Skill\n", encoding="utf-8")
+        (exec_repo / "package.json").write_text('{"name":"demo"}', encoding="utf-8")
+        check("安全徽章：含 package.json 判為 executable_needs_review",
+              layer0.scan_local(exec_repo, scanner_fn=safe_scanner)["security_badge"] == "executable_needs_review")
+        empty_repo = base / "no-skill"
+        empty_repo.mkdir()
+        (empty_repo / "README.md").write_text("# No skill\n", encoding="utf-8")
+        check("安全徽章：掃出 0 個 SKILL.md 判為 executable_needs_review",
+              layer0.scan_local(empty_repo, scanner_fn=safe_scanner)["security_badge"] == "executable_needs_review")
+        check("安全徽章：檢出高風險規則判為 risk_flagged",
+              layer0.scan_local(pure, scanner_fn=high_scanner)["security_badge"] == "risk_flagged")
+
     for slot in roster["slots"]:
         expected = {t["id"] for t in tools if slot["id"] in t["slots"] and t["status"] in ("default", "trial")}
         if expected:

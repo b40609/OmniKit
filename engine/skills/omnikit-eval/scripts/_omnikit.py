@@ -37,7 +37,7 @@ def roster():
 
 
 def card_summary(tool):
-    keys = ("id", "name", "status", "slots", "url", "reason", "decided_at", "trial_until", "notes")
+    keys = ("id", "name", "status", "slots", "url", "reason", "trigger_when", "decided_at", "trial_until", "notes")
     return {k: tool[k] for k in keys if k in tool}
 
 
@@ -49,4 +49,14 @@ def emit(doc):
 def utf8_stdout():
     # 自我測試會把 stdout 換成 StringIO，它沒有 reconfigure
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+
+def utf8_stdio():
+    """確保 Windows 環境下 stdin/stdout/stderr 皆為 UTF-8，不因 cp950/cp1252 亂碼。"""
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except (OSError, ValueError):
+                pass
