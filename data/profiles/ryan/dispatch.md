@@ -7,6 +7,11 @@
 # 無頭派送（agy_cli）只在 ryan 同意或 T3 沒在跑時用。這是 ryan 的個人偏好，共用層的說明在 dispatch-policy.md 的 visibility。
 visibility: visible
 
+# 2026-11-23 ryan 暫定：每個模型開到它能開的最高思考程度（Neon、Hydrogen、Orchestrator 用 xhigh；Argon、3.8 Flash 最高 high）。
+# 理由：ryan 帳號多、Gemini 的 token 不用省。這只是 ryan 的偏好；其他使用者要能自己選或照分析建議（docs/proposals/2026-11-23-account-pool.md 第七節）。
+# dispatch.py 還沒讀這個欄位（待帳號池機制實作）；派工時由主控照這條寫明程度。
+thinking_preference: max_available
+
 instances:
   claudeAgent:            {driver: claudeAgent, account: Ryan,  classes: [claude-opus, claude-sonnet]}
   claudeAgent_2:          {driver: claudeAgent, account: retis, classes: [claude-opus, claude-sonnet]}
@@ -16,14 +21,15 @@ instances:
     account: ryan
     classes: [gemini-pro, antigravity-opus]
     note: Gemini 4 Hydrogen 的 thinking_level 最高 xhigh；這裡的 Claude 最高只到 high
-  # 以下 5 個是 2026-11-22 新買的 Gemini Pro（1A：只給 ryan 自己開的對話用，classes 留空，agent 不自動派、不輪換）。
-  # 2026-11-22 orchestrator_capabilities 實測：1 到 4 都列出 Neon、Argon、Hydrogen、Orchestrator (Neon／Argon)、3.8 Flash、Claude Opus／Sonnet 5.5；5 還沒登入（模型清單是空的）。
-  antigravity_1: {driver: antigravity, account: 新 Pro 1, classes: []}
-  antigravity_2: {driver: antigravity, account: 新 Pro 2, classes: []}
-  antigravity_3: {driver: antigravity, account: 新 Pro 3, classes: []}
-  antigravity_4: {driver: antigravity, account: 新 Pro 4, classes: []}
-  antigravity_5: {driver: antigravity, account: 新 Pro 5, classes: [], note: 2026-11-22 ryan 忘記密碼、還沒登入}
-  # antigravity_ava、antigravity_kai（印度 Jio 方案，只剩 3.8 Flash）：11-22 退出派工，同日 orchestrator_capabilities 已查不到這兩個實例，從清單拿掉。
+  # 以下 5 個是 2026-11-22 新買的 Gemini Pro（1A：只給 ryan 自己開的對話用，classes 留空，agent 不自動派、不輪換；分工重新討論中，定案前照舊）。
+  # 2026-11-23 ryan 全部刪掉重登，實例 id 改成下面這些（舊的 antigravity_1 到 5 作廢，資料夾已刪）。
+  # 2026-11-23 實測：6 個 Antigravity 實例 × Neon、Argon、Hydrogen、Orchestrator (Neon／Argon)、3.8 Flash 全部能用，都讀得到 OmniKit 規則。
+  antigravity_kanny163: {driver: antigravity, account: kanny163, classes: []}
+  antigravity_km0529:   {driver: antigravity, account: km0529,   classes: []}
+  antigravity_stk608:   {driver: antigravity, account: stk608,   classes: []}
+  antigravity_stk824:   {driver: antigravity, account: stk824,   classes: []}
+  antigravity_itri:     {driver: antigravity, account: itri,     classes: []}
+  # antigravity_ava、antigravity_kai（印度 Jio 方案，只剩 3.8 Flash）：11-22 退出派工並從 T3 移除；資料夾 2026-11-23 已刪。
 
 # 2026-11-22 ryan 定案（帳號池 1A＋2B，細節 data/evals/2026-11-22-gemini-pro-pool.md）：
 # - ryan 新買 5 個 Gemini Pro（正式付費、能用 Neon），只給 ryan 自己開的對話用，一次一個帳號，額度用完 ryan 在 T3 手動換；
