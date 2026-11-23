@@ -589,7 +589,7 @@ def main(argv=None):
     if args.cmd == "suite":
         s = load_suite(data)
         if args.json:
-            print(json.dumps(s, ensure_ascii=False, indent=2))
+            print(json.dumps(s, ensure_ascii=False, indent=2, default=str))
         else:
             print(f"煙霧題組 v{s.get('suite_version')}（{len(s['tasks'])} 題，全自動確定性批改）：")
             for t in s["tasks"]:
@@ -786,8 +786,9 @@ def selftest():
             failures.append(label)
 
     suite = load_suite(profiles.DATA)
-    ok("煙霧題組：載入 8 題，涵蓋 python_fn 與 json_match",
-       len(suite["tasks"]) == 8 and {t["kind"] for t in suite["tasks"]} == {"python_fn", "json_match"})
+    ok("煙霧題組：載入 8 題，涵蓋 python_fn 與 json_match，且可正確序列化為 JSON",
+       len(suite["tasks"]) == 8 and {t["kind"] for t in suite["tasks"]} == {"python_fn", "json_match"}
+       and json.loads(json.dumps(suite, ensure_ascii=False, default=str))["suite_version"] == suite["suite_version"])
 
     # 1. 參考解答全部通過確定性批改
     t0 = datetime(2026, 11, 23, 6, 0, 0, tzinfo=timezone.utc)

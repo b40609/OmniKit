@@ -274,8 +274,9 @@ usage_signal:
     只有 Pro、Max、Ultra 訂閱，而且要該對話第一個回應之後才有）。OmniKit 用 dispatch.py statusline 把它存成本機快照，
     dispatch.py usage 讀快照。
   pending: >-
-    【待驗證】T3 透過 Agent SDK 跑 Claude 時，狀態列指令會不會執行還沒實測；快照可能只在 Claude Code CLI 更新，
-    而且是「當時那個帳號」的用量。查不到（unknown）時不要假設已達 80%；照預設選項走，使用者說已達 80% 才切換。
+    2026-11-23 實測：claude_allow.py 已把 dispatch.py statusline --dir 接進 ~/.claude、~/.claude-kai、~/.claude-retis 三個目錄
+    （經 Git Bash 實測皆可正常寫入各自路徑鍵）；同時確認 T3 透過 Agent SDK 跑 Claude 與 `claude -p` 非互動模式都不執行 statusLine，
+    快照只在互動式 Claude Code CLI TUI 對話第一輪回應後更新。查不到（unknown）時不要假設已達 80%；照預設選項走，使用者說已達 80% 才切換。
 
 # Sonnet 試行的品質保護（ryan 的要求：可以改用 Sonnet，但品質不能受影響）。
 trials:

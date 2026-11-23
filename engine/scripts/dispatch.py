@@ -796,8 +796,9 @@ def main(argv=None):
         except Exception:  # noqa: BLE001
             pass
         if args.then:
-            # Claude Code 在 Windows 上用 Git Bash 跑狀態列指令；原本的指令照同一個 shell 跑，寫法才對得上
-            bash = shutil.which("bash") if os.name == "nt" else None
+            # Claude Code 在 Windows 上用 Git Bash 跑狀態列指令；優先找 Git Bash，避開未裝發行版的 System32\bash.exe（WSL stub）
+            git_bash = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Git" / "bin" / "bash.exe"
+            bash = (str(git_bash) if git_bash.is_file() else shutil.which("bash")) if os.name == "nt" else None
             r = subprocess.run([bash, "-c", args.then] if bash else args.then, shell=not bash, input=raw, capture_output=True)
             sys.stdout.buffer.write(r.stdout)
         elif snap and "seven_day" in snap:

@@ -198,13 +198,21 @@ def norm_dir(path):
 
 def _extract_retry_seconds(text):
     low = text.lower()
+    # 先抓 Antigravity 常見的複合相對時間（例如 "Resets in 33m32s"、"Resets in 1h20m15s"）
+    m_comp = re.search(
+        r"(?:try again|retry|reset(?:s)?)\s+in\s+(?:(\d+)\s*h(?:ours?|rs?)?\s*)?(?:(\d+)\s*m(?:inutes?|ins?)?\s*)?(?:(\d+)\s*s(?:econds?|ecs?)?)?(?:\b|(?=\.))",
+        low,
+    )
+    if m_comp and any(m_comp.groups()):
+        h = int(m_comp.group(1) or 0)
+        mn = int(m_comp.group(2) or 0)
+        s = int(m_comp.group(3) or 0)
+        total = h * 3600 + mn * 60 + s
+        if total > 0:
+            return total
     m = re.search(r"retry[- ]?after\s*[:=]?\s*(\d+)\s*(s|sec|seconds|m|min|minutes|h|hr|hours)?\b", low)
     if m:
         n, unit = int(m.group(1)), (m.group(2) or "s")
-        return n * (3600 if unit.startswith("h") else 60 if unit.startswith("m") else 1)
-    m = re.search(r"(?:try again|retry|reset(?:s)?)\s+in\s+(\d+)\s*(seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h)\b", low)
-    if m:
-        n, unit = int(m.group(1)), m.group(2)
         return n * (3600 if unit.startswith("h") else 60 if unit.startswith("m") else 1)
     return None
 
@@ -276,7 +284,8 @@ def classify_error(text, status_code=None, model=None, now=None):
         "5 hour", "resets at", "reset_time", "resets in", "out of credits", "resource_exhausted",
     ))
     is_rate_word = any(k in low for k in (
-        "rate limit", "rate_limit", "too many requests", "slow down", "overloaded", "try again in a few seconds",
+        "rate limit", "rate_limit", "too many requests", "slow down", "overloaded",
+        "try again in a few seconds", "no capacity available", "experiencing high traffic",
     ))
     if code == 429 or is_quota_word or is_rate_word:
         if is_quota_word or (iso_m is not None) or (retry_sec is not None and retry_sec > 30):
@@ -1457,6 +1466,8 @@ def selftest():
     # 1. 錯誤分類器與敏感資訊遮罩
     c_rate = classify_error("HTTP 429 Too Many Requests: rate limit exceeded, try again in 5 seconds", 429, now=t0)
     c_quota = classify_error("HTTP 429 RESOURCE_EXHAUSTED: weekly quota limit reached, resets at 2026-11-23T12:00:00Z", 429, now=t0)
+    c_agy_q = classify_error("Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 33m32s.", now=t0)
+    c_cap = classify_error("Our servers are experiencing high traffic right now. (UNAVAILABLE (code 503): No capacity available for model gemini-4-argon-high)", now=t0)
     c_401 = classify_error("401 invalid_grant Bearer secret-token-1234567890", 401, now=t0)
     c_val = classify_error("403 VALIDATION_REQUIRED please visit https://accounts.google.com/verify?id=abc", 403, now=t0)
     c_tos = classify_error("403 PERMISSION_DENIED TOS_VIOLATION appeal at https://support.google.com/appeal", 403, now=t0)
@@ -1464,10 +1475,12 @@ def selftest():
     c_loc = classify_error("403 Location not supported in this region", 403, now=t0)
     c_mod = classify_error("403 model claude-opus-5-5 is not allowed for your tier", 403, model="claude-opus-5-5", now=t0)
     c_t15 = classify_error("Antigravity sent nothing for 15 minutes, so T3 Code stopped the turn", now=t0)
-    ok("錯誤分類：速率型 429（原帳號稍等）vs 額度型 429（換或冷卻，抓到重置時間）",
+    ok("錯誤分類：速率型 429／503 容量不足（原帳號稍等）vs 額度型 429／複合重置時間（抓到 resets_at）",
        c_rate["kind"] == "rate_limit" and c_rate["retry_same"] is True
+       and c_cap["kind"] == "rate_limit" and c_cap["retry_same"] is True
        and c_quota["kind"] == "quota_exhausted" and c_quota["retry_same"] is False
-       and c_quota["resets_at"] == "2026-11-23T12:00:00+00:00")
+       and c_quota["resets_at"] == "2026-11-23T12:00:00+00:00"
+       and c_agy_q["kind"] == "quota_exhausted" and c_agy_q["resets_at"] == "2026-11-23T06:33:32+00:00")
     ok("錯誤分類：401 遮罩 token、403 區分驗證鎖／TOS 封禁／地區／模型權限／15 分鐘逾時；GCP SERVICE_DISABLED 不誤判封禁",
        c_401["kind"] == "auth_expired" and "secret-token" not in c_401["summary"] and "[REDACTED]" in c_401["summary"]
        and c_val["kind"] == "validation_required" and c_val["url"] == "https://accounts.google.com/verify?id=abc"
