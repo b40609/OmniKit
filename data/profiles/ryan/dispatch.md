@@ -19,16 +19,21 @@ on_exhausted: prompt_manual_switch
 
 # 2026-11-23 ryan 定案（D7）：3.8 Flash 有後繼 Hydrogen、GPT-OSS 120B 沒有角色使用，退出分工；OmniKit 的模型淘汰過濾預設開，這裡是額外排除。
 exclude_models: [gemini-3.8-flash, gpt-oss-120b]
+# Argon 不在現行政策的角色裡，單價表（Copilot）又寫了後繼 gemini-4-carbon，自動過濾會把它濾掉；
+# 提案第七節定的是「進試用，用煙霧題組決定擺哪」，所以先留著。試用結束不用就拿掉這行。
+include_models: [gemini-4-argon]
 
 instances:
   # 2026-11-23 ryan 確認（D3）：3 個 Claude 帳號都在 ryan 本人名下；開新子對話時依額度在工作包邊界自動挑，同一條對話不中途換（tos_ack 2026-11-23）。
-  claudeAgent:            {driver: claudeAgent, account: Ryan,  owner: self, classes: [claude-opus, claude-sonnet]}
-  claudeAgent_2:          {driver: claudeAgent, account: retis, owner: self, classes: [claude-opus, claude-sonnet]}
-  claudeAgent_claude_kai: {driver: claudeAgent, account: Kai,   owner: self, classes: [claude-opus, claude-sonnet]}
+  claudeAgent:            {driver: claudeAgent, account: Ryan,  owner: self, tos_ack: "2026-11-23 D3：本人名下，工作包邊界依額度挑", classes: [claude-opus, claude-sonnet]}
+  claudeAgent_2:          {driver: claudeAgent, account: retis, owner: self, tos_ack: "2026-11-23 D3：本人名下，工作包邊界依額度挑", classes: [claude-opus, claude-sonnet]}
+  claudeAgent_claude_kai: {driver: claudeAgent, account: Kai,   owner: self, tos_ack: "2026-11-23 D3：本人名下，工作包邊界依額度挑", classes: [claude-opus, claude-sonnet]}
   antigravity_ryan:
     driver: antigravity
     account: ryan
     classes: [gemini-pro, antigravity-opus]
+    owner: self
+    tos_ack: "2026-11-22 2B：知道 Google FAQ 寫消費方案不支援別家 agent 驅動 agy，選擇照舊；固定這一個、不輪換、一次一條"
     note: Gemini 4 Hydrogen 的 thinking_level 最高 xhigh；這裡的 Claude 最高只到 high
   # 以下 5 個是 2026-11-22 新買的 Gemini Pro（1A：只給 ryan 自己開的對話用，classes 留空，agent 不自動派、不輪換；分工重新討論中，定案前照舊）。
   # 2026-11-23 ryan 全部刪掉重登，實例 id 改成下面這些（舊的 antigravity_1 到 5 作廢，資料夾已刪）。

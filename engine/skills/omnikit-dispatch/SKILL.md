@@ -15,6 +15,14 @@ uv run scripts/run.py show
 
 印出套上你的實例之後，每一級依序可以用的選項，開頭附本週 Claude 用量。由上往下挑第一個「有實例、額度沒用完、條件成立」的。用量是「未知」時不要假設已達 80%。開子對話或派子代理時，在任務說明寫明級別與思考程度（Claude 寫 effort，Gemini／Antigravity 寫 thinking_level）。
 
+## 帳號與模型：哪些能自動派、哪些被過濾（帳號池第一階段）
+
+`run.py show` 的「帳號」段與每個選項底下的「不派 <實例>：原因」來自 `engine/scripts/accounts.py`：T3 的實例清單、profile 的 `usage_scope`、`owner`、`tos_ack`，對照共用層規約表 `data/rules/provider-terms.md`（各家條款原文與查證日）。沒列在「可自動派」的帳號不要派；要改由使用者在 profile 決定，不要自己填 `tos_ack`。
+
+- 模型淘汰過濾：profile 的 `exclude_models`、原廠下架日已過、後繼已是你分工裡的模型而且帳號就有、沒有角色使用而且已有後繼，這幾種在 show 標「已過濾」，不派也不探測；`include_models` 可以撈回。轉售平台寫的後繼只顯示「提醒（不過濾）」。
+- 新帳號或新模型要探測時：用 T3 MCP 的 `orchestrator_capabilities`（`search` 帶實例 id）存成 JSON，跑 `uv run engine/scripts/accounts.py probe-plan --catalog <檔>` 照印出的步驟做（一個實例一條對話、輪流換模型、最後 settle），結果寫成 JSON 交給 `accounts.py probe-record --file <檔>`。
+- `accounts.py scan` 看每個實例的完整原因；`accounts.py check` 檢查規約表欄位與是否超過 90 天沒重查。
+
 ## 派給 Antigravity 的模型：照使用者的 visibility 偏好選管道
 
 選到的類別是 Antigravity 的（gemini-pro、gemini-flash、antigravity-opus）時，管道照使用者 profile `dispatch.md` 的 `visibility`（沒寫用 `dispatch-policy.md` 的 `visibility.default`）。`show` 會印出這個使用者的偏好、該用的管道順序與退路。

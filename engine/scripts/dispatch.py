@@ -233,8 +233,10 @@ def instances_for(pol, mine, cls, agent="claude"):
     return found
 
 
-def resolved(pol, mine, agent="claude"):
-    """每一級的選項，加上可以用的實例；沒有實例的標 skip。"""
+def resolved(pol, mine, agent="claude", judge=None, model_note=None):
+    """每一級的選項，加上可以用的實例；沒有實例的標 skip。
+    judge（accounts.annotate 給的）：(實例, 模型) → (能不能自動派, 原因)；不能派的實例移到 blocked 並附原因。
+    model_note：模型被淘汰過濾時回原因（整個選項跳過）。"""
     out = {}
     for level, lv in pol["levels"].items():
         tasks = [t for t, v in pol["tasks"].items() if v["level"] == level]
@@ -243,10 +245,16 @@ def resolved(pol, mine, agent="claude"):
                             ("second_opinion", lv.get("second_opinion") or [])):
             for o in items:
                 cls = pol["model_classes"][o["class"]]
-                inst = instances_for(pol, mine, o["class"], agent)
+                inst, blocked = instances_for(pol, mine, o["class"], agent), []
+                if judge:
+                    verdicts = [(i, *judge(i, cls["model"])) for i in inst]
+                    inst = [i for i, ok, _ in verdicts if ok]
+                    blocked = [{"instance": i, "why": why} for i, ok, why in verdicts if not ok]
+                filtered = model_note(cls["model"]) if model_note else ""
                 rows.append({"kind": kind, "class": o["class"], "model": cls["model"], "thinking": o["thinking"],
                              "thinking_name": "effort" if cls["driver"] == "claudeAgent" else "thinking_level",
-                             "when": o.get("when"), "tasks": o.get("tasks"), "instances": inst, "skip": not inst,
+                             "when": o.get("when"), "tasks": o.get("tasks"), "instances": [] if filtered else inst,
+                             "blocked": blocked, "filtered": filtered, "skip": bool(filtered) or not inst,
                              "trial": o.get("trial"), "pending": o.get("pending"), "note": o.get("note"), "role": o.get("role")})
         out[level] = {"name": lv.get("name", level), "tasks": tasks, "options": rows}
     return out
@@ -457,7 +465,7 @@ def antigravity_lines(pol, mine=None):
     return lines
 
 
-def show_text(table, profile, has_personal, usage=None, pol=None, mine=None):
+def show_text(table, profile, has_personal, usage=None, pol=None, mine=None, accounts=None):
     lines = [f"profile：{profile}；{'個人實例：有' if has_personal else '沒有個人分派設定，只用原生子代理'}"]
     if usage:
         lines.append(usage_text(usage))
@@ -466,15 +474,39 @@ def show_text(table, profile, has_personal, usage=None, pol=None, mine=None):
         route = [o for o in lv["options"] if o["kind"] == "route"]
         for o in lv["options"]:
             head = {"prework": "前置", "second_opinion": "第二意見"}.get(o["kind"]) or f"{route.index(o) + 1}."
-            inst = "沒有實例，跳過" if o["skip"] else "實例：" + "、".join(o["instances"])
+            inst = (f"已過濾，跳過（{o['filtered']}）" if o.get("filtered") else
+                    ("沒有可自動派的實例，跳過" if o.get("blocked") else "沒有實例，跳過") if o["skip"] else
+                    "實例：" + "、".join(o["instances"]))
             extra = (f"；條件：{o['when']}" if o["when"] else "") + (f"；只接：{'、'.join(o['tasks'])}" if o["tasks"] else "")
             role = f"；{o['role']}" if o["role"] and o["kind"] != "route" else ""
             lines.append(f"  {head} {o['class']}（{o['model']}）{o['thinking_name']} {o['thinking']}；{inst}{extra}{role}")
+            for b in o.get("blocked") or []:
+                lines.append(f"     不派 {b['instance']}：{b['why']}")
             if o["pending"]:
                 lines.append(f"     {o['pending'].strip()}")
+    if accounts:
+        lines += accounts
     if pol:
         lines += channel_lines(pol) + antigravity_lines(pol, mine)
     return "\n".join(lines)
+
+
+def account_lines(rows, filtered, hints=()):
+    """名冊摘要：哪些帳號只給手動、哪些有問題，以及被過濾的模型（帳號池第一階段）。"""
+    lines = ["\n帳號（accounts.py scan 看完整原因）："]
+    auto = [r["id"] for r in rows if r["auto"][0]]
+    manual = [r["id"] for r in rows if r["usage_scope"] == "manual_only" and r["in_t3"]]
+    lines.append(f"  可自動派：{'、'.join(auto) or '無'}")
+    if manual:
+        lines.append(f"  只給手動（manual_only）：{'、'.join(manual)}")
+    for r in rows:
+        if not r["auto"][0] and r["usage_scope"] != "manual_only":
+            lines.append(f"  不派 {r['id']}：{r['auto'][1]}")
+    if filtered:
+        lines.append(f"  已過濾的模型：{'、'.join(filtered)}")
+    for h in hints:
+        lines.append(f"  提醒（不過濾）：{h}")
+    return lines
 
 
 def stats_text(s):
@@ -687,11 +719,14 @@ def main(argv=None):
         print("\n".join(errors) if errors else f"分派政策沒有問題（profile：{name}）")
         return 1 if errors else 0
     if args.cmd == "show":
-        table = resolved(pol, mine, args.agent)
+        import accounts  # 帳號名冊與模型過濾；accounts 也 import 這支，所以在這裡才載入
+        rows, judge, model_note = accounts.annotate(pol, mine, data, state)
+        filtered, hints = accounts.filtered_summary(pol, mine, state, accounts.rates_index())
+        table = resolved(pol, mine, args.agent, judge, model_note)
         u = weekly_usage(state, pol["usage_signal"]["claude_weekly_threshold_pct"])
-        print(json.dumps({"usage": u, "levels": table, "channels": pol.get("channels"),
-                          "visibility": visibility(pol, mine)}, ensure_ascii=False, indent=2)
-              if args.json else show_text(table, name, mine is not None, u, pol, mine))
+        print(json.dumps({"usage": u, "levels": table, "channels": pol.get("channels"), "accounts": rows,
+                          "filtered_models": filtered, "model_hints": hints, "visibility": visibility(pol, mine)}, ensure_ascii=False, indent=2)
+              if args.json else show_text(table, name, mine is not None, u, pol, mine, account_lines(rows, filtered, hints)))
         return 0
     if args.cmd == "log":
         rec = make_record(pol, args, rules_version(data), name, project_name())
@@ -796,10 +831,19 @@ def selftest():
 
     t = resolved(pol, ryan, "claude")
     med = t["medium"]["options"]
-    ok("ryan：中級第一個 Gemini 選項是 Hydrogen（antigravity，thinking_level high），Flash 用 ava、kai",
+    # 2026-11-22 ava、kai 退出，2026-11-23 Flash 退出 ryan 的分工（D7）：Flash 沒有實例
+    ok("ryan：中級第一個 Gemini 選項是 Hydrogen（antigravity，thinking_level high），Flash 沒有實例",
        [o for o in med if o["class"] == "gemini-pro"][0]["instances"] == ["antigravity_ryan"]
-       and [o for o in med if o["class"] == "gemini-flash"][0]["instances"] == ["antigravity_ava", "antigravity_kai"]
+       and [o for o in med if o["class"] == "gemini-flash"][0]["instances"] == []
        and [o for o in med if o["class"] == "gemini-pro"][0]["thinking_name"] == "thinking_level")
+    tj = resolved(pol, ryan, "claude", lambda i, m: (i != "claudeAgent_2", "測試：停用"),
+                  lambda m: "測試：過濾" if m == "gemini-3.8-flash" else "")
+    son = [o for o in tj["medium"]["options"] if o["class"] == "claude-sonnet"][0]
+    fl = [o for o in tj["medium"]["options"] if o["class"] == "gemini-flash"][0]
+    ok("judge 不能派的實例移到 blocked 附原因；被過濾的模型整個選項跳過",
+       "claudeAgent_2" not in son["instances"] and son["blocked"] == [{"instance": "claudeAgent_2", "why": "測試：停用"}]
+       and fl["skip"] and fl["filtered"] == "測試：過濾"
+       and "已過濾，跳過（測試：過濾）" in show_text(tj, "ryan", True) and "不派 claudeAgent_2：測試：停用" in show_text(tj, "ryan", True))
     ok("Claude 類別在 Claude 底下原生子代理排第一",
        [o for o in t["high"]["options"] if o["class"] == "claude-opus"][0]["instances"][0] == "native")
     ok("ryan：高級與更高級先派 Hydrogen 做前置苦工、Opus 定案後再由 Hydrogen xhigh 唯讀審查；驗收的第二意見不是選配",
