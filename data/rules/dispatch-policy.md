@@ -18,11 +18,14 @@ policy_version: 1
 # 模型類別：個人層把它對到自己的供應商實例。thinking 的名稱：Claude 叫 effort，Gemini／Antigravity 叫 thinking_level。
 # 模型代號、預設值與上限取自 T3 orchestrator_capabilities（2026-11-14 實際查到的目錄）。
 model_classes:
-  claude-opus:      {model: claude-opus-5-5,   driver: claudeAgent, default_thinking: medium, max_thinking: max}
-  claude-sonnet:    {model: claude-sonnet-5-5, driver: claudeAgent, default_thinking: high,   max_thinking: max}
-  gemini-pro:       {model: gemini-4-hydrogen, driver: antigravity, default_thinking: high,   max_thinking: xhigh, forbid_thinking: [low, medium]}
-  gemini-flash:     {model: gemini-3.8-flash,  driver: antigravity, default_thinking: high,   max_thinking: high,  forbid_thinking: [low, medium]}
-  antigravity-opus: {model: claude-opus-5-5,   driver: antigravity, default_thinking: high,   max_thinking: high}
+  claude-opus:         {model: claude-opus-5-5,              driver: claudeAgent, default_thinking: medium, max_thinking: max}
+  claude-sonnet:       {model: claude-sonnet-5-5,            driver: claudeAgent, default_thinking: high,   max_thinking: max}
+  gemini-pro:          {model: gemini-4-neon,                driver: antigravity, default_thinking: xhigh,  max_thinking: xhigh, forbid_thinking: [low, medium]}
+  gemini-fast:         {model: gemini-4-hydrogen,            driver: antigravity, default_thinking: high,   max_thinking: xhigh, forbid_thinking: [low, medium]}
+  gemini-argon:        {model: gemini-4-argon,               driver: antigravity, default_thinking: high,   max_thinking: high,  forbid_thinking: [low, medium]}
+  gemini-orchestrator: {model: gemini-pro-orchestrator-neon, driver: antigravity, default_thinking: xhigh,  max_thinking: xhigh, forbid_thinking: [low, medium]}
+  gemini-flash:        {model: gemini-3.8-flash,             driver: antigravity, default_thinking: high,   max_thinking: high,  forbid_thinking: [low, medium]}
+  antigravity-opus:    {model: claude-opus-5-5,              driver: antigravity, default_thinking: high,   max_thinking: high}
 # 2026-11-18 ryan 定案：所有 Gemini 模型的調用，思考程度永遠是 high 或更高（gemini-pro、gemini-flash 都禁用 low、medium；
 #   dispatch.py check 與 run.py agy 會擋）。
 # 背景數據（第三方來源都待驗證）：
@@ -52,11 +55,12 @@ tasks:
   acceptance-loop: {level: higher, desc: 驗收一直不過}
   verify:          {level: verify, desc: 獨立驗收}
 
-# 分工原則（2026-11-16，ryan：Claude 只拿來做真正重要的事）：跨模型、跨應用的主控與工作者。
-# - 主控（規劃、拆解、定案、最後驗收）是主線的 Claude；量大、不關鍵的工作派 Hydrogen（管道照使用者偏好 visibility，見下面的 visibility）。
-# - 寫的模型與審的模型不同家：Hydrogen 寫的由主控驗收；Opus 做的重要任務由 Hydrogen xhigh 唯讀審查（second_opinion）。
-# - 重要任務先派 Hydrogen 做前置苦工（prework），Opus 只花在判斷與定案。
-# 業界對照與實測在 docs/proposals/2026-11-16-cross-model-dispatch.md。
+# 分工原則（2026-11-16、2026-11-23 定案 A，ryan：Claude 只拿來做真正重要的事）：跨模型、跨應用的主控與工作者。
+# - 主控（規劃、拆解、定案、高風險）是主線的 Claude Opus；中級、前置苦工與調研預設派 Gemini 4 Neon xhigh（管道照使用者偏好 visibility）。
+# - 快速雜事與文件用 Gemini 4 Hydrogen（gemini-fast，取代 3.8 Flash）；可平行研究／審查／文件大工作包用 Orchestrator (Neon)，寫碼不拆。
+# - 寫的模型與審的模型不同家：Gemini 寫的由主控驗收；Opus 做的重要任務由 Neon xhigh 唯讀審查（second_opinion）。
+# - 重要任務先派 Neon xhigh 做前置苦工（prework），Opus 只花在判斷與定案。
+# 業界對照與實測在 docs/proposals/2026-11-16-cross-model-dispatch.md 與 docs/proposals/2026-11-23-account-pool.md 第七節。
 # 級別 → 依序嘗試的選項。沒有對應實例的類別直接跳過；when 是成立才用的條件，沒寫就是預設。
 # prework 在 route 之前跑、second_opinion 在 route 之後跑；兩者都沒有實例就跳過，不擋 route。
 # Claude 類別在 Claude 底下一定有（原生子代理），其他類別要個人層有實例。
@@ -64,26 +68,26 @@ levels:
   medium:
     name: 中
     route:
-      - class: claude-sonnet
-        thinking: medium
-        when: 專案規則要求 Claude，或任務要用的工具 agy 沒有（寫明是哪個工具）；「主控是 Claude」不算理由
-        trial: sonnet-trial
-      - {class: gemini-pro, thinking: high, note: 中級的預設；禁用 low；Gemini 的 token 不用省。管道照使用者偏好 visibility（見 visibility）}
+      - {class: gemini-pro, thinking: xhigh, note: 中級、調研與小修改的預設（Neon xhigh，2026-11-23 定案 A）；管道照使用者偏好 visibility}
+      - class: gemini-fast
+        thinking: high
+        tasks: [docs, readonly]
+        note: 快速雜事與文件（Hydrogen，取代 3.8 Flash），或 gemini-pro 額度用完時接手
       - class: gemini-flash
         thinking: high
-        when: gemini-pro 的額度用完
+        when: gemini-pro 與 gemini-fast 的額度用完且帳號只剩舊模型
         tasks: [docs, readonly]
         note: >-
-          2026-11-16 定案：Flash 只接 docs 與 readonly；改程式碼的任務（ui-small、code-small）落到下一個選項
-          claude-sonnet（effort medium），因為 Flash 寫程式能力差很多（BenchLM 寫程式綜合 53.7 對 Sonnet 5.5 的 81.1，第三方【待驗證】）。
+          舊模型保底：帳號有 Hydrogen 時會被自動過濾跳過；2026-11-16 定案 Flash 只接 docs 與 readonly，
+          改程式碼的任務落到退路 claude-sonnet（effort medium）。
       - class: claude-sonnet
         thinking: medium
-        note: 退路：上面都沒有可用的實例（例如沒有 Gemini／Antigravity），或 gemini-pro 額度用完時的 ui-small、code-small
+        note: 退路：沒有 Gemini 實例（例如同事只有 Claude），或 on_exhausted 接手順序落到 Claude 池時才用（定案 A：不再列為中級第一順位）
         trial: sonnet-trial
   high:
     name: 高
     prework:
-      - {class: gemini-pro, thinking: high, role: 前置苦工：讀程式、收資料、重現、列候選與證據，不下結論、不改檔；Opus 拿它的整理定案}
+      - {class: gemini-pro, thinking: xhigh, role: 前置苦工：讀程式、收資料、重現、列候選與證據，不下結論、不改檔；Opus 拿它的整理定案}
     route:
       - class: antigravity-opus
         thinking: high
@@ -110,7 +114,8 @@ levels:
 
 # 驗收不過時怎麼升級。每次升級都要記進紀錄的 escalations；同設定重跑記 retries。
 escalation:
-  - {from: gemini-pro, to: claude-sonnet, thinking: medium, why: Hydrogen 驗收不過，先用 Sonnet medium 重跑；再不過照下一條升 Opus}
+  - {from: gemini-fast, to: gemini-pro, thinking: xhigh, why: Hydrogen 驗收不過，先升 Neon xhigh 重跑}
+  - {from: gemini-pro, to: claude-opus, thinking: high, why: Neon xhigh 驗收不過，改由 Opus 定案重跑}
   - {from: claude-sonnet, to: claude-opus, thinking: same, why: Sonnet 試行的品質保護：驗收不過就用 Opus、同一級 effort 重跑}
   - {from: level, to: higher, after_failures: 2, why: 「驗收一直不過」定義為同一個任務驗收不過 2 次（2026-11-16 定案）}
   - {from: {class: claude-opus, thinking: xhigh}, to: {class: claude-opus, thinking: max}, why: max 只在 xhigh 也失敗時才用}

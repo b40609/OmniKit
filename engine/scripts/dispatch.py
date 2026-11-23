@@ -958,7 +958,7 @@ def selftest():
        all(o.get("thinking") in THINKING for lv in pol["levels"] for o in options(pol, lv)))
 
     bad = json.loads(json.dumps(pol))
-    bad["levels"]["medium"]["route"][1]["thinking"] = "low"
+    bad["levels"]["medium"]["route"][0]["thinking"] = "low"
     bad["levels"]["high"]["route"][0]["thinking"] = "xhigh"
     bad["levels"]["higher"]["route"][0].pop("thinking")
     bad["tasks"]["docs"]["level"] = "nope"
@@ -970,16 +970,20 @@ def selftest():
 
     t = resolved(pol, ryan, "claude")
     med = t["medium"]["options"]
-    # 2026-11-22 ava、kai 退出，2026-11-23 Flash 退出 ryan 的分工（D7）；thinking_preference: max_available 把 Hydrogen 升到 xhigh
-    ok("ryan：中級第一個 Gemini 選項是 Hydrogen（antigravity，max_available 升到 xhigh），Flash 沒有實例",
-       [o for o in med if o["class"] == "gemini-pro"][0]["instances"] == ["antigravity_ryan"]
-       and [o for o in med if o["class"] == "gemini-pro"][0]["thinking"] == "xhigh"
-       and [o for o in med if o["class"] == "gemini-pro"][0]["thinking_why"] == "thinking_preference: max_available"
+    # 2026-11-23 定案 A：中級第一順位是 Neon xhigh（gemini-pro）；Hydrogen（gemini-fast）做快速雜事與文件；Sonnet 退到退路；Flash 沒有實例
+    ok("ryan：中級第一順位是 Neon xhigh（antigravity_ryan），Hydrogen（max_available 升 xhigh）居次，Sonnet 為退路，Flash 沒有實例",
+       med[0]["class"] == "gemini-pro" and med[0]["model"] == "gemini-4-neon"
+       and med[0]["thinking"] == "xhigh" and med[0]["instances"] == ["antigravity_ryan"]
+       and med[0]["thinking_name"] == "thinking_level"
+       and [o for o in med if o["class"] == "gemini-fast"][0]["model"] == "gemini-4-hydrogen"
+       and [o for o in med if o["class"] == "gemini-fast"][0]["thinking"] == "xhigh"
+       and [o for o in med if o["class"] == "gemini-fast"][0]["thinking_why"] == "thinking_preference: max_available"
        and [o for o in med if o["class"] == "gemini-flash"][0]["instances"] == []
-       and [o for o in med if o["class"] == "gemini-pro"][0]["thinking_name"] == "thinking_level")
+       and med[-1]["class"] == "claude-sonnet")
     econ = resolved(pol, {**ryan, "thinking_preference": "economy"}, "claude")
-    ok("thinking_preference: economy 降一般任務一檔，但絕不把 Gemini 降到禁用的 medium／low",
+    ok("thinking_preference: economy 降一般任務一檔（Neon xhigh→high、Sonnet medium→low），但絕不把 Gemini 降到禁用的 medium／low",
        [o for o in econ["medium"]["options"] if o["class"] == "gemini-pro"][0]["thinking"] == "high"
+       and [o for o in econ["medium"]["options"] if o["class"] == "gemini-fast"][0]["thinking"] == "high"
        and [o for o in econ["medium"]["options"] if o["class"] == "claude-sonnet"][0]["thinking"] == "low")
     ok("個人層 thinking_preference、on_exhausted、account_strategy、notify 寫錯會報錯",
        len(check(pol, {"thinking_preference": "ultra", "on_exhausted": "spin", "account_strategy": "rng", "notify": "sms"})) == 4)
@@ -997,8 +1001,9 @@ def selftest():
        and "已過濾，跳過（測試：過濾）" in show_text(tj, "ryan", True) and "不派 claudeAgent_2：測試：停用" in show_text(tj, "ryan", True))
     ok("Claude 類別在 Claude 底下原生子代理排第一",
        [o for o in t["high"]["options"] if o["class"] == "claude-opus"][0]["instances"][0] == "native")
-    ok("ryan：高級與更高級先派 Hydrogen 做前置苦工、Opus 定案後再由 Hydrogen xhigh 唯讀審查；驗收的第二意見不是選配",
+    ok("ryan：高級與更高級先派 Neon xhigh 做前置苦工、Opus 定案後再由 Neon xhigh 唯讀審查；驗收的第二意見不是選配",
        all([o["kind"] for o in t[lv]["options"]][0] == "prework" and [o["kind"] for o in t[lv]["options"]][-1] == "second_opinion"
+           and t[lv]["options"][0]["class"] == "gemini-pro" and t[lv]["options"][0]["thinking"] == "xhigh"
            and t[lv]["options"][-1]["class"] == "gemini-pro" and t[lv]["options"][-1]["thinking"] == "xhigh"
            for lv in ("high", "higher"))
        and "optional" not in pol["levels"]["verify"]["second_opinion"][0])
@@ -1007,8 +1012,9 @@ def selftest():
        all(o["skip"] for lv in bare.values() for o in lv["options"] if not o["class"].startswith("claude-"))
        and any(o["class"] == "claude-sonnet" and o["thinking"] == "medium" and not o["skip"] for o in bare["medium"]["options"]))
 
-    ok("agy：類別加思考程度寫進模型代號（Hydrogen xhigh、Antigravity 的 Opus high）",
-       agy_model(pol, "gemini-pro", "xhigh") == "gemini-4-hydrogen-xhigh"
+    ok("agy：類別加思考程度寫進模型代號（Neon xhigh、Hydrogen xhigh、Antigravity 的 Opus high）",
+       agy_model(pol, "gemini-pro", "xhigh") == "gemini-4-neon-xhigh"
+       and agy_model(pol, "gemini-fast", "xhigh") == "gemini-4-hydrogen-xhigh"
        and agy_model(pol, "antigravity-opus", "high") == "claude-opus-5-5-high")
     ok("agy：不合政策的不派（Claude Code 的類別、禁用的 low、超過上限、沒寫思考程度）",
        fails(lambda: agy_model(pol, "claude-opus", "high")) and fails(lambda: agy_model(pol, "gemini-pro", "low"))

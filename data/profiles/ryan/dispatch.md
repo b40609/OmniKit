@@ -30,10 +30,10 @@ instances:
   antigravity_ryan:
     driver: antigravity
     account: ryan
-    classes: [gemini-pro, antigravity-opus]
+    classes: [gemini-pro, gemini-fast, gemini-orchestrator, gemini-argon, antigravity-opus]
     owner: self
     tos_ack: "2026-11-22 2B：知道 Google FAQ 寫消費方案不支援別家 agent 驅動 agy，選擇照舊；固定這一個、不輪換、一次一條"
-    note: Gemini 4 Hydrogen 的 thinking_level 最高 xhigh；這裡的 Claude 最高只到 high
+    note: Gemini 4 Neon、Hydrogen、Orchestrator 最高 xhigh；Argon 與這裡的 Claude 最高 high
   # 以下 5 個是 2026-11-22 新買的 Gemini Pro（1A：只給 ryan 自己開的對話用，classes 留空，agent 不自動派、不輪換；分工重新討論中，定案前照舊）。
   # 2026-11-23 ryan 全部刪掉重登，實例 id 改成下面這些（舊的 antigravity_1 到 5 作廢，資料夾已刪）。
   # 2026-11-23 實測：6 個 Antigravity 實例 × Neon、Argon、Hydrogen、Orchestrator (Neon／Argon)、3.8 Flash 全部能用，都讀得到 OmniKit 規則。
