@@ -176,21 +176,26 @@ def ast_safety_check(code):
 SANDBOX_HARNESS = r'''
 import json, math, sys
 
-payload = json.loads(sys.stdin.read())
+# -I 會忽略 PYTHONIOENCODING，在英文 Windows（cp1252）下文字模式會炸 UnicodeEncodeError；一律走 binary UTF-8
+payload = json.loads(sys.stdin.buffer.read().decode("utf-8"))
 code = payload["code"]
 entry = payload["entry"]
 tests = payload["tests"]
+
+def emit(obj):
+    sys.stdout.buffer.write((json.dumps(obj, ensure_ascii=False) + "\n").encode("utf-8"))
+    sys.stdout.buffer.flush()
 
 ns = {}
 try:
     exec(compile(code, "<smoke>", "exec"), ns)
 except Exception as e:
-    print(json.dumps({"ok": False, "passed": 0, "total": len(tests), "detail": f"載入失敗：{type(e).__name__}: {e}"}))
+    emit({"ok": False, "passed": 0, "total": len(tests), "detail": f"載入失敗：{type(e).__name__}: {e}"})
     sys.exit(0)
 
 fn = ns.get(entry)
 if not callable(fn):
-    print(json.dumps({"ok": False, "passed": 0, "total": len(tests), "detail": f"找不到可呼叫函式 {entry}"}))
+    emit({"ok": False, "passed": 0, "total": len(tests), "detail": f"找不到可呼叫函式 {entry}"})
     sys.exit(0)
 
 passed = 0
@@ -218,8 +223,8 @@ for idx, t in enumerate(tests, 1):
         else:
             fails.append(f"#{idx}: 拋出 {type(e).__name__}: {e}")
 
-print(json.dumps({"ok": passed == len(tests), "passed": passed, "total": len(tests),
-                  "detail": "全部通過" if not fails else "；".join(fails[:3])}, ensure_ascii=False))
+emit({"ok": passed == len(tests), "passed": passed, "total": len(tests),
+      "detail": "全部通過" if not fails else "；".join(fails[:3])})
 '''
 
 
@@ -228,23 +233,25 @@ def grade_python(task, response_text, timeout=5):
     unsafe = ast_safety_check(code)
     if unsafe:
         return {"ok": False, "passed": 0, "total": len(task.get("tests") or []), "detail": unsafe}
-    payload = json.dumps({"code": code, "entry": task["entry"], "tests": task["tests"]}, ensure_ascii=False)
+    payload = json.dumps({"code": code, "entry": task["entry"], "tests": task["tests"]}, ensure_ascii=False).encode("utf-8")
+    safe_env = {k: os.environ[k] for k in ("SYSTEMROOT", "WINDIR", "PATH", "LANG", "LC_ALL") if k in os.environ}
     try:
         with tempfile.TemporaryDirectory() as td:
             r = subprocess.run(
                 [sys.executable, "-I", "-c", SANDBOX_HARNESS],
-                input=payload, capture_output=True, text=True, encoding="utf-8", errors="replace",
-                cwd=td, timeout=timeout, env={"PYTHONIOENCODING": "utf-8", "SYSTEMROOT": os.environ.get("SYSTEMROOT", "")},
+                input=payload, capture_output=True, cwd=td, timeout=timeout, env=safe_env,
             )
     except subprocess.TimeoutExpired:
         return {"ok": False, "passed": 0, "total": len(task["tests"]), "detail": f"執行逾時（>{timeout} 秒）"}
     except OSError as e:
         return {"ok": False, "passed": 0, "total": len(task["tests"]), "detail": f"子行程啟動失敗：{e}"}
+    out = (r.stdout or b"").decode("utf-8", "replace").strip()
+    err = (r.stderr or b"").decode("utf-8", "replace").strip()
     try:
-        return json.loads((r.stdout or "").strip().splitlines()[-1])
+        return json.loads(out.splitlines()[-1])
     except (IndexError, ValueError):
         return {"ok": False, "passed": 0, "total": len(task["tests"]),
-                "detail": f"無法讀取批改輸出（exit {r.returncode}）：{(r.stderr or r.stdout)[:160]}"}
+                "detail": f"無法讀取批改輸出（exit {r.returncode}）：{(err or out)[:160]}"}
 
 
 def grade_json(task, response_text):
