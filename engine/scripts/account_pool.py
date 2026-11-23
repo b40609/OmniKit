@@ -1617,13 +1617,18 @@ def selftest():
         ok("防震盪：5 分鐘冷卻內維持原帳號，過 5 分鐘且領先 > 5 個百分點才切換",
            sel_cd["chosen"] == "claudeAgent_2" and sel_after["chosen"] == "claudeAgent")
 
-        # 接手順序：Gemini 桶冷卻中 → 輪到 Argon；跨家審查 Claude 時跳過第 3、4 步
+        # 接手順序：ryan 屏蔽 Argon 後跳過步驟 2 接手到同帳號 Opus；開啟 include_models 時接手到 Argon；跨家審查跳過第 3、4 步
         record_error(c_state, "antigravity_ryan", "quota_exhausted", driver="antigravity", model="gemini-4-neon",
                      resets_at=iso_utc(t0 + timedelta(hours=2)), now=t0)
         p_gen = failover_plan(pol, mine, rows, load_state(c_state), qs, purpose="general", now=t0)
         p_rev = failover_plan(pol, mine, rows, load_state(c_state), qs, purpose="cross_review_claude", now=t0)
-        ok("接手順序：Gemini 冷卻跳過，接手到同帳號 Argon；跨家審查跳過第 3、4 步（不換回 Claude）",
-           p_gen["steps"][0]["status"] == "skipped" and p_gen["active_step"]["stage"] == "antigravity_argon"
+        mine_with_argon = dict(mine, exclude_models=[m for m in (mine.get("exclude_models") or []) if m != "gemini-4-argon"],
+                               include_models=["gemini-4-argon"])
+        p_arg = failover_plan(pol, mine_with_argon, rows, load_state(c_state), qs, purpose="general", now=t0)
+        ok("接手順序：Gemini 冷卻＋Argon 屏蔽跳到同帳號 Opus；啟用 Argon 時接手到 Argon；跨家審查跳過第 3、4 步",
+           p_gen["steps"][0]["status"] == "skipped" and p_gen["steps"][1]["status"] == "skipped"
+           and p_gen["active_step"]["stage"] == "antigravity_3p"
+           and p_arg["active_step"]["stage"] == "antigravity_argon"
            and p_rev["steps"][2]["status"] == "skipped" and p_rev["steps"][3]["status"] == "skipped"
            and "跨家審查" in p_rev["steps"][2]["why"])
 
