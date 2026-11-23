@@ -181,6 +181,7 @@ payload = json.loads(sys.stdin.buffer.read().decode("utf-8"))
 code = payload["code"]
 entry = payload["entry"]
 tests = payload["tests"]
+tuple_list_args = set(payload.get("tuple_list_args") or [])
 
 def emit(obj):
     sys.stdout.buffer.write((json.dumps(obj, ensure_ascii=False) + "\n").encode("utf-8"))
@@ -201,7 +202,10 @@ if not callable(fn):
 passed = 0
 fails = []
 for idx, t in enumerate(tests, 1):
-    args = t.get("args") or []
+    args = list(t.get("args") or [])
+    for pos in tuple_list_args:
+        if 0 <= pos < len(args) and isinstance(args[pos], list):
+            args[pos] = [tuple(x) if isinstance(x, list) else x for x in args[pos]]
     want_exc = t.get("raises")
     try:
         got = fn(*args)
@@ -233,7 +237,10 @@ def grade_python(task, response_text, timeout=5):
     unsafe = ast_safety_check(code)
     if unsafe:
         return {"ok": False, "passed": 0, "total": len(task.get("tests") or []), "detail": unsafe}
-    payload = json.dumps({"code": code, "entry": task["entry"], "tests": task["tests"]}, ensure_ascii=False).encode("utf-8")
+    payload = json.dumps({
+        "code": code, "entry": task["entry"], "tests": task["tests"],
+        "tuple_list_args": task.get("tuple_list_args") or [],
+    }, ensure_ascii=False).encode("utf-8")
     safe_env = {k: os.environ[k] for k in ("SYSTEMROOT", "WINDIR", "PATH", "LANG", "LC_ALL") if k in os.environ}
     try:
         with tempfile.TemporaryDirectory() as td:
@@ -339,10 +346,17 @@ def grade_submission(suite, items, state=None, save=True, now=None):
 def _update_trials_from_smoke(state, graded, now=None):
     doc = load_trials(state)
     ts = (now or datetime.now(timezone.utc)).isoformat(timespec="seconds")
-    by_ml = {}
-    for g in graded:
-        by_ml.setdefault((g["model"], g["thinking"]), []).append(g)
-    for (model, th), rows in by_ml.items():
+    touched = {(g["model"], g["thinking"]) for g in graded}
+    # 從整份煙霧紀錄取每題最新一筆彙總，避免分批補測時後批覆蓋前批題數
+    latest = {}
+    for r in read_smoke(state):
+        key = (r.get("model"), r.get("thinking"))
+        if key in touched and r.get("task_id"):
+            latest[(key[0], key[1], r["task_id"])] = r
+    for model, th in sorted(touched):
+        rows = [r for (m, lv, _), r in latest.items() if m == model and lv == th]
+        if not rows:
+            continue
         m = doc["models"].setdefault(model, {"status": "discovered", "role": None, "baseline": None, "smoke": {}, "updated_at": ts})
         ok_n = sum(1 for r in rows if r["ok"])
         m.setdefault("smoke", {})[th] = {
@@ -757,10 +771,9 @@ import heapq
 def topo_min(nodes, edges):
     adj = {n: set() for n in nodes}
     indeg = {n: 0 for n in nodes}
-    for u, v in edges:
-        if v not in adj[u]:
-            adj[u].add(v)
-            indeg[v] += 1
+    for u, v in set(edges):
+        adj[u].add(v)
+        indeg[v] += 1
     h = [n for n in nodes if indeg[n] == 0]
     heapq.heapify(h)
     out = []

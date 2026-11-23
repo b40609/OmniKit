@@ -179,6 +179,7 @@ tasks:
       只輸出一個 ```python 程式碼區塊。
     kind: python_fn
     entry: topo_min
+    tuple_list_args: [1]
     tests:
       - {args: [["a", "b", "c", "d"], [["b", "d"], ["a", "d"], ["c", "a"]]], expect: ["b", "c", "a", "d"]}
       - {args: [["x", "y", "z"], [["x", "y"], ["y", "x"]]], expect: null}
