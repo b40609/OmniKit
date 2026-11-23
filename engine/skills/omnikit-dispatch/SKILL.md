@@ -15,11 +15,17 @@ uv run scripts/run.py show
 
 印出套上你的實例之後，每一級依序可以用的選項，開頭附本週 Claude 用量。由上往下挑第一個「有實例、額度沒用完、條件成立」的。用量是「未知」時不要假設已達 80%。開子對話或派子代理時，在任務說明寫明級別與思考程度（Claude 寫 effort，Gemini／Antigravity 寫 thinking_level）。
 
-## 帳號與模型：哪些能自動派、哪些被過濾（帳號池第一階段）
+## 帳號與模型：哪些能自動派、哪些被過濾（帳號池第一、二階段）
 
-`run.py show` 的「帳號」段與每個選項底下的「不派 <實例>：原因」來自 `engine/scripts/accounts.py`：T3 的實例清單、profile 的 `usage_scope`、`owner`、`tos_ack`，對照共用層規約表 `data/rules/provider-terms.md`（各家條款原文與查證日）。沒列在「可自動派」的帳號不要派；要改由使用者在 profile 決定，不要自己填 `tos_ack`。
+`run.py show` 的「帳號」段、額度用完接手順序與每個選項底下的「不派 <實例>：原因」來自 `engine/scripts/accounts.py` 與 `engine/scripts/account_pool.py`：T3 的實例清單、profile 的 `usage_scope`、`owner`、`tos_ack`、`thinking_preference`、`on_exhausted`，對照共用層規約表 `data/rules/provider-terms.md`（各家條款原文與查證日）與本機狀態檔 `~/.omnikit/dispatch/pool-state.json`。沒列在「可自動派」或正在冷卻／異常的帳號不要派；要改由使用者在 profile 決定，不要自己填 `tos_ack`。
 
-- 模型淘汰過濾：profile 的 `exclude_models`、原廠下架日已過、後繼已是你分工裡的模型而且帳號就有、沒有角色使用而且已有後繼，這幾種在 show 標「已過濾」，不派也不探測；`include_models` 可以撈回。轉售平台寫的後繼只顯示「提醒（不過濾）」。
+- 模型淘汰過濾：profile 的 `exclude_models`、原廠下架日已過、同帳號同額度桶已有更強模型且這個供應商沒有角色使用（例如 Antigravity 裡的 Sonnet 5.5 被同桶的 Opus 5.5 壓過）、後繼已是你分工裡的模型而且帳號就有、沒有角色使用而且已有後繼，這幾種在 show 標「已過濾」，不派也不探測；`include_models` 可以撈回。轉售平台寫的後繼只顯示「提醒（不過濾）」。
+- 狀態與接手（`engine/scripts/account_pool.py`）：
+  - `status`：看所有帳號的六維正交狀態（`paused`、`auth_expired`、`validation_required`、`tos_banned`、`hard_forbidden`、`forbidden_models`、`cooldowns`）與未解決警示。
+  - `usage --refresh-agy`（或 `run.py usage --all --refresh-agy`）：看全部 Claude 設定目錄的狀態列快照，並用 `agy -p /usage --output-format json` 刷新本機 `agy` 帳號的各桶剩餘與重置時間（其餘 Antigravity 帳號看 T3 Usage → Limits）。
+  - `failover [--purpose cross_review_claude]`：依 `on_exhausted` 與即時狀態印出接手順序（跨家審查 Claude 產出時會跳過換回 Claude 的兩步）。
+  - `select-claude [--persist]`：依策略（預設 `weekly-first`＋5 分鐘冷卻＋5 個百分點防震盪）在工作包邊界挑 Claude 實例。
+  - `record-error`／`record-ok`／`pause`／`unpause`／`clear`／`alerts`：記錯誤或成功、手動暫停、清除狀態、檢視或發送通知（`validation_required`、`auth_expired`、`tos_banned` 也會由 `session_nudge.py` 在主線第一回合顯示一行提醒）。
 - 新帳號或新模型要探測時：用 T3 MCP 的 `orchestrator_capabilities`（`search` 帶實例 id）存成 JSON，跑 `uv run engine/scripts/accounts.py probe-plan --catalog <檔>` 照印出的步驟做（一個實例一條對話、輪流換模型、最後 settle），結果寫成 JSON 交給 `accounts.py probe-record --file <檔>`。
 - `accounts.py scan` 看每個實例的完整原因；`accounts.py check` 檢查規約表欄位與是否超過 90 天沒重查。
 
@@ -109,11 +115,12 @@ agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一
 
 ```
 uv run scripts/run.py log --task <任務類型> --class <模型類別> --thinking <程度> --verdict <pass|fail|partial|skipped> \
-  [--channel native|agy_cli|t3_cli|delegate_task|t3_thread_launch] [--instance <實例>] [--retries N] [--escalations N] [--final-class <類別>] [--control] [--note <一句話>]
+  [--channel native|agy_cli|t3_cli|delegate_task|t3_thread_launch] [--instance <實例>] [--retries N] [--escalations N] [--final-class <類別>] [--error <種類> | --error-text <原文>] [--resets-at <時間>] [--error-url <https://...>] [--control] [--note <一句話>]
 ```
 
 - `--task`：共用層 `tasks` 的 key（docs、ui-small、readonly、code-small、accounting、risk、orders、design-decision、hard-bug、acceptance-loop、verify）。級別會自動帶出來。
 - `--verdict`：驗收結論。`skipped` 是沒有驗收，不算進通過率。
+- `--error`／`--error-text`：錯誤分類（`rate_limit`、`quota_exhausted`、`auth_expired`、`validation_required`、`tos_banned`、`hard_forbidden`、`model_forbidden`、`timeout_15min`、`other`）。寫進 `log.jsonl` 並自動同步更新 `pool-state.json`（敏感 token 自動遮罩）；`verdict=pass` 且無錯時會自動清除該實例的暫時鎖定。
 - 一次通過：沒寫 `--first-pass` 時，結論是 pass 而且沒有重跑、沒有升級才算。
 - `--instance`：用 delegate_task、t3_thread_launch 時寫 providerInstanceId，用 t3_cli 時寫 `--provider` 的值；原生子代理不用寫。
 - `--control`：Sonnet 試行的對照組（中級改派 Opus 的那幾次）。
@@ -135,10 +142,10 @@ uv run scripts/run.py stats
 
 依級別與一開始派的類別列一次通過率，再列 Sonnet 試行的判定：Sonnet 累積 20 筆、Opus 同級也有足夠基準時，Sonnet 低 10 個百分點以上就是「退回」。照輸出回報，不要自己改規則；要退回或調整，先問使用者。
 
-## 本週 Claude 用量
+## 本週 Claude 用量與多帳號額度視圖
 
 ```
-uv run scripts/run.py usage
+uv run scripts/run.py usage [--all] [--refresh-agy]
 ```
 
-讀 Claude Code 狀態列存下的快照。沒接狀態列、不是訂閱制、或快照的這一週已經重置，就是「未知」。怎麼接狀態列，見 README 的「子任務分派與委派紀錄」。
+不帶參數時讀目前 Claude Code 設定目錄的狀態列快照；加 `--all` 列出全部 Claude 設定目錄（如 `~/.claude`、`~/.claude-kai`、`~/.claude-retis`）與 Antigravity 帳號的額度與狀態，加 `--refresh-agy` 會呼叫 `agy -p /usage --output-format json` 刷新本機 `agy` 帳號的各桶額度。狀態列已由 `claude_allow.py` 自動串接到各 Claude 設定目錄（保留原本的狀態列）。

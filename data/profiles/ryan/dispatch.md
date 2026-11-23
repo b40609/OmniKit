@@ -7,14 +7,13 @@
 # 無頭派送（agy_cli）只在 ryan 同意或 T3 沒在跑時用。這是 ryan 的個人偏好，共用層的說明在 dispatch-policy.md 的 visibility。
 visibility: visible
 
-# 2026-11-23 ryan 暫定：每個模型開到它能開的最高思考程度（Neon、Hydrogen、Orchestrator 用 xhigh；Argon、3.8 Flash 最高 high）。
+# 2026-11-23 ryan 暫定：每個模型開到它能開的最高思考程度（Neon、Hydrogen、Orchestrator 用 xhigh；Argon 最高 high）。
 # 理由：ryan 帳號多、Gemini 的 token 不用省。這只是 ryan 的偏好；其他使用者要能自己選或照分析建議（docs/proposals/2026-11-23-account-pool.md 第七節）。
-# dispatch.py 還沒讀這個欄位（待帳號池機制實作）；派工時由主控照這條寫明程度。
 thinking_preference: max_available
 
-# 2026-11-23 ryan 定案（D2）：額度用完先照接手順序（antigravity_ryan Gemini → 同帳號 Argon 桶 → 同帳號 Claude & GPT 桶的 Opus／Sonnet →
+# 2026-11-23 ryan 定案（D2）：額度用完先照接手順序（antigravity_ryan Gemini → 同帳號 Argon 桶 → 同帳號 Claude & GPT 桶的 Opus →
 # Claude 三個實例依額度挑 → 停下來列各帳號剩多少、幾點重置、建議換哪個）。派給 Gemini 是為了跨家審查 Claude 的產出時，跳過換成 Claude 的兩步。
-# 細節 docs/proposals/2026-11-23-account-pool.md 第四節。dispatch.py 還沒讀這兩個欄位（第一、二階段實作）。
+# 細節 docs/proposals/2026-11-23-account-pool.md 第四節。
 on_exhausted: prompt_manual_switch
 
 # 2026-11-23 ryan 定案（D7）：3.8 Flash 有後繼 Hydrogen、GPT-OSS 120B 沒有角色使用，退出分工；OmniKit 的模型淘汰過濾預設開，這裡是額外排除。

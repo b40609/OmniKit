@@ -209,6 +209,13 @@ def check(pol, mine=None):
                     errors.append(f"個人層 instances.{inst}：{cls} 要用 {classes[cls]['driver']} 的實例，這個是 {spec['driver']}")
         if "visibility" in mine and mine.get("visibility") not in VISIBILITY:
             errors.append(f"個人層 visibility 要是 {list(VISIBILITY)} 之一：{mine.get('visibility')}")
+        import account_pool
+        for key, allowed in (("thinking_preference", account_pool.THINKING_PREFS),
+                             ("on_exhausted", account_pool.ON_EXHAUSTED_MODES),
+                             ("account_strategy", account_pool.ACCOUNT_STRATEGIES),
+                             ("notify", account_pool.NOTIFY_MODES)):
+            if key in mine and mine.get(key) not in allowed:
+                errors.append(f"個人層 {key} 要是 {list(allowed)} 之一：{mine.get(key)}")
     return errors
 
 
@@ -233,10 +240,36 @@ def instances_for(pol, mine, cls, agent="claude"):
     return found
 
 
-def resolved(pol, mine, agent="claude", judge=None, model_note=None):
+def effective_thinking(pol, cls_name, base_thinking, level, kind, mine=None):
+    """套用個人層 thinking_preference（max_available / balanced / economy / custom）後的思考程度與原因。"""
+    pref = (mine or {}).get("thinking_preference")
+    if not pref or pref in ("balanced", "custom"):
+        return base_thinking, ""
+    cls = pol["model_classes"][cls_name]
+    forbid = set(cls.get("forbid_thinking") or [])
+    top = cls.get("max_thinking", base_thinking)
+    if pref == "max_available":
+        # 對 Gemini 模型拉到該模型能開的最高檔；Claude 類別維持政策分級（不強制把 Opus 子任務拉到 max）
+        if str(cls.get("model", "")).startswith("gemini-") and top in THINKING and top not in forbid:
+            if THINKING.index(top) > THINKING.index(base_thinking):
+                return top, "thinking_preference: max_available"
+        return base_thinking, ""
+    if pref == "economy":
+        # 只有定案（high/higher/verify 的 route）與第二意見維持高檔；其餘降一檔且絕不碰 forbid_thinking
+        if level == "medium" or kind == "prework":
+            idx = THINKING.index(base_thinking)
+            while idx > 0 and THINKING[idx - 1] in forbid:
+                idx -= 1
+            if idx > 0 and THINKING[idx - 1] not in forbid:
+                return THINKING[idx - 1], "thinking_preference: economy"
+    return base_thinking, ""
+
+
+def resolved(pol, mine, agent="claude", judge=None, model_note=None, claude_order=None):
     """每一級的選項，加上可以用的實例；沒有實例的標 skip。
     judge（accounts.annotate 給的）：(實例, 模型) → (能不能自動派, 原因)；不能派的實例移到 blocked 並附原因。
-    model_note：模型被淘汰過濾時回原因（整個選項跳過）。"""
+    model_note：模型被淘汰過濾時回原因（整個選項跳過）。
+    claude_order：依額度策略排好的 Claude 實例優先順序（工作包邊界挑）。"""
     out = {}
     for level, lv in pol["levels"].items():
         tasks = [t for t, v in pol["tasks"].items() if v["level"] == level]
@@ -246,12 +279,20 @@ def resolved(pol, mine, agent="claude", judge=None, model_note=None):
             for o in items:
                 cls = pol["model_classes"][o["class"]]
                 inst, blocked = instances_for(pol, mine, o["class"], agent), []
+                if claude_order and cls["driver"] == "claudeAgent":
+                    rank = {iid: idx for idx, iid in enumerate(claude_order)}
+                    head = [i for i in inst if i == "native"]
+                    rest = [i for i in inst if i != "native"]
+                    rest.sort(key=lambda i: (rank.get(i, 999), inst.index(i)))
+                    inst = head + rest
                 if judge:
                     verdicts = [(i, *judge(i, cls["model"])) for i in inst]
                     inst = [i for i, ok, _ in verdicts if ok]
                     blocked = [{"instance": i, "why": why} for i, ok, why in verdicts if not ok]
                 filtered = model_note(cls["model"]) if model_note else ""
-                rows.append({"kind": kind, "class": o["class"], "model": cls["model"], "thinking": o["thinking"],
+                th, th_why = effective_thinking(pol, o["class"], o["thinking"], level, kind, mine)
+                rows.append({"kind": kind, "class": o["class"], "model": cls["model"], "thinking": th,
+                             "policy_thinking": o["thinking"], "thinking_why": th_why,
                              "thinking_name": "effort" if cls["driver"] == "claudeAgent" else "thinking_level",
                              "when": o.get("when"), "tasks": o.get("tasks"), "instances": [] if filtered else inst,
                              "blocked": blocked, "filtered": filtered, "skip": bool(filtered) or not inst,
@@ -302,6 +343,18 @@ def make_record(pol, args, version, profile, project, now=None):
         first = args.verdict == "pass" and not args.retries and not args.escalations
     if args.escalations and not args.final_class:
         raise SystemExit("有升級（--escalations）就要寫最後用哪個類別（--final-class）")
+    error_kind = getattr(args, "error", None)
+    error_text = getattr(args, "error_text", None)
+    note = args.note
+    if error_kind or error_text:
+        import account_pool
+        if error_kind and error_kind not in account_pool.ERROR_KINDS:
+            raise SystemExit(f"錯誤種類不存在：{error_kind}，可選：{'、'.join(account_pool.ERROR_KINDS)}")
+        if not error_kind and error_text:
+            c = account_pool.classify_error(error_text, model=classes[args.cls]["model"], now=now)
+            error_kind = c["kind"]
+            if not note:
+                note = c["summary"]
     return {
         "ts": (now or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
         "project": args.project or project, "task": args.task, "level": level,
@@ -309,7 +362,8 @@ def make_record(pol, args, version, profile, project, now=None):
         "class": args.cls, "model": classes[args.cls]["model"], "thinking": args.thinking,
         "first_pass": first, "retries": args.retries, "escalations": args.escalations,
         "final_class": args.final_class or args.cls, "verdict": args.verdict,
-        "rules_version": version, "profile": profile, "control": bool(args.control), "note": args.note,
+        "error_kind": error_kind,
+        "rules_version": version, "profile": profile, "control": bool(args.control), "note": note,
     }
 
 
@@ -376,12 +430,29 @@ def usage_path(state):
     return Path(state) / "dispatch" / "claude-usage.json"
 
 
-def config_dir():
+def config_dir(override=None):
     """這個 Claude Code 用的設定資料夾：不同帳號常用不同的 CLAUDE_CONFIG_DIR，快照依它分開。"""
-    return os.environ.get("CLAUDE_CONFIG_DIR") or str(Path.home() / ".claude")
+    raw = override or os.environ.get("CLAUDE_CONFIG_DIR") or str(Path.home() / ".claude")
+    p = Path(raw).expanduser()
+    try:
+        return str(p.resolve())
+    except OSError:
+        return str(p.absolute())
 
 
-def capture(state, payload, now=None):
+def _find_snap(doc, target):
+    if target in doc:
+        return doc[target]
+    norm_t = os.path.normcase(str(Path(target)))
+    best = None
+    for k, v in doc.items():
+        if isinstance(v, dict) and os.path.normcase(str(Path(k))) == norm_t:
+            if best is None or (v.get("recorded_at") or 0) > (best.get("recorded_at") or 0):
+                best = v
+    return best
+
+
+def capture(state, payload, now=None, target_dir=None):
     """狀態列的 JSON 輸入 → 存下 rate_limits 的快照（依設定資料夾分開）。沒有 rate_limits 就不動。"""
     limits = payload.get("rate_limits") if isinstance(payload, dict) else None
     if not isinstance(limits, dict) or not limits:
@@ -396,7 +467,11 @@ def capture(state, payload, now=None):
         return None
     snap["recorded_at"] = int(now or time.time())
     snap["model"] = ((payload.get("model") or {}).get("id") if isinstance(payload.get("model"), dict) else None)
-    doc[config_dir()] = snap
+    key = config_dir(target_dir)
+    norm_k = os.path.normcase(key)
+    for old in [k for k in doc if k != key and os.path.normcase(str(Path(k))) == norm_k]:
+        doc.pop(old, None)
+    doc[key] = snap
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -413,7 +488,7 @@ def weekly_usage(state, threshold, now=None, which=None):
         doc = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     except ValueError:
         doc = {}
-    snap = doc.get(which or config_dir())
+    snap = _find_snap(doc, config_dir(which))
     week = (snap or {}).get("seven_day") or {}
     if not snap or "used_percentage" not in week:
         return {"status": "unknown", "pct": None, "over": None, "threshold": threshold,
@@ -465,8 +540,15 @@ def antigravity_lines(pol, mine=None):
     return lines
 
 
-def show_text(table, profile, has_personal, usage=None, pol=None, mine=None, accounts=None):
-    lines = [f"profile：{profile}；{'個人實例：有' if has_personal else '沒有個人分派設定，只用原生子代理'}"]
+def show_text(table, profile, has_personal, usage=None, pol=None, mine=None, accounts=None, pool_lines=None):
+    prefs = []
+    if mine:
+        if mine.get("thinking_preference"):
+            prefs.append(f"thinking_preference: {mine['thinking_preference']}")
+        if mine.get("on_exhausted"):
+            prefs.append(f"on_exhausted: {mine['on_exhausted']}")
+    pref_str = f"；{'，'.join(prefs)}" if prefs else ""
+    lines = [f"profile：{profile}；{'個人實例：有' if has_personal else '沒有個人分派設定，只用原生子代理'}{pref_str}"]
     if usage:
         lines.append(usage_text(usage))
     for level, lv in table.items():
@@ -479,13 +561,16 @@ def show_text(table, profile, has_personal, usage=None, pol=None, mine=None, acc
                     "實例：" + "、".join(o["instances"]))
             extra = (f"；條件：{o['when']}" if o["when"] else "") + (f"；只接：{'、'.join(o['tasks'])}" if o["tasks"] else "")
             role = f"；{o['role']}" if o["role"] and o["kind"] != "route" else ""
-            lines.append(f"  {head} {o['class']}（{o['model']}）{o['thinking_name']} {o['thinking']}；{inst}{extra}{role}")
+            th_note = f"（{o['thinking_why']}）" if o.get("thinking_why") else ""
+            lines.append(f"  {head} {o['class']}（{o['model']}）{o['thinking_name']} {o['thinking']}{th_note}；{inst}{extra}{role}")
             for b in o.get("blocked") or []:
                 lines.append(f"     不派 {b['instance']}：{b['why']}")
             if o["pending"]:
                 lines.append(f"     {o['pending'].strip()}")
     if accounts:
         lines += accounts
+    if pool_lines:
+        lines += pool_lines
     if pol:
         lines += channel_lines(pol) + antigravity_lines(pol, mine)
     return "\n".join(lines)
@@ -676,13 +761,20 @@ def main(argv=None):
     p.add_argument("--level")
     p.add_argument("--project")
     p.add_argument("--control", action="store_true")
+    p.add_argument("--error", help="錯誤種類（rate_limit、quota_exhausted、auth_expired、validation_required、tos_banned、hard_forbidden、model_forbidden、timeout_15min、other）")
+    p.add_argument("--error-text", help="錯誤原文：自動分類並遮罩疑似 token")
+    p.add_argument("--resets-at", help="額度重置時間（ISO8601 或 unix timestamp），寫進 pool-state.json")
+    p.add_argument("--error-url", help="本人驗證或申訴連結（https://），寫進 pool-state.json")
     p.add_argument("--note")
     p.add_argument("--dry-run", action="store_true")
     p = sub.add_parser("stats")
     p.add_argument("--json", action="store_true")
     p = sub.add_parser("usage")
+    p.add_argument("--all", action="store_true", help="列出全部 Claude 設定目錄與 Antigravity 帳號的額度視圖")
+    p.add_argument("--refresh-agy", action="store_true", help="呼叫 agy -p /usage 更新本機 agy 帳號額度（搭配 --all 或單獨用）")
     p.add_argument("--json", action="store_true")
     p = sub.add_parser("statusline")
+    p.add_argument("--dir", help="這個 Claude Code 的設定目錄（沒給就看 CLAUDE_CONFIG_DIR 或 ~/.claude）")
     p.add_argument("--then", help="原本的狀態列指令：收到的 JSON 照樣轉給它，印它的輸出")
     p = sub.add_parser("agy", help="用 agy 無頭派給 Antigravity 的模型（visibility: headless 的管道；T3 看不到過程）")
     p.add_argument("--class", dest="cls", required=True)
@@ -700,7 +792,7 @@ def main(argv=None):
         raw = sys.stdin.buffer.read()
         snap = None
         try:
-            snap = capture(profiles.STATE, json.loads(raw.decode("utf-8") or "{}"))
+            snap = capture(profiles.STATE, json.loads(raw.decode("utf-8") or "{}"), target_dir=args.dir)
         except Exception:  # noqa: BLE001
             pass
         if args.then:
@@ -719,21 +811,56 @@ def main(argv=None):
         print("\n".join(errors) if errors else f"分派政策沒有問題（profile：{name}）")
         return 1 if errors else 0
     if args.cmd == "show":
+        import account_pool
         import accounts  # 帳號名冊與模型過濾；accounts 也 import 這支，所以在這裡才載入
-        rows, judge, model_note = accounts.annotate(pol, mine, data, state)
+        pdoc = account_pool.load_state(state)
+        rows, judge, model_note = accounts.annotate(pol, mine, data, state, pool_doc=pdoc)
         filtered, hints = accounts.filtered_summary(pol, mine, state, accounts.rates_index())
-        table = resolved(pol, mine, args.agent, judge, model_note)
-        u = weekly_usage(state, pol["usage_signal"]["claude_weekly_threshold_pct"])
-        print(json.dumps({"usage": u, "levels": table, "channels": pol.get("channels"), "accounts": rows,
-                          "filtered_models": filtered, "model_hints": hints, "visibility": visibility(pol, mine)}, ensure_ascii=False, indent=2)
-              if args.json else show_text(table, name, mine is not None, u, pol, mine, account_lines(rows, filtered, hints)))
+        th = pol["usage_signal"]["claude_weekly_threshold_pct"]
+        c_quotas = account_pool.claude_quotas(state, rows, mine, th)
+        c_sel = account_pool.select_claude_instance(rows, mine, c_quotas, pdoc)
+        plan = account_pool.failover_plan(pol, mine, rows, pdoc, c_quotas)
+        alerts = account_pool.pending_alerts(pdoc, rows)
+        table = resolved(pol, mine, args.agent, judge, model_note, claude_order=c_sel.get("ordered"))
+        u = weekly_usage(state, th)
+        plines = []
+        if c_sel.get("chosen"):
+            plines.append(f"  Claude 實例推薦（工作包邊界挑，同一條不中途換）：{c_sel['chosen']}（{c_sel['reason']}）")
+        plines.append("")
+        plines += account_pool.failover_text(plan).splitlines()
+        if alerts:
+            plines.append("\n帳號警示：")
+            plines += [f"  [{a['severity']}] {a['message']}" for a in alerts]
+        print(json.dumps({"usage": u, "claude_quotas": c_quotas, "claude_selection": c_sel,
+                          "levels": table, "channels": pol.get("channels"), "accounts": rows,
+                          "filtered_models": filtered, "model_hints": hints, "failover": plan,
+                          "alerts": alerts, "visibility": visibility(pol, mine),
+                          "thinking_preference": (mine or {}).get("thinking_preference"),
+                          "on_exhausted": (mine or {}).get("on_exhausted")}, ensure_ascii=False, indent=2)
+              if args.json else show_text(table, name, mine is not None, u, pol, mine, account_lines(rows, filtered, hints), plines))
         return 0
     if args.cmd == "log":
         rec = make_record(pol, args, rules_version(data), name, project_name())
+        pool_msg = None
         if not args.dry_run:
             append(log_path(state), rec)
+            if rec.get("instance") and rec["instance"] != "native":
+                import account_pool
+                drv = pol["model_classes"][rec["class"]]["driver"]
+                if rec.get("error_kind"):
+                    c_info = account_pool.classify_error(args.error_text, model=rec["model"]) if args.error_text else {}
+                    _, pool_msg = account_pool.record_error(
+                        state, rec["instance"], rec["error_kind"], driver=drv, model=rec["model"],
+                        resets_at=args.resets_at or c_info.get("resets_at"),
+                        url=args.error_url or c_info.get("url"),
+                        reason=rec.get("note") or c_info.get("summary") or "",
+                    )
+                elif rec.get("verdict") == "pass":
+                    _, pool_msg = account_pool.record_ok(state, rec["instance"], driver=drv, model=rec["model"])
         print(json.dumps(rec, ensure_ascii=False))
         print(("（預覽，沒有寫入）" if args.dry_run else f"已記到 {log_path(state)}"))
+        if pool_msg:
+            print(f"帳號池狀態：{pool_msg}")
         return 0
     if args.cmd == "stats":
         rows, bad = read_log(log_path(state))
@@ -746,6 +873,18 @@ def main(argv=None):
         print(json.dumps(out, ensure_ascii=False, indent=2))
         return 0 if out["ok"] else 1
     if args.cmd == "usage":
+        if args.all or args.refresh_agy:
+            import account_pool
+            import accounts
+            rows = accounts.registry(accounts.t3_instances(), mine, accounts.load_terms(data))
+            refreshed = None
+            if args.refresh_agy:
+                refreshed = account_pool.refresh_agy_usage(state, account_pool.agy_cli_target(rows, mine))
+            view = account_pool.quota_view_data(state, pol, mine, rows)
+            if refreshed is not None:
+                view["refreshed_agy"] = refreshed
+            print(json.dumps(view, ensure_ascii=False, indent=2) if args.json else account_pool.usage_view_text(view))
+            return 0
         u = weekly_usage(state, pol["usage_signal"]["claude_weekly_threshold_pct"])
         print(json.dumps(u, ensure_ascii=False) if args.json else usage_text(u))
         return 0
@@ -831,11 +970,23 @@ def selftest():
 
     t = resolved(pol, ryan, "claude")
     med = t["medium"]["options"]
-    # 2026-11-22 ava、kai 退出，2026-11-23 Flash 退出 ryan 的分工（D7）：Flash 沒有實例
-    ok("ryan：中級第一個 Gemini 選項是 Hydrogen（antigravity，thinking_level high），Flash 沒有實例",
+    # 2026-11-22 ava、kai 退出，2026-11-23 Flash 退出 ryan 的分工（D7）；thinking_preference: max_available 把 Hydrogen 升到 xhigh
+    ok("ryan：中級第一個 Gemini 選項是 Hydrogen（antigravity，max_available 升到 xhigh），Flash 沒有實例",
        [o for o in med if o["class"] == "gemini-pro"][0]["instances"] == ["antigravity_ryan"]
+       and [o for o in med if o["class"] == "gemini-pro"][0]["thinking"] == "xhigh"
+       and [o for o in med if o["class"] == "gemini-pro"][0]["thinking_why"] == "thinking_preference: max_available"
        and [o for o in med if o["class"] == "gemini-flash"][0]["instances"] == []
        and [o for o in med if o["class"] == "gemini-pro"][0]["thinking_name"] == "thinking_level")
+    econ = resolved(pol, {**ryan, "thinking_preference": "economy"}, "claude")
+    ok("thinking_preference: economy 降一般任務一檔，但絕不把 Gemini 降到禁用的 medium／low",
+       [o for o in econ["medium"]["options"] if o["class"] == "gemini-pro"][0]["thinking"] == "high"
+       and [o for o in econ["medium"]["options"] if o["class"] == "claude-sonnet"][0]["thinking"] == "low")
+    ok("個人層 thinking_preference、on_exhausted、account_strategy、notify 寫錯會報錯",
+       len(check(pol, {"thinking_preference": "ultra", "on_exhausted": "spin", "account_strategy": "rng", "notify": "sms"})) == 4)
+    ord_t = resolved(pol, ryan, "claude", claude_order=["claudeAgent_2", "claudeAgent_claude_kai", "claudeAgent"])
+    ok("claude_order 依額度策略排實例順序，native 仍排第一",
+       [o for o in ord_t["high"]["options"] if o["class"] == "claude-opus"][0]["instances"]
+       == ["native", "claudeAgent_2", "claudeAgent_claude_kai", "claudeAgent"])
     tj = resolved(pol, ryan, "claude", lambda i, m: (i != "claudeAgent_2", "測試：停用"),
                   lambda m: "測試：過濾" if m == "gemini-3.8-flash" else "")
     son = [o for o in tj["medium"]["options"] if o["class"] == "claude-sonnet"][0]
@@ -932,6 +1083,10 @@ def selftest():
     esc = make_record(pol, ns(**{**base, "verdict": "pass", "escalations": 1, "final_class": "claude-opus"}), "v", "ryan", "p", now)
     ok("Sonnet 驗收不過、改 Opus 重跑：記成一行，class 是一開始派的 Sonnet，first_pass 是 false",
        esc["class"] == "claude-sonnet" and esc["final_class"] == "claude-opus" and esc["first_pass"] is False)
+    erec = make_record(pol, ns(**{**base, "verdict": "fail", "error": None,
+                                  "error_text": "HTTP 429 weekly quota exhausted Bearer tok-secret-999999"}), "v", "ryan", "p", now)
+    ok("log --error-text 自動分類錯誤並寫進 error_kind，note 遮罩 token",
+       erec["error_kind"] == "quota_exhausted" and "tok-secret" not in (erec["note"] or "") and "[REDACTED]" in (erec["note"] or ""))
     ok("不合政策的不寫：任務類型、類別、思考程度（含超過類別上限）、結論寫錯，或有升級卻沒寫最後的類別",
        fails(lambda: make_record(pol, ns(**{**base, "task": "x"}), "v", "r", "p"))
        and fails(lambda: make_record(pol, ns(**{**base, "cls": "x"}), "v", "r", "p"))

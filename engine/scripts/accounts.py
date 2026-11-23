@@ -75,7 +75,8 @@ def t3_instances(home=None):
         if not auth and spec.get("driver") == "codex" and {"OPENAI_API_KEY", "CODEX_API_KEY"} & env_keys:
             auth = "api-key"
         out[iid] = {"driver": spec.get("driver"), "label": spec.get("displayName") or iid,
-                    "enabled": spec.get("enabled", True), "auth_mode": auth}
+                    "enabled": spec.get("enabled", True), "auth_mode": auth,
+                    "home_path": cfg.get("homePath") if isinstance(cfg.get("homePath"), str) else None}
     return out
 
 
@@ -188,6 +189,15 @@ def norm(model):
 
 
 FIRST_PARTY = ("", "gemini", "vertex_ai", "anthropic", "openai")  # 原廠自己的條目；其他是轉售平台（Azure、Copilot 等）
+# 同帳號、同額度桶內明確的「同家族上下位」能力關係（規則 2）：
+# 2026-11-23 agy -p /usage 一手證實：Antigravity 帳號的「Claude and GPT models」桶共用 Opus 5.5 與 Sonnet 5.5，
+# 且共用政策裡 antigravity 沒有任何角色使用 Sonnet；同帳號同桶已有 Opus 時，Sonnet 被壓過而過濾。
+# Claude Code 原生實例（claudeAgent）有 claude-sonnet 角色（中級／Sonnet 試行），不受此條過濾。
+SAME_BUCKET_SUPERIOR = {
+    "antigravity": {
+        "claude-sonnet-5-5": ("claude-opus-5-5", "Claude and GPT models"),
+    },
+}
 
 
 def lineage(model, rates):
@@ -209,11 +219,11 @@ def lineage(model, rates):
     return succ, past, "；".join(notes[:2])
 
 
-def model_status(model, available, mine, rates, role_models=None):
+def model_status(model, available, mine, rates, role_models=None, driver=None):
     """一個實例上的一個模型：('keep'|'filtered', 原因)。
     available：同一個實例能用的模型（不知道給 None，當成都有）；role_models：分派政策用到的模型（不知道給 None）。
-    過濾條件（資料驅動）：profile 排除；原廠下架日已過；後繼已是你分工裡的模型而且這個帳號就有；
-    沒有任何角色使用而且已有後繼（帳號沒別的模型可用時照用）。其他有後繼的只回提醒、不過濾。"""
+    過濾條件（資料驅動）：profile 排除；原廠下架日已過；同帳號同額度桶已有更強的同家族模型且這個供應商沒有角色使用；
+    後繼已是你分工裡的模型而且這個帳號就有；沒有任何角色使用而且已有後繼（帳號沒別的模型可用時照用）。其他有後繼的只回提醒、不過濾。"""
     inc = {norm(m) for m in (mine or {}).get("include_models") or []}
     exc = {norm(m) for m in (mine or {}).get("exclude_models") or []}
     m = norm(model)
@@ -224,10 +234,16 @@ def model_status(model, available, mine, rates, role_models=None):
         return "filtered", "profile exclude_models 排除" + (f"；{notes}" if notes else "")
     if past:
         return "filtered", f"原廠下架日 {past} 已過"
-    if not succ:
-        return "keep", ""
     roles = {norm(x) for x in role_models} if role_models is not None else None
     have = {norm(a) for a in available} if available is not None else None
+    # 規則 2：同帳號同額度桶內被更強模型完全壓過，而且這個供應商沒有角色使用它
+    sup = (SAME_BUCKET_SUPERIOR.get(driver) or {}).get(m)
+    if sup and (roles is None or m not in roles):
+        better, bucket_name = sup
+        if have is None or better in have:
+            return "filtered", f"同帳號同額度桶（{bucket_name}）已有更強的 {better}，且這個供應商沒有角色使用"
+    if not succ:
+        return "keep", ""
     if roles is not None:
         took = sorted(s for s in succ & roles if have is None or s in have)
         if took:
@@ -240,8 +256,9 @@ def model_status(model, available, mine, rates, role_models=None):
     return "keep", f"提醒：{notes}（要不要換由你決定）"
 
 
-def role_models(pol):
-    return {c["model"] for c in ((pol or {}).get("model_classes") or {}).values()}
+def role_models(pol, driver=None):
+    return {c["model"] for c in ((pol or {}).get("model_classes") or {}).values()
+            if driver is None or c.get("driver") == driver}
 
 
 def instance_models(state, catalog=None):
@@ -267,7 +284,7 @@ def top_level(options):
     return None, None
 
 
-def probe_plan(catalog, rows, mine, rates, only=None, roles=None):
+def probe_plan(catalog, rows, mine, rates, only=None, roles=None, pol=None):
     """每個實例要測的模型與程度；被過濾的模型跳過並寫原因。只排 T3 裡啟用的 Antigravity 與 Claude 實例。"""
     known = by_id(rows)
     plan = []
@@ -275,13 +292,15 @@ def probe_plan(catalog, rows, mine, rates, only=None, roles=None):
         iid = p.get("providerInstanceId")
         if only and iid not in only:
             continue
-        if p.get("driverKind") not in ("antigravity", "claudeAgent") or not p.get("canRunChildTask"):
+        drv = p.get("driverKind")
+        if drv not in ("antigravity", "claudeAgent") or not p.get("canRunChildTask"):
             continue
+        drv_roles = role_models(pol, drv) if pol is not None else roles
         models = p.get("models") or []
         avail = [m["id"] for m in models]
         steps, skipped = [], []
         for m in models:
-            st, why = model_status(m["id"], avail, mine, rates, roles)
+            st, why = model_status(m["id"], avail, mine, rates, drv_roles, driver=drv)
             if st == "filtered":
                 skipped.append({"model": m["id"], "why": why})
                 continue
@@ -333,13 +352,15 @@ def record(state, results, now=None):
 
 # ---------- 給 dispatch.py show 用 ----------
 
-def annotate(pol, mine, data, state, t3=None, rates=None):
-    """回傳 (名冊, 判斷函式)。判斷函式 (實例, 模型) → (能不能自動派, 原因)。"""
+def annotate(pol, mine, data, state, t3=None, rates=None, pool_doc=None):
+    """回傳 (名冊, 判斷函式, 模型過濾函式)。判斷函式 (實例, 模型) → (能不能自動派, 原因)。"""
+    import account_pool
     rows = registry(t3_instances() if t3 is None else t3, mine, load_terms(data))
     reg = by_id(rows)
     rates = rates_index() if rates is None else rates
     avail = instance_models(state)
-    roles = role_models(pol)
+    roles_all = role_models(pol)
+    pdoc = account_pool.load_state(state) if pool_doc is None else pool_doc
 
     def judge(iid, model):
         if iid == "native":
@@ -350,13 +371,16 @@ def annotate(pol, mine, data, state, t3=None, rates=None):
         ok, why = can_auto(r, "auto_dispatch")
         if not ok:
             return False, why
-        st, mwhy = model_status(model, avail.get(iid), mine, rates, roles)
+        blk, bwhy, _ = account_pool.is_blocked(pdoc, iid, driver=r["driver"], model=model)
+        if blk:
+            return False, bwhy
+        st, mwhy = model_status(model, avail.get(iid), mine, rates, role_models(pol, r["driver"]), driver=r["driver"])
         if st == "filtered":
             return False, mwhy
         return True, why
 
     def model_note(model):
-        st, why = model_status(model, None, mine, rates, roles)
+        st, why = model_status(model, None, mine, rates, roles_all)
         return why if st == "filtered" else ""
 
     return rows, judge, model_note
@@ -375,6 +399,13 @@ def filtered_summary(pol, mine, state, rates):
             out.append(f"{m}（{why}）")
         elif why.startswith("提醒"):
             hints.append(f"{m}：{why[3:]}")
+    # 補上供應商限定的同桶壓過（例如 Antigravity 裡的 Sonnet 5.5 被同桶 Opus 5.5 壓過）
+    for drv, rules in SAME_BUCKET_SUPERIOR.items():
+        drv_roles = role_models(pol, drv)
+        for m in sorted(rules):
+            st, why = model_status(m, None, mine, rates, drv_roles, driver=drv)
+            if st == "filtered":
+                out.append(f"{drv}/{m}（{why}）")
     return out, hints
 
 
@@ -451,7 +482,8 @@ def main(argv=None):
     t3 = t3_instances()
     rows = registry(t3, mine, terms)
     rates = rates_index()
-    roles = role_models(dispatch.policy(data))
+    pol = dispatch.policy(data)
+    roles = role_models(pol)
     if args.cmd == "scan":
         if t3 is None:
             print("（這台讀不到 T3 的 settings.json，只列 profile 登記的實例）")
@@ -459,9 +491,12 @@ def main(argv=None):
         return 0
     catalog = json.loads(Path(args.catalog).read_text(encoding="utf-8")) if getattr(args, "catalog", None) else None
     if args.cmd == "models":
+        known = by_id(rows)
         out = {}
         for iid, ms in instance_models(state, catalog).items():
-            out[iid] = {m: dict(zip(("status", "why"), model_status(m, ms, mine, rates, roles))) for m in ms}
+            drv = (known.get(iid) or {}).get("driver")
+            drv_roles = role_models(pol, drv) if drv else roles
+            out[iid] = {m: dict(zip(("status", "why"), model_status(m, ms, mine, rates, drv_roles, driver=drv))) for m in ms}
         if args.json:
             print(json.dumps(out, ensure_ascii=False, indent=2))
         else:
@@ -474,7 +509,7 @@ def main(argv=None):
                 print("（讀不到 T3 的模型單價表，只套 profile 的 exclude_models）")
         return 0
     if args.cmd == "probe-plan":
-        plan = probe_plan(catalog, rows, mine, rates, set(args.instance or []) or None, roles)
+        plan = probe_plan(catalog, rows, mine, rates, set(args.instance or []) or None, roles, pol=pol)
         print(json.dumps(plan, ensure_ascii=False, indent=2) if args.json else probe_steps_text(plan))
         return 0
     ap.print_help()
@@ -544,6 +579,17 @@ def selftest():
     assert model_status("gemini-3.8-flash", None, {}, rates, roles)[0] == "filtered"
     assert model_status("gemini-3.8-flash", full, {}, rates, None)[0] == "keep"  # 不知道角色：只提醒
     assert model_status("anything", full, {}, None, roles)[0] == "keep"
+    # 規則 2：Antigravity 帳號裡 Sonnet 與 Opus 同桶且 Antigravity 沒有角色使用 Sonnet → 過濾；無 Opus 或原生 Claude 實例則保留
+    st_ag_son, why_ag_son = model_status("claude-sonnet-5-5", ["claude-opus-5-5", "claude-sonnet-5-5"], {}, rates,
+                                         {"gemini-4-hydrogen", "claude-opus-5-5"}, driver="antigravity")
+    assert st_ag_son == "filtered" and "claude-opus-5-5" in why_ag_son
+    assert model_status("claude-sonnet-5-5", ["claude-sonnet-5-5"], {}, rates,
+                        {"gemini-4-hydrogen", "claude-opus-5-5"}, driver="antigravity")[0] == "keep"
+    assert model_status("claude-sonnet-5-5", ["claude-opus-5-5", "claude-sonnet-5-5"], {}, rates,
+                        {"claude-opus-5-5", "claude-sonnet-5-5"}, driver="claudeAgent")[0] == "keep"
+    assert model_status("claude-sonnet-5-5", ["claude-opus-5-5", "claude-sonnet-5-5"],
+                        {"include_models": ["claude-sonnet-5-5"]}, rates,
+                        {"gemini-4-hydrogen", "claude-opus-5-5"}, driver="antigravity")[0] == "keep"
     # 探測計畫
     catalog = {"providers": [
         {"providerInstanceId": "ag_main", "driverKind": "antigravity", "displayName": "Main", "canRunChildTask": True,

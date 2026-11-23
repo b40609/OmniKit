@@ -291,5 +291,5 @@ trials:
 # 委派紀錄：每次委派結束時一行 JSONL，存在本機，不進 repo。
 log:
   path: '~/.omnikit/dispatch/log.jsonl'
-  fields: [ts, project, task, level, channel, instance, model, thinking, first_pass, retries, escalations, final_model, verdict, rules_version, profile, control, note]
+  fields: [ts, project, task, level, channel, instance, model, thinking, first_pass, retries, escalations, final_model, verdict, error_kind, rules_version, profile, control, note]
 ```

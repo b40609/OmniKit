@@ -1,6 +1,6 @@
 # 帳號池與多模型分工機制（v3，D1 到 D6 已定案）
 
-狀態：定案，第一階段實作中。Ryan 2026-11-23 的要求：完整配套機制、不要寫死的規則；業界頂尖的多模型分工；之後開源，每個使用者的帳號與習慣都不同，要能自己選或照分析給建議。
+狀態：定案，第一、二階段已完成，待第三階段。Ryan 2026-11-23 的要求：完整配套機制、不要寫死的規則；業界頂尖的多模型分工；之後開源，每個使用者的帳號與習慣都不同，要能自己選或照分析給建議。
 依據：3 份調研（`data/evals/2026-11-23-account-pool-research-A1.md`、`-A2.md`、`2026-11-23-multimodel-workflow-research.md`）、11-22 的帳號池評估與多使用者角色調研、2026-11-23 實測。
 
 ## Ryan 的決定（2026-11-23）
@@ -57,18 +57,22 @@
 
 ## 四、額度用完的接手
 
-- 一手證據（T3 v0.1.12 server 原始碼 `summaryWindows`，2026-11-23 讀）：一個 Antigravity 帳號的額度分好幾桶，依 `bucketId` 分家族：`gemini-*` 算「Gemini」、`gemini-argon-*` 算「Gemini Argon」（自己一桶）、`gemini-carbon-*` 算「Gemini Carbon」、`3p-*` 算「Claude & GPT (shared)」；每桶各有 5 小時與每週兩個窗口，各自的剩餘比例與重置時間。所以 Gemini 用完時，同帳號的 Claude 額度桶多半還在（Opus 與 Sonnet 共用這一桶，量少）。哪個模型扣哪一桶，等讀得到額度後實測（待驗證）。
+- 一手證據（T3 v0.1.12 server 原始碼 `summaryWindows` ＋ 2026-11-23 `agy 1.5.14` 實測 `agy -p /usage --output-format json`）：一個 Antigravity 帳號的額度分三桶：
+  - `Gemini Models`（`gemini-weekly`、`gemini-5h`）：官方明列包含 `Gemini 4 Neon`、`Gemini 4 Hydrogen`、`Orchestrator (Neon)`、`Gemini 3.8 Flash`。
+  - `Claude and GPT models`（`3p-weekly`、`3p-5h`）：官方明列包含 `Claude Opus 5.5`、`Claude Sonnet 5.5`、`GPT-OSS 120B`。
+  - `Gemini 4 Argon`（`gemini-argon-wtu-weekly`）：Pro 方案獨立一桶（Ultra 才併入 Gemini 大桶）。
+  所以 Gemini 用完時，同帳號的 Argon 桶與 Claude 額度桶各自獨立。
 - 自動派工的接手順序（Ryan D1、D2 定案；每段都能在 profile 開關）：
   1. `antigravity_ryan` 的 Gemini（Neon、Hydrogen）。
   2. 同一個帳號的另一個 Gemini 桶（Argon，自己一桶；Argon 還在試用，只接它能做的角色）。
-  3. 同一個帳號的「Claude & GPT」桶：Claude Opus 5.5 或 Sonnet 5.5（最高 high；Opus 子任務照 Ryan 規則用 medium）。仍是 2B 這一個帳號，不算輪換。
+  3. 同一個帳號的「Claude & GPT」桶：Claude Opus 5.5（最高 high；Opus 子任務照 Ryan 規則用 medium）。同桶的 Sonnet 5.5 因 Antigravity 沒有角色使用且被同桶 Opus 壓過，已由模型淘汰過濾規則 2 過濾（同帳號無 Opus 才退到 Sonnet）。仍是 2B 這一個帳號，不算輪換。
   4. Claude 實例（`claudeAgent`、`claudeAgent_2`、`claudeAgent_claude_kai`），在工作包邊界依額度挑（D3）。
   5. `prompt_manual_switch`：停下來列出每個帳號剩多少、幾點重置，建議換哪個，等 Ryan 決定。
   - 例外：派給 Gemini 的理由是「跨家審查 Claude 寫的東西」時，跳過第 3、4 步（換成 Claude 就失去跨家的意義），直接到第 5 步，或改用同模型新對話審。
 - 你自己開的對話（`prompt_manual_switch`）：顯示「ryan 剩 3%、7 小時後重置；建議下一條改用 km0529（剩 80%）」。換帳號接續靠交接檔，因為每個帳號的 Antigravity 對話記憶是分開的。
 - 額度資料來源：
-  - Claude：Claude Code 狀態列本來就有 5 小時與 7 天用量（OmniKit 已接 `~/.claude`；要擴到 `~/.claude-kai`、`~/.claude-retis`）。
-  - Antigravity：T3 的 Usage → Limits 頁面看得到各帳號各桶的剩餘與重置時間，但 MCP 與 CLI 都沒開放（2026-11-23 查：`t3 --help` 沒有用量子指令，`agy --help` 沒有用量選項，T3 不把額度寫進硬碟）。上游討論 #15137 在等；開放前 `prompt_manual_switch` 列出 OmniKit 自己記到的（429 錯誤帶的重置時間、上次讀到的值，標「舊資料」），其餘請你看 Usage → Limits。A2 提的 `agy -p /usage --output-format json` 不在 help 裡，能不能用、能不能指定帳號待驗證。
+  - Claude：Claude Code 狀態列本來就有 5 小時與 7 天用量；`claude_allow.py` 已自動串接到全部三個設定目錄（`~/.claude`、`~/.claude-kai`、`~/.claude-retis`，各自帶 `--dir` 並用 `--then` 保留既有狀態列）。
+  - Antigravity：2026-11-23 實測 `agy 1.5.14` 執行 `agy -p /usage --output-format json`（帶 `AGY_CLI_DISABLE_AUTO_UPDATE=true`）可直接回傳本機 `agy` 帳號三個桶的 `remaining_fraction` 與 `reset_time`（0 token 消耗、不讀 token），但 `agy -p` 沒有 `--gemini-dir` 參數、也不吃 `GEMINI_HOME`，無法查其餘 5 個 T3 實例；其餘實例在 T3 上游討論 #15137 開放前，顯示 OmniKit 自己記到的 429／重置時間，其餘請對照 T3 的 Usage → Limits。
   - OmniKit 一律不讀 token。
 
 ## 五、為什麼 T3 預設思考程度會不一樣

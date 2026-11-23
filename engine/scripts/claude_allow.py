@@ -45,8 +45,9 @@ T3W = "t3_watch.py"
 HOOKS = (("Stop", NUDGE, 10), ("SessionStart", WATCH, 15), ("Stop", CLAIM, 10), ("SessionStart", T3W, 30))
 HOOK_NAMES = {NUDGE: "開新對話提醒", WATCH: "設定目錄檢查", CLAIM: "說做不到查證", T3W: "T3 MCP 斷線防護"}
 SCRIPTS = [script for _, script, _ in HOOKS]
+STATUSLINE_SCRIPT = "dispatch.py"
 GRANT = "uv run engine/scripts/agents.py approvals --grant <名稱>"
-LATEST = "Claude 的權限規則與 OmniKit 的 hook 已是最新。"
+LATEST = "Claude 的權限規則、hook 與狀態列已是最新。"
 
 
 def load(path: Path) -> dict:
@@ -83,6 +84,63 @@ def hook_command(script: str) -> str:
 
 def nudge_command() -> str:
     return hook_command(NUDGE)
+
+
+def is_ours_statusline(sl) -> bool:
+    if not isinstance(sl, dict):
+        return False
+    cmd = sl.get("command", "")
+    return isinstance(cmd, str) and STATUSLINE_SCRIPT in cmd and "statusline" in cmd
+
+
+def statusline_command(settings_path: Path, then: str | None = None) -> str:
+    """把 dispatch.py statusline 接進這個設定目錄的狀態列（帶 --dir 區分多帳號）；原本已有就用 --then 串在前面。"""
+    uv = Path(os.environ.get("UV") or shutil.which("uv")).as_posix()
+    script = (ROOT / "engine" / "scripts" / STATUSLINE_SCRIPT).as_posix()
+    cfg_dir = settings_path.parent.as_posix()
+    cmd = f'"{uv}" run --quiet --script "{script}" statusline --dir "{cfg_dir}"'
+    if then:
+        escaped = then.replace("\\", "\\\\").replace('"', '\\"')
+        cmd += f' --then "{escaped}"'
+    return cmd
+
+
+def add_statusline(settings: dict, settings_path: Path, entry: dict) -> bool:
+    """把 OmniKit 額度快照狀態列接進 settings.json；保留使用者原本的狀態列並在 uninstall 時還原。"""
+    cur = settings.get("statusLine")
+    rec = entry.get("claude_statusline") if isinstance(entry.get("claude_statusline"), dict) else None
+    if cur is None:
+        cmd = statusline_command(settings_path)
+        settings["statusLine"] = {"type": "command", "command": cmd}
+        entry["claude_statusline"] = {"had_prev": False}
+        return True
+    if is_ours_statusline(cur):
+        prev_cmd = ((rec or {}).get("prev") or {}).get("command") if (rec or {}).get("had_prev") else None
+        want = statusline_command(settings_path, prev_cmd)
+        if cur.get("command") == want and rec is not None:
+            return False
+        cur["command"] = want
+        if rec is None:
+            entry["claude_statusline"] = {"had_prev": False}
+        return True
+    if isinstance(cur, dict) and cur.get("type") == "command" and isinstance(cur.get("command"), str) and cur["command"].strip():
+        prev = dict(cur)
+        entry["claude_statusline"] = {"had_prev": True, "prev": prev}
+        settings["statusLine"] = {**prev, "command": statusline_command(settings_path, prev["command"])}
+        return True
+    return False
+
+
+def remove_statusline(settings: dict, entry: dict) -> bool:
+    """移除 OmniKit 裝的狀態列；原本有使用者自己的就還原回去。"""
+    rec = entry.get("claude_statusline")
+    if not isinstance(rec, dict) or not is_ours_statusline(settings.get("statusLine")):
+        return False
+    if rec.get("had_prev") and isinstance(rec.get("prev"), dict):
+        settings["statusLine"] = dict(rec["prev"])
+    else:
+        settings.pop("statusLine", None)
+    return True
 
 
 def add_hook(settings: dict, event: str, script: str, timeout: int) -> bool:
@@ -154,7 +212,8 @@ def uninstall_one(settings_path: Path, entry: dict) -> list:
     allow = settings.get("permissions", {}).get("allow", [])
     removed = [r for r in allow if r in ours]
     hook_removed = bool(entry.get("claude_hooks")) and remove_hooks(settings, entry["claude_hooks"])
-    if not (removed or hook_removed):
+    sl_removed = bool(entry.get("claude_statusline")) and remove_statusline(settings, entry)
+    if not (removed or hook_removed or sl_removed):
         return []
     if removed:
         drop_allow(settings, ours)
@@ -168,6 +227,8 @@ def uninstall_one(settings_path: Path, entry: dict) -> list:
         lines.append(f"已移除 Claude 的權限規則（{settings_path}）：{', '.join(removed)}")
     if hook_removed:
         lines.append(f"已移除 OmniKit 的 hook（{settings_path}）")
+    if sl_removed:
+        lines.append(f"已還原或移除 OmniKit 的狀態列設定（{settings_path}）")
     return lines
 
 
@@ -181,8 +242,8 @@ def uninstall(settings_path: Path, record: dict) -> int:
 
 
 def apply_one(settings_path: Path, entry: dict, listed: list, wanted: list):
-    """把規則與 OmniKit 的 hook 寫進一個 settings.json；entry 是這個檔案的紀錄（原地更新）。
-    回傳（加了的, 拿掉的, hook 有沒有改）。"""
+    """把規則、OmniKit 的 hook 與狀態列額度快照寫進一個 settings.json；entry 是這個檔案的紀錄（原地更新）。
+    回傳（加了的, 拿掉的, hook 有沒有改, 狀態列有沒有改）。"""
     settings = load(settings_path)
     allow = settings.get("permissions", {}).get("allow", [])
     added = [r for r in wanted if r not in allow]
@@ -194,7 +255,8 @@ def apply_one(settings_path: Path, entry: dict, listed: list, wanted: list):
     if withdrawn:
         drop_allow(settings, set(withdrawn))
     hooked = add_hooks(settings)
-    if added or withdrawn or hooked:
+    statuslined = add_statusline(settings, settings_path, entry)
+    if added or withdrawn or hooked or statuslined:
         save(settings_path, settings)
     recorded.extend(r for r in added if r not in recorded)
     entry["claude_allow"] = [r for r in recorded if r not in withdrawn]
@@ -202,7 +264,7 @@ def apply_one(settings_path: Path, entry: dict, listed: list, wanted: list):
         del entry["claude_allow"]
     if hooked:
         entry["claude_hooks"] = SCRIPTS
-    return added, withdrawn, hooked
+    return added, withdrawn, hooked, statuslined
 
 
 def apply(settings_path: Path, record_path: Path, state: Path, repo: Path = ROOT, git=edition.hooks_path,
@@ -226,13 +288,15 @@ def apply(settings_path: Path, record_path: Path, state: Path, repo: Path = ROOT
         targets += [(Path(p), extra.setdefault(str(p), {}), f"（{Path(p).parent}）") for p in extra_settings]
     changed = []
     for path, entry, where in targets:
-        added, withdrawn, hooked = apply_one(path, entry, listed, wanted)
+        added, withdrawn, hooked, statuslined = apply_one(path, entry, listed, wanted)
         if withdrawn:
             changed.append(f"已拿掉沒有同意的 Claude 權限規則{where}：{', '.join(withdrawn)}")
         if added:
             changed.append(f"已加入 Claude 的權限規則{where}：{', '.join(added)}")
         if hooked:
             changed.append(f"已註冊 OmniKit 的 hook（Stop 開新對話提醒與說做不到查證、SessionStart 設定目錄檢查與 T3 MCP 斷線防護）{where}")
+        if statuslined:
+            changed.append(f"已接上 OmniKit 狀態列額度快照（dispatch.py statusline）{where}")
     if "claude_extra" in record:
         record["claude_extra"] = {p: e for p, e in record["claude_extra"].items() if e}
         if not record["claude_extra"]:
@@ -285,7 +349,7 @@ def selftest() -> int:
         save(old, {"hooks": {"Stop": [{"hooks": [{"type": "command", "command": nudge_command(), "timeout": 10}]}],
                              "SessionStart": [{"hooks": [{"type": "command", "command": "mine.sh"}]}]}})
         old_entry = {"claude_hooks": [NUDGE]}
-        _, _, hooked = apply_one(old, old_entry, [], [])
+        _, _, hooked, _ = apply_one(old, old_entry, [], [])
         check("舊版升級：補上 SessionStart 的設定目錄檢查，使用者自己的 SessionStart hook 留著",
               hooked and old_entry["claude_hooks"] == SCRIPTS
               and [h["command"] for g in load(old)["hooks"]["SessionStart"] for h in g["hooks"]][0] == "mine.sh"
@@ -322,33 +386,37 @@ def selftest() -> int:
 
         uninstall(settings, load(record))
         doc = load(settings)
-        check("移除：只拿掉紀錄裡的規則與提醒 hook，使用者的留著",
-              doc["permissions"]["allow"] == ["Bash(ls)", "mcp__other__click"] and "hooks" not in doc)
+        check("移除：只拿掉紀錄裡的規則、hook 與狀態列，使用者的留著",
+              doc["permissions"]["allow"] == ["Bash(ls)", "mcp__other__click"]
+              and "hooks" not in doc and "statusLine" not in doc)
 
         edition.set_edition(state, "colleague")
         bare = tmp / "bare" / "settings.json"
         apply(bare, tmp / "bare" / "record.json", state, repo, no_git)
         check("沒有規則可加：不留下空的 permissions", "permissions" not in load(bare))
 
-        # 其他 Claude 設定目錄（T3 Code 的多帳號）：各自寫規則與 hook，紀錄分開；移除時只拿掉 OmniKit 加的
+        # 其他 Claude 設定目錄（T3 Code 的多帳號）：各自寫規則、hook 與帶 --dir 的狀態列（原本有狀態列就用 --then 串接並可還原）
         edition.set_edition(state, "maintainer")
         kai = tmp / "home" / ".claude-kai" / "settings.json"
-        save(kai, {"permissions": {"allow": ["Bash(git status)"]}})
+        save(kai, {"permissions": {"allow": ["Bash(git status)"]}, "statusLine": {"type": "command", "command": "my-status.sh"}})
         record2 = state / "record2.json"
         lines = apply(settings, record2, state, repo, no_git, extra_settings=[kai])
         entry = extra_entries(load(record2)).get(str(kai), {})
-        check("其他設定目錄：規則與提醒 hook 也寫進去，紀錄分開記",
+        kai_sl = load(kai).get("statusLine", {})
+        check("其他設定目錄：規則、hook 與串接原本狀態列的 statusLine 都寫進去，紀錄分開記",
               load(kai)["permissions"]["allow"] == ["Bash(git status)", "mcp__chrome_devtools", "mcp__other__click"]
               and any(is_nudge(h) for g in load(kai)["hooks"]["Stop"] for h in g["hooks"])
               and any(is_ours(h, CLAIM) for g in load(kai)["hooks"]["Stop"] for h in g["hooks"])
               and entry.get("claude_allow") == ["mcp__chrome_devtools", "mcp__other__click"]
               and any(is_ours(h, WATCH) for g in load(kai)["hooks"]["SessionStart"] for h in g["hooks"])
-              and entry.get("claude_hooks") == SCRIPTS and any(".claude-kai" in line for line in lines))
+              and entry.get("claude_hooks") == SCRIPTS and any(".claude-kai" in line for line in lines)
+              and is_ours_statusline(kai_sl) and "--dir" in kai_sl["command"]
+              and ".claude-kai" in kai_sl["command"] and '--then "my-status.sh"' in kai_sl["command"])
         check("其他設定目錄：重跑已是最新",
               apply(settings, record2, state, repo, no_git, extra_settings=[kai])[0] == LATEST)
         uninstall(settings, load(record2))
-        check("其他設定目錄：移除時只拿掉 OmniKit 加的，使用者的留著",
-              load(kai) == {"permissions": {"allow": ["Bash(git status)"]}})
+        check("其他設定目錄：移除時只拿掉 OmniKit 加的，使用者的權限規則與原本狀態列完整還原",
+              load(kai) == {"permissions": {"allow": ["Bash(git status)"]}, "statusLine": {"type": "command", "command": "my-status.sh"}})
 
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0

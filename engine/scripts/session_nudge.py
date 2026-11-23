@@ -183,6 +183,23 @@ def notice(entries: list[dict], due=None) -> list[str]:
     return [msg] if msg else []
 
 
+def account_alerts(entries: list[dict], due=None) -> list[str]:
+    """主線第一回合查 pool-state.json 有沒有未解決的高優先帳號異常（驗證鎖、登入過期、停權）；純讀 JSON，錯誤安靜略過。"""
+    if not first_turn(entries):
+        return []
+    try:
+        if due is None:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            import account_pool
+            import statedir
+            msg = account_pool.due_alert(statedir.STATE)
+        else:
+            msg = due()
+    except Exception:
+        return []
+    return [msg] if msg else []
+
+
 def insights(entries: list[dict], msgs: list[str], due=None) -> list[str]:
     """Claude Code 這一回合有「已推送」的提醒時，順便問 tips.py 要不要提醒跑 /insights；任何錯誤都當成沒有。"""
     if is_codex(entries) or PUSHED not in msgs:
@@ -205,6 +222,7 @@ def main() -> int:
         entries = read_jsonl(data["transcript_path"])
         msgs = codex_nudge(entries, data.get("turn_id")) if is_codex(entries) else nudge(entries)
         msgs += insights(entries, msgs)
+        msgs += account_alerts(entries)
         msgs += notice(entries)
     except Exception:
         return 0
@@ -321,6 +339,10 @@ def selftest() -> int:
     assert notice([{"type": "session_meta", "payload": {"originator": "codex_exec"}}, *turn("a")], fake_due) == []
     assert notice([prompt()], lambda agent: None) == []
     assert notice([prompt()], lambda agent: 1 / 0) == []  # notify 壞了不干擾
+    assert account_alerts([prompt(), reply(1)], lambda: "帳號警示：ag 需驗證") == ["帳號警示：ag 需驗證"]
+    assert account_alerts([prompt(), reply(1), prompt(), reply(1)], lambda: "帳號警示") == []  # 第二回合不提
+    assert account_alerts([prompt(origin="sdk"), reply(1)], lambda: "帳號警示") == []  # 子對話不提
+    assert account_alerts([prompt()], lambda: 1 / 0) == []  # 壞了不干擾
     print("session_nudge selftest OK")
     return 0
 
