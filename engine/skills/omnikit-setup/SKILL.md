@@ -120,13 +120,20 @@ uv run scripts/setup.py profile --answers <answers_file> --write --apply
 
 profile 套用完，再逐項問這三項。每一項都是改使用者的設定檔：先講會改哪個檔、改成什麼，同意才改；不要的就跳過。改之前備份原檔。細節與各家的對應見 `omnikit-ask` 的 `features.md`。
 
-1. **訂了哪幾家？**（Claude、Codex、Antigravity，可複選）
-   - 只有一家：不用做事。分派只用這個 agent 的原生子代理，照載入的分派原則。
-   - 兩家以上，而且想從一家派工作給另一家（例如 Claude 派調研給 Antigravity 的 Gemini）：在 profile 資料夾（掃描結果的 `profiles_dir` 下這個 profile）寫一份 `dispatch.md`，格式照 repo 的 `data/profiles/ryan/dispatch.md`：`instances` 底下每個實例寫 `driver`、`account`、`classes`（可用的模型類別見 `data/rules/dispatch-policy.md` 的 `model_classes`）。寫完在 repo 根目錄跑 `uv run engine/scripts/validate.py` 與 `uv run engine/scripts/profiles.py`，再用 `omnikit-dispatch` 的 `run.py show` 給使用者看結果。不知道實例名稱就先不寫，只用原生子代理。
-   - 寫了 `dispatch.md` 的，接著問：「派出去的子任務，你想在 T3 看到過程，還是只要結果？」
-     - 想看過程 → `visibility: visible`：子任務開成 T3 裡的對話，看得到它收到的指示和做到哪，可以中途追問或停下來；T3 沒開時會自動改成只回結果。
-     - 只要結果 → `visibility: headless`：在背景跑、比較省事，做完只回結果，T3 看不到過程。
-     - 沒意見就不寫，用政策的預設（`dispatch-policy.md` 的 `visibility.default`）。寫在 `dispatch.md` 的 yaml 最上面，例如 `visibility: visible`，再跑一次 `run.py show` 確認印出的管道。
+1. **帳號池與多模型分派設定（4 到 5 題）**
+   - 掃描結果的 `account_pool`（或跑 `uv run scripts/setup.py pool recommend`）已經列出這台偵測到的 T3 實例、多個 `CLAUDE_CONFIG_DIR`／`CODEX_HOME`、環境變數裡有沒有 API 金鑰／雲端專案（只看有沒有，絕不讀值），以及每一項設定的**建議值與原因**。使用者的選擇永遠優先。
+   - 只有單一供應商單一帳號、且不想跨家分派：不用寫 `dispatch.md`，只用原生子代理。
+   - 多帳號或想跨供應商派工時，把偵測結果與每格建議呈現給使用者，問 4 到 5 題：
+     1. **各實例的方案與用途（`usage_scope`）**：新帳號預設 `manual_only`（只給手動）。要改成 `auto_dispatch` 或 `fallback_only`，先確認 `owner` 是本人（`self`），對照規約表 `data/rules/provider-terms.md` 告知風險，需知情同意者由使用者明確同意後填入 `tos_ack`（agent 不得代填，規約 `forbidden` 一律禁止）。
+     2. **思考程度偏好（`thinking_preference`）**：`max_available`（每個模型最高檔）／`balanced`（定案、審查、前置苦工高檔）／`economy`（只有定案與審查高檔）／`custom`。附建議器原因。
+     3. **額度用完怎麼辦（`on_exhausted`）**：`prompt_manual_switch`（停下來列各帳號剩餘與重置時間）／`fail_closed`（絕不花付費 API）／`fallback_paid_api`（改走 API 金鑰或 Vertex）。附建議器原因。
+     4. **派工可見度（`visibility`）與通知（`notify`）**：`visible`（開在 T3 看得到過程）或 `headless`（agy 無頭模式）；通知選 `hook`（對話第一回合提醒）／`desktop`（Windows 系統通知）／`webhook`（手機推播，網址走環境變數 `OMNIKIT_NOTIFY_WEBHOOK_URL`）／`none`。
+     5. **選帳號策略（`account_strategy`，同家多帳號才問）**：`weekly-first`（優先消耗最快重置週額度，搭配 5 分鐘冷卻＋5pp 防震盪）／`least-used`／`sticky`／`priority`。
+   - 把答案存成暫存 JSON，跑預覽並給使用者確認：
+     ```
+     uv run scripts/setup.py pool render --answers <答案.json>
+     ```
+     同意後加 `--write`（已存在需 `--force`，舊檔先備份成 `dispatch.md.bak`），寫進 repo 外的 `~/.omnikit/profiles/<名稱>/dispatch.md`；再跑 `uv run engine/scripts/profiles.py`、`uv run engine/scripts/dispatch.py show` 確認結果，並依需要照 `omnikit-dispatch` 的 `accounts.py probe-plan` 探測新帳號模型。
 2. **回覆要不要精簡？**（第 3 題選精簡的才問）
    - Claude Code：在 `~/.claude/settings.json` 設 `"outputStyle": "Concise"`（先講結果，不寫開場與回顧；工作一樣仔細）。
    - Codex：在 `~/.codex/config.toml` 設 `model_verbosity = "low"`。

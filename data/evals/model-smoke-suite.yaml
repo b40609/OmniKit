@@ -1,0 +1,187 @@
+# 帳號池第三階段：模型煙霧題組（8 題，全自動確定性判對錯，不靠 LLM 評審）
+# 依據：docs/proposals/2026-11-23-account-pool.md 第七節、第十節
+# 用途：新模型上線試用、以及同題 high 對 xhigh 思考程度配對實測。
+# 驗證方式：
+# - kind: python_fn → 抽回覆裡的 Python 程式碼區塊，在受限子行程（無網路、無檔案系統、5 秒逾時）執行確定性測資。
+# - kind: json_match → 抽回覆裡的 JSON 物件，做精準結構與條件比對（不執行程式碼）。
+
+suite_version: 1
+updated: 2026-11-23
+
+tasks:
+  - id: S1
+    category: code-fix
+    title: 邊界條件修補（移動平均與空區間）
+    prompt: |
+      請用 Python 實作函式 `moving_avg(nums: list[float], window: int) -> list[float]`：
+      - 回傳每個長度為 `window` 的連續子陣列之平均值（四捨五入至小數點後 4 位）。
+      - 若 `window <= 0`，拋出 `ValueError`。
+      - 若 `nums` 為空或 `window > len(nums)`，回傳空串列 `[]`。
+      只輸出一個 ```python 程式碼區塊，不要額外說明。
+    kind: python_fn
+    entry: moving_avg
+    tests:
+      - {args: [[1, 2, 3, 4], 2], expect: [1.5, 2.5, 3.5]}
+      - {args: [[1, 2, 3], 3], expect: [2.0]}
+      - {args: [[1, 2], 5], expect: []}
+      - {args: [[], 2], expect: []}
+      - {args: [[1, 2, 3], 0], raises: ValueError}
+      - {args: [[1, 2, 3], -1], raises: ValueError}
+
+  - id: S2
+    category: code-parse
+    title: 混合貨幣與異常字元解析
+    prompt: |
+      請用 Python 實作函式 `parse_amount(text: str) -> float | None`：
+      - 支援前導/尾隨空白、千分位逗號、正負號、括號負數（如 `"(1,234.50)"` → `-1234.5`）及常見貨幣前綴（`$`、`NT$`、`USD `）。
+      - 不合法字串（空字串、多個小數點、含不認得字母如 `"12abc"`、空括號 `"()"`）一律回傳 `None`。
+      - 不使用第三方套件。
+      只輸出一個 ```python 程式碼區塊。
+    kind: python_fn
+    entry: parse_amount
+    tests:
+      - {args: ["$1,234.50"], expect: 1234.5}
+      - {args: [" (2,500.25) "], expect: -2500.25}
+      - {args: ["NT$ -42"], expect: -42.0}
+      - {args: ["USD 0.00"], expect: 0.0}
+      - {args: ["12.3.4"], expect: null}
+      - {args: ["12abc"], expect: null}
+      - {args: ["()"], expect: null}
+      - {args: ["   "], expect: null}
+
+  - id: S3
+    category: code-state
+    title: 帶冷卻與遲滯防震盪的帳號選擇函式
+    prompt: |
+      請用 Python 實作函式 `pick_account(current: str, scores: dict[str, float], seconds_since_switch: int, cooldown: int = 300, margin: float = 5.0, floor: float = 10.0) -> str`：
+      - `scores` 是 `{帳號: 剩餘百分比}`；只考慮剩餘 > 0 的帳號（若全部 <= 0，回傳 `""`）。
+      - 找出剩餘最高分帳號 `best`（同分按帳號名稱字典序最小者）。
+      - 若 `current` 在有效帳號中且 `scores[current] > floor`：
+        - 若 `seconds_since_switch < cooldown`，維持 `current`。
+        - 若 `scores[best] - scores[current] <= margin`，維持 `current`。
+      - 否則回傳 `best`。
+      只輸出一個 ```python 程式碼區塊。
+    kind: python_fn
+    entry: pick_account
+    tests:
+      - {args: ["a", {"a": 50.0, "b": 80.0}, 100], expect: "a"}
+      - {args: ["a", {"a": 50.0, "b": 55.0}, 400], expect: "a"}
+      - {args: ["a", {"a": 50.0, "b": 55.1}, 400], expect: "b"}
+      - {args: ["a", {"a": 8.0, "b": 12.0}, 50], expect: "b"}
+      - {args: ["a", {"a": 0.0, "b": 0.0}, 400], expect: ""}
+      - {args: ["x", {"b": 60.0, "a": 60.0}, 400], expect: "a"}
+
+  - id: S4
+    category: reasoning-review
+    title: 程式碼審查精準定位三個預埋錯誤
+    prompt: |
+      請審查以下帶行號的 Python 程式，找出全部 3 個錯誤，並只輸出一個 ```json 區塊，格式為：
+      `{"bugs": [{"line": <行號整數>, "type": "<類型>"}]}`
+      其中 `type` 只能從以下四個選：`naive_datetime_compare`、`overwrite_ban_flag`、`zero_on_fetch_error`、`sql_injection`。
+
+      ```python
+      1: from datetime import datetime, timezone
+      2: def handle_quota(acc, raw_resp, now_utc):
+      3:     if raw_resp is None:
+      4:         acc["remaining_pct"] = 0.0
+      5:         return acc
+      6:     if raw_resp.get("status") == 200:
+      7:         acc["tos_banned"] = None
+      8:         acc["remaining_pct"] = raw_resp["pct"]
+      9:     reset_dt = datetime.fromisoformat(raw_resp["resets_at"])
+      10:     if reset_dt <= datetime.now():
+      11:         acc["expired"] = True
+      12:     return acc
+      ```
+    kind: json_match
+    checks:
+      required_bug_types: [zero_on_fetch_error, overwrite_ban_flag, naive_datetime_compare]
+      bug_line_ranges:
+        zero_on_fetch_error: [3, 5]
+        overwrite_ban_flag: [6, 8]
+        naive_datetime_compare: [9, 11]
+
+  - id: S5
+    category: structured-extract
+    title: 錯誤日誌萃取與敏感資訊去識別化
+    prompt: |
+      從以下錯誤日誌萃取出結構化 JSON，規則：
+      1. 欄位固定為 `status_code`（整數）、`kind`（`auth_expired`／`validation_required`／`quota_exhausted`）、`url`（字串或 null）、`safe_summary`（不超過 100 字元）。
+      2. **嚴禁**在輸出的任何位置出現原始憑證字串 `ya29.secret_demo_98765` 或 `sk-demo-1234567890`。
+      只輸出一個 ```json 區塊。
+
+      日誌：
+      `[2026-11-23T06:00:00Z] HTTP 403 VALIDATION_REQUIRED token=ya29.secret_demo_98765 key=sk-demo-1234567890 please verify at https://accounts.google.com/verify?t=42`
+    kind: json_match
+    checks:
+      exact_fields:
+        status_code: 403
+        kind: validation_required
+        url: "https://accounts.google.com/verify?t=42"
+      forbid_substrings: ["ya29.secret_demo_98765", "sk-demo-1234567890"]
+      max_len_fields:
+        safe_summary: 100
+
+  - id: S6
+    category: docs-spec
+    title: 規約合規矩陣判定
+    prompt: |
+      依以下規約判斷 4 個情境是否允許自動執行，只輸出一個 ```json 區塊：
+      `{"c1": true/false, "c2": true/false, "c3": true/false, "c4": true/false}`
+
+      規約：
+      - `owner` 不是 `self` 一律禁止（false）。
+      - `auto_select` 為 `forbidden` 時，即使有 `tos_ack` 也禁止（false）。
+      - `auto_dispatch` 為 `needs_ack` 時，必須有非空 `tos_ack` 才允許（true）。
+      - 狀態為 `paused` 或 `tos_banned` 一律禁止（false）。
+
+      情境：
+      - c1: `owner=self`, `action=auto_select`, `perm=forbidden`, `tos_ack="yes"`, `state=ok`
+      - c2: `owner=self`, `action=auto_dispatch`, `perm=needs_ack`, `tos_ack="2026-11-23"`, `state=ok`
+      - c3: `owner=colleague`, `action=auto_dispatch`, `perm=allowed`, `tos_ack="yes"`, `state=ok`
+      - c4: `owner=self`, `action=auto_dispatch`, `perm=allowed`, `tos_ack=""`, `state=paused`
+    kind: json_match
+    checks:
+      exact_fields:
+        c1: false
+        c2: true
+        c3: false
+        c4: false
+
+  - id: S7
+    category: reasoning-algo
+    title: SemVer 2.0 完整比較與排序（含 prerelease 與 build metadata）
+    prompt: |
+      請用 Python 實作函式 `sort_semver(versions: list[str]) -> list[str]`，依 Semantic Versioning 2.0.0 規則由小到大排序：
+      - 忽略 `+` 後面的 build metadata（不影響優先序；相等時保留原輸入順序）。
+      - 正式版大於同主次修版的 prerelease（如 `1.0.0-rc.1 < 1.0.0`）。
+      - prerelease 以 `.` 切段逐段比：皆為純數字時比數值（`alpha.2 < alpha.10`）；純數字小於含字母的識別字（`1 < alpha`）；前綴相同時段數較少者較小（`alpha < alpha.1`）。
+      - 不使用第三方套件。
+      只輸出一個 ```python 程式碼區塊。
+    kind: python_fn
+    entry: sort_semver
+    tests:
+      - {args: [["1.0.0", "1.0.0-alpha", "1.0.0-alpha.1", "1.0.0-alpha.beta", "1.0.0-beta", "1.0.0-beta.2", "1.0.0-beta.11", "1.0.0-rc.1"]],
+         expect: ["1.0.0-alpha", "1.0.0-alpha.1", "1.0.0-alpha.beta", "1.0.0-beta", "1.0.0-beta.2", "1.0.0-beta.11", "1.0.0-rc.1", "1.0.0"]}
+      - {args: [["2.0.0", "1.10.0", "1.2.0", "1.2.0-1", "1.2.0-alpha"]],
+         expect: ["1.2.0-1", "1.2.0-alpha", "1.2.0", "1.10.0", "2.0.0"]}
+      - {args: [["1.0.0+build.2", "1.0.0+build.1", "1.0.0-alpha+001"]],
+         expect: ["1.0.0-alpha+001", "1.0.0+build.2", "1.0.0+build.1"]}
+
+  - id: S8
+    category: reasoning-graph
+    title: 字典序最小拓撲排序與循環偵測
+    prompt: |
+      請用 Python 實作函式 `topo_min(nodes: list[str], edges: list[tuple[str, str]]) -> list[str] | None`：
+      - 每條邊 `(u, v)` 表示 `u` 必須排在 `v` 之前（`edges` 可能含重複邊）。
+      - 回傳字典序最小的合法拓撲排序；若圖中存在循環（含自環）回傳 `None`。
+      - `nodes` 中沒有出現在 `edges` 的孤立節點也必須納入排序。
+      只輸出一個 ```python 程式碼區塊。
+    kind: python_fn
+    entry: topo_min
+    tests:
+      - {args: [["a", "b", "c", "d"], [["b", "d"], ["a", "d"], ["c", "a"]]], expect: ["b", "c", "a", "d"]}
+      - {args: [["x", "y", "z"], [["x", "y"], ["y", "x"]]], expect: null}
+      - {args: [["a"], [["a", "a"]]], expect: null}
+      - {args: [["c", "a", "b"], []], expect: ["a", "b", "c"]}
+      - {args: [["a", "b", "c"], [["a", "b"], ["a", "b"], ["b", "c"]]], expect: ["a", "b", "c"]}

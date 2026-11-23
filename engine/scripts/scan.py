@@ -232,12 +232,20 @@ def scan(home, data, state, which=shutil.which, run=run_version, login=None, git
     omnikit["modules_dir"] = str(state / "modules")
     omnikit["private_modules"] = [{"id": m["id"], "kind": m["kind"], "name": m["name"], "summary": m["summary"]} for m in loaded]
     omnikit["private_skipped"] = skipped
+    account_pool = None
+    try:
+        import pool_setup
+        disc = pool_setup.discover_pool(home=home, state=state, data=data, which=which)
+        account_pool = {"discovered": disc, "recommendations": pool_setup.recommend(disc)}
+    except Exception:  # noqa: BLE001  掃描不因可選的帳號池區塊中斷
+        account_pool = None
     return {
         "os": {"system": platform.system(), "release": platform.release(), "version": platform.version()},
         "suggested_profile": suggest_name(git_name, login or getpass.getuser(), set(omnikit["profiles"])),
         "omnikit": omnikit,
         "agents": agents,
         "tools": tools,
+        "account_pool": account_pool,
     }
 
 

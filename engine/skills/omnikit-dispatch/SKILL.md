@@ -28,6 +28,11 @@ uv run scripts/run.py show
   - `record-error`／`record-ok`／`pause`／`unpause`／`clear`／`alerts`：記錯誤或成功、手動暫停、清除狀態、檢視或發送通知（`validation_required`、`auth_expired`、`tos_banned` 也會由 `session_nudge.py` 在主線第一回合顯示一行提醒）。
 - 新帳號或新模型要探測時：用 T3 MCP 的 `orchestrator_capabilities`（`search` 帶實例 id）存成 JSON，跑 `uv run engine/scripts/accounts.py probe-plan --catalog <檔>` 照印出的步驟做（一個實例一條對話、輪流換模型、最後 settle），結果寫成 JSON 交給 `accounts.py probe-record --file <檔>`。
 - `accounts.py scan` 看每個實例的完整原因；`accounts.py check` 檢查規約表欄位與是否超過 90 天沒重查。
+- 評測、試用與每週差異（帳號池第三階段，`engine/scripts/model_eval.py`）：
+  - `suite`／`smoke-plan --model <id> --levels high,xhigh`／`smoke-grade --file <答案 JSON>`：8 題確定性自動批改煙霧題組（`data/evals/model-smoke-suite.yaml`，Python 題受限隔離子行程跑測資、JSON 題精準比對，不靠 LLM 評審）。
+  - `compare --model <id> --a high --b xhigh`：同題配對比較兩種思考程度的通過率與耗時。
+  - `trials --sync`／`trial-set`：從能力矩陣自動抓新模型進試用狀態檔 `~/.omnikit/dispatch/trials.json`。
+  - `diff`：每週差異提醒（待測新模型、滿 20 筆委派紀錄的試用模型升級／下架建議、近 7 天撞額度與 `thinking_preference` 體檢、規約表時效）。
 
 ## 派給 Antigravity 的模型：照使用者的 visibility 偏好選管道
 

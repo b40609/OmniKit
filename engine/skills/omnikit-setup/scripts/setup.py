@@ -13,6 +13,8 @@
   uv run scripts/setup.py profile --answers <答案.json> [--write] [--apply] [--force]
   uv run scripts/setup.py module --draft <草稿.json> [--write] [--force]    名冊沒有的領域：寫成這台的私有模組
   uv run scripts/setup.py module --list
+  uv run scripts/setup.py pool recommend [--json]                            帳號池掃描與設定建議（每格附原因）
+  uv run scripts/setup.py pool render --answers <答案.json> [--write] [--force]   預覽或寫入個人 dispatch.md
 """
 import json
 import os
@@ -21,7 +23,8 @@ from pathlib import Path
 
 USAGE = ("用法：uv run scripts/setup.py scan | migrate [--yes] | "
          "profile --answers <答案.json> [--write] [--apply] [--force] | "
-         "module --draft <草稿.json> [--write] [--force] | module --list")
+         "module --draft <草稿.json> [--write] [--force] | module --list | "
+         "pool recommend [--json] | pool render --answers <答案.json> [--write] [--force]")
 
 
 def repo_root():
@@ -60,6 +63,9 @@ def main():
     if command == "migrate":
         import profiles
         return profiles.main(["--migrate", *rest])
+    if command == "pool":
+        import pool_setup
+        return pool_setup.main(rest)
     sys.exit(USAGE)
 
 

@@ -49,13 +49,18 @@ jobs:
       - run: uv run engine/scripts/dispatch.py --selftest
       - run: uv run engine/scripts/dispatch.py check
       - run: uv run engine/skills/omnikit-dispatch/scripts/run.py show > /dev/null
-      # 帳號池第一、二階段：名冊與規約表、模型淘汰過濾、探測計畫、狀態機與接手順序
+      # 帳號池第一、二、三階段：名冊與規約表、模型淘汰過濾、探測計畫、狀態機與接手順序、煙霧題組／試用／每週差異、多使用者建議器
       - run: uv run engine/scripts/accounts.py --selftest
       - run: uv run engine/scripts/accounts.py check
       - run: uv run engine/scripts/accounts.py scan > /dev/null
       - run: uv run engine/scripts/account_pool.py --selftest
       - run: uv run engine/scripts/account_pool.py status > /dev/null
       - run: uv run engine/scripts/account_pool.py failover > /dev/null
+      - run: uv run engine/scripts/model_eval.py --selftest
+      - run: uv run engine/scripts/model_eval.py suite > /dev/null
+      - run: uv run engine/scripts/model_eval.py diff > /dev/null
+      - run: uv run engine/scripts/pool_setup.py --selftest
+      - run: uv run engine/scripts/pool_setup.py recommend > /dev/null
       # 飽和式調研：帳本、停止條件、各管道的解析（假的 gh 與網路）
       - run: uv run engine/skills/omnikit-research/scripts/sweep.py --selftest
       # 說做不到之前的能力清點：各種 shell 的找法（Bash 不補 .cmd）、各 agent 的 MCP 設定不印金鑰、本機端點的判斷
