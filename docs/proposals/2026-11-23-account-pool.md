@@ -112,7 +112,7 @@
 
 ### 模型淘汰過濾（D7，Ryan 11-23：「OmniKit 應該幫用戶自動過濾這種舊又 CP 值低的爛模型」）
 
-- 證據（2026-11-23 查）：T3 每天下載的模型單價表（`~/.t3/userdata/usage-model-rates.json`，內容是 LiteLLM 的模型價格資料）裡，`github_copilot/gemini-3.8-flash` 與 3.6、3.7 Flash 的 `successor_model` 都寫 `gemini-4-hydrogen`（Google 自己的 `gemini/`、`vertex_ai/` 3.8 Flash 條目還沒標，所以規則 1 要跨供應商比對同名模型）；同一份表的 API 單價 Hydrogen 是 3.8 Flash 的 2 倍（每百萬 token 輸入 1.5 對 0.75 美元、輸出 7.5 對 3.75），所以淘汰的理由是「有後繼模型」，不是「比較便宜」。訂閱方案看的是每輪扣多少額度，兩者扣不扣同一桶、各扣多少，等讀得到額度後實測（待驗證）。
+- 證據（2026-11-23 查）：T3 每天下載的模型單價表（`~/.t3/userdata/usage-model-rates.json`，內容是 LiteLLM 的模型價格資料）裡，`github_copilot/gemini-3.8-flash` 與 3.6、3.7 Flash 的 `successor_model` 都寫 `gemini-4-hydrogen`（Google 自己的 `gemini/`、`vertex_ai/` 3.8 Flash 條目還沒標，所以規則 1 要跨供應商比對同名模型）；同一份表的 API 單價 Hydrogen 是 3.8 Flash 的 2 倍（每百萬 token 輸入 1.5 對 0.75 美元、輸出 7.5 對 3.75），所以淘汰的理由是「有後繼模型」，不是「比較便宜」。對 ryan 價格與額度消耗都不列入考量（帳號多、Gemini token 不用省，2026-11-23 再確認）；只有替額度少的使用者產配置建議時，才把「每輪扣多少額度」當成考量，兩者扣不扣同一桶、各扣多少，等讀得到額度後實測（待驗證）。
 - 規則（資料驅動，不寫死模型名）：
   1. **有後繼模型或已公告下架**：價格表的 `successor_model`、`deprecation_date` 有值 → 標「已淘汰」，原因寫出後繼是誰。
   2. **被同帳號的模型完全壓過**：同一個帳號、同一個額度桶裡，有另一個模型的能力等級不低於它、而且已通過探測 → 標「被取代」。
