@@ -1,0 +1,15 @@
+id: opengrep
+name: Opengrep
+kind: cli
+slots:
+- git-security-gate
+- static-guardrails
+status: pending
+url: https://github.com/opengrep/opengrep
+works_with:
+- claude
+- codex
+sources:
+- Windows 11 本機實裝與 stk824 雙盲對照調研（2026-11-24，三本帳本飽和）
+notes: opengrep/opengrep，★3,387，LGPL-2.1，v2.0.0（調研回報，2026-11-24）。Semgrep 的開源分支，跨語言 SAST，v2.0.0 附簽章的原生 Windows `.exe`；semgrep 沒有原生 Windows release binary（要 WSL 或 Docker），所以 Windows 原生 SAST 選它。
+added: '2026-11-24'

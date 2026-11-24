@@ -24,7 +24,11 @@ agent 為了讓檢查變綠，常見的捷徑（reward hacking）是繞過 hook�
 三、Stop：這段對話改過的 .py 還有 ruff 錯誤，就擋回去一次；第二次收尾（stop_hook_active）一定放行，不會無限迴圈。
 
 所有錯誤都安靜結束（exit 0），檢查壞掉不能卡住對話。OMNIKIT_HARNESS=off 整個關掉。
-Codex 的 PreToolUse／PostToolUse 格式不同，這支目前只註冊在 Claude Code（claude_allow.py）。
+註冊範圍：目前只註冊在 Claude Code（claude_allow.py）。輸入同時吃 Claude Code／Codex 的 snake_case
+（hook_event_name、tool_name、tool_input）與 Antigravity 的 camelCase（hookEventName、toolCall.name 為
+run_command／write_file／edit_file、toolCall.args、continuationActive），見 normalize()。Antigravity 的 PostToolUse
+只收空 JSON {}、不能注入文字，所以只記下改過的檔案、一律回 {}，ruff 問題在 Stop 擋（continuationActive 當
+stop_hook_active，第二次放行）。Antigravity 的 PreToolUse／Stop 輸出格式未一手核對，接上 Antigravity 前要先實測（待驗證）。
 
 用法：uv run engine/scripts/harness_hooks.py             從 stdin 讀 hook 輸入（hook 用）
       uv run engine/scripts/harness_hooks.py --selftest
@@ -99,7 +103,7 @@ def bypass_reason(cmd: str):
     """git 指令有繞過 hook 的寫法就回傳原因，沒有就 None。"""
     for env, args in _git_segments(cmd or ""):
         sub, rest, glob = _subcommand(args)
-        if any(re.match(r"core\.hookspath=", g, re.I) for g in glob) or any("hookspath" in g.lower() for g in glob):
+        if any(re.match(r"core\.hookspath=", g, re.IGNORECASE) for g in glob) or any("hookspath" in g.lower() for g in glob):
             return "用 -c core.hooksPath 換掉 hook 目錄會跳過 pre-commit 門禁"
         if sub not in ("commit", "push", "merge", "am", "rebase", "cherry-pick"):
             continue
@@ -313,9 +317,47 @@ def deny(reason: str) -> dict:
                                    "permissionDecisionReason": f"OmniKit 護欄：{reason}"}}
 
 
+AGY_TOOLS = {"run_command": "Bash", "write_file": "Write", "edit_file": "Edit", "read_file": "Read",
+             "view_file": "Read", "grep_search": "Grep"}
+AGY_ARGS = {"command": ("command", "commandLine", "CommandLine", "cmd"),
+            "file_path": ("file_path", "filePath", "path", "TargetFile", "targetFile", "AbsolutePath", "absolutePath"),
+            "content": ("content", "CodeContent", "codeContent", "fileContent"),
+            "old_string": ("old_string", "oldString", "TargetContent", "targetContent"),
+            "new_string": ("new_string", "newString", "ReplacementContent", "replacementContent")}
+
+
+def normalize(data: dict):
+    """Claude Code／Codex 的 snake_case（hook_event_name、tool_name、tool_input）原樣用；
+    Antigravity 的 camelCase（hookEventName、toolCall.name、toolCall.args、continuationActive）換成同一個形狀。
+    回傳 (data, 是不是 Antigravity)。Antigravity 的參數鍵名依工單轉述的 agy hooks.md，未在本機一手核對，多收幾種寫法。"""
+    if not isinstance(data, dict) or ("toolCall" not in data and "hookEventName" not in data):
+        return data, False
+    call = data.get("toolCall") if isinstance(data.get("toolCall"), dict) else {}
+    args = call.get("args") if isinstance(call.get("args"), dict) else {}
+    inp = {}
+    for key, names in AGY_ARGS.items():
+        for n in names:
+            if isinstance(args.get(n), str):
+                inp[key] = args[n]
+                break
+    name = call.get("name") or ""
+    out = {"hook_event_name": data.get("hookEventName") or "", "tool_name": AGY_TOOLS.get(name, name),
+           "tool_input": inp, "session_id": data.get("sessionId") or data.get("conversationId") or "",
+           "stop_hook_active": bool(data.get("continuationActive"))}
+    return out, True
+
+
 def handle(data: dict, runner=None, env=None):
-    """回傳要印的 JSON（dict）或 None（放行、不印）。"""
+    """回傳要印的 JSON（dict）或 None（放行、不印）。
+    Antigravity 的 PostToolUse 只收空 JSON {}、不能把文字注入給模型：照樣記下改過的 .py，ruff 的問題留到 Stop 再擋。"""
     env = os.environ if env is None else env
+    data, agy = normalize(data)
+    if agy and data.get("hook_event_name") == "PostToolUse":
+        tool, inp = data["tool_name"], data["tool_input"]
+        path = inp.get("file_path") or ""
+        if tool in ("Edit", "Write", "MultiEdit") and re.search(r"\.pyi?$", path, re.IGNORECASE) and Path(path).is_file():
+            remember_edit(data.get("session_id") or "", path)
+        return {}
     event = data.get("hook_event_name") or ""
     tool = data.get("tool_name") or ""
     inp = data.get("tool_input") if isinstance(data.get("tool_input"), dict) else {}
@@ -330,7 +372,7 @@ def handle(data: dict, runner=None, env=None):
             return deny(why + "。範例檔（.env.example 等）可以讀。")
         if tool in ("Edit", "Write", "MultiEdit"):
             fp = inp.get("file_path") or ""
-            if re.search(r"\.pyi?$", fp, re.I) and (runner is not None or ruff_exe()):
+            if re.search(r"\.pyi?$", fp, re.IGNORECASE) and (runner is not None or ruff_exe()):
                 remember_baseline(data.get("session_id") or "", fp, runner)
             n, name = lint_relax(tool, inp)
             if n >= RELAX_BLOCK_AT and str(env.get("OMNIKIT_LINT_RELAX", "")).lower() != "allow":
@@ -346,7 +388,7 @@ def handle(data: dict, runner=None, env=None):
         if n:
             return {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext":
                     f"OmniKit 護欄提醒：剛在 {name} 新增 {n} 個 ignore／disable 類項目。確定是使用者要的嗎？不是的話改回來、改修程式碼。"}}
-        if not re.search(r"\.pyi?$", path, re.I) or not Path(path).is_file():
+        if not re.search(r"\.pyi?$", path, re.IGNORECASE) or not Path(path).is_file():
             return None
         sid = data.get("session_id") or ""
         remember_edit(sid, path)
@@ -377,7 +419,7 @@ def main() -> int:
             return 0
         data = json.loads(sys.stdin.buffer.read().decode("utf-8") or "{}")
         out = handle(data)
-        if out:
+        if out is not None:
             sys.stdout.buffer.write(json.dumps(out, ensure_ascii=False).encode("utf-8"))
     except Exception:  # noqa: BLE001  檢查壞掉不能卡住對話
         return 0
@@ -522,6 +564,30 @@ def selftest() -> int:
             ok("Stop：其他對話（session 不同）不受影響、ruff 通過也放行",
                handle({**stop, "session_id": "other"}, runner=fake_bad, env={}) is None
                and handle(stop, runner=fake_good, env={}) is None)
+        finally:
+            os.environ.pop("OMNIKIT_STATE", None)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        os.environ["OMNIKIT_STATE"] = tmp
+        try:
+            py = Path(tmp) / "agy.py"
+            py.write_text("import os\n", encoding="utf-8")
+            def bad(cmd):
+                return 1, f"{cmd[-1]}:1:8: F401 `os` imported but unused\n"
+            a_pre = handle({"hookEventName": "PreToolUse", "toolCall": {"name": "run_command",
+                            "args": {"CommandLine": "git commit --no-verify -m x"}}}, env={})
+            a_sec = handle({"hookEventName": "PreToolUse", "toolCall": {"name": "view_file",
+                            "args": {"AbsolutePath": "C:/p/.env"}}}, env={})
+            a_ok = handle({"hookEventName": "PreToolUse", "toolCall": {"name": "run_command",
+                           "args": {"CommandLine": "git status"}}}, env={})
+            ok("Antigravity camelCase：toolCall.name／args 一樣擋 --no-verify 與讀 .env，正常指令放行",
+               denied(a_pre) and denied(a_sec) and a_ok is None)
+            a_post = handle({"hookEventName": "PostToolUse", "sessionId": "ag1", "toolCall": {"name": "write_file",
+                             "args": {"TargetFile": str(py)}}}, runner=bad, env={})
+            a_stop1 = handle({"hookEventName": "Stop", "sessionId": "ag1"}, runner=bad, env={})
+            a_stop2 = handle({"hookEventName": "Stop", "sessionId": "ag1", "continuationActive": True}, runner=bad, env={})
+            ok("Antigravity：PostToolUse 一律回 {}（不注入文字），問題留到 Stop 擋一次，continuationActive 時放行",
+               a_post == {} and a_stop1 and a_stop1["decision"] == "block" and a_stop2 is None)
         finally:
             os.environ.pop("OMNIKIT_STATE", None)
 

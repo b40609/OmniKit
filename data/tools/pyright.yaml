@@ -10,5 +10,5 @@ works_with:
 - codex
 sources:
 - OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
-notes: microsoft/pyright，★15,757（gh api 2026-11-24）。GitHub 授權欄顯示 NOASSERTION，查證 LICENSE.txt 實為標準 MIT（檔頭多兩行說明導致偵測失敗）。Python 型別閘門預設候選之一。比較：astral-sh/ty v0.0.109 仍是 beta；pyrefly-org/pyrefly v1.5.0 暫列非阻擋的第二意見。
+notes: microsoft/pyright，★15,757（gh api 2026-11-24）。GitHub 授權欄顯示 NOASSERTION，查證 LICENSE.txt 實為標準 MIT（檔頭多兩行說明導致偵測失敗）。Python 型別閘門預設候選之一。比較：astral-sh/ty v0.0.109 仍是 beta；pyrefly-org/pyrefly v1.5.0 暫列非阻擋的第二意見（另見 pyrefly 卡）。
 added: '2026-11-24'

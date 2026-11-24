@@ -1,0 +1,14 @@
+id: pyrefly
+name: Pyrefly
+kind: cli
+slots:
+- static-guardrails
+status: pending
+url: https://github.com/pyrefly-org/pyrefly
+works_with:
+- claude
+- codex
+sources:
+- Windows 11 本機實裝與 stk824 雙盲對照調研（2026-11-24，三本帳本飽和）
+notes: pyrefly-org/pyrefly，★7,244，MIT，v1.5.0（調研回報，2026-11-24）。Rust 寫的 Python 型別檢查器；調研回報 2026-10 獲 Google 正式採用、並進駐微軟 Pylance 的 TSP（待驗證：需官方公告一手確認）。目前列 pyright／basedpyright 之外的非阻擋第二意見。
+added: '2026-11-24'

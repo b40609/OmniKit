@@ -3,12 +3,14 @@ name: gitleaks
 kind: cli
 slots:
 - git-security-gate
-status: pending
+status: default
 url: https://github.com/gitleaks/gitleaks
 works_with:
 - claude
 - codex
+decided_at: '2026-11-24'
+reason: 'Windows 11 本機實測（2026-11-24）：gitleaks 8.30.1 跑 `gitleaks git --pre-commit --staged` 227ms、零誤報穩定通過；繼任的 betterleaks 1.10.1 同一指令撞寫死的 Unix 路徑（fatal: error reading /dev/null）直接崩潰。Windows 現階段預設主力用 gitleaks v8.30.1。'
 sources:
 - OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
-notes: gitleaks/gitleaks，★31,287，MIT（gh api 2026-11-24）。README 明載已進入只做安全修補的模式，作者轉去開發 betterleaks。OmniKit 自己的 pre-commit 與 CI（固定 v8.30.1 並比對 SHA256）仍在用它，短期內照舊；新專案可直接評估 betterleaks。
+notes: gitleaks/gitleaks，★31,287，MIT（gh api 2026-11-24）。README 明載已進入只做安全修補的模式，作者轉去開發 betterleaks。OmniKit 自己的 pre-commit 與 CI（固定 v8.30.1 並比對 SHA256）仍在用它，短期內照舊；新專案可直接評估 betterleaks。2026-11-24 Windows 11 實測翻盤：betterleaks 在 Windows 上 `git --pre-commit` 會崩潰，改定 gitleaks 為 git-security-gate 的金鑰掃描預設；上游修好後再評估切換。
 added: '2026-11-24'

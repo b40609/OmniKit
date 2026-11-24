@@ -10,5 +10,5 @@ works_with:
 - codex
 sources:
 - OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
-notes: biomejs/biome，★26,183，Apache-2.0，v2.6.8（gh api 2026-11-24）。純 React／TS／Tailwind v4 專案的單一工具首選（格式＋lint）。`.vue` 支援仍是 Experimental，而且沒有 `.vue` 的 GritQL／Plugin，Vue 專案改用 oxc＋eslint-plugin-vue＋stylelint。
+notes: biomejs/biome，★26,183，Apache-2.0，v2.6.8（gh api 2026-11-24）。純 React／TS／Tailwind v4 專案的單一工具首選（格式＋lint）。一手讀 Rust 原始碼（crates/biome_html_analyze）：已內建 55 條以上 Vue `<template>` 規則（15 條 correctness、40 條以上 nursery），另有 `css/nursery/useLayeredStyles` 專抓沒包進 `@layer`、會壓過 Tailwind v4 的 CSS。界線：`.vue` 仍沒有 GritQL／JS Plugin，要寫專案自訂規則的 Vue 專案仍搭 eslint-plugin-vue；nursery 規則還在試驗，預設不開。
 added: '2026-11-24'
