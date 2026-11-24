@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="OmniKit">
-  <title>OmniKit 個人面板 · 專案指揮台</title>
+  <title>OmniKit · 個人指揮台</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <link rel="apple-touch-icon" href="/icon.svg">
@@ -19,132 +19,165 @@
 
   <div class="app-shell">
     <header class="topbar">
-      <div class="wrap topbar-inner">
+      <div class="topbar-inner">
         <div class="brand">
-          <img src="/icon.svg" alt="" width="26" height="26" class="brand-icon">
-          <div class="brand-text">
-            <h1>OmniKit 個人面板</h1>
-            <span class="brand-sub" id="sync-meta">載入中…</span>
-          </div>
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <rect width="24" height="24" rx="6" fill="currentColor" opacity="0.14"/>
+              <circle cx="12" cy="12" r="5.5" stroke="currentColor" stroke-width="2.2"/>
+              <circle cx="12" cy="12" r="1.8" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="brand-name">OmniKit</span>
+          <span class="brand-meta" id="sync-meta">載入中</span>
         </div>
 
         <nav class="desk-nav" aria-label="主分頁">
-          <button type="button" class="nav-btn" data-tab="cockpit" aria-current="page">專案指揮台</button>
-          <button type="button" class="nav-btn" data-tab="tools">工具與模型</button>
-          <button type="button" class="nav-btn" data-tab="accounts">帳號與額度</button>
-          <button type="button" class="nav-btn" data-tab="map">架構地圖</button>
+          <button type="button" class="nav-tab" data-tab="cockpit" aria-current="page">專案指揮台</button>
+          <button type="button" class="nav-tab" data-tab="tools">工具與模型</button>
+          <button type="button" class="nav-tab" data-tab="accounts">帳號與額度</button>
+          <button type="button" class="nav-tab" data-tab="map">架構地圖</button>
         </nav>
 
         <div class="topbar-actions">
-          <button type="button" class="btn btn-primary" id="btn-sync" title="同步狀態庫並重新對帳">同步對帳</button>
-          <button type="button" class="btn btn-ghost" id="btn-add-project" title="登記本機或遠端專案">＋專案</button>
-          <button type="button" class="btn btn-ghost" id="btn-settings" title="面板設定" aria-label="面板設定">設定</button>
+          <button type="button" class="btn btn-accent" id="btn-reconcile-all" title="依序自動對帳所有過期專案（走可見 T3 對話）">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span id="reconcile-all-label">自動對帳</span>
+          </button>
+          <button type="button" class="icon-btn" id="btn-sync" title="同步狀態庫並重新掃描" aria-label="重新掃描">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+          </button>
+          <button type="button" class="icon-btn" id="btn-add-project" title="登記專案" aria-label="登記專案">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <button type="button" class="icon-btn" id="btn-theme" title="切換深淺色" aria-label="切換深淺色">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          </button>
+          <button type="button" class="icon-btn" id="btn-settings" title="設定" aria-label="設定">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.85 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+          </button>
         </div>
       </div>
     </header>
 
-    <main class="app-scroll" id="main-scroll">
-      <div class="wrap main-inner">
-        <!-- 分頁 1：專案指揮台 -->
-        <section id="tab-cockpit" class="tab-panel" aria-label="專案指揮台">
-          <div class="kpi-strip" id="kpi-strip" role="group" aria-label="球權總覽篩選">
-            <button type="button" class="kpi-pill is-active" data-filter="all" aria-pressed="true">
-              <span class="kpi-label">全部專案</span><b id="kpi-total">-</b>
-            </button>
-            <button type="button" class="kpi-pill kpi-blocked" data-filter="blocked_on_me" aria-pressed="false">
-              <span class="dot"></span><span class="kpi-label">等你處理</span><b id="kpi-blocked">-</b>
-            </button>
-            <button type="button" class="kpi-pill kpi-settle" data-filter="ready_to_settle" aria-pressed="false">
-              <span class="dot"></span><span class="kpi-label">待收尾</span><b id="kpi-settle">-</b>
-            </button>
-            <button type="button" class="kpi-pill kpi-active" data-filter="active" aria-pressed="false">
-              <span class="dot"></span><span class="kpi-label">執行中</span><b id="kpi-active">-</b>
-            </button>
-            <button type="button" class="kpi-pill kpi-stale" data-filter="stale" aria-pressed="false">
-              <span class="dot"></span><span class="kpi-label">過期紅燈</span><b id="kpi-stale">-</b>
-            </button>
-          </div>
+    <!-- 全域對帳進行中細橫幅（空閒時隱藏） -->
+    <div id="reconcile-banner" class="reconcile-banner" hidden>
+      <span class="pulse-dot" aria-hidden="true"></span>
+      <span id="reconcile-banner-text">正在自動對帳…</span>
+    </div>
 
-          <div class="filter-bar">
+    <!-- 分頁 1：專案指揮台（桌機雙欄主從／手機清單與詳情兩層切換） -->
+    <section id="tab-cockpit" class="tab-panel cockpit-workspace" aria-label="專案指揮台">
+      <aside class="project-sidebar app-scroll" id="sidebar-scroll" aria-label="專案清單">
+        <div class="sidebar-sticky">
+          <div class="search-wrap">
+            <svg class="search-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             <label class="visually-hidden" for="project-search">搜尋專案</label>
-            <input type="search" id="project-search" class="search-input" placeholder="搜尋專案名稱、結論、不滿意點或下一步（按 / 聚焦）" autocomplete="off">
-            <div class="filter-meta" id="cockpit-alerts"></div>
+            <input type="search" id="project-search" class="search-field" placeholder="搜尋專案、結論或下一步（/）" autocomplete="off">
           </div>
+          <div class="seg-filters" id="kpi-strip" role="group" aria-label="球權篩選">
+            <button type="button" class="seg-btn is-active" data-filter="all" aria-pressed="true">全部 <span class="num" id="kpi-total">-</span></button>
+            <button type="button" class="seg-btn" data-filter="blocked_on_me" aria-pressed="false"><i class="sdot d-blocked"></i>等你 <span class="num" id="kpi-blocked">-</span></button>
+            <button type="button" class="seg-btn" data-filter="ready_to_settle" aria-pressed="false"><i class="sdot d-settle"></i>收尾 <span class="num" id="kpi-settle">-</span></button>
+            <button type="button" class="seg-btn" data-filter="active" aria-pressed="false"><i class="sdot d-active"></i>執行 <span class="num" id="kpi-active">-</span></button>
+            <button type="button" class="seg-btn" data-filter="stale" aria-pressed="false"><i class="sdot d-warn"></i>過期 <span class="num" id="kpi-stale">-</span></button>
+          </div>
+        </div>
 
-          <div id="lanes-root" class="lanes-root" aria-live="polite">
-            <div class="empty-box">正在對帳本機 Git、T3 對話與狀態板…</div>
-          </div>
-        </section>
+        <div id="project-list" class="project-list" aria-live="polite">
+          <div class="empty-inline">正在載入專案狀態…</div>
+        </div>
+      </aside>
 
-        <!-- 分頁 2：工具與模型（個人疊層） -->
-        <section id="tab-tools" class="tab-panel" hidden aria-label="工具與模型">
-          <div class="panel-card" id="profile-overlay-card">
-            <div class="section-head">
-              <h2>個人規則與模型疊層</h2>
-              <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh-tools">重新載入</button>
-            </div>
-            <div id="profile-overlay-body" class="overlay-grid">載入中…</div>
-          </div>
+      <main class="inspector-pane app-scroll" id="main-scroll" aria-label="專案焦點面板">
+        <div id="inspector-root" class="inspector-inner">
+          <div class="empty-inline">選擇左側專案檢視詳情。</div>
+        </div>
+      </main>
+    </section>
 
-          <div class="filter-bar">
-            <label class="visually-hidden" for="tools-search">搜尋工具名冊</label>
-            <input type="search" id="tools-search" class="search-input" placeholder="搜尋工具名稱、槽位、觸發時機…" autocomplete="off">
-            <div class="status-chips" id="tools-status-chips" role="group" aria-label="工具狀態篩選">
-              <button type="button" class="chip st-default" data-st="default" aria-pressed="true"><span class="dot"></span>預設</button>
-              <button type="button" class="chip st-trial" data-st="trial" aria-pressed="true"><span class="dot"></span>試用</button>
-              <button type="button" class="chip st-on_demand" data-st="on_demand" aria-pressed="true"><span class="dot"></span>按需備案</button>
-              <button type="button" class="chip st-pending" data-st="pending" aria-pressed="false"><span class="dot"></span>待評估</button>
-              <button type="button" class="chip st-rejected" data-st="rejected" aria-pressed="false"><span class="dot"></span>拒絕</button>
-              <button type="button" class="chip st-retired" data-st="retired" aria-pressed="false"><span class="dot"></span>退役</button>
-            </div>
-            <span class="muted-count" id="tools-count"></span>
+    <!-- 分頁 2：工具與模型 -->
+    <section id="tab-tools" class="tab-panel page-scroll app-scroll" hidden aria-label="工具與模型">
+      <div class="page-wrap">
+        <div class="page-head">
+          <div>
+            <h1>工具名冊與個人疊層</h1>
+            <p class="page-sub">共用預設底層疊加你的 profile 偏好與屏蔽清單。</p>
           </div>
+          <button type="button" class="btn btn-subtle" id="btn-refresh-tools">重新載入</button>
+        </div>
 
-          <div id="tools-grid" class="tools-grid"></div>
-        </section>
+        <div id="profile-overlay-body" class="profile-strip">載入中…</div>
 
-        <!-- 分頁 3：帳號與額度 -->
-        <section id="tab-accounts" class="tab-panel" hidden aria-label="帳號與額度">
-          <div class="section-head section-head-top">
-            <div>
-              <h2>多帳號額度與健康狀態</h2>
-              <p class="section-note" id="accounts-meta">從 account_pool.py 讀取本機快照，不顯示任何憑證或金鑰。</p>
-            </div>
-            <button type="button" class="btn btn-primary" id="btn-refresh-agy">刷新 Antigravity 額度</button>
+        <div class="tools-toolbar">
+          <div class="search-wrap" style="flex:1 1 240px;">
+            <svg class="search-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <label class="visually-hidden" for="tools-search">搜尋工具</label>
+            <input type="search" id="tools-search" class="search-field" placeholder="搜尋工具名稱、槽位、喚起時機…" autocomplete="off">
           </div>
-          <div id="accounts-alerts"></div>
-          <div id="accounts-root" class="accounts-sections">載入中…</div>
-        </section>
+          <div class="seg-filters" id="tools-status-chips" role="group" aria-label="狀態篩選">
+            <button type="button" class="seg-btn is-active" data-st="default" aria-pressed="true"><i class="sdot d-active"></i>預設</button>
+            <button type="button" class="seg-btn is-active" data-st="trial" aria-pressed="true"><i class="sdot d-trial"></i>試用</button>
+            <button type="button" class="seg-btn is-active" data-st="on_demand" aria-pressed="true"><i class="sdot d-info"></i>按需</button>
+            <button type="button" class="seg-btn" data-st="pending" aria-pressed="false">待評估</button>
+            <button type="button" class="seg-btn" data-st="rejected" aria-pressed="false">拒絕</button>
+            <button type="button" class="seg-btn" data-st="retired" aria-pressed="false">退役</button>
+          </div>
+          <span class="mono muted-sm" id="tools-count"></span>
+        </div>
 
-        <!-- 分頁 4：架構地圖 -->
-        <section id="tab-map" class="tab-panel" hidden aria-label="架構地圖">
-          <div class="section-head section-head-top">
-            <div>
-              <h2>OmniKit 架構地圖</h2>
-              <p class="section-note">沿用 engine/site/map.html 互動地圖檢視。</p>
-            </div>
-            <a class="btn btn-ghost" href="/map.html" target="_blank" rel="noopener">新視窗全螢幕開啟</a>
-          </div>
-          <div class="map-frame-wrap" id="map-wrap">
-            <iframe id="map-iframe" title="OmniKit 架構地圖" loading="lazy"></iframe>
-          </div>
-        </section>
+        <div id="tools-grid" class="tools-grid"></div>
       </div>
-    </main>
+    </section>
+
+    <!-- 分頁 3：帳號與額度 -->
+    <section id="tab-accounts" class="tab-panel page-scroll app-scroll" hidden aria-label="帳號與額度">
+      <div class="page-wrap">
+        <div class="page-head">
+          <div>
+            <h1>多帳號額度與健康狀態</h1>
+            <p class="page-sub" id="accounts-meta">讀取 account_pool.py 本機快照，絕不顯示憑證或金鑰。</p>
+          </div>
+          <button type="button" class="btn btn-accent" id="btn-refresh-agy">刷新 Antigravity 額度</button>
+        </div>
+        <div id="accounts-alerts"></div>
+        <div id="accounts-root" class="accounts-sections">載入中…</div>
+      </div>
+    </section>
+
+    <!-- 分頁 4：架構地圖 -->
+    <section id="tab-map" class="tab-panel page-scroll app-scroll" hidden aria-label="架構地圖">
+      <div class="page-wrap">
+        <div class="page-head">
+          <div>
+            <h1>OmniKit 架構地圖</h1>
+            <p class="page-sub">互動檢視專案元件與相依關係。</p>
+          </div>
+          <a class="btn btn-subtle" href="/map.html" target="_blank" rel="noopener">新視窗全螢幕 ↗</a>
+        </div>
+        <div class="map-frame-wrap">
+          <iframe id="map-iframe" title="OmniKit 架構地圖" loading="lazy"></iframe>
+        </div>
+      </div>
+    </section>
 
     <!-- 手機底部導覽列 -->
     <nav class="mobile-nav" aria-label="手機主分頁">
       <button type="button" class="mnav-btn" data-tab="cockpit" aria-current="page">
-        <span class="mnav-label">指揮台</span>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        <span>指揮台</span>
       </button>
       <button type="button" class="mnav-btn" data-tab="tools">
-        <span class="mnav-label">工具模型</span>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg>
+        <span>工具</span>
       </button>
       <button type="button" class="mnav-btn" data-tab="accounts">
-        <span class="mnav-label">帳號額度</span>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>額度</span>
       </button>
       <button type="button" class="mnav-btn" data-tab="map">
-        <span class="mnav-label">架構地圖</span>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+        <span>地圖</span>
       </button>
     </nav>
   </div>
@@ -153,7 +186,7 @@
   <dialog id="dlg-now" class="modal">
     <div class="modal-head">
       <h3 id="dlg-now-title">NOW.md</h3>
-      <button type="button" class="btn btn-ghost btn-sm" data-close>關閉</button>
+      <button type="button" class="btn btn-subtle btn-sm" data-close>關閉</button>
     </div>
     <p class="modal-sub" id="dlg-now-path"></p>
     <pre id="dlg-now-body" class="code-viewer"></pre>
@@ -163,20 +196,20 @@
   <dialog id="dlg-project" class="modal">
     <form id="form-project" method="dialog">
       <div class="modal-head">
-        <h3>登記專案到個人面板</h3>
-        <button type="button" class="btn btn-ghost btn-sm" data-close>關閉</button>
+        <h3>登記專案</h3>
+        <button type="button" class="btn btn-subtle btn-sm" data-close>關閉</button>
       </div>
       <div class="field">
         <label for="inp-proj-name">專案名稱（建議與 GitHub repo 同名）</label>
         <input id="inp-proj-name" name="name" type="text" required placeholder="例如 CatOS">
       </div>
       <div class="field">
-        <label for="inp-proj-path">本機專案資料夾路徑（遠端專案可留空）</label>
+        <label for="inp-proj-path">本機專案目錄（遠端專案留空）</label>
         <input id="inp-proj-path" name="path" type="text" placeholder="例如 C:\dev\CatOS">
       </div>
       <div class="modal-foot">
-        <button type="button" class="btn btn-ghost" data-close>取消</button>
-        <button type="submit" class="btn btn-primary">儲存並重新對帳</button>
+        <button type="button" class="btn btn-subtle" data-close>取消</button>
+        <button type="submit" class="btn btn-accent">儲存</button>
       </div>
     </form>
   </dialog>
@@ -185,13 +218,13 @@
   <dialog id="dlg-settings" class="modal">
     <form id="form-settings" method="dialog">
       <div class="modal-head">
-        <h3>個人面板設定</h3>
-        <button type="button" class="btn btn-ghost btn-sm" data-close>關閉</button>
+        <h3>面板設定</h3>
+        <button type="button" class="btn btn-subtle btn-sm" data-close>關閉</button>
       </div>
       <div class="field">
-        <label for="inp-t3-url">T3 Code 連結基底網址（留空使用預設 app.t3.codes）</label>
-        <input id="inp-t3-url" name="t3_base_url" type="url" placeholder="例如 https://omnikeep.tailb1f9ce.ts.net:2388">
-        <small class="field-hint">設成你的 Tailscale HTTPS 網址後，手機與桌機點卡片即可直接跳進該專案的 T3 對話。</small>
+        <label for="inp-t3-url">T3 Code 基底網址</label>
+        <input id="inp-t3-url" name="t3_base_url" type="url" placeholder="https://omnikeep.tailb1f9ce.ts.net:2388">
+        <small class="field-hint">設為 Tailscale HTTPS 位址後，手機與桌機可直接跳轉至對應 T3 對話。</small>
       </div>
       <div class="field-row">
         <div class="field">
@@ -205,15 +238,19 @@
       </div>
       <label class="check-row">
         <input id="inp-auto-commit" name="auto_commit_status" type="checkbox" checked>
-        <span>新增或勾銷「不滿意待改」時自動 commit 到狀態庫</span>
+        <span>新增或勾銷待改項時自動 commit 至狀態庫</span>
       </label>
       <label class="check-row">
         <input id="inp-auto-push" name="auto_push_status" type="checkbox">
-        <span>自動 commit 後順手 git push 到遠端狀態庫</span>
+        <span>自動 commit 後順手 push</span>
       </label>
+      <div class="field-row" style="margin-top:8px;">
+        <button type="button" class="btn btn-subtle" id="btn-settings-theme">切換深淺色主題</button>
+        <button type="button" class="btn btn-subtle" id="btn-settings-sync">同步狀態庫並掃描</button>
+      </div>
       <div class="modal-foot">
-        <button type="button" class="btn btn-ghost" data-close>取消</button>
-        <button type="submit" class="btn btn-primary">儲存設定</button>
+        <button type="button" class="btn btn-subtle" data-close>取消</button>
+        <button type="submit" class="btn btn-accent">儲存設定</button>
       </div>
     </form>
   </dialog>

@@ -226,6 +226,75 @@ def test_http_server_crud_and_security(tmp_path: Path):
         httpd.server_close()
 
 
+def test_reconcile_queue_single_and_batch_api(tmp_path: Path):
+    """驗證單專案與全部過期專案背景自動對帳佇列、遠端略過與狀態刷新。"""
+    import time
+
+    state = tmp_path / "state"
+    repo_local = tmp_path / "LocalProj"
+    _init_git_repo(repo_local)
+    collector.register_project(state, name="LocalProj", path=str(repo_local))
+
+    # 遠端專案（無本機目錄）應在批次對帳時自動跳過
+    (state / "status" / "RemoteProj").mkdir(parents=True)
+    (state / "status" / "RemoteProj" / "NOW.md").write_text(
+        "# RemoteProj\n- 更新時間：2026-11-10 10:00\n- 專案路徑：`Z:\\nonexistent\\RemoteProj`\n",
+        encoding="utf-8",
+    )
+
+    called: list[str] = []
+
+    def fake_reconcile(*, project_id: str, project_name: str, project_path: Path, now_path: Path, **_kw):
+        called.append(project_id)
+        now_str = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M")
+        now_path.parent.mkdir(parents=True, exist_ok=True)
+        now_path.write_text(
+            f"# {project_name}\n- 更新時間：{now_str}\n- 專案路徑：`{project_path}`\n\n"
+            "## 完工路徑\n還有 1 步，完成 3 步（下坡）\n\n## 目前結論\n- 自動對帳完成\n\n## 下一步\n- 【agent 可直接做】發布\n",
+            encoding="utf-8",
+        )
+        return {"thread_id": "th-rec-1", "thread_url": "https://omnikeep.tailb1f9ce.ts.net:2388/threads/e1/th-rec-1", "message": "ok"}
+
+    app = server.CockpitApp(
+        state_dir=state,
+        default_repo_root=None,
+        t3_runner=lambda _: [],
+        reconcile_runner=fake_reconcile,
+        cache_ttl=0,
+    )
+    httpd = server.create_server("127.0.0.1", 0, app=app)
+    port = httpd.server_address[1]
+    th = threading.Thread(target=httpd.serve_forever, daemon=True)
+    th.start()
+    try:
+        base = f"http://127.0.0.1:{port}"
+        # 遠端專案單獨觸發對帳應拒絕 400
+        st_rem, _ = _http_json(f"{base}/api/projects/RemoteProj/reconcile", method="POST", payload={})
+        assert st_rem == 400
+
+        # 一鍵對帳全部過期專案
+        st_all, res_all = _http_json(f"{base}/api/reconcile-all", method="POST", payload={"only_stale": True})
+        assert st_all == 202
+        assert len(res_all["queued"]) == 1
+        assert res_all["queued"][0]["project_id"] == "LocalProj"
+
+        # 等待單一背景 worker 完成
+        for _ in range(40):
+            _, st_rec = _http_json(f"{base}/api/reconcile/status")
+            if not st_rec["busy"] and st_rec["jobs"].get("LocalProj", {}).get("status") == "done":
+                break
+            time.sleep(0.05)
+
+        assert called == ["LocalProj"]
+        _, ov_after = _http_json(f"{base}/api/overview")
+        local_after = next(p for p in ov_after["projects"] if p["id"] == "LocalProj")
+        assert local_after["stale"] is False
+        assert local_after["now"]["conclusions"] == ["自動對帳完成"]
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
 def test_mobile_web_engineering_guardrails():
     """靜態守門：驗證 PWA 前端遵守行動端與 WebApp 工程底線。"""
     static_dir = ROOT / "engine" / "cockpit" / "static"
