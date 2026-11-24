@@ -23,6 +23,8 @@ uv run scripts/run.py show
 - 狀態與接手（`engine/scripts/account_pool.py`）：
   - `status`：看所有帳號的六維正交狀態（`paused`、`auth_expired`、`validation_required`、`tos_banned`、`hard_forbidden`、`forbidden_models`、`cooldowns`）與未解決警示。
   - `usage --refresh-agy`（或 `run.py usage --all --refresh-agy`）：看全部 Claude 設定目錄的狀態列快照，並用 `agy -p /usage --output-format json` 刷新本機 `agy` 帳號的各桶剩餘與重置時間（其餘 Antigravity 帳號看 T3 Usage → Limits）。
+  - Claude 額度來源（2026-11-24 起）：狀態列快照、T3 Code 供應商快取 `~/.t3/caches/<實例 id>.json` 的 `usageLimits`（在 T3 裡跑 Claude 不會觸發狀態列，靠它；只讀額度數字，不讀 auth 欄位），都沒有時用 `uv run engine/scripts/account_pool.py set-claude-quota --instance <id> --weekly-used 72 --weekly-resets-at <ISO>`（或 `--weekday wed --hour-utc 21`）手動登記。三者取最新的。
+  - 選號 `weekly-first`：距每週重置不到 48 小時、還沒用完的帳號最優先（快過期的額度先燒完，壓過 5 分鐘防震盪）；其次才照最快重置、剩餘額度與防震盪挑。
   - `failover [--purpose cross_review_claude]`：依 `on_exhausted` 與即時狀態印出接手順序（跨家審查 Claude 產出時會跳過換回 Claude 的兩步）。
   - `select-claude [--persist]`：依策略（預設 `weekly-first`＋5 分鐘冷卻＋5 個百分點防震盪）在工作包邊界挑 Claude 實例。
   - `record-error`／`record-ok`／`pause`／`unpause`／`clear`／`alerts`：記錯誤或成功、手動暫停、清除狀態、檢視或發送通知（`validation_required`、`auth_expired`、`tos_banned` 也會由 `session_nudge.py` 在主線第一回合顯示一行提醒）。

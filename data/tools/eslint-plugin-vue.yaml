@@ -1,0 +1,14 @@
+id: eslint-plugin-vue
+name: eslint-plugin-vue
+kind: library
+slots:
+- static-guardrails
+status: pending
+url: https://github.com/vuejs/eslint-plugin-vue
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: vuejs/eslint-plugin-vue，★4,587，MIT，v10.12.1（gh api 2026-11-24）。Vue 3 `<template>` 目前唯一完整的生產級護欄；可與 oxlint 並用（oxlint 管 script、ESLint 只開 vue 規則）。
+added: '2026-11-24'

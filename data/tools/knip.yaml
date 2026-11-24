@@ -1,0 +1,14 @@
+id: knip
+name: Knip
+kind: cli
+slots:
+- static-guardrails
+status: pending
+url: https://github.com/webpro-nl/knip
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: webpro-nl/knip，★12,711，ISC（gh api 2026-11-24）。前端死碼、沒用到的 export 與依賴守門員。depcheck 已封存淘汰，改用 knip 或 fallow。
+added: '2026-11-24'

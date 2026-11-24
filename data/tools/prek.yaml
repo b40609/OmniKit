@@ -1,0 +1,14 @@
+id: prek
+name: prek
+kind: cli
+slots:
+- git-security-gate
+status: pending
+url: https://github.com/j178/prek
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: j178/prek，★8,837，MIT，2026-11-23 仍在更新（gh api 2026-11-24）。Rust 寫的單一執行檔 Git hook 執行器，相容既有 .pre-commit-config.yaml，不必裝 Python；Windows 原生 `winget install --id j178.Prek`。推薦當 git-security-gate 的預設候選（OmniKit 尚未跑第 1、2 層實測，狀態先留 pending）。搭配 OmniKit 的 PreToolUse 防繞過 hook（engine/scripts/harness_hooks.py）擋 `git commit --no-verify`。
+added: '2026-11-24'

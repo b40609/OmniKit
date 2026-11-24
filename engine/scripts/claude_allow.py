@@ -5,6 +5,7 @@
 """把 data/harness/claude-allow.txt 的權限規則補進 Claude Code 的 permissions.allow，並註冊 OmniKit 的 hook：
 - hooks.Stop：開新對話提醒（session_nudge.py）、說做不到查證（claim_check.py：回覆說做不到卻沒附查證時擋回去一次）
 - hooks.SessionStart：設定目錄檢查（home_watch.py）：這台多了新的 agent 設定目錄（新帳號、新的 T3 實例）就在背景接上
+- hooks.PreToolUse、PostToolUse、Stop：確定性護欄（harness_hooks.py：擋 --no-verify、機密檔不進對話、門禁設定不准偷關、改 .py 後 ruff 即時回饋）
 - hooks.SessionStart：T3 MCP 斷線防護（t3_watch.py）：T3 的 MCP 埠連不上就試著叫起 T3，並提醒 agent 請使用者 /mcp 重連、先改用 t3 CLI
 其他 Claude 設定目錄（CLAUDE_CONFIG_DIR、T3 Code 每個 Claude 實例的 homePath 等，見 homes.py）的 settings.json
 也一樣寫，紀錄放在安裝紀錄的 claude_extra（以設定檔路徑分開記）。
@@ -40,11 +41,18 @@ NUDGE = "session_nudge.py"
 WATCH = "home_watch.py"
 CLAIM = "claim_check.py"
 T3W = "t3_watch.py"
+HARNESS = "harness_hooks.py"
 # OmniKit 註冊的 Claude Code hook：(事件, 腳本, 逾時秒數)
 # t3_watch.py 自己把時間壓在 25 秒內（最多等 T3 開埠 20 秒）
-HOOKS = (("Stop", NUDGE, 10), ("SessionStart", WATCH, 15), ("Stop", CLAIM, 10), ("SessionStart", T3W, 30))
-HOOK_NAMES = {NUDGE: "開新對話提醒", WATCH: "設定目錄檢查", CLAIM: "說做不到查證", T3W: "T3 MCP 斷線防護"}
-SCRIPTS = [script for _, script, _ in HOOKS]
+# harness_hooks.py：確定性護欄（防 --no-verify 繞過、機密檔不進對話、門禁設定不准偷關、改 .py 後 ruff 即時回饋）
+HOOKS = (("Stop", NUDGE, 10), ("SessionStart", WATCH, 15), ("Stop", CLAIM, 10), ("SessionStart", T3W, 30),
+         ("PreToolUse", HARNESS, 10), ("PostToolUse", HARNESS, 20), ("Stop", HARNESS, 30))
+# 只在這些工具觸發，其他工具呼叫不必多跑一次 uv
+MATCHERS = {("PreToolUse", HARNESS): "Bash|PowerShell|Read|Grep|Edit|Write|MultiEdit",
+            ("PostToolUse", HARNESS): "Edit|Write|MultiEdit"}
+HOOK_NAMES = {NUDGE: "開新對話提醒", WATCH: "設定目錄檢查", CLAIM: "說做不到查證", T3W: "T3 MCP 斷線防護",
+              HARNESS: "確定性護欄"}
+SCRIPTS = list(dict.fromkeys(script for _, script, _ in HOOKS))
 STATUSLINE_SCRIPT = "dispatch.py"
 GRANT = "uv run engine/scripts/agents.py approvals --grant <名稱>"
 LATEST = "Claude 的權限規則、hook 與狀態列已是最新。"
@@ -153,7 +161,10 @@ def add_hook(settings: dict, event: str, script: str, timeout: int) -> bool:
     for h in ours:
         h["command"] = command
     if not ours:
-        groups.append({"hooks": [{"type": "command", "command": command, "timeout": timeout}]})
+        group = {"hooks": [{"type": "command", "command": command, "timeout": timeout}]}
+        if MATCHERS.get((event, script)):
+            group = {"matcher": MATCHERS[(event, script)], **group}
+        groups.append(group)
     return True
 
 
@@ -294,7 +305,7 @@ def apply(settings_path: Path, record_path: Path, state: Path, repo: Path = ROOT
         if added:
             changed.append(f"已加入 Claude 的權限規則{where}：{', '.join(added)}")
         if hooked:
-            changed.append(f"已註冊 OmniKit 的 hook（Stop 開新對話提醒與說做不到查證、SessionStart 設定目錄檢查與 T3 MCP 斷線防護）{where}")
+            changed.append(f"已註冊 OmniKit 的 hook（Stop 開新對話提醒與說做不到查證、SessionStart 設定目錄檢查與 T3 MCP 斷線防護、PreToolUse／PostToolUse／Stop 確定性護欄）{where}")
         if statuslined:
             changed.append(f"已接上 OmniKit 狀態列額度快照（dispatch.py statusline）{where}")
     if "claude_extra" in record:

@@ -1,0 +1,14 @@
+id: deptry
+name: deptry
+kind: cli
+slots:
+- static-guardrails
+status: pending
+url: https://github.com/osprey-oss/deptry
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: osprey-oss/deptry，★1,508，MIT（gh api 2026-11-24）。檢查 Python 專案漏列、多列、只在 dev 卻被正式程式 import 的依賴。
+added: '2026-11-24'

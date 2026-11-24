@@ -1,0 +1,14 @@
+id: osv-scanner
+name: OSV-Scanner
+kind: cli
+slots:
+- git-security-gate
+status: pending
+url: https://github.com/google/osv-scanner
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: google/osv-scanner，★11,606，Apache-2.0（gh api 2026-11-24）。依 lockfile（uv.lock、package-lock.json、pnpm-lock.yaml 等）比對 OSV 漏洞資料庫，跨語言。適合放在 CI 或每週排程，不適合每次 commit 都跑（要連網）。
+added: '2026-11-24'

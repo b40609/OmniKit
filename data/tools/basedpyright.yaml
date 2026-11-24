@@ -1,0 +1,14 @@
+id: basedpyright
+name: basedpyright
+kind: cli
+slots:
+- static-guardrails
+status: pending
+url: https://github.com/DetachHead/basedpyright
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: DetachHead/basedpyright，★3,655，MIT（gh api 2026-11-24）。pyright 的分支，支援 baseline 檔凍結既有型別錯誤、只擋新增的錯誤，適合有舊債的專案導入型別閘門；pip／uv 安裝即可，不必另裝 Node。
+added: '2026-11-24'

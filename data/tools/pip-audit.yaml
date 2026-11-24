@@ -1,0 +1,14 @@
+id: pip-audit
+name: pip-audit
+kind: cli
+slots:
+- git-security-gate
+status: pending
+url: https://github.com/pypa/pip-audit
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: pypa/pip-audit（R2 續查補入，Python 必裝）：掃描已安裝或 requirements／lockfile 列出的第三方套件已知 CVE。星數與授權本次未逐一以 gh api 重測，標待驗證。
+added: '2026-11-24'

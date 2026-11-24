@@ -1,0 +1,14 @@
+id: gitleaks
+name: gitleaks
+kind: cli
+slots:
+- git-security-gate
+status: pending
+url: https://github.com/gitleaks/gitleaks
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: gitleaks/gitleaks，★31,287，MIT（gh api 2026-11-24）。README 明載已進入只做安全修補的模式，作者轉去開發 betterleaks。OmniKit 自己的 pre-commit 與 CI（固定 v8.30.1 並比對 SHA256）仍在用它，短期內照舊；新專案可直接評估 betterleaks。
+added: '2026-11-24'

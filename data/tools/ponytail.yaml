@@ -11,5 +11,5 @@ works_with:
 sources:
 - 桌機盤點
 - Codex 使用紀錄
-notes: 用 hooks 注入提示，要 agent 只寫需要的程式碼，但不省驗證、錯誤處理與安全。舊桌機兩邊都掛了 hooks。
+notes: 用 hooks 注入提示，要 agent 只寫需要的程式碼，但不省驗證、錯誤處理與安全。舊桌機兩邊都掛了 hooks。2026-11-24 原始碼查證（DietrichGebert/ponytail，★197,547，MIT，2026-11-22 更新）：本質是機率性的提示詞引導層，只在 SessionStart／UserPromptSubmit 注入少寫程式（YAGNI）原則，沒有 PostToolUse／Stop 驗證，也不能擋 commit。只能當 guide 層選配，不能取代確定性的 linter、型別檢查與 hook 門禁（見 static-guardrails、git-security-gate 槽位與 engine/scripts/harness_hooks.py）。
 added: '2026-11-04'

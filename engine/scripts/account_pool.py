@@ -21,6 +21,9 @@
   uv run engine/scripts/account_pool.py failover [--purpose general|cross_review_claude] [--json]
                                                                                  額度用完的接手順序（依 on_exhausted 與狀態）
   uv run engine/scripts/account_pool.py select-claude [--strategy ...] [--persist] [--json]
+  uv run engine/scripts/account_pool.py set-claude-quota --instance <id> [--weekly-used <0-100>] [--weekly-resets-at <ISO>]
+                                        [--weekday mon..sun --hour-utc <0-23>] [--five-hour-used <0-100>] [--clear]
+                                                                                 T3 與狀態列都沒有時，手動登記剩餘額度與重置日
                                                                                  依策略（weekly-first＋黏著＋防震盪）挑 Claude 實例
   uv run engine/scripts/account_pool.py record-error --instance <id> (--kind <類別> | --text <訊息>)
         [--driver <driver>] [--model <模型>] [--resets-at <時間>] [--url <https://...>] [--note <文字>]
@@ -86,6 +89,7 @@ HYSTERESIS_PP = 5.0          # 防震盪：剩餘額度領先超過 5 個百分�
 SWITCH_COOLDOWN_SEC = 300    # 防震盪：切完至少隔 5 分鐘再切
 HEADROOM_FLOOR_PP = 10.0     # 原帳號剩餘低於此門檻時不受防震盪綁住
 WEEKLY_EARLIER_SEC = 3600    # weekly-first：重置早於原帳號超過 1 小時才視為明顯更早
+EXPIRING_SOON_SEC = 48 * 3600  # weekly-first：距每週重置不到 48 小時、還沒用完的帳號最優先（快過期的額度先燒完）
 BACKOFF_BASE_SEC = 30        # 無重置時間時的 429 起始冷卻秒數
 BACKOFF_MAX_SEC = 1800       # 指數退避上限：30 分鐘（參考 Subpool）
 CLAUDE_STALE_HOURS = 12      # Claude 快照超過 12 小時標 stale
@@ -722,19 +726,164 @@ def claude_instance_dirs(home=None, mine=None, t3_raw=None):
     return out
 
 
-def claude_quotas(state, rows, mine=None, threshold=80, home=None, t3_raw=None, now=None):
-    """全部 Claude 實例（含三個設定目錄）的額度快照列表。"""
+def t3_usage_snapshot(iid, home=None):
+    """T3 Code 的供應商快取 ~/.t3/caches/<實例 id>.json 裡的 usageLimits（T3 自己定時查的 5 小時與每週額度）。
+    2026-11-24 實測：T3 在 Claude 實例的快取寫 usageLimits.windows[{id: five_hour|seven_day, usedPercent, resetsAt}]
+    與 checkedAt；同一個檔案也有 auth 區塊，這裡只取 usageLimits.windows 的數字與時間，絕不讀、不回傳其他欄位。
+    回傳跟狀態列快照同形狀的 {five_hour, seven_day, recorded_at, source}；沒有就 None。"""
+    import homes
+    base = Path(home) if home else homes.HOME
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", str(iid or "")):
+        return None
+    try:
+        raw = json.loads((base / ".t3" / "caches" / f"{iid}.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    lim = raw.get("usageLimits") if isinstance(raw, dict) else None
+    if not isinstance(lim, dict) or not isinstance(lim.get("windows"), list):
+        return None
+    snap = {}
+    for w in lim["windows"]:
+        if not isinstance(w, dict) or w.get("id") not in ("five_hour", "seven_day"):
+            continue
+        used = w.get("usedPercent")
+        if not isinstance(used, (int, float)):
+            continue
+        ent = {"used_percentage": float(used)}
+        rst = parse_ts(w.get("resetsAt"))
+        if rst:
+            ent["resets_at"] = int(rst.timestamp())
+        snap[w["id"]] = ent
+    if "seven_day" not in snap:
+        return None
+    chk = parse_ts(lim.get("checkedAt"))
+    snap["recorded_at"] = int(chk.timestamp()) if chk else None
+    snap["source"] = "t3_cache"
+    return snap
+
+
+def next_weekly_reset(weekday, hour, now_dt):
+    """依登記的「每週幾、幾點（UTC）重置」算出下一次重置時間。weekday：0=週一 … 6=週日。"""
+    base = now_dt.replace(hour=int(hour), minute=0, second=0, microsecond=0)
+    days = (int(weekday) - base.weekday()) % 7
+    cand = base + timedelta(days=days)
+    if cand <= now_dt:
+        cand += timedelta(days=7)
+    return cand
+
+
+WEEKDAYS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+
+
+def manual_claude_snapshot(state_doc, iid, now_dt):
+    """使用者用 set-claude-quota 登記的額度（pool-state.json 的 accounts.<id>.claude_quota）→ 跟狀態列快照同形狀。
+    只登記每週幾重置、沒登記 resets_at 時，用 weekly_reset_weekday＋weekly_reset_hour_utc 推下一次重置。"""
+    acc = ((state_doc or {}).get("accounts") or {}).get(iid) or {}
+    mq = acc.get("claude_quota") if isinstance(acc, dict) else None
+    if not isinstance(mq, dict):
+        return None
+    week = {}
+    if isinstance(mq.get("weekly_used_pct"), (int, float)):
+        week["used_percentage"] = float(mq["weekly_used_pct"])
+    rst = parse_ts(mq.get("weekly_resets_at"))
+    wd = mq.get("weekly_reset_weekday")
+    if (not rst or rst <= now_dt) and wd in WEEKDAYS:
+        nxt = next_weekly_reset(WEEKDAYS[wd], mq.get("weekly_reset_hour_utc") or 0, now_dt)
+        if rst and rst <= now_dt:
+            week.pop("used_percentage", None)  # 登記的用量屬於已過去的那一週，不沿用
+        rst = nxt
+    if rst:
+        week["resets_at"] = int(rst.timestamp())
+    if not week:
+        return None
+    snap = {"seven_day": week, "source": "manual"}
+    if isinstance(mq.get("five_hour_used_pct"), (int, float)):
+        five = {"used_percentage": float(mq["five_hour_used_pct"])}
+        f_rst = parse_ts(mq.get("five_hour_resets_at"))
+        if f_rst:
+            five["resets_at"] = int(f_rst.timestamp())
+        snap["five_hour"] = five
+    rec = parse_ts(mq.get("recorded_at"))
+    snap["recorded_at"] = int(rec.timestamp()) if rec else None
+    return snap
+
+
+def set_claude_quota(state, instance, *, weekly_used=None, weekly_resets_at=None, weekday=None, hour_utc=None,
+                     five_hour_used=None, five_hour_resets_at=None, clear=False, now=None):
+    """登記（或清除）一個 Claude 實例的剩餘額度與重置日，寫進 pool-state.json。不碰任何 token。"""
+    now_dt = utc_now(now)
+    doc = load_state(state)
+    acc = _acct(doc, instance)
+    if clear:
+        acc.pop("claude_quota", None)
+        save_state(state, doc, now_dt)
+        return doc, f"已清除 {instance} 的手動額度登記"
+    for name, val in (("weekly_used", weekly_used), ("five_hour_used", five_hour_used)):
+        if val is not None and not (0 <= float(val) <= 100):
+            raise ValueError(f"{name} 要在 0 到 100 之間")
+    if weekday is not None and weekday not in WEEKDAYS:
+        raise ValueError(f"weekday 要是 {'、'.join(WEEKDAYS)} 其中之一")
+    if hour_utc is not None and not (0 <= int(hour_utc) <= 23):
+        raise ValueError("hour_utc 要在 0 到 23 之間")
+    mq = dict(acc.get("claude_quota") or {})
+    if weekly_used is not None:
+        mq["weekly_used_pct"] = round(float(weekly_used), 1)
+    if weekly_resets_at is not None:
+        rst = parse_ts(weekly_resets_at)
+        if not rst:
+            raise ValueError("weekly_resets_at 讀不懂（要 ISO8601 或 unix timestamp）")
+        mq["weekly_resets_at"] = iso_utc(rst)
+    if weekday is not None:
+        mq["weekly_reset_weekday"] = weekday
+        mq["weekly_reset_hour_utc"] = int(hour_utc or 0)
+    if five_hour_used is not None:
+        mq["five_hour_used_pct"] = round(float(five_hour_used), 1)
+    if five_hour_resets_at is not None:
+        f_rst = parse_ts(five_hour_resets_at)
+        if not f_rst:
+            raise ValueError("five_hour_resets_at 讀不懂")
+        mq["five_hour_resets_at"] = iso_utc(f_rst)
+    mq["recorded_at"] = iso_utc(now_dt)
+    acc["claude_quota"] = mq
+    save_state(state, doc, now_dt)
+    return doc, f"已登記 {instance} 的額度：{json.dumps(mq, ensure_ascii=False)}"
+
+
+def _pick_snapshot(cands, now_ts):
+    """多個來源（狀態列、T3 快取、手動登記）挑一個：週重置還沒過、紀錄時間最新的優先；手動登記只在其他都沒有時用。"""
+    live = []
+    for snap in cands:
+        if not snap:
+            continue
+        w = snap.get("seven_day") or {}
+        rst = w.get("resets_at")
+        expired = isinstance(rst, (int, float)) and rst <= now_ts
+        live.append((0 if not expired else 1, 1 if snap.get("source") == "manual" else 0, -(snap.get("recorded_at") or 0), snap))
+    if not live:
+        return None
+    live.sort(key=lambda t: t[:3])
+    return live[0][3]
+
+
+def claude_quotas(state, rows, mine=None, threshold=80, home=None, t3_raw=None, now=None, state_doc=None):
+    """全部 Claude 實例（含三個設定目錄）的額度快照列表。
+    來源依序：Claude Code 狀態列快照（dispatch.py statusline）、T3 Code 的供應商快取（~/.t3/caches/<id>.json，
+    在 T3 裡跑 Claude 不會觸發狀態列時靠它）、使用者手動登記（set-claude-quota）。同時有多個時取最新的。"""
     now_dt = utc_now(now)
     now_ts = now_dt.timestamp()
     snaps = load_claude_snapshots(state)
     dirs = claude_instance_dirs(home, mine, t3_raw)
+    doc = state_doc if state_doc is not None else load_state(state)
     out = []
     for r in rows:
         if r.get("driver") != "claudeAgent":
             continue
         iid = r["id"]
         cdir = dirs.get(iid)
-        hit = snaps.get(norm_dir(cdir)) if cdir else None
+        sl = snaps.get(norm_dir(cdir)) if cdir else None
+        sl_snap = dict(sl[1], source="statusline") if sl else None
+        picked = _pick_snapshot([sl_snap, t3_usage_snapshot(iid, home), manual_claude_snapshot(doc, iid, now_dt)], now_ts)
+        hit = (None, picked) if picked else None
         base = {
             "instance": iid,
             "account": r.get("account") or r.get("label") or iid,
@@ -749,12 +898,14 @@ def claude_quotas(state, rows, mine=None, threshold=80, home=None, t3_raw=None, 
             "weekly_resets_at": None,
             "over_threshold": None,
             "age_hours": None,
-            "why": "沒有快照：這個設定目錄尚未跑過接上 statusline 的 Claude Code 對話，或不是訂閱制",
+            "source": None,
+            "why": "沒有快照：狀態列、T3 快取（~/.t3/caches）都沒有，也沒手動登記（account_pool.py set-claude-quota）",
         }
         if not hit:
             out.append(base)
             continue
         _, snap = hit
+        base["source"] = snap.get("source")
         week = snap.get("seven_day") or {}
         five = snap.get("five_hour") or {}
         rec_ts = snap.get("recorded_at")
@@ -833,9 +984,13 @@ def select_claude_instance(rows, mine, quotas, state_doc, *, strategy=None, now=
             why = f"舊快照（{q.get('why')}）"
         else:
             why = "尚無額度快照（照 profile 順序）"
+        expiring = bool(eligible and w_reset and w_reset > now_dt
+                        and (w_reset - now_dt).total_seconds() < EXPIRING_SOON_SEC)
+        if expiring:
+            why = f"距週重置剩 {fmt_remain(w_reset, now_dt)}（< 48 小時，快過期的額度先燒完）；" + why
         cands.append({
             "instance": iid, "account": r.get("account") or r.get("label") or iid,
-            "eligible": eligible, "w_rem": w_rem, "h_rem": h_rem,
+            "eligible": eligible, "w_rem": w_rem, "h_rem": h_rem, "expiring_soon": expiring,
             "w_reset_ts": w_reset.timestamp() if w_reset else None,
             "has_fresh": q.get("status") == "ok" and w_rem is not None,
             "order": order.get(iid, 999), "why": why,
@@ -854,9 +1009,10 @@ def select_claude_instance(rows, mine, quotas, state_doc, *, strategy=None, now=
         if strat == "least-used":
             return (0 if c["w_rem"] is not None else 1, -(c["w_rem"] or -1.0), c["order"])
         if strat == "weekly-first":
-            # 有新鮮額度且有重置時間者優先：最快重置排最前，次看剩餘多寡；未知快照排在後面照 profile 順序
+            # 第一優先：48 小時內就要重置、還沒用完的帳號（快過期的額度先燒完），最快重置的排最前；
+            # 其次有新鮮額度且有重置時間者：最快重置排最前，次看剩餘多寡；未知快照排在後面照 profile 順序
             return (
-                0 if (c["has_fresh"] and c["w_reset_ts"] is not None) else (1 if c["has_fresh"] else 2),
+                0 if c["expiring_soon"] else (1 if (c["has_fresh"] and c["w_reset_ts"] is not None) else (2 if c["has_fresh"] else 3)),
                 c["w_reset_ts"] if c["w_reset_ts"] is not None else float("inf"),
                 -(c["w_rem"] or -1.0),
                 c["order"],
@@ -878,6 +1034,9 @@ def select_claude_instance(rows, mine, quotas, state_doc, *, strategy=None, now=
             chosen, reason = cur, f"策略 sticky：維持黏著 {cur['instance']}（{cur['why']}）"
         elif cur["instance"] == best["instance"]:
             chosen, reason = cur, f"策略 {strat}：維持 {cur['instance']}（{cur['why']}）"
+        elif strat == "weekly-first" and best["expiring_soon"] and not cur["expiring_soon"]:
+            # 快過期優先壓過防震盪：原帳號的額度下週還在，best 的不燒就作廢
+            chosen, reason = best, f"策略 weekly-first：{best['instance']} 快重置優先（{best['why']}），不受防震盪綁住"
         elif cur_ok and within_cd:
             chosen = cur
             reason = f"防震盪冷卻中（距上次切換不到 {SWITCH_COOLDOWN_SEC // 60} 分鐘）：維持 {cur['instance']}"
@@ -1202,7 +1361,8 @@ def usage_view_text(view):
             rst = parse_ts(q.get("weekly_resets_at"))
             r_part = f"，週重置 {fmt_local(rst)}" if rst else ""
             stale = f"【舊資料：{q['why']}】" if q["status"] == "stale" else ""
-            lines.append(f"  {q['instance']}（{q['account']}）：{w_part}、{f_part}{r_part}{stale}")
+            src = {"statusline": "狀態列", "t3_cache": "T3 快取", "manual": "手動登記"}.get(q.get("source"), q.get("source") or "?")
+            lines.append(f"  {q['instance']}（{q['account']}）：{w_part}、{f_part}{r_part}（來源：{src}）{stale}")
     sel = view["claude_selection"]
     if sel.get("chosen"):
         lines.append(f"  推薦下一個工作包用：{sel['chosen']}（{sel['reason']}）")
@@ -1301,6 +1461,16 @@ def main(argv=None):
     p.add_argument("--persist", action="store_true", help="記下這次挑選為新的黏著帳號")
     p.add_argument("--json", action="store_true")
 
+    p = sub.add_parser("set-claude-quota", help="T3 快取與狀態列都沒有時，手動登記 Claude 實例的剩餘額度與重置日")
+    p.add_argument("--instance", required=True)
+    p.add_argument("--weekly-used", type=float, help="本週已用百分比 0 到 100")
+    p.add_argument("--weekly-resets-at", help="每週重置時間（ISO8601 或 unix timestamp）")
+    p.add_argument("--weekday", choices=list(WEEKDAYS), help="每週幾重置（沒給 --weekly-resets-at 時推下一次）")
+    p.add_argument("--hour-utc", type=int, help="搭配 --weekday：幾點（UTC，0 到 23）")
+    p.add_argument("--five-hour-used", type=float)
+    p.add_argument("--five-hour-resets-at")
+    p.add_argument("--clear", action="store_true", help="清除這個實例的手動登記")
+
     p = sub.add_parser("record-error")
     p.add_argument("--instance", required=True)
     p.add_argument("--kind", choices=ERROR_KINDS)
@@ -1390,6 +1560,18 @@ def main(argv=None):
         quotas = claude_quotas(state, rows, mine, th)
         res = select_claude_instance(rows, mine, quotas, doc, strategy=args.strategy, persist_state=state if args.persist else None)
         print(json.dumps(res, ensure_ascii=False, indent=2) if args.json else f"挑選：{res['chosen'] or '無'}（{res['reason']}）")
+        return 0
+
+    if args.cmd == "set-claude-quota":
+        if args.instance not in {r["id"] for r in rows if r.get("driver") == "claudeAgent"}:
+            raise SystemExit(f"{args.instance} 不是已登記的 Claude 實例")
+        try:
+            _, msg = set_claude_quota(state, args.instance, weekly_used=args.weekly_used, weekly_resets_at=args.weekly_resets_at,
+                                      weekday=args.weekday, hour_utc=args.hour_utc, five_hour_used=args.five_hour_used,
+                                      five_hour_resets_at=args.five_hour_resets_at, clear=args.clear)
+        except ValueError as e:
+            raise SystemExit(str(e))
+        print(msg)
         return 0
 
     if args.cmd == "record-error":
@@ -1616,6 +1798,65 @@ def selftest():
                                            now=t0 + timedelta(minutes=6))
         ok("防震盪：5 分鐘冷卻內維持原帳號，過 5 分鐘且領先 > 5 個百分點才切換",
            sel_cd["chosen"] == "claudeAgent_2" and sel_after["chosen"] == "claudeAgent")
+
+        # 3b. T3 快取補位與快重置優先（Expiring-Soon Burn First）
+        (home / ".t3" / "caches").mkdir(parents=True)
+        def t3c(iid, used, reset_dt, five=5):
+            (home / ".t3" / "caches" / f"{iid}.json").write_text(json.dumps({
+                "auth": {"email": "should-never-be-read@example.test", "type": "oauth"},
+                "usageLimits": {"checkedAt": iso_utc(t0 - timedelta(minutes=3)), "windows": [
+                    {"id": "five_hour", "usedPercent": five, "resetsAt": iso_utc(t0 + timedelta(hours=3))},
+                    {"id": "seven_day", "usedPercent": used, "resetsAt": iso_utc(reset_dt)}]}}), encoding="utf-8")
+        t3c("claudeAgent", 10, t0 + timedelta(days=5))
+        t3c("claudeAgent_2", 20, t0 + timedelta(days=5, hours=2))
+        t3c("claudeAgent_claude_kai", 70, t0 + timedelta(hours=24))
+        e_state = st / "estate"
+        qs_t3 = claude_quotas(e_state, rows, mine, 80, home=home, t3_raw=t3_raw, now=t0)
+        snap_kai = t3_usage_snapshot("claudeAgent_claude_kai", home)
+        ok("T3 快取補位：沒有狀態列快照時讀 ~/.t3/caches 的 usageLimits，來源標 t3_cache，絕不帶出 auth 欄位",
+           all(q["status"] == "ok" and q["source"] == "t3_cache" for q in qs_t3)
+           and "auth" not in snap_kai and "example.test" not in json.dumps(qs_t3)
+           and t3_usage_snapshot("../evil", home) is None)
+        sel_exp = select_claude_instance(rows, mine, qs_t3, load_state(e_state), strategy="weekly-first", now=t0)
+        ok("快重置優先：Kai 距重置 24 小時（剩 30%）vs 其他剩 5 天（剩 80% 以上）時必選 Kai",
+           sel_exp["chosen"] == "claudeAgent_claude_kai" and "48 小時" in sel_exp["reason"])
+        # 黏著在 Ryan、剛切 1 分鐘（冷卻中）也要切到快過期的 Kai
+        doc_e = load_state(e_state)
+        doc_e["sticky"]["claudeAgent"] = {"instance": "claudeAgent", "switched_at": iso_utc(t0 - timedelta(minutes=1))}
+        save_state(e_state, doc_e, t0)
+        sel_exp2 = select_claude_instance(rows, mine, qs_t3, load_state(e_state), strategy="weekly-first", now=t0)
+        ok("快重置優先壓過 5 分鐘防震盪與遲滯", sel_exp2["chosen"] == "claudeAgent_claude_kai")
+        # Kai 已見底（週 100%）就不燒，回到一般 weekly-first
+        t3c("claudeAgent_claude_kai", 100, t0 + timedelta(hours=24))
+        qs_dep = claude_quotas(e_state, rows, mine, 80, home=home, t3_raw=t3_raw, now=t0)
+        sel_dep = select_claude_instance(rows, mine, qs_dep, _empty_state(), strategy="weekly-first", now=t0)
+        ok("快重置優先只對未耗盡的帳號：Kai 週 100% 時改挑其他", sel_dep["chosen"] == "claudeAgent")
+        # 超過 48 小時不算快過期
+        t3c("claudeAgent_claude_kai", 70, t0 + timedelta(hours=49))
+        qs_49 = claude_quotas(e_state, rows, mine, 80, home=home, t3_raw=t3_raw, now=t0)
+        ok("距重置 49 小時不算快過期", not any(c["expiring_soon"] for c in
+           select_claude_instance(rows, mine, qs_49, _empty_state(), strategy="weekly-first", now=t0)["candidates"]))
+        # 手動登記：只登記每週幾重置也能推下一次；狀態列快照比 T3 快取新時用狀態列
+        m_state = st / "mstate"
+        set_claude_quota(m_state, "claudeAgent_2", weekly_used=30, weekday="wed", hour_utc=21, now=t0)
+        msnap = manual_claude_snapshot(load_state(m_state), "claudeAgent_2", t0)
+        nxt = datetime.fromtimestamp(msnap["seven_day"]["resets_at"], timezone.utc)
+        ok("手動登記：weekday＋hour 推出下一次重置（未來 7 天內、週三 21:00 UTC）",
+           nxt > t0 and (nxt - t0) <= timedelta(days=7) and nxt.weekday() == 2 and nxt.hour == 21
+           and msnap["seven_day"]["used_percentage"] == 30.0)
+        try:
+            set_claude_quota(m_state, "x", weekly_used=150)
+            bad_rejected = False
+        except ValueError:
+            bad_rejected = True
+        ok("手動登記：參數不合法時報錯", bad_rejected)
+        newer = {"seven_day": {"used_percentage": 1, "resets_at": int((t0 + timedelta(days=2)).timestamp())},
+                 "recorded_at": int(t0.timestamp()), "source": "statusline"}
+        older = {"seven_day": {"used_percentage": 2, "resets_at": int((t0 + timedelta(days=2)).timestamp())},
+                 "recorded_at": int(t0.timestamp()) - 600, "source": "t3_cache"}
+        man = {"seven_day": {"used_percentage": 3}, "recorded_at": int(t0.timestamp()) + 60, "source": "manual"}
+        ok("多來源取最新、手動登記墊底", _pick_snapshot([older, man, newer], t0.timestamp()) is newer
+           and _pick_snapshot([None, man], t0.timestamp()) is man)
 
         # 接手順序：ryan 屏蔽 Argon 後跳過步驟 2 接手到同帳號 Opus；開啟 include_models 時接手到 Argon；跨家審查跳過第 3、4 步
         record_error(c_state, "antigravity_ryan", "quota_exhausted", driver="antigravity", model="gemini-4-neon",

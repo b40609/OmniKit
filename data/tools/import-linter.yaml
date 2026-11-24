@@ -1,0 +1,14 @@
+id: import-linter
+name: Import Linter
+kind: cli
+slots:
+- static-guardrails
+status: pending
+url: https://github.com/import-linter/import-linter
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: import-linter/import-linter，★1,272，BSD-2-Clause（gh api 2026-11-24）。用合約定義 Python 模組分層與禁止越界 import（例如 api 層不能直接 import db 層），agent 亂接依賴時直接擋。
+added: '2026-11-24'

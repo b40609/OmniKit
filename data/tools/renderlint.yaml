@@ -1,0 +1,14 @@
+id: renderlint
+name: renderlint
+kind: cli
+slots:
+- mobile-web-verify
+status: pending
+url: https://github.com/ngocanhnckh/renderlint
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: ngocanhnckh/renderlint，★689，MIT（gh api 2026-11-24）。渲染期檢查橫向溢位、捲動鎖死等版面問題。星數低於長尾門檻，列試用候選。
+added: '2026-11-24'

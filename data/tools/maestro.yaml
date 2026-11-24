@@ -1,0 +1,14 @@
+id: maestro
+name: Maestro
+kind: cli
+slots:
+- mobile-web-verify
+status: pending
+url: https://github.com/mobile-dev-inc/Maestro
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: mobile-dev-inc/Maestro，★16,495，Apache-2.0（gh api 2026-11-24）。原生行動 App（iOS／Android）的 YAML 流程 E2E 測試；WebApp 包成原生殼之後的階段才用得到。
+added: '2026-11-24'

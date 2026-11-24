@@ -1,0 +1,14 @@
+id: jaxtyping
+name: jaxtyping
+kind: library
+slots:
+- static-guardrails
+status: pending
+url: https://github.com/patrick-kidger/jaxtyping
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: patrick-kidger/jaxtyping（R2 續查補入）：陣列形狀與 dtype 的型別標註（NumPy、PyTorch、JAX），搭配 beartype 可在執行期檢查。科學計算／工研院場景選配。星數與授權本次未逐一以 gh api 重測，標待驗證。
+added: '2026-11-24'

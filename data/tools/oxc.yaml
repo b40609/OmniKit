@@ -1,0 +1,14 @@
+id: oxc
+name: Oxc（oxlint＋oxfmt）
+kind: cli
+slots:
+- static-guardrails
+status: pending
+url: https://github.com/oxc-project/oxc
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: oxc-project/oxc，★23,578，MIT（gh api 2026-11-24）。oxfmt v0.80 原生支援 Vue、TS、CSS 與 Tailwind v4 class 排序；oxlint v1.95 加 `--type-aware` 做極速 JS／TS／Vue `<script>` 檢查。截至 2026-11 尚未支援 Vue `<template>` 與 CSS，所以 Vue 專案要搭 eslint-plugin-vue（template）與 stylelint（CSS）。
+added: '2026-11-24'

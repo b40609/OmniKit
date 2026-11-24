@@ -1,0 +1,14 @@
+id: biome
+name: Biome
+kind: cli
+slots:
+- static-guardrails
+status: pending
+url: https://github.com/biomejs/biome
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: biomejs/biome，★26,183，Apache-2.0，v2.6.8（gh api 2026-11-24）。純 React／TS／Tailwind v4 專案的單一工具首選（格式＋lint）。`.vue` 支援仍是 Experimental，而且沒有 `.vue` 的 GritQL／Plugin，Vue 專案改用 oxc＋eslint-plugin-vue＋stylelint。
+added: '2026-11-24'

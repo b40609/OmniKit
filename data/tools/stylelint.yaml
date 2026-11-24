@@ -1,0 +1,15 @@
+id: stylelint
+name: Stylelint
+kind: cli
+slots:
+- static-guardrails
+- mobile-web-verify
+status: pending
+url: https://github.com/stylelint/stylelint
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: 'stylelint/stylelint，★11,557，MIT，v18.1.0（gh api 2026-11-24），搭 stylelint-config-recommended-vue 檢查 Vue `<style>`。用 declaration-property-value-disallowed-list 之類的規則封殺 iOS WebKit 地雷：`content-visibility: auto`（捲動卡片）、`background-attachment: fixed`、`100vh` 等（底線見 data/rules/mobile-web.md）。'
+added: '2026-11-24'

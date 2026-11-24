@@ -7,6 +7,7 @@
 agent 讀到的規則是兩層接在一起，依序：
 - data/rules/baseline.md：安全底線，所有人都套用
 - data/rules/dispatch.md：子任務分派的共用層（任務級別、模型類別、思考程度、升級、委派紀錄），所有人都套用
+- data/rules/mobile-web.md（有才接）：行動端與 WebApp 工程底線，只在改前端時適用
 - profile 的 AGENTS.md：個人規則（語言、語氣、授權程度）
 - profile 的 dispatch.md（有才接）：個人的供應商實例與帳號對應；沒有就只用原生子代理
 同一個 profile 資料夾裡的 scenarios.yaml 是評估工具用的真實情境，由 validate.py 讀。
@@ -177,17 +178,20 @@ def resolve(data, state, wanted=None):
     return name, fallback
 
 
-SHARED_RULES = ("baseline.md", "dispatch.md")  # data/rules/ 底下所有人都套用的，依序；dispatch.md 沒有就跳過
+# data/rules/ 底下所有人都套用的，依序；除了安全底線，其他沒有就跳過。
+# mobile-web.md（2026-11-24）：行動端與 WebApp 工程底線（iOS WebKit 地雷），只在改前端時適用，內容要短（每段對話都會載入）
+SHARED_RULES = ("baseline.md", "dispatch.md", "mobile-web.md")
+OPTIONAL_RULES = {"dispatch.md", "mobile-web.md"}
 PROFILE_RULES = ("AGENTS.md", "dispatch.md")  # profile 資料夾裡的，依序；AGENTS.md 一定要有，dispatch.md 有才接
 
 
 def rules_files(data, state, name):
-    """接給 agent 的規則檔，依序：安全底線、分派共用層、profile 的 AGENTS.md、profile 的分派設定。
-    安全底線與 AGENTS.md 一定列（不存在時讓後面的讀取失敗，不悄悄少一層）；兩份 dispatch.md 有才列。"""
+    """接給 agent 的規則檔，依序：安全底線、分派共用層、行動端與 WebApp 底線、profile 的 AGENTS.md、profile 的分派設定。
+    安全底線與 AGENTS.md 一定列（不存在時讓後面的讀取失敗，不悄悄少一層）；兩份 dispatch.md 與 mobile-web.md 有才列。"""
     base = folder(data, state, name) or data / "profiles" / name
     shared = [data / "rules" / f for f in SHARED_RULES]
     mine = [base / f for f in PROFILE_RULES]
-    return [p for p in shared + mine if p.name != "dispatch.md" or p.is_file()]
+    return [p for p in shared + mine if p.name not in OPTIONAL_RULES or p.is_file()]
 
 
 def answers(data, state, name):
@@ -756,6 +760,14 @@ def selftest():
               and merged.splitlines()[0].endswith(
                   f"data/rules/baseline.md + data/rules/dispatch.md + {(sstate / 'profiles' / 'amy').as_posix()}/AGENTS.md + "
                   f"{(sstate / 'profiles' / 'amy').as_posix()}/dispatch.md -->"))
+        # 行動端與 WebApp 底線：有才接，放在共用分派之後、個人規則之前
+        write(sdata / "rules" / "mobile-web.md", "# 行動端\n")
+        check("行動端底線：data/rules/mobile-web.md 有就接在共用層最後、profile 之前",
+              [p.name for p in rules_files(sdata, sstate, "amy")]
+              == ["baseline.md", "dispatch.md", "mobile-web.md", "AGENTS.md", "dispatch.md"]
+              and compose(sdata, sstate, "amy").index("# 分派共用") < compose(sdata, sstate, "amy").index("# 行動端")
+              < compose(sdata, sstate, "amy").index("# amy\n"))
+        (sdata / "rules" / "mobile-web.md").unlink()
 
         # ---- 舊版存在 repo 裡的 profile：搬到 repo 外 ----
         mdata, mstate = tmp / "m" / "data", tmp / "m" / "state"

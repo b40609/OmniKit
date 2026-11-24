@@ -46,6 +46,8 @@ jobs:
       # 維護者版與同事版（含 git hook 只在維護者版同步）、免問核准的個人同意
       - run: uv run engine/scripts/edition.py --selftest
       - run: uv run engine/scripts/claude_allow.py --selftest
+      # 確定性護欄 hook：擋 --no-verify、機密檔不進對話、門禁設定不准偷關、改 .py 後 ruff 回饋（只回報新增問題）、Stop 不無限迴圈
+      - run: uv run engine/scripts/harness_hooks.py --selftest
       # 規則分層（安全底線 + 分派共用層 + profile）的自我測試
       - run: uv run engine/scripts/profiles.py --selftest
       # 子任務分派：兩層政策的檢查、委派紀錄、Sonnet 試行的判定、本週 Claude 用量的快照

@@ -1,0 +1,14 @@
+id: schemathesis
+name: Schemathesis
+kind: cli
+slots:
+- static-guardrails
+status: pending
+url: https://github.com/schemathesis/schemathesis
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: schemathesis/schemathesis，★3,809，MIT（gh api 2026-11-24）。依 FastAPI 自動產生的 OpenAPI 規格做性質測試，自動找出會回 500 的邊界輸入。適合放 CI，不適合每次存檔都跑。
+added: '2026-11-24'

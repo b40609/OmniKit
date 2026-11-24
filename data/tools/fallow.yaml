@@ -1,0 +1,14 @@
+id: fallow
+name: fallow
+kind: cli
+slots:
+- static-guardrails
+status: pending
+url: https://github.com/fallow-rs/fallow
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: fallow-rs/fallow，★5,398，MIT（gh api 2026-11-24）。Rust 寫的死碼、孤兒 `.vue` 元件、重複碼檢查；`fallow audit` 只看 PR 增量，適合擋新債。與 knip 二選一或並用。
+added: '2026-11-24'

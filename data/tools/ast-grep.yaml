@@ -1,0 +1,15 @@
+id: ast-grep
+name: ast-grep
+kind: cli
+slots:
+- git-security-gate
+- static-guardrails
+status: pending
+url: https://github.com/ast-grep/ast-grep
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: ast-grep/ast-grep，★16,672，MIT（gh api 2026-11-24）。跨語言結構化 AST 搜尋與自訂 lint 規則（YAML 寫規則），適合把專案自己的禁用寫法（例如 iOS WebKit 地雷寫法）寫成可擋 commit 的規則。選配。
+added: '2026-11-24'

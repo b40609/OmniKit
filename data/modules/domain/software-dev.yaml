@@ -72,3 +72,36 @@ slots:
       - id: X1
         text: 逆向 APK、.NET、Electron 等目標。
     search: [reverse engineering mcp, decompiler, binary analysis]
+
+  # 2026-11-24 新增三個「確定性品質門禁（Sensors／Harness）」槽位：OmniKeep 三路飽和式調研
+  # （前端／Mobile WebKit／桌面 WebApp 191 項、Python／後端 84 項、Agent Harness／Git Hooks／資安 57 項，gh api 實測）
+  # 看到名冊偏重提示詞與 skill（機率性引導），缺會擋下錯誤的確定性工具；純靠 AI 寫程式在 iOS WebKit、型別、依賴與邊界上反覆踩雷
+  - id: static-guardrails
+    name: 確定性程式碼門禁：lint、格式、型別與依賴
+    focus: active
+    scenarios:
+      - id: SG1
+        text: <你的專案> 的 Python 後端（例如 FastAPI）每次 agent 改完，用 linter、型別檢查、依賴與分層合約當場擋下錯誤，不靠提示詞叮嚀。
+      - id: SG2
+        text: <你的前端專案>（Vue 3 或 React、TS、Tailwind v4）每次改完自動格式化並檢查 script、template 與 CSS，死碼與漏列依賴也要抓到。
+    search: [python linter, type checker, eslint vue, css linter, dead code detection, dependency check]
+
+  - id: mobile-web-verify
+    name: 行動端 WebKit 與桌面 WebApp 實機巡檢
+    focus: active
+    scenarios:
+      - id: MW1
+        text: 改完 <你的前端專案> 的手機版，在 Windows 上用真的 WebKit（iPhone 機型）巡檢：橫向溢位、捲動鎖死、輸入框字級、觸控目標大小與無障礙。
+      - id: MW2
+        text: 除錯包成桌面 App 的 WebApp（Edge WebView2、Tauri），或原生殼階段的行動 App 流程。
+    search: [playwright webkit mobile, ios safari testing, accessibility testing, webview2 debugging, mobile e2e]
+
+  - id: git-security-gate
+    name: Git hook 與資安門禁
+    focus: active
+    scenarios:
+      - id: GS1
+        text: commit 前自動跑格式、lint 與金鑰外洩檢查，agent 不能用 --no-verify 繞過；Windows 原生能跑。
+      - id: GS2
+        text: 定期依 lockfile 掃描 <你的專案> 的第三方依賴漏洞，並用結構化規則抓出禁用寫法。
+    search: [pre-commit hook runner, secret scanning, dependency vulnerability scanner, ast grep lint]

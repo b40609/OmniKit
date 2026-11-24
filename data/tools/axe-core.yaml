@@ -1,0 +1,14 @@
+id: axe-core
+name: axe-core
+kind: library
+slots:
+- mobile-web-verify
+status: pending
+url: https://github.com/dequelabs/axe-core
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: dequelabs/axe-core，★7,879，MPL-2.0（gh api 2026-11-24）。無障礙自動檢查引擎，常搭 @axe-core/playwright。注意 `target-size` 規則預設關閉，要顯式開 `wcag22aa` 標籤，並另補觸控目標 44×44px 的檢查。
+added: '2026-11-24'

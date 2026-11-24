@@ -1,0 +1,14 @@
+id: ruff
+name: Ruff
+kind: cli
+slots:
+- static-guardrails
+status: pending
+url: https://github.com/astral-sh/ruff
+works_with:
+- claude
+- codex
+sources:
+- OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
+notes: astral-sh/ruff，★51,399，MIT，v0.17.6（gh api 2026-11-24）。Python 極速 linter＋formatter。R2 續查：0.17 官方預設規則頁約 408 條，預設不含 RUF001-003，也不含 FAST（FastAPI 專案要手動加 FAST）。建議 select 開 F、E4、E7、E9、B、ASYNC、BLE、FAST、UP、RUF006；繁體中文專案若 select 開了整個 RUF，必須 ignore RUF001、RUF002、RUF003（全形標點誤報）；S（bandit 規則）對 tests/ 用 per-file-ignores 分層放寬。OmniKit 的 PostToolUse hook 在本機有 ruff 時，對剛改的單一 .py 跑 `ruff check --output-format concise` 當場回饋。
+added: '2026-11-24'
