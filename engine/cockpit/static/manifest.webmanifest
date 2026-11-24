@@ -1,0 +1,18 @@
+{
+  "name": "OmniKit 個人面板",
+  "short_name": "OmniKit",
+  "description": "多專案進度指揮台、個人工具疊層與多帳號額度工作台",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f5f1",
+  "theme_color": "#1d5c47",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
