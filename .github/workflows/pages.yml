@@ -1,11 +1,8 @@
 name: 部署看板
 
-# main 有新 commit 時，由名冊重新產生槽位看板並部署到 GitHub Pages。
-# 第一次使用前要開啟 Pages、來源設成 GitHub Actions；發佈時由 agent 用 gh 完成：
-#   gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow
+# 2026-11-24 定案：集中火力維護本機＋Tailscale 手機 PWA 個人面板（scripts/cockpit.py），
+# 凍結公開 GitHub Pages 自動部署，改為僅手動觸發（workflow_dispatch）；build.py 仍保留給 marketplace 使用。
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
