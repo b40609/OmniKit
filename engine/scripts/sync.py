@@ -793,6 +793,23 @@ def set_codex_approval_mode_toml(txt: str, name: str, mode: str | None) -> str:
     return res
 
 
+def codex_cli_cmd(env: Env) -> list[str] | None:
+    """解析 Codex CLI 啟動指令：Windows npm 安裝的 codex.cmd 經過 cmd.exe 會展開參數裡的 %APPDATA%，
+    直接改用 [node, codex.js] 呼叫可完整保留字面參數並避免 sync --check 誤報差異。"""
+    exe = env.which("codex.exe") or env.which("codex.cmd") or env.which("codex")
+    if not exe:
+        return ["codex"] if env.runner is not None else None
+    p = Path(exe)
+    if os.name == "nt" and p.suffix.lower() in (".cmd", ".bat"):
+        js = p.parent / "node_modules" / "@openai" / "codex" / "bin" / "codex.js"
+        if js.is_file():
+            bundled_node = p.parent / "node.exe"
+            node = str(bundled_node) if bundled_node.is_file() else env.which("node")
+            if node:
+                return [node, str(js)]
+    return [exe]
+
+
 def sync_codex_mcp_and_hooks(env: Env, codex_dirs: list[Path], servers: dict[str, dict],
                              retired_mcp: set[str] = frozenset(), check_only: bool = False) -> list[str]:
     diffs = []
@@ -809,13 +826,12 @@ def sync_codex_mcp_and_hooks(env: Env, codex_dirs: list[Path], servers: dict[str
                 opts.pop("default_tools_approval_mode", None)
         wanted[name] = {"command": s["command"], "args": list(s.get("args") or []), **opts}
 
-    codex_exe = env.which("codex.cmd") or env.which("codex")
+    codex_cmd = codex_cli_cmd(env)
     for cdir in codex_dirs:
         cenv = {"CODEX_HOME": str(cdir)}
         cfg_path = cdir / "config.toml"
-        if codex_exe or env.runner is not None:
-            exe = codex_exe or "codex"
-            rc_l, out_l, _ = _run_cli(env, [exe, "mcp", "list", "--json"], cenv)
+        if codex_cmd:
+            rc_l, out_l, _ = _run_cli(env, [*codex_cmd, "mcp", "list", "--json"], cenv)
             parsed_l = parse_json_output(out_l) if rc_l == 0 else None
             cur = {item["name"]: item for item in parsed_l if isinstance(item, dict) and "name" in item} if isinstance(parsed_l, list) else {}
             for name, spec in wanted.items():
@@ -825,12 +841,12 @@ def sync_codex_mcp_and_hooks(env: Env, codex_dirs: list[Path], servers: dict[str
                 diffs.append(f"設定 Codex MCP（CLI）：{name} @ {cdir}")
                 if not check_only:
                     cdir.mkdir(parents=True, exist_ok=True)
-                    _run_cli(env, [exe, "mcp", "add", name, "--", spec["command"], *spec["args"]], cenv)
+                    _run_cli(env, [*codex_cmd, "mcp", "add", name, "--", spec["command"], *spec["args"]], cenv)
             for name in list(cur):
                 if (name in retired_mcp or name.startswith(("omnikit-", "omnikit_"))) and name not in wanted:
                     diffs.append(f"移除已下架 Codex MCP：{name} @ {cdir}")
                     if not check_only:
-                        _run_cli(env, [exe, "mcp", "remove", name], cenv)
+                        _run_cli(env, [*codex_cmd, "mcp", "remove", name], cenv)
             # 對帳並就地更新／撤回 default_tools_approval_mode（經 tomllib 驗證）
             if cfg_path.is_file():
                 txt, nl = codex_hooks.read(cfg_path)
@@ -1084,11 +1100,10 @@ def disconnect(env: Env) -> list[str]:
                 cleaned = CODEX_MCP_BLOCK.sub("", txt)
                 if cleaned != txt:
                     codex_hooks.write(cfg_p, cleaned, nl)
-            codex_exe = env.which("codex.cmd") or env.which("codex")
-            if codex_exe or env.runner is not None:
-                exe = codex_exe or "codex"
+            codex_cmd = codex_cli_cmd(env)
+            if codex_cmd:
                 for name in set(servers) | retired_mcp:
-                    _run_cli(env, [exe, "mcp", "remove", name], {"CODEX_HOME": str(d)})
+                    _run_cli(env, [*codex_cmd, "mcp", "remove", name], {"CODEX_HOME": str(d)})
 
     claude_exe = env.which("claude")
     if claude_exe or env.runner is not None:
@@ -1336,6 +1351,21 @@ def selftest() -> int:
               and not (agy_inst / "config" / "plugins" / "omnikit").exists()
               and not (state / "claude-marketplace").exists()
               and (home / ".claude" / "skills" / "my-own-skill" / "SKILL.md").is_file())
+
+        # Windows npm shim：codex.cmd 應繞過 cmd.exe 直接改用 [node, codex.js]，避免 %APPDATA% 被展開
+        if os.name == "nt":
+            fake_npm = base / "fake-npm"
+            fake_js = fake_npm / "node_modules" / "@openai" / "codex" / "bin" / "codex.js"
+            fake_js.parent.mkdir(parents=True)
+            fake_js.write_text("// stub\n", encoding="utf-8")
+            fake_cmd = fake_npm / "codex.cmd"
+            fake_cmd.write_text("@echo off\n", encoding="utf-8")
+            fake_node = fake_npm / "node.exe"
+            fake_node.write_text("", encoding="utf-8")
+            shim_env = Env(home=home, repo=repo, state=state,
+                           which=lambda n: str(fake_cmd) if n == "codex.cmd" else (str(fake_node) if n == "node" else None))
+            check("Windows codex.cmd 繞過 cmd.exe 改以 [node, codex.js] 執行，保留 %APPDATA% 字面值",
+                  codex_cli_cmd(shim_env) == [str(fake_node), str(fake_js)])
 
     print(f"\n{'sync.py selftest：全部通過' if not fails else f'sync.py selftest：{len(fails)} 項失敗'}")
     return 1 if fails else 0

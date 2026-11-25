@@ -28,19 +28,21 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
      Claude 的其他設定目錄也同步你自己裝在 ~/.claude 的 skill（資料夾連結）與啟用中的 plugin
      （claude plugin install，CLAUDE_CONFIG_DIR 指過去）；之後新裝的，重跑 sync.py sync 就補上。
      安裝之後才新增的帳號：開新對話時 home_watch.py 發現，就在背景接上（也可以跑 sync.py sync）。
-     T3 Code 的 Antigravity 實例走 ACP 模式、不讀規則檔：把實例的 Binary path 指到 OmniKit 的轉接程式
-     （~/.omnikit/acp/omnikit-acp.cmd，engine/scripts/t3_acp.py 與 acp_shim.py），
-     開新對話時帶入 ~/.gemini/GEMINI.md；你自己設了 Binary path 的實例不動，doctor 會列出來。
-   - skills：engine/skills 連到 ~/.claude/skills；複製到 ~/.agents/skills 給 Codex，複製到
-     ~/.gemini/config/skills 給 Antigravity（它的全域 skill 只讀這裡，不跟隨資料夾連結）。
-   - MCP：data/mcp/servers.yaml 寫進三邊的設定，只動 OmniKit 管的欄位。agents.json 記每個 server 寫入時的
-     雜湊；使用者改過的，或同名但不是 OmniKit 的，先停下來問，不覆蓋。
+     T3 Code 的 Antigravity 實例：T3 會原生同步 ~/.gemini 的規則與 skills.json；OmniKit 會在 ~/.gemini 與各 T3 實例
+     放置 config/plugins/omnikit/ 薄 plugin（護欄與 MCP），並自動清理舊版停用的 ACP 轉接程式（~/.omnikit/acp/）。
+   - skills：Claude Code（~/.claude/skills）與 Codex（~/.codex/skills）以 Directory Junction 連結至
+     ~/.omnikit/current/engine/skills（防穿透保護乾淨副本，零檔案複製與零雜湊帳本）；Antigravity 透過
+     ~/.gemini/config/skills.json 原生參照實體 skills 路徑（T3 自動同步至全部實例），並自動清理舊版複製品。
+   - MCP 與護欄 hooks：無帳本對帳 data/mcp/servers.yaml。Claude Code 透過本地薄 plugin（~/.omnikit/claude-marketplace
+     內的 omnikit@omnikit-local）掛載 hooks 與 MCP（不動頂層 ~/.claude.json，找不到 claude CLI 時才退回 settings.json hooks 備案）；
+     Codex 透過 codex mcp CLI 與 ~/.codex/config.toml 管理；Antigravity 於 ~/.gemini 與各 T3 實例放置
+     config/plugins/omnikit/ 三檔薄宣告（不動頂層 mcp_config.json，保留 T3 自動標題生成）。
    - 舊版用 skillshare 接的，改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分（skillshare 本身不刪）。
-5. 免問核准：Claude Code 的權限規則（data/harness/claude-allow.txt，只增不刪）與 Codex 的
-   default_tools_approval_mode。維護者版照 data 寫入；同事版每個工具先問，本人同意了才寫入（預設否）。
-   另外在 Claude Code 與 Codex 註冊兩個 Stop hook：開新對話提醒（session_nudge.py）與說做不到查證
-   （claim_check.py：回覆說做不到卻沒附查證時擋回去一次）；Codex 要使用者在 /hooks 信任後才會執行。
-   Claude Code 再註冊 SessionStart 的設定目錄檢查（home_watch.py）。
+5. 免問核准與護欄 hooks：Claude Code 的權限規則（data/harness/claude-allow.txt 現行＋墓碑清單，只增不刪使用者自訂規則）
+   與 Codex 的 default_tools_approval_mode。維護者版照 data 寫入；同事版每個工具先問，本人同意了才寫入（預設否）。
+   護欄與提醒 hooks（確定性護欄 harness_hooks.py、開新對話提醒 session_nudge.py、說做不到查證 claim_check.py、
+   設定目錄檢查 home_watch.py、T3 MCP 斷線防護 t3_watch.py）：Claude 經由薄 plugin 掛載並寫入 statusLine；
+   Codex 寫進 config.toml（需在 /hooks 信任才會執行）；Antigravity 經由薄 plugin hooks.json 掛載確定性護欄。
 6. git hook，只有維護者版：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、skills、MCP 或權限規則時，
    自動同步。同事版不設 git hook，pull 不會改任何設定；要套用更新就重跑 install.ps1（先用 -WhatIf 預覽）。
 7. 檢查 OmniKit repo 的 git 身分，只有維護者版。
@@ -48,8 +50,8 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 每一步用 uv 跑 Python 腳本時，防毒短暫鎖住 uv 剛建好的暫存執行檔的話，等 3 秒重試一次（engine/scripts/uv-run.ps1，FR-34）。
 
 這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，會記在
-~/.omnikit/install-record.json；接上了哪些 agent、管了哪些 skills 與 MCP，記在
-~/.omnikit/agents.json。uninstall.ps1 只移除這些。
+~/.omnikit/install-record.json；接上了哪些 agent、repo 路徑與設定，記在
+~/.omnikit/config.json（無雜湊帳本，期望狀態由 repo manifest 直接計算）。uninstall.ps1 依安裝紀錄與無狀態對帳還原。
 狀態放家目錄的 ~/.omnikit，不放 %LOCALAPPDATA%：從 Claude 桌面版這類 Microsoft Store（MSIX）封裝的 app 裡跑時，
 AppData 底下新建的檔會被轉存到那個 app 自己的位置，終端機、T3 Code、Codex 看不到，同一台就有兩份狀態。
 舊版放在 %LOCALAPPDATA%\omnikit 的（以及被轉存的副本），uv 裝好後第一步就合併進 ~/.omnikit（engine/scripts/statedir.py）。
@@ -469,11 +471,11 @@ function Show-InstallPlan {
   }
   if ($agents -contains 'claude-code') {
     $verb = if ((Get-FileText $ClaudeMd) -match $BlockPattern) { '更新' } else { '在開頭加上' }
-    $plan += "  ~/.claude/CLAUDE.md：$($verb)受管區塊，import 底線與 profile；其他內容不動"
-    $plan += "  其他設定目錄（CLAUDE_CONFIG_DIR、CODEX_HOME、T3 Code 的實例、~/.claude-* 等，見 homes.py）：規則一樣放受管區塊、MCP 一樣寫，Claude 的 skills 一樣連進去"
+    $plan += "  ~/.claude/CLAUDE.md：$($verb)受管區塊，import 底線與 profile（附帶內金絲雀行）；其他內容不動"
+    $plan += '  其他設定目錄（CLAUDE_CONFIG_DIR、CODEX_HOME、T3 Code 的實例、config.json 額外列舉目錄，見 homes.py）：規則放受管區塊，Claude 與 Codex 的 skills 以 Directory Junction 連入，薄 plugin／MCP 與權限設定一併同步'
   }
   if ($agents -contains 'antigravity' -and (Test-Path (Join-Path $env:USERPROFILE '.t3\userdata\settings.json'))) {
-    $plan += "  T3 Code 的 Antigravity 實例：Binary path 指到 OmniKit 的轉接程式（$(Join-Path $env:USERPROFILE '.omnikit\acp\omnikit-acp.cmd')），開新對話時帶入 GEMINI.md；你自己設了 Binary path 的不動"
+    $plan += '  T3 Code 的 Antigravity 實例：於各實例放置 config/plugins/omnikit/ 薄 plugin（護欄與 MCP）；規則與 skills.json 由 T3 原生同步 ~/.gemini（舊版 ACP 轉接程式會自動清理）'
   }
   if ($agents -contains 'codex') {
     $legacy = (Get-FileText $SkillshareConfig) -match '(?m)^\s*- name: rules-codex\s*$'
@@ -491,11 +493,11 @@ function Show-InstallPlan {
   if ($agents -contains 'antigravity') {
     $gemini = Get-FileText $GeminiMd
     if ($gemini -match $BlockPattern) {
-      $plan += '  ~/.gemini/GEMINI.md：更新受管區塊；其他內容不動'
+      $plan += '  ~/.gemini/AGENTS.md（共用）與 GEMINI.md（個人）：更新受管區塊（單檔 <= 24,000 bytes）；其他內容不動'
     } elseif ($gemini.Trim()) {
-      $plan += '  ~/.gemini/GEMINI.md：先備份成 GEMINI.md.pre-omnikit，在開頭加上受管區塊（原地改寫，硬連結到同一個檔案的其他名字會一起更新）'
+      $plan += '  ~/.gemini/AGENTS.md（共用）與 GEMINI.md（個人）：先備份既有檔成 .pre-omnikit，在開頭加上受管區塊（原地改寫，單檔 <= 24,000 bytes）'
     } else {
-      $plan += '  ~/.gemini/GEMINI.md：建立，內容是底線與 profile'
+      $plan += '  ~/.gemini/AGENTS.md（共用）與 GEMINI.md（個人）：建立底線與 profile 受管區塊（單檔 <= 24,000 bytes）'
     }
   }
   if ($Fresh) { $plan += '  ~/.claude/CLAUDE.md：受管區塊以外的舊規則先備份成 CLAUDE.md.pre-omnikit，再移除' }
@@ -509,14 +511,18 @@ function Show-InstallPlan {
   $skills = (Get-ChildItem -Directory (Join-Path $Repo 'engine\skills') |
     Where-Object { (Test-Path (Join-Path $_.FullName 'SKILL.md')) -and $_.Name -notin $skip }).Name -join '、'
   if ($skip) { $plan += "  skills：profile「$name」選了不評估新工具，不裝 $($skip -join '、')" }
-  if ($agents -contains 'claude-code') { $plan += "  skills：$skills 連到 ~/.claude/skills" }
-  if ($agents -contains 'codex') { $plan += "  skills：$skills 複製到 ~/.agents/skills（給 Codex）" }
-  if ($agents -contains 'antigravity') { $plan += "  skills：$skills 複製到 ~/.gemini/config/skills（給 Antigravity）" }
+  if ($agents -contains 'claude-code') { $plan += "  skills：$skills 以 Directory Junction 連到 ~/.claude/skills（來源 ~/.omnikit/current/engine/skills，零複製）" }
+  if ($agents -contains 'codex') { $plan += "  skills：$skills 以 Directory Junction 連到 ~/.codex/skills（來源 ~/.omnikit/current/engine/skills，並清理舊 ~/.agents/skills 殘留）" }
+  if ($agents -contains 'antigravity') { $plan += "  skills：更新 ~/.gemini/config/skills.json 原生參照 ~/.omnikit/current/engine/skills（T3 自動同步至全部實例，並清理舊 ~/.gemini/config/skills 複製品）" }
   $servers = [regex]::Matches((Get-FileText (Join-Path $Repo 'data\mcp\servers.yaml')), '(?m)^  ([A-Za-z0-9_-]+):\s*$') |
     ForEach-Object { $_.Groups[1].Value }
-  $files = @{ 'claude-code' = '~/.claude.json'; 'codex' = '~/.codex/config.toml'; 'antigravity' = '~/.gemini/config/mcp_config.json' }
+  $mcpTargets = @{
+    'claude-code' = 'Claude 本地薄 plugin（~/.omnikit/claude-marketplace -> omnikit@omnikit-local，不動頂層 ~/.claude.json）'
+    'codex'       = 'Codex CLI（~/.codex/config.toml）'
+    'antigravity' = 'Antigravity 薄 plugin（~/.gemini/config/plugins/omnikit/ 與各 T3 實例，不動頂層 mcp_config.json）'
+  }
   if ($servers -and $agents) {
-    $plan += "  MCP：$($servers -join '、') 寫進 $(($agents | ForEach-Object { $files[$_] }) -join '、')，只動 OmniKit 管的欄位；被你改過或同名但不是 OmniKit 的，先問你"
+    $plan += "  MCP（$($servers -join '、')）：無帳本對帳掛載至 $(($agents | ForEach-Object { $mcpTargets[$_] }) -join '；')"
   }
   $ssText = Get-FileText $SkillshareConfig
   if ($ssText -match '(?m)^\s*- name: rules-codex\s*$' -or $ssText -match '(?m)^  mcp: .*servers\.yaml' -or
@@ -527,16 +533,21 @@ function Show-InstallPlan {
   $allow = @(Get-Content -Encoding UTF8 (Join-Path $Repo 'data\harness\claude-allow.txt') |
     ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
   if ($edition -eq 'maintainer') {
-    if ($allow) { $plan += "~/.claude/settings.json：權限免問清單補上 $($allow -join '、')（只增不刪）；Codex 照 servers.yaml 設 default_tools_approval_mode" }
+    if ($allow) { $plan += "~/.claude/settings.json：權限免問清單補上 $($allow -join '、')（現行＋墓碑管理，只增不刪自訂項目）；Codex 照 servers.yaml 設 default_tools_approval_mode" }
   } elseif ($allow) {
     # 跟 edition.py 的 tool_of 一樣：mcp__<server>（__<工具>）算在那個 server
     $approveTools = @($allow | ForEach-Object { $_ -replace '^mcp__(.+?)(__.+)?$', '$1' } | Select-Object -Unique)
     $plan += "免問核准（$($approveTools -join '、')）：安裝時逐一問你，同意了才寫進 ~/.claude/settings.json 與 ~/.codex/config.toml（預設否）"
   }
-  $plan += '開新對話提醒：加進 ~/.claude/settings.json 與 ~/.codex/config.toml 的 Stop hook（Codex 要到 /hooks 信任才會跑）'
-  $plan += '說做不到查證：加進同樣兩處的 Stop hook，回覆說做不到、沒有工具、請你手動做卻沒附查證時，擋回去要 agent 先查（每次最多擋一次）'
-  $plan += '設定目錄檢查：加進 ~/.claude/settings.json 的 SessionStart hook，開新對話時發現新的設定目錄（新帳號）就在背景接上'
-  $plan += '其他 Claude 設定目錄的 settings.json：權限規則與三個 hook 一樣寫'
+  if ($agents -contains 'claude-code') {
+    $plan += 'Claude 護欄與提醒 hooks：透過本地薄 plugin（omnikit@omnikit-local）掛載確定性護欄、開新對話提醒、說做不到查證、設定目錄檢查與 T3 MCP 防護（找不到 claude CLI 時退回 settings.json hooks 備案），並寫入 statusLine；其他 Claude 設定目錄一併同步'
+  }
+  if ($agents -contains 'codex') {
+    $plan += 'Codex hooks：加進 ~/.codex/config.toml（開新對話提醒、說做不到查證與 T3 MCP 防護；需到 /hooks 信任才會跑）'
+  }
+  if ($agents -contains 'antigravity') {
+    $plan += 'Antigravity 護欄 hooks：透過 ~/.gemini/config/plugins/omnikit/hooks.json（與各 T3 實例）掛載確定性護欄'
+  }
   $hooksOn = (git -C $Repo config --get core.hooksPath) -eq '.githooks'
   if ($edition -eq 'maintainer' -and -not $hooksOn) {
     $plan += '這個 repo 改用 .githooks：commit 前掃金鑰、驗證名冊；改到規則、skills、MCP 等檔案時自動同步'

@@ -130,36 +130,34 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 ## 裝好之後
 
-安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了六個核心 skill（`omnikit-setup`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-research`、`omnikit-capabilities`、`omnikit-eval`；訪談選了不評估新工具的沒有 `omnikit-eval`）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
+安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了六個核心 skill（`omnikit-setup`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-research`、`omnikit-capabilities`、`omnikit-eval`，搭配 `ok`／`ok-*` 簡短入口；訪談選了不評估新工具的沒有 `omnikit-eval` 與 `ok-eval`）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
 
 ### 確認接上了
 
 | 檢查 | Claude Code | Codex | Antigravity |
 |---|---|---|---|
 | 規則 | 問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的「規則版本」一樣，profile 是你選的 | 同左 | 同左 |
-| skill | 輸入 `/omnikit`，選單裡會出現 `omnikit-setup`、`omnikit-handoff` 與 `omnikit-eval` 等（訪談選了不評估新工具的，沒有 `omnikit-eval`） | 輸入 `$omnikit`，或用 `/skills` 列出來 | 問「你可用的 skill 有哪些？」，會列出這幾個 |
-| MCP | 終端機跑 `claude mcp get chrome_devtools`，狀態是 Connected | 終端機跑 `codex mcp list`，`chrome_devtools` 是 enabled | 終端機跑 `agy mcp list`，`chrome_devtools` 是 enabled |
+| skill | 輸入 `/omnikit` 或 `/ok`，選單裡會出現 `omnikit-setup`、`omnikit-handoff` 等（訪談選了不評估新工具的，沒有 `omnikit-eval` 與 `ok-eval`） | 輸入 `$omnikit` 或 `$ok`，或用 `/skills` 列出來 | 問「你可用的 skill 有哪些？」，會列出這幾個 |
+| MCP | 終端機跑 `uv run engine/scripts/doctor.py`（或 `claude plugin list` 確認 `omnikit@omnikit-local` 已啟用） | 終端機跑 `codex mcp list`，`chrome_devtools` 是 enabled | 終端機跑 `agy mcp list`，`chrome_devtools` 是 enabled |
 
 終端機跑 `uv run engine/scripts/sync.py status`，可以看到這台接上了哪些 agent 與無帳本對帳狀態。
 
-逐項檢查跑 `uv run engine/scripts/doctor.py`：規則區塊、skills、MCP、權限規則與 hook 都還在、跟寫入時一樣，這台每個 agent 設定目錄（多帳號、T3 Code 的實例）都接上了，再用各 agent 自己的清單確認 MCP 已啟用；查不到的標「未知」，不算通過。加 `--preflight` 一併跑安裝前檢查。
+逐項檢查跑 `uv run engine/scripts/doctor.py`：規則區塊、skills、MCP、權限規則與 hook 都還在、跟寫入時一樣，這台每個 agent 設定目錄（多帳號、T3 Code 的實例）都接上了，並對護欄 hook 做三方言端到端自測；查不到的標「未知」，不算通過。加 `--preflight` 一併跑安裝前檢查。
 
 ### 安裝前後差在哪
 
 | 項目 | 會有什麼不同 | 三個 agent 的差別 |
 |---|---|---|
-| 規則（`data/rules/baseline.md` + `data/rules/dispatch.md`（分派的原則，完整政策在 `dispatch-policy.md`，要派才讀）+ profile 的 `AGENTS.md`，profile 有 `dispatch.md` 也一起接） | 安全底線所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問 | Claude Code 直接讀這兩份，改完開新 session 就生效。Codex 與 Antigravity 讀的是兩份接在一起的內容：改了 profile 要跑 `uv run engine/scripts/profiles.py` 重新接上（維護者版改的是 repo 裡的檔案的話，commit 時 git hook 會自動同步） |
-| `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 三邊說「幫我設定 OmniKit」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-setup`，Codex 輸入 `$omnikit-setup` |
-| `omnikit-ask` skill（已退役） | 2026-11-25 起退役刪除：三次實測與沒裝打平，改用內建 `/plan` 或 `/grill-me`（見 [docs/reviews/2026-11-25-ask-sota-reeval.md](docs/reviews/2026-11-25-ask-sota-reeval.md)）；三家指令對照表移至 [docs/cli-features.md](docs/cli-features.md) | — |
-| `omnikit-weekly` skill（已停用） | 2026-11-17 起停用，改用官方的 `/doctor`、`/insights`。原本是：說「OmniKit 本週週報」，列出你的個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率；還查不到的標「未知」。不連網，見[個人週報](#個人週報)。說「OmniKit 給我建議」，依這台裝了什麼、用了什麼，分成裝、拿掉、用內建的就好三類，見[建議](#建議裝拿掉用內建的就好) | — |
-| `omnikit-handoff` skill | 說「交接」，agent 把做到一半的工作 commit、push，寫一份交接檔到你的狀態 repo，再開新對話接著做；新對話說「讀 <交接檔路徑> 接著做」就照交接檔接手。狀態 repo 的位置寫在你的 profile，沒寫 agent 會先問 | 三邊說「交接」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-handoff`，Codex 輸入 `$omnikit-handoff` |
-| `omnikit-dispatch` skill | 派子任務、開子對話時照分派政策選模型與思考程度，收完結果後記一行委派紀錄（存在這台，不上傳）；也能看 Sonnet 試行的比較與本週 Claude 用量。見[子任務分派與委派紀錄](#子任務分派與委派紀錄) | 三邊說「委派紀錄」「分派統計」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-dispatch`，Codex 輸入 `$omnikit-dispatch`。本週用量的快照只有 Claude Code 的狀態列存得到 |
-| `omnikit-research` skill | 說「先查業界做法」「找同類工具」「比較方案」，agent 每個管道都查（網頁中英文、GitHub topic 與星數、fork 與競品、skill／MCP 目錄、Hacker News、Product Hunt），關鍵字從結果擴展，連續 3 組沒有新名字才停（長尾題目改看 ★1,000 以上的名字，標「長尾未飽和」；12 組還沒停先回報）；報告附查了哪些管道與關鍵字、第幾組停、哪裡查不到，星數與授權用 `gh api` 實測並寫日期。安全底線有一行要求調研照這個 skill 做 | 三邊說「找同類工具」「調研」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-research`，Codex 輸入 `$omnikit-research`。GitHub 的管道要先 `gh auth login` |
+| 規則（`data/rules/baseline.md` + `data/rules/dispatch.md` + `data/rules/mobile-web.md` + profile 的 `AGENTS.md`） | 安全底線、分派原則與行動端底線所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問。完整分派政策在 `dispatch-policy.md`、個人帳號對應在 `dispatch.md`，都不常駐載入，需要派工時才讀 | Claude Code 直接 import 來源檔，改完開新 session 就生效；Codex 讀合併後的 `~/.codex/AGENTS.md` 受管區塊（<= 32 KiB）；Antigravity 拆成 `~/.gemini/AGENTS.md`（共用層）與 `~/.gemini/GEMINI.md`（個人層），單檔限制 <= 24,000 bytes 避免靜默截斷。改了 profile 跑 `uv run engine/scripts/profiles.py` 重新接上（維護者版 commit 時 git hook 自動同步） |
+| `ok`／`ok-*` 簡短入口 | 少打字的快捷選單與捷徑：`ok` 列出 5 項主選單（交接、調研、分派、設定、清點），或直接呼叫 `ok-handoff`、`ok-research`、`ok-dispatch`、`ok-setup`、`ok-eval` | Claude Code 與 Antigravity 輸入 `/ok`（如 `/ok 交接`），Codex 輸入 `$ok` |
+| `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 三邊說「幫我設定 OmniKit」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-setup` 或 `/ok-setup`，Codex 輸入 `$omnikit-setup` |
+| `omnikit-handoff` skill | 說「交接」，agent 把做到一半的工作 commit、push，寫一份交接檔到你的狀態 repo，再開新對話接著做；新對話說「讀 <交接檔路徑> 接著做」就照交接檔接手。狀態 repo 的位置寫在你的 profile，沒寫 agent 會先問 | 三邊說「交接」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-handoff` 或 `/ok-handoff`，Codex 輸入 `$omnikit-handoff` |
+| `omnikit-dispatch` skill | 派子任務、開子對話時照分派政策選模型與思考程度，收完結果後記一行委派紀錄（存在這台，不上傳）；也能看 Sonnet 試行的比較與本週 Claude 用量。見[子任務分派與委派紀錄](#子任務分派與委派紀錄) | 三邊說「委派紀錄」「分派統計」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-dispatch` 或 `/ok-dispatch`，Codex 輸入 `$omnikit-dispatch`。本週用量的快照只有 Claude Code 的狀態列存得到 |
+| `omnikit-research` skill | 說「先查業界做法」「找同類工具」「比較方案」，agent 每個管道都查（網頁中英文、GitHub topic 與星數、fork 與競品、skill／MCP 目錄、Hacker News、Product Hunt），關鍵字從結果擴展，連續 3 組沒有新名字才停（長尾題目改看 ★1,000 以上的名字，標「長尾未飽和」；12 組還沒停先回報）；報告附查了哪些管道與關鍵字、第幾組停、哪裡查不到，星數與授權用 `gh api` 實測並寫日期。安全底線有一行要求調研照這個 skill 做 | 三邊說「找同類工具」「調研」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-research` 或 `/ok-research`，Codex 輸入 `$omnikit-research`。GitHub 的管道要先 `gh auth login` |
 | `omnikit-capabilities` skill | agent 要說「做不到」「沒有工具」「請你手動做」之前，先清點這台能用的 CLI（標出 Git Bash 找不到、只有 PowerShell 找得到的，例如只有 `t3.cmd` 的 T3）、各 agent 登記的 MCP server、本機 MCP 端點（開著沒、要不要登入、哪個 agent 還沒接），列出最省事的做法，再對照 `--help` 與最新官方文件。只看檔案、PATH 與本機連線，不印金鑰。安全底線的「說做不到之前」要求先照這個 skill 查完 | 三邊要說做不到、或使用者問「你能不能…」「有沒有辦法派給…」時觸發；要手動叫，Claude Code 輸入 `/omnikit-capabilities`，Codex 輸入 `$omnikit-capabilities`。也能直接跑 `uv run engine/scripts/capabilities.py` |
-| `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡；「每週彙整」是維護者評估工具用的 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval`，Codex 輸入 `$omnikit-eval`。Codex 與 Antigravity 用的是複製品，skill 改完要 commit 才會更新 |
-| `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 已加進免問清單，Codex 設成自動核准，兩邊都不會跳權限確認；Antigravity 照它自己的權限設定 |
-| 開新對話提醒 | 每回合結束時檢查一次：這段對話第一次成功 `git push`、或累計第 1、3、9、27… 次自動壓縮，就跳一行提醒你考慮開新對話；任務還沒做完的話，跟 agent 說「交接」。不看 token 數（各模型上限不同，自動壓縮才是 agent 自己判斷滿了）。提醒本身不會自己換對話 | Claude Code 裝好就生效；由別的對話開出來的子對話不提醒，做完看收尾的狀態就好。Codex 的新 hook 要先信任才會跑，CLI 輸入 `/hooks`、桌面版到設定的 Hooks 按信任；OmniKit 搬位置或原本那支 uv 不在了，指令會改，要再信任一次 |
-| 說做不到查證 | 每回合結束時看 agent 的最後一則回覆：自己說「做不到、沒有工具、沒辦法、請你手動做、還不能」，整則又沒附查證（能力清點、`--help`、文件網址、檔案:行號、實際的錯誤輸出），就擋回去一次，要它先照 `omnikit-capabilities` 查完再回答。轉述別人、引用規則、程式碼與錯誤訊息裡的字、條件句與問句、本來就要你做的事（登入核准、付款、拍板）不擋；第二次收尾一定放行，不會卡住。誤判率實測見 `data/evals/2026-11-18-claim-check-hook.md` | Claude Code 裝好就生效（每個 Claude 設定目錄都接）；Codex 一樣要先在 `/hooks` 信任。暫時關掉：設環境變數 `OMNIKIT_CLAIM_CHECK=off` |
+| `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡；「每週彙整」是維護者評估工具用的 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval` 或 `/ok-eval`，Codex 輸入 `$omnikit-eval`。三邊皆透過無複製參照指向 `~/.omnikit/current/engine/skills`（維護者版 commit 時由 git hook 自動更新，同事版重跑 `install.ps1`） |
+| `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 由薄 plugin 掛載並可加進免問清單，Codex 設成自動核准（同事版皆需本人同意），Antigravity 由薄 plugin 掛載並照它自己的權限設定 |
+| 護欄與提醒 hooks | 包含確定性安全護欄（`harness_hooks.py`，攔截危險繞過與敏感檔讀取）、開新對話提醒（`session_nudge.py`，含每日最多一則用法小提示）、說做不到查證（`claim_check.py`，未附查證擋回一次；設 `OMNIKIT_CLAIM_CHECK=off` 可暫關）、設定目錄檢查（`home_watch.py`）與 T3 MCP 斷線防護（`t3_watch.py`） | Claude Code 透過本地薄 plugin `omnikit@omnikit-local` 掛載（所有 Claude 設定目錄皆接）；Codex 寫進 `config.toml`（需在 `/hooks` 信任才會跑）；Antigravity 於薄 plugin `config/plugins/omnikit/hooks.json` 掛載確定性護欄 |
 | git hooks（只有維護者版） | 只作用在 OmniKit repo：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、MCP、權限時自動同步。同事版不設 | 跟 agent 無關 |
 
 開新的 session 試試看：
@@ -167,12 +165,12 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 ```text
 OmniKit 規則版本與 profile 是什麼？
 幫我設定 OmniKit
+/ok
 幫我評估 https://github.com/<owner>/<repo>
 用瀏覽器打開 http://localhost:3000，看 console 有沒有錯誤
-我不知道怎麼問：畫面太雜，想把功能入口合併
 ```
 
-問法庫、評估、改名冊、跟上原作者的更新，見[日常使用](#日常使用)。
+需求還沒想清楚想先對焦，直接用內建 `/plan`（Antigravity 亦可用 `/grill-me`），三家內建指令對照見 [docs/cli-features.md](docs/cli-features.md)；換 profile、簡短入口、分派、評估、改名冊與跟上更新，見[日常使用](#日常使用)。
 
 ### 建立自己的 profile
 
@@ -185,11 +183,11 @@ OmniKit 規則版本與 profile 是什麼？
 
 | 你選的 | 規則裡寫成 |
 |---|---|
-| 做哪幾種工作（領域） | 不寫進規則，存成 `domains.yaml`。[建議](#建議裝拿掉用內建的就好)只看你選的領域、它們帶入的能力（例如軟體開發會帶入瀏覽器），以及每個人都有的基礎模組。之後想改，重新訪談或直接改這個檔；刪掉這個檔就是全部都看 |
+| 做哪幾種工作（領域） | 不寫進規則，存成 `domains.yaml`，記錄你選的領域、它們帶入的能力（例如軟體開發會帶入瀏覽器），以及每個人都有的基礎模組。之後想改，重新訪談或直接改這個檔；刪掉這個檔就是不限領域 |
 | agent 可以自己做到哪 | 每步先問：改檔案、執行指令前先列計畫等你同意。專案內直接做（建議）：下載安裝、改專案以外的才先問。大多放手：下載安裝也直接做 |
 | 最想改善的習慣 | 例如「常改太多」變成「只改需求相關的地方，其他想改的先列出來問你」 |
 | 要評估新工具 | 情境範本裡的 `<你的專案>` 換成你的專案，評估工具時拿來當考題 |
-| 不評估新工具 | 不裝 `omnikit-eval`（評估工具與維護者的每週彙整都在這個 skill 裡）；已經裝了的會拿掉。個人週報（`omnikit-weekly`）照樣有。之後改主意，重新訪談選「要」就會裝回來 |
+| 不評估新工具 | 不裝 `omnikit-eval` 與對應捷徑 `ok-eval`（評估工具與維護者的每週彙整都在這個 skill 裡）；已經裝了的會拿掉。之後改主意，重新訪談選「要」就會裝回來 |
 
 規則檔與情境檔都由 `engine/scripts/profile_new.py` 依固定範本產生、驗證，agent 只負責問問題；寫入後可以直接改，改完跑 `uv run engine/scripts/profiles.py` 重新接上。重新訪談時會帶入上次的答案，舊檔先備份成 `.bak`；手寫的 profile 與 repo 裡已經有的名稱不會被覆蓋。安全底線不能從 profile 放寬。
 
@@ -236,7 +234,7 @@ flowchart LR
 2. **產生**：commit 時 git hook 驗證名冊並重新產生 marketplace 清單；推到 main 之後，GitHub Actions 重建看板。
 3. **同步**：`install.ps1` 透過無帳本同步器（`engine/scripts/sync.py`）把規則（安全底線 + 你選的 profile）、skills、hooks 與 MCP 接到 Claude Code、Codex 與 Antigravity。維護者版之後 commit 或 pull 動到這些檔案時，git hook 會自動再同步；同事版不設 git hook，pull 不會改任何設定。
 
-想看每個部分、每個檔案在做什麼，打開[互動架構地圖](https://b40609.github.io/OmniKit/map.html)：每個檔案都有白話說明，另有 3 條逐步導覽（評估新工具、改規則、第一次安裝）。建議用電腦開。
+想看每個部分、每個檔案在做什麼，打開[互動架構地圖](https://b40609.github.io/OmniKit/map.html)：每個檔案都有白話說明，另有 3 條逐步導覽（評估新工具、改規則、第一次安裝）。建議用電腦開。（註：`map.html` 為早期架構快照，最新無帳本同步架構與檔案清單以本頁[安裝會改動哪些地方](#安裝會改動哪些地方)與[目錄結構](#目錄結構)為準。）
 
 <a href="https://b40609.github.io/OmniKit/map.html">
 <picture>
@@ -253,16 +251,16 @@ flowchart LR
 | `data/omnikit.yaml` | fork 出來的 repo，改成你的 `repo`、`owner`、`marketplace`，`profile` 改回 `default`，並重新產生 marketplace 清單 |
 | `~/.claude/CLAUDE.md` | 在開頭加一段受管區塊，import `data/rules/baseline.md` 與你選的 profile 的 `AGENTS.md`（訪談產生的在 `~/.omnikit/profiles`，其他在 `data/profiles`）；路徑有空白時用 `\ ` 跳脫，不然 Claude Code 讀到空白就斷掉。其他內容不動 |
 | `~/.codex/AGENTS.md` | 在開頭加一段受管區塊，放底線與 profile 接在一起的內容；原本的規則留在區塊外，照常生效，也先備份成 `AGENTS.md.pre-omnikit`。舊版整份換掉的，同步時換成只有區塊（規則內容一樣）；區塊被拿掉的話，同步時不加回去 |
-| `~/.gemini/GEMINI.md` | Antigravity 的規則：在開頭加一段受管區塊，放底線與 profile 接在一起的內容；原本的先備份成 `GEMINI.md.pre-omnikit`。原地改寫，這個檔案跟其他工具共用（硬連結）時，其他名字會一起更新，連結不會斷 |
+| `~/.gemini/AGENTS.md`、`~/.gemini/GEMINI.md` | Antigravity 的規則：拆成 `AGENTS.md`（共用層）與 `GEMINI.md`（個人層）兩份受管區塊，強制檢查單檔 <= 24,000 bytes 避免靜默截斷；原本的內容留在區塊外，先備份成 `.pre-omnikit`。原地改寫，避免硬連結斷裂 |
 | `~/.claude/skills`、`~/.codex/skills` | `engine/skills` 的每個 skill 用 Directory Junction 連結至 `~/.omnikit/current/engine/skills`（加 `--dev` 則直連工作區），零檔案複製與零雜湊帳本 |
 | `~/.gemini/config/skills.json` | Antigravity 的（App、IDE、CLI 與 T3 Code 實例共用）：原生參照實體 skills 路徑，T3 自動同步至全部實例 |
 | `~/.omnikit/claude-marketplace`、`~/.codex/config.toml`、`~/.gemini/config/plugins/omnikit/` | 無帳本掛載 `data/mcp/servers.yaml` 的 MCP server 與護欄 hooks：Claude 安裝本地薄 plugin `omnikit@omnikit-local`；Codex 用 `codex mcp` CLI 與 `config.toml` hooks；Antigravity 與各 T3 實例放置三檔薄 plugin 宣告（不動頂層 `mcp_config.json`，保留 T3 自動標題生成） |
 | `~/.omnikit/`（Windows 是 `%USERPROFILE%\.omnikit`；可用環境變數 `OMNIKIT_STATE_DIR` 改位置） | 不放 `%LOCALAPPDATA%`：從 Claude 桌面版這類 MSIX 封裝的 app 裡跑時，那裡新建的檔會被轉存成另一份；舊版留在 `%LOCALAPPDATA%\omnikit` 與轉存副本的，安裝、同步時會合併過來（原檔備份在 `legacy\`）。`current/` 是保護工作區免受穿透刪除的乾淨 git clone；`profiles/<名稱>/` 是訪談產生的 profile（個人資料，不在 repo 裡；移除時也不刪）；`profile.json` 記這台選的 profile；`edition.json` 記這台是維護者版還是同事版；`consent.json` 記你同意了哪些工具免問；`config.json` 記啟用的 agent 與明確列舉的額外設定目錄 |
 | 舊版的 skillshare | 以前用 skillshare 接的電腦，重跑 `install.ps1` 會改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分；skillshare 本身不刪 |
 | npm 全域套件 | 安裝 `data/mcp/packages.txt` 指定的固定版本 |
-| `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪；同事版只補你同意過的工具。在 `hooks.Stop` 加上開新對話提醒（`engine/scripts/session_nudge.py`）與說做不到查證（`engine/scripts/claim_check.py`），在 `hooks.SessionStart` 加上設定目錄檢查（`engine/scripts/home_watch.py`：發現新帳號的設定目錄就在背景接上） |
+| `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`（現行＋墓碑清單管理，只增不刪使用者自訂規則；同事版只補你同意過的工具），並設定 `statusLine`。hooks 優先透過本地薄 plugin `omnikit@omnikit-local` 提供（找不到 `claude` CLI 時才退回 `settings.json` hooks 備案） |
 | 其他設定目錄 | 多帳號或啟動器另外指定的設定目錄（`CLAUDE_CONFIG_DIR`、`CODEX_HOME`、T3 Code 每個實例的 homePath、以及 `config.json` 明確列舉的額外目錄，`engine/scripts/homes.py` 找）：規則區塊、MCP、skills、權限規則與 hook 都跟預設目錄一樣寫。Claude 的其他設定目錄另外無帳本同步你自己裝在 `~/.claude` 的東西：`~/.claude/skills` 的第三方 skill 用 Directory Junction 連過去（`.bak-*` 這類備份、`.` 開頭的、無 `SKILL.md` 的系統目錄不連），`~/.claude/settings.json` 啟用中的第三方 plugin 用官方的 `claude plugin marketplace add` 與 `claude plugin install`（`CLAUDE_CONFIG_DIR` 指到那個目錄）裝進去，停用的不裝；設定檔其他欄位與金鑰不碰。之後在 `~/.claude` 新裝的，重跑 `uv run engine/scripts/sync.py sync`（只同步 plugin：`--plugins`）就補上 |
-| `~/.t3/userdata/settings.json`、`~/.omnikit/acp/` | T3 Code 的 Antigravity 實例走 ACP 模式，不讀 `GEMINI.md`。把每個實例的 Binary path（`config.binaryPath`）設成 OmniKit 的轉接程式 `omnikit-acp.cmd`，它跑 T3 自己裝的 server，開新對話時把 `~/.gemini/GEMINI.md` 帶進系統提示（`engine/scripts/t3_acp.py`、`acp_shim.py`）。T3 自己補的預設實例（`antigravity`，設定檔沒列）也接上；只改沒設的，你自己設了 Binary path 的不動，`doctor.py` 會列出來。設定後 T3 會重建那個實例，開著的 Antigravity 對話會斷一次。只裝 T3 沒裝 Antigravity CLI 也算有 Antigravity。移除時改回 T3 自動選。目前只支援 Windows。轉接程式不放 `%LOCALAPPDATA%`：從 Claude 桌面版這類 MSIX 封裝的 app 裡安裝時，AppData 底下新建的檔會被轉存到那個 app 的私人位置，T3 看不到 |
+| T3 Code Antigravity 實例 | T3 Code 0.1.11 起原生同步 `~/.gemini` 的規則與 `skills.json`；OmniKit 會在每個實例補上 `config/plugins/omnikit/` 薄 plugin（確定性護欄與 MCP），並自動清理早期版本遺留的 `~/.omnikit/acp/` 轉接程式與 `binaryPath` 設定 |
 | 這個 repo | 維護者版：`core.hooksPath` 指到 `.githooks`，commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、skills、MCP、權限、提醒 hook 時自動同步。同事版不設 git hook |
 | `~/.omnikit/install-record.json` | 安裝紀錄：記下這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，移除時只動這些 |
 
@@ -305,114 +303,34 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 找 profile 時先找 repo 外的 `~/.omnikit/profiles/<名稱>`，再找 repo 裡的 `data/profiles/<名稱>`。換完開新的 session 才生效。skills 也會跟著同步：換到訪談選了不評估新工具的 profile，`omnikit-eval` 會拿掉，換回來再裝上。還沒選過的電腦會一直用 `default`，並在安裝與同步時提醒。想重新訪談、改掉原本的答案，說「幫我設定 OmniKit」就好。
 
-### 個人週報（已停用）
+### 簡短指令（`ok` 與 `ok-*`）
 
-> **2026-11-17 起停用。** 這一節留著當紀錄。取代的做法：沒在用的工具與成本看 Claude Code 的 `/doctor`、`/usage`；使用習慣看 `/insights`；需求沒想清楚用內建 `/plan` 或 `/grill-me`（三家指令見 [docs/cli-features.md](docs/cli-features.md)）；新電腦該裝什麼看 [docs/starter.md](docs/starter.md)。原因見 [docs/proposals/2026-11-17-summary.md](docs/proposals/2026-11-17-summary.md)。
+不想記完整 skill 名稱時，直接打總入口 `/ok`（Claude Code、Antigravity）或 `$ok`（Codex），會列出 1 到 5 號選單（交接、調研、分派、設定、清點），也可以直接帶參數或用對應捷徑：
 
-每週在 Claude Code、Codex 或 Antigravity 裡說一次「OmniKit 本週週報」（`omnikit-weekly`）。不管訪談時有沒有選評估新工具都有，依序列出：
+| 指令（Claude／Antigravity；Codex 改用 `$`） | 對應 skill |
+|---|---|
+| `/ok` | 列出主選單，回編號執行 |
+| `/ok-handoff`（或 `/ok 交接`） | `omnikit-handoff`（交接、接手與更新 `NOW.md`） |
+| `/ok-research`（或 `/ok 調研`） | `omnikit-research`（飽和式調研） |
+| `/ok-dispatch`（或 `/ok 分派`） | `omnikit-dispatch`（子任務分派與委派紀錄） |
+| `/ok-setup`（或 `/ok 設定`） | `omnikit-setup`（訪談建立個人 profile） |
+| `/ok-eval`（或 `/ok 評估`） | `omnikit-eval`（評估新工具；選不評估時不裝） |
 
-1. **沒在用的工具**：這台 30 天沒用到的 skill 與 plugin，見下方[清掉沒在用的 skill](#清掉沒在用的-skill)。
-2. **上游有新版的工具**：目前標「未知」，要等工具包 lock 與「檢查更新」。
-3. **有更好的選擇**：目前標「未知」，要等工具卡的證據等級。
-4. **設定被手動改過的項目**：規則區塊、skills、MCP、權限與提醒 hook 跟 OmniKit 寫入時不一樣的，跟 `doctor.py` 的寫入檢查一樣。
-5. **主動建議的接受率**：目前標「未知」，主動建議還沒開始記錄。
-6. **成本**：
-   - 7 天內新裝的工具，每段對話多出多少 token。
-   - 成本高又沒在用的：每段對話 1,000 tokens 以上，14 天內與最近 10 段對話都沒用到，不用等 30 天。
-   - 背景與非互動的模型用量，例如記憶工具在背景整理對話。
-   - 新對話第一回合的大小，比上週多 10% 以上會列出原因。
-   - 裝著、但名冊上不是預設或試用的工具。
+### 本機 Cockpit 多專案面板（個人進階功能，同事版預設不啟用）
 
-   開頭成本照對話紀錄裡第一回合實際載入的內容量（skill 清單、hook 加進 context 的內容、MCP 的說明），不採用工具自己報的數字。
+同時開多個專案與狀態板（`NOW.md`）時，可以用本機指揮台一次看清「等你決定／待收尾／執行中／停泊」與過期提醒。這屬於個人進階功能，同事版安裝時預設不會啟用也不會註冊開機自啟：
 
-只讀這台的紀錄與設定，不連網、不上傳；完整內容存在 `~/.omnikit/weekly/<年>-W<週>.md`，同一週重跑會換成最新的。也可以在 repo 根目錄跑 `uv run engine/scripts/weekly.py`。
+```powershell
+uv run scripts/cockpit.py snapshot            # 終端機檢視所有已註冊專案現況
+uv run scripts/cockpit.py serve --open        # 啟動本機網頁面板（預設 127.0.0.1:3780）
+uv run scripts/cockpit.py register --name <專案> --path <目錄>
+uv run scripts/cockpit.py autostart --status  # 查詢／管理 Windows 登入自啟（--install / --uninstall）
+```
 
-### 建議：裝、拿掉、用內建的就好（已停用）
+### 診斷、小提示與已停用項目
 
-> **2026-11-17 起停用。** 這一節留著當紀錄。取代的做法：沒在用的工具與成本看 Claude Code 的 `/doctor`、`/usage`；使用習慣看 `/insights`；需求沒想清楚用內建 `/plan` 或 `/grill-me`（三家指令見 [docs/cli-features.md](docs/cli-features.md)）；新電腦該裝什麼看 [docs/starter.md](docs/starter.md)。原因見 [docs/proposals/2026-11-17-summary.md](docs/proposals/2026-11-17-summary.md)。
-
-在 Claude Code 或 Codex 裡說「OmniKit 給我建議」（跟個人週報同一個 `omnikit-weekly`）。agent 只看自己那一邊，分三類回報：
-
-- **裝**：名冊建議、這台還沒裝的。名冊還沒有答案的槽位，另外列名冊外的候選（見下面「名冊外的候選」）。
-- **拿掉**：30 天沒用到的；開頭成本高又沒在用的；名冊上是拒絕或退役的；同一件事名冊記了內建功能、而這份裝了一週以上從沒用到的。
-- **用內建的就好**：名冊記了有內建功能的槽位。還沒實測的會註明。
-
-另外有一節**規則檔瘦身**：每段對話實際載入了哪些規則檔（`CLAUDE.md`、`AGENTS.md` 與它們帶進來的檔）、約多少 token、佔對話開頭多少，以及哪些規則可以拿掉。
-
-- 成本照對話紀錄裡實際載入的內容量，不是照磁碟上的檔案猜。
-- 安全底線受保護，不會列進候選。其他每一條由 agent 判斷，只挑通用的口號、它現在預設就會做的行為修正、重複的、訪談帶進來的通用規則；你的偏好、紅線、專案裡讀不到的事實不挑。
-- 拿掉規則沒有逐條實測過，建議裡會寫明：拿掉之後用幾天，少了什麼再加回來。
-- Claude Code 內建的 `/doctor` 也會檢查規則檔；這一節補的是成本、Codex 那一邊，以及 OmniKit 管的來源檔要去哪裡改。
-
-**名冊外的候選**：名冊還沒有答案、也沒有可以裝的卡的槽位，`engine/scripts/pool.py` 會去三個地方找：
-
-- Anthropic 的官方 plugin 目錄（只給 Claude Code）、OpenAI 的官方 plugin 目錄（只給 Codex；這台有 Codex 就讀它自己同步下來的那份）。
-- 官方 MCP Registry：用槽位的關鍵字查，只留有 GitHub repo 的。
-- agent 自己上網找到的：交給腳本檢查過才會變成候選。
-
-每一筆都查 GitHub 現況：封存的、名冊記了「別裝」的不列；沒有授權、一年沒更新、建立不到 14 天、星數不到 50 會標出來。這些候選**沒有實測過，也沒有做安全掃描**，建議裡會寫明「名冊外」。找的時候會連網，送出去的只有槽位的關鍵字；結果存在 `~/.omnikit/pool/`，7 天內不重抓。
-
-**名冊沒有你的工作**：說「幫我加一個領域」（`omnikit-setup`）。用幾句話描述工作，agent 草擬槽位、情境與找候選用的關鍵字，`engine/scripts/module_new.py` 驗證、預覽，同意後寫成這台的私有模組：
-
-- 存在 repo 外的 `~/.omnikit/modules/<層>/<id>.yaml`，不會被 commit。格式跟 `data/modules/` 的模組檔一樣，也可以自己手寫。
-- 放進去就啟用，刪掉檔案就停用。給建議與找候選時會看；公開的看板與評估紀錄不會讀它。
-- id 跟公開名冊重複、格式不對的不載入，`uv run engine/scripts/validate.py` 會列出原因，不影響名冊其他部分。
-- 找候選時關鍵字會送到外面，所以關鍵字用通用的說法；單位專屬的內容寫在名稱與情境裡。
-
-做法分三步：
-
-1. 腳本算出事實與候選：`uv run engine/scripts/advise.py`，輸出 JSON。只讀這台，不連網、不寫檔（名冊外的候選是 `pool.py find` 事先找好的）。
-2. agent 只能在候選裡挑，每一項寫理由。
-3. 腳本驗證挑選，寫出建議，存在 `~/.omnikit/advice/<日期>-<agent>.md`。候選以外的、沒寫理由的會被擋下來。
-
-安裝、停用、移除都等你同意才做，而且用各 agent 自己的指令（`claude plugin install`、`codex plugin add` 等）。拿掉是刪除，一項一項問。
-
-profile 選了領域的話，只對那些領域的槽位出建議；沒選過就對照全部模組。這台沒裝、或 30 天內沒有對話紀錄的 agent 不出建議；Antigravity 目前不出建議。設計與業界做法的比較見 [docs/proposals/2026-11-11-diagnose-advice.md](docs/proposals/2026-11-11-diagnose-advice.md)。
-
-### 換與換回
-
-建議裡多一類「換」：同一件事這台裝的是 A，名冊的答案（或寫明 `replaces` 的卡）建議 B。說「套用這個替換」，`engine/scripts/swap.py` 會：
-
-1. 預覽要跑的指令、試用到哪天（14 天）、怎麼換回；同意後才記下來，同時用 agent 自己的清單（`claude plugin list`、`codex plugin list`、`codex mcp list` 與 skill 資料夾）拍一張替換前的快照。
-2. agent 照指令先裝 B；Claude Code 的 plugin 再停用 A（可以再打開）。沒有停用指令的，A 先留著，試用期間兩個都在。
-3. `swap check` 確認 B 出現在 agent 自己的清單、A 照計畫停用或還在，才算開始試用。
-4. 說「換回」：移除 B、打開 A，再 `swap check` 比對這次動到的兩個跟替換前一樣才算換回；換回後 30 天內不再建議 B。說要留下 B，A 拿不拿由你決定。
-
-紀錄在 `~/.omnikit/swaps.json`，只有工具名稱與狀態；MCP 只讀名稱與有沒有啟用，不讀參數。
-
-### 小提示與通知
-
-2026-11-17 起，對話開頭講的是用法小提示（`engine/scripts/tips.py`，內容在 `data/tips.json`）：主線對話第一回合結束時講一則，一天最多一則、每則只講一次；新的官方功能加進 `data/tips.json` 就會講到。Claude Code 在一段對話第一次 `git push` 時，如果 `/insights` 的報告超過 14 天沒更新，會多提醒一句。說「OmniKit 通知靜音」可以全部關掉。
-
-下面是停用前的工具通知（`engine/scripts/notify.py`，腳本還在，但不再接在 hook 上）。原本：Claude Code 與 Codex 在新對話的第一回合結束時，可能出現一行「OmniKit：…」：
-
-- OmniKit 實測勝出（E4）、這台還沒裝的工具：每週最多 1 則；同一個工具同一份證據只提一次，同一個槽位 30 天內不再提，除非有新證據。初測通過（E3）的只列在週報。
-- 試用到期：說留下或換回。
-- 合計每週最多 3 則、每段對話最多 1 則；子對話、CI 不顯示。說「OmniKit 通知靜音」全部關掉（也可以只關一個工具），設環境變數 `OMNIKIT_NO_NOTIFY` 也行。
-
-證據等級只取 `data/evals/` 的實測結果與 `data/funnel/` 的初測紀錄；候選在背景一天最多算一次，紀錄在 `~/.omnikit/notify/`。
-
-### 回流：把使用情況回報給維護者（已停用）
-
-> **2026-11-17 起停用。** 這一節留著當紀錄。取代的做法：沒在用的工具與成本看 Claude Code 的 `/doctor`、`/usage`；使用習慣看 `/insights`；需求沒想清楚用內建 `/plan` 或 `/grill-me`（三家指令見 [docs/cli-features.md](docs/cli-features.md)）；新電腦該裝什麼看 [docs/starter.md](docs/starter.md)。原因見 [docs/proposals/2026-11-17-summary.md](docs/proposals/2026-11-17-summary.md)。
-
-說「匯出回流」（`omnikit-weekly`）。OmniKit 不會自己送出任何東西：同意之後，`engine/scripts/feedback.py` 在這台產生一個檔，由你自己放到試點約定的共用位置。
-
-- **有什麼**：名冊裡的工具 id、這 30 天各有幾段對話用到、OmniKit 的版本、一個隨機的回報代號；這台裝了、而且是候選池找到的名冊外工具（公開的名稱與網址）。
-- **沒有什麼**：對話內容、專案名稱、路徑、帳號。不在名冊也不在候選池的工具只算個數；私有模組完全不出現。
-- **先預覽**：`uv run engine/scripts/feedback.py export` 印出來的就是檔案的全部內容，加 `--write` 才寫檔。沒有同意（`consent yes`）不匯出，`consent no` 隨時撤回。
-- **維護者**：`uv run engine/scripts/feedback.py import <資料夾>` 彙整每個工具幾個人裝了、幾個人有在用。名冊外的工具是提案，加 `--write` 才寫成「待評估」的工具卡，之後照評估漏斗走，不會直接改變任何人的工具包。
-
-### 自我迭代：收集訊號（試行中，只記錄）
-
-讓 OmniKit 自己發現外面的變動，不用等你看到新趨勢才回來調整（提案見 `docs/proposals/2026-11-13-self-iteration.md`）。目前是第 1 階段：收集與判斷都會記下來，但週報還不會出現這一節。判斷準不準由評估漏斗驗證，不用你一筆一筆標；靜默記錄滿 14 天、漏斗給出 10 個以上結果、命中率過半才打開。你只在最後出現：第 2 層實測有結果、要不要換工具的時候。
-
-- **來源**：設定在這台、repo 外的 `~/.omnikit/signals/sources.yaml`，`uv run engine/scripts/signals.py init` 寫出預設值。目前只有 OmniKeep（自架的資訊雷達）：只連本機位址，唯讀呼叫 `GET /api/items`，金鑰放在環境變數（預設 `OMNIKEEP_API_KEY`），不寫進任何檔案。沒有 OmniKeep 的人不用設，沒有來源就什麼都不做。
-- **收集**：`signals.py collect` 讀上次之後的新項目，用關鍵字（Claude Code、Codex、MCP、skill、提示詞等）篩出相關的，預覽不寫檔，加 `--write` 才存。OmniKeep 沒在跑或金鑰不對就標「略過」。
-- **判斷**：agent 讀 `signals.py pending`，每筆分「不影響」「名冊層」「架構」三類並寫理由，用 `signals.py judge --file <JSON>` 交進來；沒理由的、名冊層沒寫目標的會被擋下。
-- **送進漏斗**：`signals.py promote --write` 把名冊層的判斷變成待評估的卡（`data/tools/`，來源「自我迭代訊號」）或已有卡的重評，再跑第 0、1 層（指令會印出來）。社群貼文找不到 GitHub repo 的量不了，不算進命中率。
-- **命中率**：`signals.py status`。第 1 層建議深入評估算命中，第 0 層淘汰或第 1 層建議拒絕、先放著算沒中。
-- 訊號裡的文字是外部資料，只當資料讀；不送任何東西到外面，也不會自動改名冊或規則。
+- **用法小提示**：主線對話第一回合結束時由 `session_nudge.py` 呼叫 `engine/scripts/tips.py`（內容在 `data/tips.json`）講一則官方功能小提示，一天最多一則、每則只講一次；Claude Code 第一次 `git push` 時若 `/insights` 超過 14 天沒跑會提醒一次。設環境變數 `OMNIKIT_NO_NOTIFY` 可關閉。
+- **系統檢查與起步清單**：原週報、建議、替換、回流、訊號與對話掃描等舊腳本已於 `6359488` 移除，原問法庫 `omnikit-ask` 已於 `87bbb81` 退役刪除（改用各家內建 `/plan` 或 `/grill-me`）。檢查工具用量與使用習慣請改用官方 `/doctor`、`/usage`、`/insights`，三家內建功能對照見 [docs/cli-features.md](docs/cli-features.md)，新電腦該裝什麼看 [docs/starter.md](docs/starter.md)。
 
 ### 子任務分派與委派紀錄
 
@@ -423,7 +341,7 @@ profile 選了領域的話，只對那些領域的槽位出建議；沒選過就
 | 共用（所有人） | `data/rules/dispatch.md`（原則，常駐載入）與 `data/rules/dispatch-policy.md`（完整政策，要派才讀） | 任務類型 → 級別（中、高、更高、獨立驗收）→ 模型類別 → 思考程度 → 升級路徑；管道怎麼選；Sonnet 試行的品質保護；委派紀錄的欄位 |
 | 個人（profile） | profile 資料夾的 `dispatch.md` | 你有哪些供應商實例（T3 的 providerInstanceId）、每個模型類別用哪個；沒有這份就只用原生子代理 |
 
-兩份都是 Markdown 加一個 YAML 區塊：agent 載入規則時讀得懂，`engine/scripts/dispatch.py` 也讀得到。兩份都會跟安全底線、`AGENTS.md` 一起接進 Claude Code、Codex 與 Antigravity，改完開新 session 生效（同事版要重跑 `install.ps1`，或 `uv run engine/scripts/profiles.py`）。改共用層要更新 `data/rules/baseline.md` 的規則版本。
+共用層 `data/rules/dispatch.md` 會跟安全底線、profile 的 `AGENTS.md` 一起常駐載入三個 agent；完整政策 `dispatch-policy.md` 與個人層 `dispatch.md` 不佔常駐規則字數，需要派工時由 `engine/scripts/dispatch.py` 讀取。改共用層要更新 `data/rules/baseline.md` 的規則版本（同事版套用更新重跑 `install.ps1` 或 `uv run engine/scripts/profiles.py`）。
 
 **設定自己的帳號對應。** 在你的 profile 資料夾（訪談產生的在 `~/.omnikit/profiles/<名稱>/`）新增 `dispatch.md`。實例 id 用 T3 的 `orchestrator_capabilities` 查（列出的 `providerInstanceId`），`classes` 只能寫共用層 `model_classes` 裡有的類別，而且要跟實例的 driver 對得上：
 
@@ -472,10 +390,6 @@ uv run engine/scripts/dispatch.py stats     # 依級別與模型類別的一次�
 | 0 | 免費 | GitHub 現況、名冊比對、硬性門檻、安全掃描 |
 | 1 | 便宜 | 讀 README，對照槽位情境寫卡片，狀態是「待評估」 |
 | 2 | 實測 | 拿槽位情境實際跑一遍並評分，點名才跑；紀錄放在 `data/evals/` |
-
-### 清掉沒在用的 skill（已停用）
-
-> **2026-11-25 起停用舊版對話掃描腳本。** 取代的做法：直接用 Claude Code 的 `/doctor`、`/usage` 與 `/plugin` 檢視各工具啟用狀態，不再維護本機對話紀錄掃描腳本。
 
 ### 無帳本對帳與檢查
 
@@ -536,7 +450,7 @@ answers:
 | `none` | 找過了，沒有好選擇 | `reason`、`decided_at` |
 | `unknown` | 還沒實測 | 可以先在 `reason` 寫這個 agent 內建的功能是什麼 |
 
-沒列的 agent 就是還不知道。[建議](#建議裝拿掉用內建的就好)照這些答案出：`native` 是「用內建的就好」，`tool` 是「裝」；`unknown` 只寫了內建功能的，也會列進「用內建的就好」，但註明還沒實測。目前有實測的只有瀏覽器。
+沒列的 agent 就是還不知道；看板與評估紀錄會據此標明各槽位應該用內建功能還是外裝工具。目前有實測的只有瀏覽器。
 
 ### 改名冊
 
@@ -583,22 +497,29 @@ data/                        資料：fork 後換成你的
   rules/baseline.md          安全底線，所有人都套用
   rules/dispatch.md          子任務分派的原則（常駐載入，幾行）
   rules/dispatch-policy.md   子任務分派的完整政策（級別、模型、思考程度、升級、委派紀錄；要派才讀）
+  rules/mobile-web.md        行動端與 WebApp 工程底線（改前端時適用）
   tips.json                  對話開頭的用法小提示（新的官方功能加在這裡）
   profiles/<名稱>/           跟著 repo 的 profile：個人規則（AGENTS.md）、真實情境（scenarios.yaml）、分派用的實例（dispatch.md，可省略）；
                              default 是沒選時的預設。訪談產生的存在 repo 外（~/.omnikit/profiles）
   mcp/                       MCP server 定義與 npm 套件版本
-  harness/                   Claude Code 免問的權限規則
+  harness/                   Claude Code 免問的現行與墓碑權限規則
   evals/                     實測紀錄
+docs/                        參考文件
+  cli-features.md            三家 CLI 內建功能與指令對照表
+  starter.md                 新電腦起步清單
 engine/                      引擎：不用改
+  cockpit/                   本機 Cockpit 多專案面板後端與前端（個人進階功能，同事版預設不啟用）
   schema/                    名冊與槽位的 JSON Schema
-  scripts/                   安裝、接上三個 agent、掃描、使用統計、個人週報、建議、規則檔的大小與內容、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒、說做不到查證
+  scripts/                   安裝與移除（install.ps1／uninstall.ps1）、無帳本同步與健康檢查（sync.py／doctor.py）、profile 與帳號池、子任務分派、能力清點、名冊驗證與看板建置、護欄與提醒 hook
   site/                      看板的樣式與程式，以及匯出的架構地圖（map.html）
+  skills/ok/、ok-*/          總入口選單與簡短指令捷徑（/ok、$ok、ok-handoff 等）
   skills/omnikit-setup/      訪談建立個人 profile 的 skill
   skills/omnikit-eval/       評估新工具的 skill
   skills/omnikit-handoff/    交接與接手的 skill
   skills/omnikit-dispatch/   子任務分派與委派紀錄的 skill
   skills/omnikit-research/   飽和式調研（查同類工具、比較方案）的 skill
   skills/omnikit-capabilities/ 說做不到之前的能力清點（指令、MCP、本機端點）的 skill
+scripts/                     頂層工具入口（含本機 Cockpit 多專案面板 scripts/cockpit.py）
 .claude-plugin/              Claude Code 的 marketplace（由名冊產生，不要手改）
 .agents/plugins/             Codex 的 marketplace（由名冊產生，不要手改）
 ```
