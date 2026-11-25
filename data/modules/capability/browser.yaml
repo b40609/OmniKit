@@ -20,6 +20,6 @@ slots:
       codex:
         verdict: tool
         tool: chrome-devtools-mcp
-        reason: 'U1 實測（2026-11-04）：內建瀏覽器在非互動模式不能用，app 裡的互動模式沒測；Chrome DevTools MCP 拿 4 分，試用到 2026-11-18。'
+        reason: 'U1 實測（2026-11-04）：內建瀏覽器在非互動模式不能用，app 裡的互動模式沒測；Chrome DevTools MCP 拿 4 分，試用期滿轉為預設（2026-11-25）。'
         evidence: data/evals/2026-11-04-browser-u1.md
         decided_at: '2026-11-11'

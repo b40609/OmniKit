@@ -3,14 +3,13 @@ name: T3 Code
 kind: app
 slots:
 - session-management
-status: trial
+status: default
 url: https://github.com/pingdotgg/t3code
 works_with:
 - claude
 - codex
-decided_at: '2026-11-09'
-reason: 唯一能在同一個介面跑 Claude、Codex、Antigravity 的 GUI，S1 已實測通過；試用兩週看 S2 到 S5 能不能追上桌面版，追上就改當主力。
-trial_until: '2026-11-23'
+decided_at: '2026-11-25'
+reason: 唯一能在同一個介面跑 Claude、Codex、Antigravity 多帳號實例的 GUI，經兩週實戰（S1 規則與 skill 載入、T3 MCP 跨家派工、子對話自動 settle、跨模型 context handoff）穩定勝任日常主力，試用期滿轉為預設。
 sources:
 - 使用者提出
 - 查證

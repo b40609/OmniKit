@@ -22,7 +22,8 @@
 |---|---|---|---|
 | Exa（搜尋） | 做調研、要找齊同類工具時。它找到網頁搜尋與 GitHub 都漏掉的 | `data/evals/2026-11-16-product-research-P2.md` | 試用到 2026-11-30 |
 | unslop（前端設計 skill） | 做工具介面（不是行銷頁）時 | `data/evals/2026-11-14-frontend-design-F1c.md`；判定有弱點，紀錄裡寫了 | 試用中 |
-| 瀏覽器工具（Codex、或 Claude Code 的非互動模式） | Codex 內建的瀏覽器在非互動模式不能用 | `data/evals/2026-11-04-browser-u1.md` | — |
+| 瀏覽器工具（Codex、或 Claude Code 的非互動模式） | Codex 內建的瀏覽器在非互動模式不能用 | `data/evals/2026-11-04-browser-u1.md` | 預設 |
+| T3 Code（多家模型的桌面應用） | 同一介面管理 Claude、Codex、Antigravity 多帳號與跨家子對話 | `data/evals/2026-11-09-session-management-s1.md` | 預設 |
 
 ## 3. 實測過，不用裝（內建就夠）
 
@@ -43,7 +44,6 @@
 | 工具 | 現況 |
 |---|---|
 | claude-mem（跨對話記憶） | 維護者在用，hook 自動執行；它帶的二十幾個 skill 從沒被叫用、每回合都佔 context。有沒有幫助沒測過。想先省掉那些 skill 的 context：在設定檔用 `skillOverrides` 讓它們只在點名時載入，不用移除 plugin（官方 features-overview；這台還沒做） |
-| T3 Code（多家模型的桌面應用） | 維護者在用，試用中；只測過它會正確載入規則與 skill |
 | taste-skill（行銷頁的設計） | 試用到 2026-11-28 |
 | caveman 的「先壓縮 log 與測試輸出再給 agent 讀」 | 省的是輸入，作者自測整段對話少 33.2% |
 | superpowers、mattpocock/skills 的 grill-me | 外面的清單最常推薦的兩個（Antigravity 已內建 `/grill-me`） |

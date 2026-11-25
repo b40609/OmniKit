@@ -4,14 +4,13 @@ kind: mcp
 slots:
 - browser
 - mobile-web-verify
-status: trial
+status: default
 url: https://github.com/ChromeDevTools/chrome-devtools-mcp
 works_with:
 - claude
 - codex
-decided_at: '2026-11-04'
-reason: U1 實測兩端都拿 4 分；Codex 非互動模式只要對它開自動核准，沙箱可以保留。Playwright CLI 少 17% token，但在 Codex 要關掉整個 shell 沙箱。使用者選這個進試用。
-trial_until: '2026-11-18'
+decided_at: '2026-11-25'
+reason: U1 實測兩端都拿 4 分，Codex 非互動模式只要對它開自動核准即可保留沙箱；試用期間於三家環境與桌面 WebApp 除錯穩定運作（已強制關閉統計與 CrUX 外傳），試用期滿轉為預設。
 sources:
 - 使用者提出
 notes: Google Chrome 團隊官方，v1.12.0（2026-10-22），54.7k 星，Apache-2.0。除錯最深：效能追蹤、附 source map 的 console 錯誤、網路請求、截圖；另有 CLI 與 --slim 精簡模式。第 0 層：npm 由 Google 發布並附 SLSA provenance，7 個 skills 掃描皆 SAFE。U1 實測細節見 data/evals/2026-11-04-browser-u1.md。試用設定在 data/mcp/servers.yaml：固定 1.12.0、--isolated（暫時設定檔，碰不到登入狀態）、關掉使用統計與 CrUX 查詢，Codex 設自動核准。常設設定實測：Claude 端連線正常；Codex 非互動模式有啟動競態，node 直接啟動 6 次成功 5 次，經 npx 啟動 3 次全失敗，所以不用 npx。試用紀錄：2026-11-04 在 Claude Code 以 MCP 形式用它檢查看板（本機與 GitHub Pages）：截圖、console、搜尋與篩選、手機版、Lighthouse 都正常，抓到 4 個版面問題。2026-11-24 OmniKeep 調研補充（★59,041，Apache-2.0）：可接 Edge WebView2 與 Tauri 桌面 WebApp 除錯，列進 mobile-web-verify 槽位搭配 playwright-cli（WebKit 要用 Playwright，DevTools 只有 Chromium 系）。必加提示（2026-11-24）：官方 README 明載預設開啟 Google 使用統計（telemetry）與 CrUX 網址外傳，啟動參數一定要帶 `--no-usage-statistics --no-performance-crux`（OmniKit 的 data/mcp/servers.yaml 試用設定已關這兩項）。
