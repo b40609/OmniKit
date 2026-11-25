@@ -389,8 +389,8 @@ def selftest(cases) -> int:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--account", default="kai", help="ryan、ava、kai，或 T3 的實例 id")
-    ap.add_argument("--model", default="gemini-3.8-flash-high")
+    ap.add_argument("--account", default="ryan", help="ryan、ava 等帳號簡稱，或 T3 的實例 id")
+    ap.add_argument("--model", default="gemini-4-hydrogen-xhigh")
     ap.add_argument("--sim-model", default="sonnet", help="模擬使用者用的 Claude 模型（claude -p --model）")
     ap.add_argument("--arms", default="global,without", help="global、without、with，逗號分隔")
     ap.add_argument("--case", action="append", help="只跑這題（可重複）")

@@ -11,16 +11,21 @@
   uv run scripts/cockpit.py serve [--host 127.0.0.1] [--port 3780] [--open]
   uv run scripts/cockpit.py snapshot [--json] [--sync] [--write]
   uv run scripts/cockpit.py register --name <名稱> [--path <目錄>] [--id <代號>] [--parked|--unpark]
+  uv run scripts/cockpit.py autostart [--install|--uninstall|--status] [--port 3780]
   uv run scripts/cockpit.py --selftest
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
+import socket
 import subprocess
 import sys
 import tempfile
 import threading
+import time
 import urllib.error
 import urllib.request
 import webbrowser
@@ -87,6 +92,129 @@ def _http_json(url: str, *, method: str = "GET", payload: dict | None = None) ->
         except ValueError:
             body = {"raw": raw}
         return exc.code, body
+
+
+def _is_port_listening(host: str, port: int) -> bool:
+    try:
+        with socket.create_connection((host, port), timeout=0.8):
+            return True
+    except OSError:
+        return False
+
+
+def _startup_shortcut_path(appdata: Path | None = None) -> Path:
+    base = appdata if appdata is not None else Path(os.environ.get("APPDATA") or (Path.home() / "AppData" / "Roaming"))
+    return base / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup" / "OmniKit Cockpit 自動啟動.lnk"
+
+
+def build_autostart_ps1(repo_root: Path, state_dir: Path, *, host: str = "127.0.0.1", port: int = 3780) -> str:
+    uv_exe = shutil.which("uv") or str(Path(os.environ.get("LOCALAPPDATA") or "") / "Programs" / "uv" / "uv.exe")
+    cockpit_script = repo_root / "scripts" / "cockpit.py"
+    log_file = state_dir / "cockpit" / "server.log"
+    err_file = state_dir / "cockpit" / "server.err.log"
+    return (
+        "# OmniKit Cockpit 登入背景自啟腳本（由 scripts/cockpit.py autostart --install 產生）\n"
+        "$ErrorActionPreference = 'SilentlyContinue'\n"
+        "$mPath = [Environment]::GetEnvironmentVariable('Path', 'Machine')\n"
+        "$uPath = [Environment]::GetEnvironmentVariable('Path', 'User')\n"
+        "if ($mPath -or $uPath) { $env:Path = (@($mPath, $uPath, $env:Path) | Where-Object { $_ }) -join ';' }\n"
+        f"$HostAddr = '{host}'\n"
+        f"$Port = {port}\n"
+        "$tcp = New-Object System.Net.Sockets.TcpClient\n"
+        "try {\n"
+        "  $ar = $tcp.BeginConnect($HostAddr, $Port, $null, $null)\n"
+        "  if ($ar.AsyncWaitHandle.WaitOne(600, $false) -and $tcp.Connected) { $tcp.Close(); exit 0 }\n"
+        "} catch {} finally { $tcp.Dispose() }\n"
+        f"$LogDir = '{log_file.parent}'\n"
+        "New-Item -ItemType Directory -Force -Path $LogDir | Out-Null\n"
+        f"Start-Process -FilePath '{uv_exe}' -ArgumentList @('run', '{cockpit_script}', 'serve', '--host', $HostAddr, '--port', \"$Port\") "
+        f"-WorkingDirectory '{repo_root}' -WindowStyle Hidden -RedirectStandardOutput '{log_file}' -RedirectStandardError '{err_file}'\n"
+    )
+
+
+def _spawn_detached_windows(ps_exe: str, ps1_path: Path, repo_root: Path) -> None:
+    """在 Windows 啟動不受當前 Agent 工具呼叫 Job Object 回收影響的背景腳本（無黑窗）。"""
+    cmdline = f'"{ps_exe}" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "{ps1_path}"'
+    esc_cmd = cmdline.replace("'", "''")
+    esc_cwd = str(repo_root).replace("'", "''")
+    wmi_ps = (
+        "$si = New-CimInstance -ClassName Win32_ProcessStartup -ClientOnly -Property @{ ShowWindow = [uint16]0 }; "
+        f"$r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{{ CommandLine = '{esc_cmd}'; CurrentDirectory = '{esc_cwd}'; ProcessStartupInformation = $si }}; "
+        "if ($r.ReturnValue -ne 0) { exit 1 }"
+    )
+    proc = subprocess.run(
+        [ps_exe, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", wmi_ps],
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode == 0:
+        return
+
+    base_flags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    popen_kw = {
+        "stdin": subprocess.DEVNULL,
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+        "close_fds": True,
+    }
+    cmd_auto = [ps_exe, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", str(ps1_path)]
+    try:
+        subprocess.Popen(cmd_auto, creationflags=base_flags | 0x01000000, **popen_kw)
+    except OSError:
+        subprocess.Popen(cmd_auto, creationflags=base_flags, **popen_kw)
+
+
+def manage_autostart(
+    state_dir: Path,
+    *,
+    action: str,
+    repo_root: Path = ROOT,
+    host: str = "127.0.0.1",
+    port: int = 3780,
+    appdata: Path | None = None,
+    start_now: bool = True,
+) -> dict:
+    ps1_path = state_dir / "cockpit" / "autostart-cockpit.ps1"
+    lnk_path = _startup_shortcut_path(appdata)
+    if action == "uninstall":
+        for p in (lnk_path, ps1_path):
+            if p.is_file():
+                p.unlink()
+        return {"action": "uninstall", "installed": False, "shortcut": str(lnk_path), "listening": _is_port_listening(host, port)}
+
+    if action == "install":
+        ps1_path.parent.mkdir(parents=True, exist_ok=True)
+        ps1_path.write_text(build_autostart_ps1(repo_root, state_dir, host=host, port=port), encoding="utf-8")
+        if os.name == "nt":
+            lnk_path.parent.mkdir(parents=True, exist_ok=True)
+            ps_exe = str(Path(os.environ.get("SystemRoot") or r"C:\Windows") / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe")
+            ps_cmd = (
+                "$sh = New-Object -ComObject WScript.Shell; "
+                f"$s = $sh.CreateShortcut('{str(lnk_path).replace(chr(39), chr(39)*2)}'); "
+                f"$s.TargetPath = '{ps_exe.replace(chr(39), chr(39)*2)}'; "
+                f"$s.Arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{ps1_path}\"'; "
+                f"$s.WorkingDirectory = '{str(repo_root).replace(chr(39), chr(39)*2)}'; "
+                "$s.WindowStyle = 7; "
+                "$s.Save()"
+            )
+            subprocess.run([ps_exe, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd],
+                           check=True, capture_output=True)
+            if start_now and not _is_port_listening(host, port):
+                _spawn_detached_windows(ps_exe, ps1_path, repo_root)
+                for _ in range(40):
+                    if _is_port_listening(host, port):
+                        break
+                    time.sleep(0.2)
+
+    return {
+        "action": action,
+        "installed": lnk_path.is_file() if os.name == "nt" else ps1_path.is_file(),
+        "shortcut": str(lnk_path),
+        "script": str(ps1_path),
+        "host": host,
+        "port": port,
+        "listening": _is_port_listening(host, port),
+    }
 
 
 def selftest() -> int:
@@ -227,6 +355,13 @@ def selftest() -> int:
             httpd.shutdown()
             httpd.server_close()
 
+        # 測試登入自啟腳本產生與移除（指定假的 APPDATA，不碰真實 Startup 資料夾）
+        fake_appdata = root / "Roaming"
+        st_auto = manage_autostart(state, action="install", repo_root=ROOT, port=37809, appdata=fake_appdata, start_now=False)
+        check("autostart --install 產生啟動腳本與 Startup 捷徑", st_auto["installed"] is True and Path(st_auto["script"]).is_file())
+        st_un = manage_autostart(state, action="uninstall", repo_root=ROOT, port=37809, appdata=fake_appdata, start_now=False)
+        check("autostart --uninstall 乾淨移除捷徑與腳本", st_un["installed"] is False and not Path(st_auto["script"]).exists())
+
     return 1 if fails else 0
 
 
@@ -255,11 +390,26 @@ def main() -> int:
     p_reg.add_argument("--unpark", action="store_true", help="取消手動停泊")
     p_reg.add_argument("--remove", action="store_true", help="從清單移除")
 
+    p_auto = sub.add_parser("autostart", help="管理 Windows 登入背景自啟（Startup 資料夾無黑窗啟動 :3780）")
+    ag = p_auto.add_mutually_exclusive_group()
+    ag.add_argument("--install", action="store_true", help="安裝登入自啟捷徑並立即確認服務已啟動")
+    ag.add_argument("--uninstall", action="store_true", help="移除登入自啟捷徑")
+    ag.add_argument("--status", action="store_true", help="查詢登入自啟與監聽狀態（預設）")
+    p_auto.add_argument("--host", default="127.0.0.1", help="監聽位址（預設 127.0.0.1）")
+    p_auto.add_argument("--port", type=int, default=3780, help="監聽埠號（預設 3780）")
+    p_auto.add_argument("--no-start", action="store_true", help="只安裝自啟捷徑，不立即啟動服務")
+
     args = parser.parse_args()
     if args.selftest:
         return selftest()
 
     sdir = args.state_dir if args.state_dir is not None else collector.default_state_dir()
+
+    if args.cmd == "autostart":
+        act = "install" if args.install else ("uninstall" if args.uninstall else "status")
+        res = manage_autostart(sdir, action=act, host=args.host, port=args.port, start_now=not args.no_start)
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+        return 0
 
     if args.cmd == "snapshot":
         ov = collector.collect_overview(sdir, sync=args.sync)

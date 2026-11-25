@@ -83,22 +83,34 @@ QUOTA_RE = re.compile(r"Individual quota reached|quota (?:reached|exceeded|exhau
 STOP = threading.Event()
 SKILL = REPO / "engine" / "skills" / "omnikit-ask"
 T3_PROFILES = pathlib.Path.home() / ".t3" / "userdata" / "providers" / "antigravity"
-ACCOUNTS = {"ryan": "antigravity", "ava": "antigravity_ava", "kai": "antigravity_kai"}
+ACCOUNTS = {
+    "ryan": "antigravity_ryan",
+    "ava": "antigravity_ava",
+    "kanny163": "antigravity_kanny163",
+    "km0529": "antigravity_km0529",
+    "stk608": "antigravity_stk608",
+    "stk824": "antigravity_stk824",
+    "itri": "antigravity_itri",
+}
 DEFAULT_RULES = pathlib.Path.home() / ".gemini" / "GEMINI.md"
 
 
 def profile_dir(account: str) -> pathlib.Path:
-    instance = ACCOUNTS.get(account, account)
-    path = T3_PROFILES / hashlib.sha256(instance.encode()).hexdigest()
-    if not (path / "antigravity-acp").is_dir():
-        sys.exit(f"找不到 {account} 的 T3 登入資料夾：{path}")
-    return path
+    candidates = [ACCOUNTS.get(account, account)]
+    if account == "ryan":
+        candidates.append("antigravity")
+    for instance in candidates:
+        path = T3_PROFILES / hashlib.sha256(instance.encode()).hexdigest()
+        if (path / "antigravity-acp").is_dir():
+            return path
+    sys.exit(f"找不到 {account} 的 T3 登入資料夾（嘗試過：{candidates}）")
 
 
 T3_REMOVED_ENV = {"GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_CLOUD_PROJECT",
                   "GOOGLE_CLOUD_LOCATION", "GOOGLE_CLOUD_QUOTA_PROJECT", "GOOGLE_GENAI_USE_VERTEXAI", "GCLOUD_PROJECT",
                   "CLOUDSDK_CORE_PROJECT", "AGY_ACP_CCPA_PROJECT", "AGY_ACP_ENABLE_OAUTH", "GEMINI_HOME",
-                  "AGY_ACP_FORCE_FILE_STORAGE", "ANTIGRAVITY_HARNESS_PATH", "BROWSER"}
+                  "AGY_ACP_FORCE_FILE_STORAGE", "AGY_CLI_FORCE_FILE_TOKEN_STORAGE", "AGY_CLI_DISABLE_AUTO_UPDATE",
+                  "ANTIGRAVITY_HARNESS_PATH", "BROWSER"}
 
 
 def runtime_temp(gemini_dir: pathlib.Path) -> pathlib.Path:
@@ -153,8 +165,28 @@ def without_skill_dir(gemini_dir: pathlib.Path) -> tuple[pathlib.Path, list]:
     cfg.mkdir()
     made.append(("dir", cfg))
     for item in (gemini_dir / "config").iterdir():
-        if item.name != "skills":
-            (_link_dir if item.is_dir() else _link_file)(cfg / item.name, item.resolve(), made)
+        if item.name == "skills":
+            continue
+        if item.name == "skills.json" and item.is_file():
+            try:
+                sdoc = json.loads(item.read_text(encoding="utf-8-sig"))
+            except ValueError:
+                sdoc = {}
+            entries = sdoc.get("entries")
+            if isinstance(entries, list):
+                new_entries = []
+                for ent in entries:
+                    if isinstance(ent, dict):
+                        ex = sorted(set(ent.get("exclude") or []) | HIDDEN_SKILLS)
+                        new_entries.append({**ent, "exclude": ex})
+                    else:
+                        new_entries.append(ent)
+                sdoc = {**sdoc, "entries": new_entries}
+            out_sj = cfg / "skills.json"
+            out_sj.write_text(json.dumps(sdoc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            made.append(("file", out_sj))
+            continue
+        (_link_dir if item.is_dir() else _link_file)(cfg / item.name, item.resolve(), made)
     skills = cfg / "skills"
     skills.mkdir()
     made.append(("dir", skills))
@@ -207,6 +239,7 @@ class Acp:
                if not k.startswith(("ANTHROPIC_", "CLAUDE")) and k.upper() not in T3_REMOVED_ENV}
         tmp = runtime_temp(gemini_dir)
         env.update(GEMINI_HOME=str(gemini_dir), AGY_ACP_FORCE_FILE_STORAGE="1",
+                   AGY_CLI_FORCE_FILE_TOKEN_STORAGE="1", AGY_CLI_DISABLE_AUTO_UPDATE="true",
                    BROWSER="cmd.exe /c rem", PYTHONUTF8="1", PYTHONUNBUFFERED="1", TEMP=str(tmp), TMP=str(tmp))
         server = t3_acp_server()
         if server:
@@ -699,8 +732,8 @@ def print_fire(f):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--account", default="ryan", help="ryan、ava、kai，或 T3 的實例 id")
-    ap.add_argument("--model", default="gemini-4-hydrogen-high")
+    ap.add_argument("--account", default="ryan", help="ryan、ava 等帳號簡稱，或 T3 的實例 id")
+    ap.add_argument("--model", default="gemini-4-hydrogen-xhigh")
     ap.add_argument("--judge", action="append",
                     help="評分者，可給多個；預設只有 claude:sonnet。第一個是主要評分者，第二個用來算一致率，"
                          "例如再加 agy:ryan/gemini-4-hydrogen-high")
