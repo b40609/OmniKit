@@ -209,6 +209,21 @@ def check(pol, mine=None):
                     errors.append(f"個人層 instances.{inst}：{cls} 要用 {classes[cls]['driver']} 的實例，這個是 {spec['driver']}")
         if "visibility" in mine and mine.get("visibility") not in VISIBILITY:
             errors.append(f"個人層 visibility 要是 {list(VISIBILITY)} 之一：{mine.get('visibility')}")
+        overrides = mine.get("effort_overrides")
+        if overrides is not None:
+            if not isinstance(overrides, dict):
+                errors.append("個人層 effort_overrides 要是對照表（{模型類別或級別: 思考程度}）")
+            else:
+                for k, th in overrides.items():
+                    if k not in classes and k not in levels:
+                        errors.append(f"個人層 effort_overrides 的鍵不是模型類別也不是級別：{k}")
+                    elif th not in THINKING:
+                        errors.append(f"個人層 effort_overrides.{k} 要是 {THINKING} 之一：{th}")
+                    elif k in classes:
+                        if THINKING.index(th) > THINKING.index(classes[k].get("max_thinking", "max")):
+                            errors.append(f"個人層 effort_overrides.{k} 超過上限 {classes[k].get('max_thinking')}：{th}")
+                        elif th in (classes[k].get("forbid_thinking") or []):
+                            errors.append(f"個人層 effort_overrides.{k} 禁用 {th}")
         import account_pool
         for key, allowed in (("thinking_preference", account_pool.THINKING_PREFS),
                              ("on_exhausted", account_pool.ON_EXHAUSTED_MODES),
@@ -241,21 +256,28 @@ def instances_for(pol, mine, cls, agent="claude"):
 
 
 def effective_thinking(pol, cls_name, base_thinking, level, kind, mine=None):
-    """套用個人層 thinking_preference（max_available / balanced / economy / custom）後的思考程度與原因。"""
-    pref = (mine or {}).get("thinking_preference")
-    if not pref or pref in ("balanced", "custom"):
-        return base_thinking, ""
+    """套用個人層 effort_overrides 與 thinking_preference（max_available / balanced / economy / custom）後的思考程度與原因。"""
     cls = pol["model_classes"][cls_name]
     forbid = set(cls.get("forbid_thinking") or [])
     top = cls.get("max_thinking", base_thinking)
+    overrides = (mine or {}).get("effort_overrides")
+    if isinstance(overrides, dict):
+        for key in (f"{level}.{cls_name}", level, cls_name):
+            ov = overrides.get(key)
+            if ov in THINKING and ov not in forbid and THINKING.index(ov) <= THINKING.index(top):
+                return (ov, f"effort_overrides: {key}") if ov != base_thinking else (ov, "")
+    pref = (mine or {}).get("thinking_preference")
+    if not pref or pref in ("balanced", "custom"):
+        return base_thinking, ""
     if pref == "max_available":
-        # 對 Gemini 模型拉到該模型能開的最高檔；Claude 類別維持政策分級（不強制把 Opus 子任務拉到 max）
-        if str(cls.get("model", "")).startswith("gemini-") and top in THINKING and top not in forbid:
+        # 限定對 Antigravity 的 Gemini 模型拉到該模型能開的最高檔（Neon/Hydrogen xhigh；Carbon high）；
+        # Claude 類別維持政策分級，絕不強制把 Opus / Fable 子任務拉到 max
+        if cls.get("driver") == "antigravity" and str(cls.get("model", "")).startswith("gemini-") and top in THINKING and top not in forbid:
             if THINKING.index(top) > THINKING.index(base_thinking):
                 return top, "thinking_preference: max_available"
         return base_thinking, ""
     if pref == "economy":
-        # 只有定案（high/higher/verify 的 route）與第二意見維持高檔；其餘降一檔且絕不碰 forbid_thinking
+        # 只有定案（high/higher/verify/architecture 的 route）與第二意見維持高檔；其餘降一檔且絕不碰 forbid_thinking
         if level == "medium" or kind == "prework":
             idx = THINKING.index(base_thinking)
             while idx > 0 and THINKING[idx - 1] in forbid:
@@ -293,7 +315,7 @@ def resolved(pol, mine, agent="claude", judge=None, model_note=None, claude_orde
                 th, th_why = effective_thinking(pol, o["class"], o["thinking"], level, kind, mine)
                 rows.append({"kind": kind, "class": o["class"], "model": cls["model"], "thinking": th,
                              "policy_thinking": o["thinking"], "thinking_why": th_why,
-                             "thinking_name": "effort" if cls["driver"] == "claudeAgent" else "thinking_level",
+                             "thinking_name": "effort" if cls["driver"] == "claudeAgent" else "thought_level",
                              "when": o.get("when"), "tasks": o.get("tasks"), "instances": [] if filtered else inst,
                              "blocked": blocked, "filtered": filtered, "skip": bool(filtered) or not inst,
                              "trial": o.get("trial"), "pending": o.get("pending"), "note": o.get("note"), "role": o.get("role")})
@@ -971,18 +993,23 @@ def selftest():
 
     t = resolved(pol, ryan, "claude")
     med = t["medium"]["options"]
-    # 2026-11-23 定案 A：中級第一順位是 Neon xhigh（gemini-pro）；Hydrogen（gemini-fast）做快速雜事與文件；Sonnet 退到退路；Flash 沒有實例
-    ok("ryan：中級第一順位是 Neon xhigh（antigravity_ryan），Hydrogen（max_available 升 xhigh）居次，Sonnet 為退路，Flash 沒有實例",
-       med[0]["class"] == "gemini-pro" and med[0]["model"] == "gemini-4-neon"
+    # 2026-11-25 定案：讀檔／雜務（docs、readonly）用 Hydrogen xhigh 或 Opus medium；多檔／UI 用 Neon xhigh 或 Opus high；Sonnet 留作試行退路
+    ok("ryan：中級 docs/readonly 首選 Hydrogen xhigh，多檔／UI 首選 Neon xhigh，選項名稱為 thought_level；Claude 維持政策 effort 不被 max_available 拉到 max",
+       med[0]["class"] == "gemini-fast" and med[0]["model"] == "gemini-4-hydrogen"
        and med[0]["thinking"] == "xhigh" and med[0]["instances"] == ["antigravity_ryan"]
-       and med[0]["thinking_name"] == "thinking_level"
-       and [o for o in med if o["class"] == "gemini-fast"][0]["model"] == "gemini-4-hydrogen"
-       and [o for o in med if o["class"] == "gemini-fast"][0]["thinking"] == "xhigh"
-       and [o for o in med if o["class"] == "gemini-fast"][0]["thinking_why"] == "thinking_preference: max_available"
-       and [o for o in med if o["class"] == "gemini-flash"][0]["instances"] == []
+       and med[0]["thinking_name"] == "thought_level" and med[0]["tasks"] == ["docs", "readonly"]
+       and med[1]["class"] == "gemini-pro" and med[1]["model"] == "gemini-4-neon"
+       and med[1]["thinking"] == "xhigh" and med[1]["thinking_name"] == "thought_level"
+       and any(o["class"] == "claude-opus" and o["thinking"] == "medium" and o["tasks"] == ["docs", "readonly"] for o in med)
+       and any(o["class"] == "claude-opus" and o["thinking"] == "high" and o["tasks"] == ["ui-small", "code-small"] for o in med)
        and med[-1]["class"] == "claude-sonnet")
+    ov_t = resolved(pol, {**ryan, "effort_overrides": {"claude-opus": "medium"}}, "claude")
+    ok("個人層 effort_overrides 可覆寫特定類別／級別的思考程度，不合法覆寫會被 check 擋下",
+       [o for o in ov_t["verify"]["options"] if o["class"] == "claude-opus"][0]["thinking"] == "medium"
+       and [o for o in ov_t["verify"]["options"] if o["class"] == "claude-opus"][0]["thinking_why"] == "effort_overrides: claude-opus"
+       and any("effort_overrides" in e for e in check(pol, {"effort_overrides": {"gemini-pro": "low"}})))
     econ = resolved(pol, {**ryan, "thinking_preference": "economy"}, "claude")
-    ok("thinking_preference: economy 降一般任務一檔（Neon xhigh→high、Sonnet medium→low），但絕不把 Gemini 降到禁用的 medium／low",
+    ok("thinking_preference: economy 降一般任務一檔（Neon/Hydrogen xhigh→high、Sonnet medium→low），但絕不把 Gemini 降到禁用的 medium／low",
        [o for o in econ["medium"]["options"] if o["class"] == "gemini-pro"][0]["thinking"] == "high"
        and [o for o in econ["medium"]["options"] if o["class"] == "gemini-fast"][0]["thinking"] == "high"
        and [o for o in econ["medium"]["options"] if o["class"] == "claude-sonnet"][0]["thinking"] == "low")
@@ -993,33 +1020,35 @@ def selftest():
        [o for o in ord_t["high"]["options"] if o["class"] == "claude-opus"][0]["instances"]
        == ["native", "claudeAgent_2", "claudeAgent_claude_kai", "claudeAgent"])
     tj = resolved(pol, ryan, "claude", lambda i, m: (i != "claudeAgent_2", "測試：停用"),
-                  lambda m: "測試：過濾" if m == "gemini-3.8-flash" else "")
+                  lambda m: "測試：過濾" if m == "gemini-4-hydrogen" else "")
     son = [o for o in tj["medium"]["options"] if o["class"] == "claude-sonnet"][0]
-    fl = [o for o in tj["medium"]["options"] if o["class"] == "gemini-flash"][0]
+    fl = [o for o in tj["medium"]["options"] if o["class"] == "gemini-fast"][0]
     ok("judge 不能派的實例移到 blocked 附原因；被過濾的模型整個選項跳過",
        "claudeAgent_2" not in son["instances"] and son["blocked"] == [{"instance": "claudeAgent_2", "why": "測試：停用"}]
        and fl["skip"] and fl["filtered"] == "測試：過濾"
        and "已過濾，跳過（測試：過濾）" in show_text(tj, "ryan", True) and "不派 claudeAgent_2：測試：停用" in show_text(tj, "ryan", True))
     ok("Claude 類別在 Claude 底下原生子代理排第一",
        [o for o in t["high"]["options"] if o["class"] == "claude-opus"][0]["instances"][0] == "native")
-    ok("ryan：高級與更高級先派 Neon xhigh 做前置苦工、Opus 定案後再由 Neon xhigh 唯讀審查；驗收的第二意見不是選配",
-       all([o["kind"] for o in t[lv]["options"]][0] == "prework" and [o["kind"] for o in t[lv]["options"]][-1] == "second_opinion"
-           and t[lv]["options"][0]["class"] == "gemini-pro" and t[lv]["options"][0]["thinking"] == "xhigh"
-           and t[lv]["options"][-1]["class"] == "gemini-pro" and t[lv]["options"][-1]["thinking"] == "xhigh"
+    ok("ryan：高級與更高級先派 Neon xhigh 做前置苦工、反向審查首選 Carbon high；獨立驗收 Opus xhigh；架構盲審 Fable 5.2 high 對 Carbon high",
+       all(t[lv]["options"][0]["kind"] == "prework" and t[lv]["options"][0]["class"] == "gemini-pro"
+           and any(o["kind"] == "second_opinion" and o["class"] == "gemini-carbon" and o["thinking"] == "high" for o in t[lv]["options"])
            for lv in ("high", "higher"))
-       and "optional" not in pol["levels"]["verify"]["second_opinion"][0])
+       and t["verify"]["options"][0]["class"] == "claude-opus" and t["verify"]["options"][0]["thinking"] == "xhigh"
+       and t["architecture"]["options"][0]["class"] == "claude-fable" and t["architecture"]["options"][0]["thinking"] == "high"
+       and t["architecture"]["options"][-1]["class"] == "gemini-carbon" and t["architecture"]["options"][-1]["thinking"] == "high")
     bare = resolved(pol, None, "claude")
-    ok("沒有個人層（同事只有 Claude）：Gemini 與 Antigravity 選項全部跳過，中級退回 Sonnet effort medium",
+    ok("沒有個人層（同事只有 Claude）：Gemini 與 Antigravity 選項全部跳過，Claude 原生選項可用",
        all(o["skip"] for lv in bare.values() for o in lv["options"] if not o["class"].startswith("claude-"))
        and any(o["class"] == "claude-sonnet" and o["thinking"] == "medium" and not o["skip"] for o in bare["medium"]["options"]))
 
-    ok("agy：類別加思考程度寫進模型代號（Neon xhigh、Hydrogen xhigh、Antigravity 的 Opus high）",
+    ok("agy：類別加思考程度寫進模型代號（Neon xhigh、Hydrogen xhigh、Carbon high、Antigravity 的 Opus high）",
        agy_model(pol, "gemini-pro", "xhigh") == "gemini-4-neon-xhigh"
        and agy_model(pol, "gemini-fast", "xhigh") == "gemini-4-hydrogen-xhigh"
+       and agy_model(pol, "gemini-carbon", "high") == "gemini-4-carbon-high"
        and agy_model(pol, "antigravity-opus", "high") == "claude-opus-5-5-high")
-    ok("agy：不合政策的不派（Claude Code 的類別、禁用的 low、超過上限、沒寫思考程度）",
+    ok("agy：不合政策的不派（Claude Code 的類別、禁用的 low、超過 Carbon 上限 xhigh、沒寫思考程度）",
        fails(lambda: agy_model(pol, "claude-opus", "high")) and fails(lambda: agy_model(pol, "gemini-pro", "low"))
-       and fails(lambda: agy_model(pol, "gemini-flash", "xhigh")) and fails(lambda: agy_model(pol, "gemini-pro", None)))
+       and fails(lambda: agy_model(pol, "gemini-carbon", "xhigh")) and fails(lambda: agy_model(pol, "gemini-pro", None)))
     cmd = agy_command("agy", "任務", "gemini-4-hydrogen-high", 600, "r.md", "x.log")
     ok("agy：指令帶模型代號、JSON 輸出、逾時、log 與略過權限；任務說明前面加硬性限制與收尾規定；不帶 --mode（accept-edits 會擋掉終端機指令）",
        cmd[:2] == ["agy", "-p"] and cmd[2] == agy_prefix("r.md") + "任務" and cmd[2].startswith(AGY_GUARD)
@@ -1080,12 +1109,12 @@ def selftest():
     ok("紀錄有必填欄位；級別從任務類型推；沒寫 first-pass 時，一次就過才算",
        all(k in rec for k in need) and rec["level"] == "medium" and rec["first_pass"] is True
        and rec["model"] == "claude-sonnet-5-5" and rec["instance"] == "native")
-    t3rec = make_record(pol, ns(**{**base, "cls": "gemini-flash", "thinking": "high", "channel": "t3_cli",
-                                   "instance": "antigravity_kai"}), "v", "ryan", "p", now)
+    t3rec = make_record(pol, ns(**{**base, "cls": "gemini-fast", "thinking": "xhigh", "channel": "t3_cli",
+                                   "instance": "antigravity_ryan"}), "v", "ryan", "p", now)
     p_log = argparse.ArgumentParser(exit_on_error=False)
     p_log.add_argument("--channel", choices=CHANNELS)
-    ok("log 收 t3_cli 管道，實例照寫（antigravity_kai）",
-       t3rec["channel"] == "t3_cli" and t3rec["instance"] == "antigravity_kai"
+    ok("log 收 t3_cli 管道，實例照寫（antigravity_ryan）",
+       t3rec["channel"] == "t3_cli" and t3rec["instance"] == "antigravity_ryan"
        and p_log.parse_args(["--channel", "t3_cli"]).channel == "t3_cli")
     esc = make_record(pol, ns(**{**base, "verdict": "pass", "escalations": 1, "final_class": "claude-opus"}), "v", "ryan", "p", now)
     ok("Sonnet 驗收不過、改 Opus 重跑：記成一行，class 是一開始派的 Sonnet，first_pass 是 false",

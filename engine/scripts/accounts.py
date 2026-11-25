@@ -200,34 +200,59 @@ SAME_BUCKET_SUPERIOR = {
 }
 
 
-def lineage(model, rates):
-    """單價表裡這個模型的後繼與下架日：(後繼集合, 原廠已過的下架日或 None, 說明字串)。
-    後繼與下架日多半是轉售平台自己的排程（例如 Azure 把 Opus 5.5 排在 2027-09 下架、後繼 Fable 5.2），
-    只當線索，不單獨拿來過濾；原廠條目寫的下架日已經過了才算真的下架。"""
-    succ, past, notes = set(), None, []
-    for key, s, dep in (rates or {}).get(norm(model), []):
+def _is_first_party_host(host, model):
+    m = norm(model)
+    if not host:
+        return True
+    if m.startswith("claude-"):
+        return host == "anthropic"
+    if m.startswith("gemini-"):
+        return host in ("gemini", "vertex_ai")
+    if m.startswith(("gpt-", "o1", "o3", "o4")):
+        return host == "openai"
+    return host in FIRST_PARTY
+
+
+def lineage(model, rates, today=None):
+    """單價表裡這個模型的後繼與下架日：(立即生效後繼集合, 全部後繼集合, 原廠已過的下架日或 None, 說明字串)。
+    轉售／雲端託管平台常替現役主力模型排一年後的 endpoint 輪替日，甚至出現互指（例如 azure_ai 寫 Opus 5.5 於 2027-09 後繼 Fable 5.2，
+    vertex_ai 又寫 Fable 5.2 於 2027-11 後繼 Opus 5.5）：凡是掛著未來下架日（> today）的條目，對「仍在分工裡服役的模型」只當提醒、不過濾；
+    對「已不在分工裡的模型」仍可依全部後繼過濾。原廠條目的下架日已過才算真的下架。"""
+    today_d = today or date.today()
+    active_succ, all_succ, past, notes = set(), set(), None, []
+    m = norm(model)
+    for key, s, dep in (rates or {}).get(m, []):
         host = key.rsplit("/", 1)[0] if "/" in key else ""
-        if s and norm(s) != norm(model):
-            succ.add(norm(s))
-            notes.append(f"{key} 寫後繼 {s}")
-        if dep and host in FIRST_PARTY:
+        dep_future = False
+        if dep:
             try:
-                if date.fromisoformat(str(dep)[:10]) <= date.today():
+                dep_d = date.fromisoformat(str(dep)[:10])
+                if dep_d > today_d:
+                    dep_future = True
+                elif _is_first_party_host(host, m):
                     past = str(dep)[:10]
             except ValueError:
                 pass
-    return succ, past, "；".join(notes[:2])
+        if s and norm(s) != m:
+            ns = norm(s)
+            all_succ.add(ns)
+            # 排除互為後繼（A -> B 且 B -> A）以及尚未到期的遠期輪替排程，避免誤殺現役分工模型
+            reverse_targets = {norm(rs) for _, rs, _ in (rates or {}).get(ns, []) if rs}
+            if m not in reverse_targets and not dep_future:
+                active_succ.add(ns)
+            notes.append(f"{key} 寫後繼 {s}" + (f"（排程 {str(dep)[:10]}）" if dep_future else ""))
+    return active_succ, all_succ, past, "；".join(notes[:2])
 
 
 def model_status(model, available, mine, rates, role_models=None, driver=None):
     """一個實例上的一個模型：('keep'|'filtered', 原因)。
     available：同一個實例能用的模型（不知道給 None，當成都有）；role_models：分派政策用到的模型（不知道給 None）。
     過濾條件（資料驅動）：profile 排除；原廠下架日已過；同帳號同額度桶已有更強的同家族模型且這個供應商沒有角色使用；
-    後繼已是你分工裡的模型而且這個帳號就有；沒有任何角色使用而且已有後繼（帳號沒別的模型可用時照用）。其他有後繼的只回提醒、不過濾。"""
+    無遠期排程的單向後繼已是你分工裡的模型且帳號就有；沒有任何角色使用而且已有後繼（帳號沒別的模型可用時照用）。其他有後繼的只回提醒、不過濾。"""
     inc = {norm(m) for m in (mine or {}).get("include_models") or []}
     exc = {norm(m) for m in (mine or {}).get("exclude_models") or []}
     m = norm(model)
-    succ, past, notes = lineage(model, rates)
+    active_succ, all_succ, past, notes = lineage(model, rates)
     if m in inc:
         return "keep", "profile include_models 保留"
     if m in exc:
@@ -242,14 +267,14 @@ def model_status(model, available, mine, rates, role_models=None, driver=None):
         better, bucket_name = sup
         if have is None or better in have:
             return "filtered", f"同帳號同額度桶（{bucket_name}）已有更強的 {better}，且這個供應商沒有角色使用"
-    if not succ:
+    if not all_succ:
         return "keep", ""
     if roles is not None:
-        took = sorted(s for s in succ & roles if have is None or s in have)
+        took = sorted(s for s in active_succ & roles if have is None or s in have)
         if took:
             return "filtered", f"被 {'、'.join(took)} 取代（已是你分工裡的模型{'，這個帳號就有' if have is not None else ''}）；{notes}"
         if m not in roles:
-            alive = None if have is None else [a for a in have if a != m and a not in exc and not lineage(a, rates)[0]]
+            alive = None if have is None else [a for a in have if a != m and a not in exc and not lineage(a, rates)[1]]
             if alive is None or alive:
                 return "filtered", f"沒有角色使用，而且已有後繼；{notes}"
             return "keep", f"已有後繼，但這個帳號沒有別的模型可用，照用；{notes}"
@@ -572,6 +597,11 @@ def selftest():
     assert st == "keep" and "沒有別的模型" in why  # 只剩舊模型的帳號照用
     st, why = model_status("claude-opus-5-5", None, {}, rates, roles)
     assert st == "keep" and why.startswith("提醒")  # 轉售平台的後繼只提醒，主力模型不濾
+    # 轉售／雲端平台同時把 Opus 與 Fable 互標遠期後繼、且兩者都在分工裡時：兩邊都保留（只提醒），絕不互相消滅
+    cyc_rates = {**rates, "claude-fable-5-2": [("vertex_ai/claude-fable-5-2", "claude-opus-5-5", "2027-11-09")]}
+    cyc_roles = {"claude-opus-5-5", "claude-fable-5-2"}
+    assert model_status("claude-opus-5-5", ["claude-opus-5-5", "claude-fable-5-2"], {}, cyc_rates, cyc_roles)[0] == "keep"
+    assert model_status("claude-fable-5-2", ["claude-opus-5-5", "claude-fable-5-2"], {}, cyc_rates, cyc_roles)[0] == "keep"
     assert model_status("old-model", None, {}, rates, roles)[0] == "filtered"  # 原廠下架日已過
     assert model_status("gemini-4-neon", full, {}, rates, roles) == ("keep", "")  # 沒後繼、沒角色：只是不在政策裡
     assert model_status("gemini-3.8-flash", full, {"include_models": ["gemini-3.8-flash"]}, rates, roles)[0] == "keep"

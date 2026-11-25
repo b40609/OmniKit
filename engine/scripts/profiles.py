@@ -180,18 +180,50 @@ def resolve(data, state, wanted=None):
 
 # data/rules/ 底下所有人都套用的，依序；除了安全底線，其他沒有就跳過。
 # mobile-web.md（2026-11-24）：行動端與 WebApp 工程底線（iOS WebKit 地雷），只在改前端時適用，內容要短（每段對話都會載入）
+# 2026-11-25（Step 1.3）：個人層 dispatch.md 屬於查表設定（帳號與實例對照），移出常駐載入規則，改由 dispatch.py 需要時讀，
+# 並將 Antigravity 全域規則拆成 ~/.gemini/AGENTS.md（共用）與 ~/.gemini/GEMINI.md（個人），強制檢查單檔 <= 24,000 bytes、總計 <= 20,000 tokens。
 SHARED_RULES = ("baseline.md", "dispatch.md", "mobile-web.md")
 OPTIONAL_RULES = {"dispatch.md", "mobile-web.md"}
-PROFILE_RULES = ("AGENTS.md", "dispatch.md")  # profile 資料夾裡的，依序；AGENTS.md 一定要有，dispatch.md 有才接
+PROFILE_RULES = ("AGENTS.md",)  # 個人層常駐載入的規則；dispatch.md 移出 always-on，由 dispatch.py 直接讀
+AGY_MAX_FILE_BYTES = 24_000     # agy-customizations/docs/rules.md:31 單檔超過 24,000 bytes 會在行界靜默截斷
+AGY_MAX_TOTAL_TOKENS = 20_000   # agy-customizations/docs/rules.md:34 全域與 always-on 合計超過 20,000 tokens 會降級為路徑指標
+CODEX_MAX_FILE_BYTES = 32 * 1024
+
+
+def shared_rules_files(data):
+    """所有人都套用的共用規則檔（安全底線必列，其餘有才列）。"""
+    return [data / "rules" / f for f in SHARED_RULES if f not in OPTIONAL_RULES or (data / "rules" / f).is_file()]
+
+
+def personal_rules_files(data, state, name):
+    """個人層常駐載入的規則檔（AGENTS.md 必列；查表型的 dispatch.md 不常駐載入）。"""
+    base = folder(data, state, name) or data / "profiles" / name
+    return [base / f for f in PROFILE_RULES if f not in OPTIONAL_RULES or (base / f).is_file()]
 
 
 def rules_files(data, state, name):
-    """接給 agent 的規則檔，依序：安全底線、分派共用層、行動端與 WebApp 底線、profile 的 AGENTS.md、profile 的分派設定。
-    安全底線與 AGENTS.md 一定列（不存在時讓後面的讀取失敗，不悄悄少一層）；兩份 dispatch.md 與 mobile-web.md 有才列。"""
-    base = folder(data, state, name) or data / "profiles" / name
-    shared = [data / "rules" / f for f in SHARED_RULES]
-    mine = [base / f for f in PROFILE_RULES]
-    return [p for p in shared + mine if p.name not in OPTIONAL_RULES or p.is_file()]
+    """接給 Claude Code 與 Codex 的常駐規則檔，依序：安全底線、分派共用層、行動端底線、個人 AGENTS.md。"""
+    return shared_rules_files(data) + personal_rules_files(data, state, name)
+
+
+def estimate_tokens(content):
+    """保守估計規則文字的 token 數（ASCII 約 4 字元 1 token，中日韓等非 ASCII 字元以 1 字 1 token 保守計）。"""
+    ascii_chars = sum(1 for ch in content if ord(ch) < 128)
+    non_ascii = len(content) - ascii_chars
+    return (ascii_chars + 3) // 4 + non_ascii
+
+
+def check_agy_size(agents_path, agents_content, gemini_path, gemini_content):
+    """回傳 Antigravity 兩份規則檔的大小問題清單（空串列代表通過）。"""
+    errs = []
+    for p, txt in ((agents_path, agents_content), (gemini_path, gemini_content)):
+        b = len(txt.encode("utf-8"))
+        if b > AGY_MAX_FILE_BYTES:
+            errs.append(f"{p} 大小為 {b:,} bytes，超過 Antigravity 單檔上限 {AGY_MAX_FILE_BYTES:,} bytes（會被靜默截斷檔尾）")
+    toks = estimate_tokens(agents_content) + estimate_tokens(gemini_content)
+    if toks > AGY_MAX_TOTAL_TOKENS:
+        errs.append(f"Antigravity 全域規則合計估計約 {toks:,} tokens，超過預算上限 {AGY_MAX_TOTAL_TOKENS:,} tokens（會被降級為路徑指標）")
+    return errs
 
 
 def answers(data, state, name):
@@ -213,13 +245,26 @@ def skipped_skills(data, state, name):
     return {skill: why for skill, (key, why) in OPTIONAL_SKILLS.items() if doc.get(key) is False}
 
 
-def compose(data, state, name):
-    """給 Codex 與 Antigravity 的規則：底線在前，profile 在後；第一行是產生標記。"""
-    parts = [text(p).replace("\r\n", "\n").strip() for p in rules_files(data, state, name)]
-    where = label(data, state, name)
-    names = [f"data/rules/{p.name}" if p.parent == data / "rules" else f"{where}/{p.name}" for p in rules_files(data, state, name)]
+def _compose_from(files, data, where=None):
+    parts = [text(p).replace("\r\n", "\n").strip() for p in files]
+    names = [f"data/rules/{p.name}" if p.parent == data / "rules" else f"{where}/{p.name}" for p in files]
     header = f"{HEADER}{' + '.join(names)} -->"
     return "\n\n".join([header, *parts]) + "\n"
+
+
+def compose_shared(data):
+    """給 Antigravity ~/.gemini/AGENTS.md 的共用層規則。"""
+    return _compose_from(shared_rules_files(data), data)
+
+
+def compose_personal(data, state, name):
+    """給 Antigravity ~/.gemini/GEMINI.md 的個人層規則（不含查表型 dispatch.md）。"""
+    return _compose_from(personal_rules_files(data, state, name), data, label(data, state, name))
+
+
+def compose(data, state, name):
+    """給 Codex 的合併規則：共用層在前，個人 AGENTS.md 在後；第一行是產生標記。"""
+    return _compose_from(rules_files(data, state, name), data, label(data, state, name))
 
 
 def is_ours(content):
@@ -311,6 +356,63 @@ def connect_codex(path, content, take_over, legacy=False):
     return connect_block(path, content, take_over)
 
 
+def disconnect_antigravity(gemini_md, agents_md=None):
+    """拿掉 Antigravity 兩份全域規則檔（AGENTS.md 共用、GEMINI.md 個人）的受管區塊。"""
+    agents_md = agents_md or gemini_md.with_name("AGENTS.md")
+    lines = []
+    if agents_md.exists() and gemini_md.exists():
+        try:
+            if os.path.samefile(agents_md, gemini_md):
+                retry(agents_md.unlink)
+        except OSError:
+            pass
+    if agents_md != gemini_md:
+        lines += disconnect_block(agents_md)
+    lines += disconnect_block(gemini_md)
+    return lines
+
+
+def connect_antigravity(gemini_md, shared_content, personal_content, take_over, agents_md=None):
+    """將 Antigravity 全域規則拆成 AGENTS.md（共用）與 GEMINI.md（個人），消除硬連結雙重載入並檢查 24,000 bytes 上限。"""
+    agents_md = agents_md or gemini_md.with_name("AGENTS.md")
+    same_inode = False
+    if agents_md.exists() and gemini_md.exists():
+        try:
+            same_inode = os.path.samefile(agents_md, gemini_md)
+        except OSError:
+            same_inode = False
+    old_gemini = text(gemini_md) if gemini_md.exists() else ""
+    if not BLOCK.search(old_gemini) and old_gemini.strip() and not take_over:
+        return "skipped", []
+    # 若 ~/.gemini/AGENTS.md 與 ~/.gemini/GEMINI.md 先前被硬連結成同一檔，先解除 AGENTS.md 的硬連結（保留 GEMINI.md 對外的硬連結如 ~/.dsh/AGENTS.md）
+    if same_inode and agents_md != gemini_md:
+        retry(agents_md.unlink)
+    old_agents = text(agents_md) if agents_md.exists() else ""
+    grab_agents = take_over or bool(BLOCK.search(old_gemini)) or same_inode
+    if not BLOCK.search(old_agents) and old_agents.strip() and not grab_agents:
+        new_agents = old_agents
+        skip_agents = True
+    else:
+        new_agents = with_block(old_agents, content_block(shared_content))
+        skip_agents = False
+    new_gemini = with_block(old_gemini, content_block(personal_content))
+    errs = check_agy_size(agents_md, new_agents, gemini_md, new_gemini)
+    if errs:
+        raise SystemExit("Antigravity 規則超過大小上限，已中止寫入以避免靜默截斷：\n" + "\n".join(f"- {e}" for e in errs))
+    saved_notes = []
+    if not skip_agents and new_agents != old_agents:
+        if grab_agents and old_agents.strip() and not BLOCK.search(old_agents):
+            saved_a = backup(agents_md)
+            saved_notes.append(f"已備份原本的 Antigravity AGENTS.md：{saved_a}")
+        write(agents_md, new_agents)
+    elif skip_agents:
+        saved_notes.append(f"{agents_md} 已有非 OmniKit 內容且未帶受管區塊，沒有覆寫；共用規則未寫入")
+    if new_gemini != old_gemini:
+        if take_over and old_gemini.strip() and not BLOCK.search(old_gemini):
+            saved_g = backup(gemini_md)
+            saved_notes.append(f"已備份原本的 Antigravity 規則：{saved_g}")
+        write_in_place(gemini_md, new_gemini)
+    return ("updated" if (new_agents != old_agents or new_gemini != old_gemini) else "unchanged"), saved_notes
 def disconnect_block(path):
     """原地拿掉受管區塊，回傳訊息。只剩區塊時：有安裝前的備份就還原，沒有（OmniKit 建的）就刪掉；
     還有別的內容時：跟備份一樣，多餘的備份也刪掉。"""
@@ -364,6 +466,8 @@ def apply(data, state, paths=None, wanted=None, agents=None, take_over=False, sk
         done.append(NAMES["claude-code"] + (f"（另外 {len(claude_extra)} 個設定目錄：{'、'.join(str(p.parent) for p in claude_extra)}）"
                                             if claude_extra else ""))
     if "codex" in agents:
+        if len(content.encode("utf-8")) > CODEX_MAX_FILE_BYTES:
+            raise SystemExit(f"Codex 規則達 {len(content.encode('utf-8')):,} bytes，超過預設上限 {CODEX_MAX_FILE_BYTES:,} bytes")
         legacy = skillshare_config.exists() and CODEX_EXTRA.search(text(skillshare_config)) is not None
         connected_codex = []
         for path, grab, old_copy in [(paths["codex"], take_over, legacy)] + [
@@ -379,11 +483,15 @@ def apply(data, state, paths=None, wanted=None, agents=None, take_over=False, sk
         if connected_codex:
             done.append(NAMES["codex"] + (f"（另外 {len(others)} 個設定目錄：{'、'.join(others)}）" if others else ""))
     if "antigravity" in agents:
-        status, saved = connect_block(paths["antigravity"], content, take_over)
-        done.append(NAMES["antigravity"]) if status != "skipped" else notes.append(
-            f"{paths['antigravity']} 的 OmniKit 區塊被拿掉了，沒有加回去；要接上請重跑 install.ps1")
-        if saved:
-            notes.append(f"已備份原本的 Antigravity 規則：{saved}")
+        shared_c = compose_shared(data)
+        personal_c = compose_personal(data, state, name)
+        agy_agents_md = paths.get("antigravity_shared") or paths["antigravity"].with_name("AGENTS.md")
+        status, agy_notes = connect_antigravity(paths["antigravity"], shared_c, personal_c, take_over, agy_agents_md)
+        if status != "skipped":
+            done.append(NAMES["antigravity"])
+        else:
+            notes.append(f"{paths['antigravity']} 的 OmniKit 區塊被拿掉了，沒有加回去；要接上請重跑 install.ps1")
+        notes.extend(agy_notes)
     lines = [f"已套用 profile：{name}（{'、'.join(done) or '沒有 agent'}，開新的 session 才生效）", *notes]
     if fallback:
         lines.append(fallback_notice(data, state))
@@ -559,17 +667,23 @@ def selftest():
               and codex.endswith(END + "\n# 我原本的 Codex 規則\n") and "\r" not in codex)
         check("Codex：原本的規則先備份", text(paths["codex"].with_name("AGENTS.md.pre-omnikit")) == "# 我原本的 Codex 規則\n")
         gemini = text(paths["antigravity"])
-        check("Antigravity：受管區塊加在開頭，原本的內容保留",
-              gemini.startswith(BEGIN) and "不碰金鑰" in gemini and gemini.endswith("# 我原本的 Antigravity 規則\n"))
-        check("Antigravity：原地改寫，硬連結的其他名字一起更新",
+        agy_shared = text(paths["antigravity"].with_name("AGENTS.md"))
+        check("Antigravity：拆成 AGENTS.md（共用）與 GEMINI.md（個人）兩檔，原本內容保留且不重複載入",
+              agy_shared.startswith(BEGIN) and "不碰金鑰" in agy_shared and "保守" not in agy_shared
+              and gemini.startswith(BEGIN) and "保守" in gemini and "不碰金鑰" not in gemini
+              and gemini.endswith("# 我原本的 Antigravity 規則\n")
+              and not os.path.samefile(paths["antigravity"], paths["antigravity"].with_name("AGENTS.md")))
+        check("Antigravity：原地改寫 GEMINI.md，外部硬連結（~/.dsh/AGENTS.md）一起更新不斷開",
               os.path.samefile(paths["antigravity"], shared) and text(shared) == gemini)
         check("Antigravity：原本的規則先備份",
               text(paths["antigravity"].with_name("GEMINI.md.pre-omnikit")) == "# 我原本的 Antigravity 規則\n")
         check("訊息列出三個 agent", lines[0].startswith("已套用 profile：default（Claude Code、Codex、Antigravity，"))
 
         before = {k: p.read_bytes() for k, p in paths.items()}
+        before_agy_shared = paths["antigravity"].with_name("AGENTS.md").read_bytes()
         run(agents=all3)
-        check("重複執行：三份規則都不變", all(p.read_bytes() == before[k] for k, p in paths.items()))
+        check("重複執行：四份規則都不變", all(p.read_bytes() == before[k] for k, p in paths.items())
+              and paths["antigravity"].with_name("AGENTS.md").read_bytes() == before_agy_shared)
 
         run(agents=all3, wanted="x")
         check("--set：記下選擇", chosen(state) == "x")
@@ -620,18 +734,29 @@ def selftest():
         check("選過的 profile 被刪掉：失敗，不悄悄換回 default", fails(lambda: run()))
 
         gem = tmp / "g" / "GEMINI.md"
+        gem_ag = tmp / "g" / "AGENTS.md"
         write(gem, "# 原本\n")
-        link = tmp / "g" / "AGENTS.md"
-        os.link(gem, link)
-        connect_block(gem, compose(data, state, "default"), take_over=True)
-        lines = disconnect_block(gem)
-        check("移除 Antigravity 區塊：還原成原本的內容，硬連結還在",
-              text(gem) == "# 原本\n" and os.path.samefile(gem, link) and any("已拿掉" in line for line in lines))
+        os.link(gem, gem_ag)  # 模擬舊環境 ~/.gemini/AGENTS.md 與 GEMINI.md 被硬連結成同一個檔
+        ext_link = tmp / "g_ext" / "AGENTS.md"
+        ext_link.parent.mkdir(parents=True)
+        os.link(gem, ext_link)
+        connect_antigravity(gem, compose_shared(data), compose_personal(data, state, "default"), take_over=True)
+        check("舊環境 AGENTS.md 與 GEMINI.md 硬連結：自動解除同目錄硬連結、拆成兩份，且外部硬連結不斷",
+              not os.path.samefile(gem, gem_ag) and os.path.samefile(gem, ext_link)
+              and "不碰金鑰" in text(gem_ag) and "保守" in text(gem))
+        lines = disconnect_antigravity(gem)
+        check("移除 Antigravity 兩檔區塊：GEMINI.md 還原原本內容且外部硬連結還在，只剩區塊的 AGENTS.md 刪除",
+              text(gem) == "# 原本\n" and not gem_ag.exists() and os.path.samefile(gem, ext_link)
+              and any("已拿掉" in line for line in lines))
         check("移除後跟備份一樣：多餘的備份刪掉", not gem.with_name("GEMINI.md.pre-omnikit").exists())
         fresh = tmp / "f" / "GEMINI.md"
-        connect_block(fresh, compose(data, state, "default"), take_over=True)
-        disconnect_block(fresh)
-        check("OmniKit 建的 GEMINI.md：移除時整個刪掉", not fresh.exists())
+        connect_antigravity(fresh, compose_shared(data), compose_personal(data, state, "default"), take_over=True)
+        disconnect_antigravity(fresh)
+        check("OmniKit 建的 AGENTS.md 與 GEMINI.md：移除時兩個都刪掉", not fresh.exists() and not fresh.with_name("AGENTS.md").exists())
+        oversize = tmp / "over" / "GEMINI.md"
+        check("Antigravity 單檔超過 24,000 bytes 時拒絕寫入並報錯（防靜默截斷）",
+              fails(lambda: connect_antigravity(oversize, "# 共用\n", "超長規則\n" * 2000, take_over=True))
+              and not oversize.exists())
 
         # 防毒短暫鎖住檔案（FR-34，假的鎖檔）：寫入、原地改寫、備份都等一下再試；硬連結照樣不斷
         locked_md = tmp / "lock" / "GEMINI.md"
@@ -745,26 +870,24 @@ def selftest():
               and [line[1:].replace("\\ ", " ") for line in imports]
               == [p.resolve().as_posix() for p in rules_files(sdata, sstate, "amy")])
 
-        # 子任務分派：共用層 data/rules/dispatch.md 與 profile 的 dispatch.md 有才接，順序是底線、共用分派、個人規則、個人分派
+        # 子任務分派：共用層 data/rules/dispatch.md 有才接；個人層 dispatch.md 屬於查表設定，移出常駐載入規則（Step 1.3）
         write(sdata / "rules" / "dispatch.md", "# 分派共用\n")
-        check("分派：只有共用層時，接在底線之後、profile 之前",
+        check("分派：共用層接在底線之後、profile 之前",
               [p.name for p in rules_files(sdata, sstate, "amy")] == ["baseline.md", "dispatch.md", "AGENTS.md"])
-        write(sstate / "profiles" / "amy" / "dispatch.md", "# amy 的實例\n")
+        write(sstate / "profiles" / "amy" / "dispatch.md", "# amy 的實例（查表，不常駐載入）\n")
         files = rules_files(sdata, sstate, "amy")
         merged = compose(sdata, sstate, "amy")
-        check("分派：profile 有 dispatch.md 就接在最後；Claude 四個 import、Codex 的內容與產生標記照同一個順序",
+        check("分派：個人層 dispatch.md 移出常駐規則（不進 Claude import 與 Codex/Antigravity 常駐區塊）",
               [p.parent.name + "/" + p.name for p in files]
-              == ["rules/baseline.md", "rules/dispatch.md", "amy/AGENTS.md", "amy/dispatch.md"]
-              and len([x for x in claude_block(sdata, sstate, "amy").splitlines() if x.startswith("@")]) == 4
-              and merged.index("# 底線") < merged.index("# 分派共用") < merged.index("# amy\n") < merged.index("# amy 的實例")
-              and merged.splitlines()[0].endswith(
-                  f"data/rules/baseline.md + data/rules/dispatch.md + {(sstate / 'profiles' / 'amy').as_posix()}/AGENTS.md + "
-                  f"{(sstate / 'profiles' / 'amy').as_posix()}/dispatch.md -->"))
+              == ["rules/baseline.md", "rules/dispatch.md", "amy/AGENTS.md"]
+              and len([x for x in claude_block(sdata, sstate, "amy").splitlines() if x.startswith("@")]) == 3
+              and "# amy 的實例" not in merged
+              and merged.index("# 底線") < merged.index("# 分派共用") < merged.index("# amy\n"))
         # 行動端與 WebApp 底線：有才接，放在共用分派之後、個人規則之前
         write(sdata / "rules" / "mobile-web.md", "# 行動端\n")
         check("行動端底線：data/rules/mobile-web.md 有就接在共用層最後、profile 之前",
               [p.name for p in rules_files(sdata, sstate, "amy")]
-              == ["baseline.md", "dispatch.md", "mobile-web.md", "AGENTS.md", "dispatch.md"]
+              == ["baseline.md", "dispatch.md", "mobile-web.md", "AGENTS.md"]
               and compose(sdata, sstate, "amy").index("# 分派共用") < compose(sdata, sstate, "amy").index("# 行動端")
               < compose(sdata, sstate, "amy").index("# amy\n"))
         (sdata / "rules" / "mobile-web.md").unlink()

@@ -42,9 +42,9 @@ profile：ryan
 ## 工作階段
 - 對話結構（2026-11-19 定案）：每個專案只留一條主線對話，開在對應專案資料夾內，主線不 settle；要換新對話時照交接做，新主線接手後舊的才 settle。工作包的完成條件寫在 `NOW.md`。驗收、切片、側邊研究開子對話，結果收進主線就 settle。
 - **子對話自動 Settle**：所有由主對話派發的子任務、獨立驗收、唯讀審查或代跑對話，在完成執行並輸出最終回報後，必須主動呼叫 `t3_thread_organize`（`action: 'settle'`）進行結案收合，避免側邊欄對話堆積；若是透過沒有 T3 工具的原生子代理執行，由父對話在收完結果後負責結案。用 `t3 thread` CLI（`t3_cli` 管道）開的 T3 對話，CLI 目前沒有 settle 子指令，對話本身也未必有 T3 工具：父對話收完結果後，有 `t3_thread_organize` 就自己 settle（帶 `action: "settle"`，回讀確認 `settled: true`）；沒有就先看能不能接 T3 的 MCP（`omnikit-capabilities` 會列出怎麼接，`claude mcp login t3` 要在終端機分頁跑、我核准一次，有效 30 天），還是不行才在回報裡列出對話 id 與標題，請我在 T3 結案。僅有失敗、遭遇阻擋或標記為【等你決定】需使用者介入的對話才保留 active。
-- 子任務分派（任務級別、管道、模型、思考程度、升級路徑、委派紀錄）照 OmniKit 共用層 `data/rules/dispatch.md`；我的帳號與供應商實例在這個 profile 的 `dispatch.md`。兩份都會載入，這裡不重複寫。
-- **Gemini 思考程度**（2026-11-18 定案）：所有 Gemini 模型的調用（gemini-pro、gemini-flash，不論 agy_cli、t3_cli、`t3_thread_launch`、delegate_task 哪個管道），思考程度永遠是 high 或更高；不准 low、medium，也不准不寫靠預設值（`t3 thread start` 要把程度寫進模型代號，例如 `gemini-4-hydrogen-high`）。直接呼叫 Gemini API（Vertex 抵免額或其他 Gemini API）時，能用 Gemini 4 Hydrogen 就用，不能用（無權限、429、403）才退到 Gemini 3.8 Flash，兩者思考程度都 high 以上。Claude 的 effort 不受這條影響。
-- **Claude Opus 子任務的 effort**（2026-11-19 定案）：派出去的 Claude Opus 子任務（claude-opus、antigravity-opus，不論哪個管道）effort 一律 medium（Opus 的預設值）；我明確指定才用 high 以上。分派政策 `levels` 寫的 high、xhigh 與升級路徑裡的 Opus 程度，在我這裡都先用 medium，驗收不過要升程度時先問我。主線對話本身的程度照我開對話時指定的，不受這條影響。Gemini 一律 high 以上那條照舊。
+- 子任務分派（任務級別、管道、模型、思考程度、升級路徑、委派紀錄）照 OmniKit 共用層 `data/rules/dispatch.md`；我的帳號與供應商實例設定在 `data/profiles/ryan/dispatch.md`（移出常駐載入規則，派子任務前跑 `omnikit-dispatch` 的 `run.py show` 讀取）。
+- **Gemini 思考程度**（2026-11-18、2026-11-25 定案）：所有 Gemini 模型（Neon、Hydrogen、Carbon、Orchestrator 系列，以及之後新增的，不論哪個管道）的思考程度（`thought_level`）永遠是 `high` 或更高（Neon、Hydrogen、Orchestrator 開 `xhigh`，Carbon 最高 `high`）；不准 `low`、`medium`，也不准不寫靠預設值（`t3 thread start` 帶 `--option thought_level=xhigh` 或寫進模型代號如 `gemini-4-hydrogen-xhigh`）。直接呼叫 Gemini API（目前依 D1 不用 Vertex）時，程度同樣 `high` 以上，模型照分工表。
+- **Claude 子任務的 effort 與盲審分工**（2026-11-25 定案）：派出去的 Claude 子任務依分派政策 `levels` 設定 `effort`（讀檔／雜務 `Opus medium`、日常多檔／UI `Opus high`、高風險驗收與難題 `Opus xhigh`、重大架構兩階段防迎合盲審 `Fable 5.2 high` 死結才 `xhigh`；`max` 不預設，僅在我明確指定時用）。反向跨家審查 Claude 產出用 `Gemini 4 Carbon high`。盲審與工具評測子對話必須隔離跨對話記憶注入。主線對話本身的程度照我開對話時指定的，不受這條影響。
 - 狀態標籤：每次收尾的第一句用下列其中一個開頭（Claude 桌面版的 wrap_up recap 第一句會顯示在側邊欄；其他介面寫在最後一則回覆的第一句）：
   - 【完成待收尾】：交付的東西都已 commit 並 push（不能 push 的寫明只在這台），沒有等我的事；我看到就可以封存這段對話；子對話任務完成後應直接呼叫 settle 結案。
   - 【等你決定】：要我拍板或動手才能繼續。
@@ -54,5 +54,3 @@ profile：ryan
 - **狀態板 NOW.md**（2026-11-19 定案）：每個專案在狀態 repo 有一份 `<專案>/NOW.md`，寫進行中的線、等我決定的事（附建議）、下一步（標【agent 可直接做】／【等使用者】）。主線開工先讀 `<專案>/NOW.md`；每條對話收尾前更新它，push 前先 `git pull --rebase`。格式與細節照 `omnikit-handoff` skill。
 - 全自動模式：不要用會觸發 T3／Claude 跨目錄審批彈窗的指令。不直接讀寫或 cd 到目前工作目錄以外的資料夾，也不在那裡建 worktree；要動其他專案，就開在那個專案裡的子對話去做。
 - **子任務開在 T3 看得到的對話**（2026-11-21 定案）：派出去的子任務要開成我在 T3 看得到的對話，我要能看 prompt 和過程；設定在我 profile 的 `dispatch.md`（`visibility: visible`），管道順序照 `run.py show`。agy 無頭派送只在我同意或 T3 沒在跑時用，用了要在回報寫明「這次走無頭模式，T3 看不到」。
-
-- **Gemini 3.8 Flash 子任務分派限制**（2026-11-19 定案）：只要目前對話是由 Gemini 3.8 Flash 運行（例如在任一 Antigravity 實例上選了 3.8 Flash），後續分配/派發出的所有子對話或子任務，**一律只能派給 kai 或 ava 的 Gemini 3.8 Flash**（providerInstanceId: antigravity_kai 或 antigravity_ava），且思考程度**固定為 high**。嚴禁從 Gemini 3.8 Flash 主線跨模型派給 Claude、Codex 或其他模型。

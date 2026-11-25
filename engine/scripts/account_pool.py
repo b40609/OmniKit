@@ -175,15 +175,11 @@ def norm_model(model):
 
 
 def bucket_of(driver=None, model=None):
-    """模型對應的額度桶（依 T3 summaryWindows 與 agy /usage 一手實測）。"""
+    """模型對應的額度桶（依 2026-11-25 agy 1.5.16 /usage 一手實測：Gemini 全系列含 Neon/Carbon/Argon/Hydrogen/Orchestrator 共用 Gemini Models 桶；Claude & GPT 獨立 3p 桶）。"""
     m = norm_model(model)
     if driver == "antigravity" or (driver is None and m.startswith(("gemini-", "gpt-oss-"))):
         if m.startswith(("claude-", "gpt-")):
             return "3p"
-        if "argon" in m or "g1-pro" in m:
-            return "argon"
-        if "carbon" in m:
-            return "carbon"
         return "gemini"
     return "default"
 
@@ -1104,73 +1100,56 @@ def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=
     rates = accounts.rates_index()
     agy_roles = accounts.role_models(pol, "antigravity")
 
-    # Step 1–3：自動派工 Antigravity 實例的三個桶（Gemini → Argon → Claude & GPT 桶 Opus）
+    # Step 1–2：自動派工 Antigravity 實例的兩個桶（Gemini Models → Claude & GPT 桶 Opus；agy 1.5.16 起 Argon 已併入 Gemini 大桶）
     for r in auto_agy:
         iid = r["id"]
         acc = (state_doc or {}).get("accounts", {}).get(iid)
-        # 1. Gemini 桶
+        # 1. Gemini Models 桶（Neon、Hydrogen、Carbon、Orchestrator）
         blk, why, _ = is_blocked(state_doc, iid, driver="antigravity", bucket="gemini", now=now_dt)
         bstat = _agy_bucket_status(acc, "gemini", now_dt)
+        g_models = ["gemini-4-neon", "gemini-4-hydrogen", "gemini-4-carbon"]
         if blk:
             steps.append({"step": 1, "stage": "antigravity_gemini", "instance": iid, "bucket": "gemini",
-                          "models": ["gemini-4-neon", "gemini-4-hydrogen"], "status": "skipped", "why": why})
+                          "models": g_models, "status": "skipped", "why": why})
         elif bstat and bstat["exhausted"]:
             steps.append({"step": 1, "stage": "antigravity_gemini", "instance": iid, "bucket": "gemini",
-                          "models": ["gemini-4-neon", "gemini-4-hydrogen"], "status": "skipped", "why": f"額度見底（{bstat['text']}）"})
+                          "models": g_models, "status": "skipped", "why": f"額度見底（{bstat['text']}）"})
         else:
             steps.append({"step": 1, "stage": "antigravity_gemini", "instance": iid, "bucket": "gemini",
-                          "models": ["gemini-4-neon", "gemini-4-hydrogen"], "status": "available",
+                          "models": g_models, "status": "available",
                           "why": f"預設自動派工帳號" + (f"（{bstat['text']}）" if bstat and bstat["text"] else "（未刷 agy /usage）")})
 
-        # 2. 同帳號 Argon 桶
-        st_arg, why_arg = accounts.model_status("gemini-4-argon", None, mine, rates, agy_roles, driver="antigravity")
-        blk_a, why_a, _ = is_blocked(state_doc, iid, driver="antigravity", model="gemini-4-argon", bucket="argon", now=now_dt)
-        bstat_a = _agy_bucket_status(acc, "argon", now_dt)
-        if st_arg == "filtered":
-            steps.append({"step": 2, "stage": "antigravity_argon", "instance": iid, "bucket": "argon",
-                          "models": ["gemini-4-argon"], "status": "skipped", "why": f"模型已過濾（{why_arg}）"})
-        elif blk_a:
-            steps.append({"step": 2, "stage": "antigravity_argon", "instance": iid, "bucket": "argon",
-                          "models": ["gemini-4-argon"], "status": "skipped", "why": why_a})
-        elif bstat_a and bstat_a["exhausted"]:
-            steps.append({"step": 2, "stage": "antigravity_argon", "instance": iid, "bucket": "argon",
-                          "models": ["gemini-4-argon"], "status": "skipped", "why": f"Argon 桶額度見底（{bstat_a['text']}）"})
-        else:
-            steps.append({"step": 2, "stage": "antigravity_argon", "instance": iid, "bucket": "argon",
-                          "models": ["gemini-4-argon"], "status": "available",
-                          "why": "同帳號獨立 Argon 桶（試用中，只接適合的角色）" + (f"；{bstat_a['text']}" if bstat_a and bstat_a["text"] else "")})
-
-        # 3. 同帳號 Claude & GPT 桶（只用 Opus；Sonnet 同桶已被規則 2 過濾）
+        # 2. 同帳號 Claude & GPT 桶（只用 Opus；Sonnet 同桶已被規則 2 過濾）
         if cross_review:
-            steps.append({"step": 3, "stage": "antigravity_3p", "instance": iid, "bucket": "3p",
+            steps.append({"step": 2, "stage": "antigravity_3p", "instance": iid, "bucket": "3p",
                           "models": ["claude-opus-5-5"], "status": "skipped",
                           "why": "跨家審查 Claude 寫的東西：跳過換成 Claude，避免失去跨家審查意義"})
         else:
             blk_3p, why_3p, _ = is_blocked(state_doc, iid, driver="antigravity", model="claude-opus-5-5", bucket="3p", now=now_dt)
             bstat_3p = _agy_bucket_status(acc, "3p", now_dt)
             if blk_3p:
-                steps.append({"step": 3, "stage": "antigravity_3p", "instance": iid, "bucket": "3p",
+                steps.append({"step": 2, "stage": "antigravity_3p", "instance": iid, "bucket": "3p",
                               "models": ["claude-opus-5-5"], "status": "skipped", "why": why_3p})
             elif bstat_3p and bstat_3p["exhausted"]:
-                steps.append({"step": 3, "stage": "antigravity_3p", "instance": iid, "bucket": "3p",
+                steps.append({"step": 2, "stage": "antigravity_3p", "instance": iid, "bucket": "3p",
                               "models": ["claude-opus-5-5"], "status": "skipped", "why": f"Claude & GPT 桶額度見底（{bstat_3p['text']}）"})
             else:
-                steps.append({"step": 3, "stage": "antigravity_3p", "instance": iid, "bucket": "3p",
+                steps.append({"step": 2, "stage": "antigravity_3p", "instance": iid, "bucket": "3p",
                               "models": ["claude-opus-5-5"], "status": "available",
                               "why": "同帳號 Claude & GPT 桶（Opus，不算輪換；Sonnet 同桶已過濾）" + (f"；{bstat_3p['text']}" if bstat_3p and bstat_3p["text"] else "")})
 
-    # Step 4：三個 Claude 實例在工作包邊界依額度挑（D3）
+    # Step 3：三個 Claude 實例在工作包邊界依額度挑（D3）
     sel = select_claude_instance(rows, mine, quotas, state_doc, now=now_dt)
     if cross_review:
-        steps.append({"step": 4, "stage": "claude_pool", "instances": [], "status": "skipped",
-                      "why": "跨家審查 Claude 寫的東西：跳過換成 Claude 實例，改走第 5 步或用同模型新對話審"})
+        steps.append({"step": 3, "stage": "claude_pool", "instances": [], "status": "skipped",
+                      "why": "跨家審查 Claude 寫的東西：跳過換成 Claude 實例，改走第 4 步或用同模型新對話審"})
     elif sel["chosen"]:
-        steps.append({"step": 4, "stage": "claude_pool", "instances": sel["ordered"], "chosen": sel["chosen"],
+        steps.append({"step": 3, "stage": "claude_pool", "instances": sel["ordered"], "chosen": sel["chosen"],
                       "status": "available", "why": f"工作包邊界依額度挑（{sel['reason']}）；同一條對話不中途換"})
     else:
-        steps.append({"step": 4, "stage": "claude_pool", "instances": [], "status": "skipped", "why": sel["reason"]})
+        steps.append({"step": 3, "stage": "claude_pool", "instances": [], "status": "skipped", "why": sel["reason"]})
 
-    # Step 5：最後防線（依 on_exhausted）
+    # Step 4：最後防線（依 on_exhausted）
     manual_suggestions = []
     for r in manual_agy:
         blk, why, _ = is_blocked(state_doc, r["id"], driver="antigravity", bucket="gemini", now=now_dt)
@@ -1181,17 +1160,17 @@ def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=
             "blocked": blk, "why": why if blk else (bstat["text"] if bstat and bstat["text"] else "無異常紀錄（額度請看 T3 Usage → Limits）"),
         })
     if mode == "fallback_paid_api" and paid_api:
-        steps.append({"step": 5, "stage": "fallback_paid_api", "instances": [r["id"] for r in paid_api],
+        steps.append({"step": 4, "stage": "fallback_paid_api", "instances": [r["id"] for r in paid_api],
                       "status": "fallback", "why": "訂閱用完改走 API 金鑰／Vertex 備援（規約 ok）"})
     elif mode == "fail_closed":
-        steps.append({"step": 5, "stage": "fail_closed", "status": "stop",
+        steps.append({"step": 4, "stage": "fail_closed", "status": "stop",
                       "why": "fail_closed：訂閱額度用完即停，不自動花付費 API，等窗口重置"})
     else:
         rec_names = [m["instance"] for m in manual_suggestions if not m["blocked"]]
-        hint = f"可手動切換：{'、'.join(rec_names[:3])}" if rec_names else "沒有標記可用的手動帳號，請對照 T3 Usage → Limits"
-        steps.append({"step": 5, "stage": "prompt_manual_switch", "status": "manual",
+        hint = f"可手動切換：{'、'.join(rec_names)}" if rec_names else "沒有標記可用的手動帳號，請對照 T3 Usage → Limits"
+        steps.append({"step": 4, "stage": "prompt_manual_switch", "status": "manual",
                       "manual_accounts": manual_suggestions,
-                      "why": f"停下來列出各帳號狀態與重置時間由你決定（{hint}；換帳號接續靠交接檔）"})
+                      "why": f"停下來列出各帳號狀態與重置時間由你決定（{hint}；1A 手動帳號同號平行上限 2 條，換帳號接續靠交接檔）"})
 
     active = next((s for s in steps if s["status"] in ("available", "fallback")), steps[-1] if steps else None)
     return {"on_exhausted": mode, "purpose": purpose, "active_step": active, "steps": steps, "claude_selection": sel}
@@ -1691,9 +1670,9 @@ def selftest():
         record_error(st, "ag_r", "quota_exhausted", driver="antigravity", model="gemini-4-neon",
                      resets_at="2026-11-23T08:00:00Z", now=t0)
         doc = load_state(st)
-        ok("429 冷卻按桶隔離：Gemini 桶冷卻中，同帳號 Argon 與 3p 桶照常可用；重置時間過了自動解鎖",
+        ok("429 冷卻按桶隔離：Gemini 桶冷卻中，同屬 Gemini 桶的 Hydrogen/Carbon 一併冷卻，同帳號獨立 3p 桶（Opus）照常可用；重置時間過了自動解鎖",
            is_blocked(doc, "ag_r", driver="antigravity", model="gemini-4-hydrogen", now=t0)[0] is True
-           and is_blocked(doc, "ag_r", driver="antigravity", model="gemini-4-argon", now=t0)[0] is False
+           and is_blocked(doc, "ag_r", driver="antigravity", model="gemini-4-carbon", now=t0)[0] is True
            and is_blocked(doc, "ag_r", driver="antigravity", model="claude-opus-5-5", now=t0)[0] is False
            and is_blocked(doc, "ag_r", driver="antigravity", model="gemini-4-neon", now=t0 + timedelta(hours=3))[0] is False)
         # 無重置時間時指數退避
@@ -1765,6 +1744,11 @@ def selftest():
             "claudeAgent_claude_kai": {"driver": "claudeAgent", "label": "Kai", "enabled": True, "auth_mode": None},
             "antigravity_ryan": {"driver": "antigravity", "label": "ryan", "enabled": True, "auth_mode": None},
             "antigravity_km0529": {"driver": "antigravity", "label": "km0529", "enabled": True, "auth_mode": None},
+            "antigravity_stk608": {"driver": "antigravity", "label": "stk608", "enabled": True, "auth_mode": None},
+            "antigravity_stk824": {"driver": "antigravity", "label": "stk824", "enabled": True, "auth_mode": None},
+            "antigravity_kanny163": {"driver": "antigravity", "label": "kanny163", "enabled": True, "auth_mode": None},
+            "antigravity_itri": {"driver": "antigravity", "label": "itri", "enabled": True, "auth_mode": None},
+            "antigravity_ava": {"driver": "antigravity", "label": "ava", "enabled": True, "auth_mode": None},
         }
         rows = accounts.registry(t3_meta, mine, accounts.load_terms(profiles.DATA))
         c_state = st / "cstate"
@@ -1858,20 +1842,18 @@ def selftest():
         ok("多來源取最新、手動登記墊底", _pick_snapshot([older, man, newer], t0.timestamp()) is newer
            and _pick_snapshot([None, man], t0.timestamp()) is man)
 
-        # 接手順序：ryan 屏蔽 Argon 後跳過步驟 2 接手到同帳號 Opus；開啟 include_models 時接手到 Argon；跨家審查跳過第 3、4 步
+        # 接手順序（兩桶 4 步）：Gemini 冷卻後直接接手到同帳號 Opus（3p 桶）；跨家審查跳過第 2、3 步；手動清單完整列出全部 6 個手動帳號不截斷
         record_error(c_state, "antigravity_ryan", "quota_exhausted", driver="antigravity", model="gemini-4-neon",
                      resets_at=iso_utc(t0 + timedelta(hours=2)), now=t0)
         p_gen = failover_plan(pol, mine, rows, load_state(c_state), qs, purpose="general", now=t0)
         p_rev = failover_plan(pol, mine, rows, load_state(c_state), qs, purpose="cross_review_claude", now=t0)
-        mine_with_argon = dict(mine, exclude_models=[m for m in (mine.get("exclude_models") or []) if m != "gemini-4-argon"],
-                               include_models=["gemini-4-argon"])
-        p_arg = failover_plan(pol, mine_with_argon, rows, load_state(c_state), qs, purpose="general", now=t0)
-        ok("接手順序：Gemini 冷卻＋Argon 屏蔽跳到同帳號 Opus；啟用 Argon 時接手到 Argon；跨家審查跳過第 3、4 步",
-           p_gen["steps"][0]["status"] == "skipped" and p_gen["steps"][1]["status"] == "skipped"
+        ok("接手順序：兩桶 4 步，Gemini 冷卻後跳到同帳號 Opus；跨家審查跳過換 Claude 兩步；提示完整列出全部 6 個手動帳號",
+           len(p_gen["steps"]) == 4 and p_gen["steps"][0]["status"] == "skipped"
            and p_gen["active_step"]["stage"] == "antigravity_3p"
-           and p_arg["active_step"]["stage"] == "antigravity_argon"
-           and p_rev["steps"][2]["status"] == "skipped" and p_rev["steps"][3]["status"] == "skipped"
-           and "跨家審查" in p_rev["steps"][2]["why"])
+           and p_rev["steps"][1]["status"] == "skipped" and p_rev["steps"][2]["status"] == "skipped"
+           and p_rev["active_step"]["stage"] == "prompt_manual_switch"
+           and "跨家審查" in p_rev["steps"][1]["why"]
+           and all(k in p_gen["steps"][-1]["why"] for k in ("antigravity_kanny163", "antigravity_itri", "antigravity_ava")))
 
         # 通知模擬（desktop & webhook 不連網）
         sent_d = send_notification([{"message": "測試"}], "desktop", runner=lambda s: "OmniKit" in s)

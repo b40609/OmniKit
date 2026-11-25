@@ -13,7 +13,7 @@ description: 派子任務或開子對話時，照 OmniKit 分派政策選管道�
 uv run scripts/run.py show
 ```
 
-印出套上你的實例之後，每一級依序可以用的選項，開頭附本週 Claude 用量。由上往下挑第一個「有實例、額度沒用完、條件成立」的。用量是「未知」時不要假設已達 80%。開子對話或派子代理時，在任務說明寫明級別與思考程度（Claude 寫 effort，Gemini／Antigravity 寫 thinking_level）。
+印出套上你的實例之後，每一級依序可以用的選項，開頭附本週 Claude 用量。由上往下挑第一個「有實例、額度沒用完、條件成立」的。用量是「未知」時不要假設已達 80%。開子對話或派子代理時，在任務說明寫明級別與思考程度（Claude 寫 `effort`，Gemini／Antigravity 寫 `thought_level`）。重大架構盲審（`architecture`）子對話必須隔離跨對話記憶注入。
 
 ## 帳號與模型：哪些能自動派、哪些被過濾（帳號池第一、二階段）
 
@@ -38,7 +38,7 @@ uv run scripts/run.py show
 
 ## 派給 Antigravity 的模型：照使用者的 visibility 偏好選管道
 
-選到的類別是 Antigravity 的（gemini-pro、gemini-flash、antigravity-opus）時，管道照使用者 profile `dispatch.md` 的 `visibility`（沒寫用 `dispatch-policy.md` 的 `visibility.default`）。`show` 會印出這個使用者的偏好、該用的管道順序與退路。
+選到的類別是 Antigravity 的（gemini-pro、gemini-fast、gemini-carbon、gemini-orchestrator、antigravity-opus）時，管道照使用者 profile `dispatch.md` 的 `visibility`（沒寫用 `dispatch-policy.md` 的 `visibility.default`）。`show` 會印出這個使用者的偏好、該用的管道順序與退路。
 
 - **visible**：開成 T3 看得到的對話，使用者能看 prompt 與過程。由上往下：主控在 T3 裡用 `delegate_task`；T3 外接了 T3 MCP 用 `t3_thread_launch`；沒接或 MCP 斷線（`ECONNREFUSED`）用 `t3_cli`（`t3 thread start . - --provider <實例> --model <帶程度的代號> --title "<標題>" --json`，見下面「t3 thread CLI」）。T3 沒在跑才退到 agy_cli，回報寫明「這次走無頭模式，T3 看不到」與原因。
 - **headless**：走 agy 無頭模式（agy_cli，下面這節），在背景跑、比較省事，只看結果。要指定 agy 沒登入的帳號實例，或這台沒有 agy 時，改用 visible 的管道。
@@ -60,7 +60,7 @@ uv run scripts/run.py agy --class gemini-pro --thinking high --brief-file <任�
 
 ## 派給 Antigravity 的回合怎麼收尾（所有管道）
 
-agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一樣。原因：2026-11-18 antigravity_kai（gemini-3.8-flash）在 T3 寫完回報後，回合一直不結束，15 分鐘後 T3 印「Antigravity sent nothing for 15 minutes」把對話標成 failed。上游 T3 把這個逾時寫死成 15 分鐘，也不會偵測回合完成。同一次還因為在前景跑伺服器撞到 600 秒工具逾時。證據與出處在 `dispatch-policy.md` 的 `antigravity_turns`。
+agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一樣。原因：2026-11-18 歷史事件中 `antigravity_kai`（已移除）在 T3 寫完回報後，回合一直不結束，15 分鐘後 T3 印「Antigravity sent nothing for 15 minutes」把對話標成 failed。上游 T3 把這個逾時寫死成 15 分鐘，也不會偵測回合完成。同一次還因為在前景跑伺服器撞到 600 秒工具逾時。證據與出處在 `dispatch-policy.md` 的 `antigravity_turns`。
 
 - **任務說明固定寫四件事**（agy_cli 由腳本自動加，其他管道由主控寫進說明）：
   1. 交付物先寫成檔案，路徑由你在說明裡指定。
@@ -76,10 +76,10 @@ agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一
 
 ## 不在 T3 裡也能開 T3 對話（T3 MCP 優先，t3_cli 是退路）
 
-主控是 Claude Code、Codex 或 Antigravity 時，也能開 T3 對話、指定 T3 上的帳號實例與模型（例如 `antigravity_kai` 加 `gemini-3.8-flash`），讓那條對話出現在 T3 側邊欄。**不要回答「這裡沒有 T3 工具，沒辦法派」**。有兩條路：
+主控是 Claude Code、Codex 或 Antigravity 時，也能開 T3 對話、指定 T3 上的帳號實例與模型（例如 `antigravity_ryan` 加 `gemini-4-hydrogen-xhigh`），讓那條對話出現在 T3 側邊欄。**不要回答「這裡沒有 T3 工具，沒辦法派」**。有兩條路：
 
 1. **T3 MCP（`t3_thread_launch` 管道，優先）**：能設思考程度、能自己結案。工具清單裡有 `t3_thread_launch` 就用它；沒有就先跑 `omnikit-capabilities` 看這個 agent 登記、授權了沒。
-2. **`t3 thread` CLI（`t3_cli` 管道）**：這個 agent 還沒授權 T3 MCP 時用。不用登入，但不能設思考程度、不能結案。
+2. **`t3 thread` CLI（`t3_cli` 管道）**：這個 agent 還沒授權 T3 MCP 時用。不用登入，`t3 v0.1.12` 起支援 `--option id=value`，但目前沒有 settle 子指令。
 
 ### T3 MCP
 
@@ -91,7 +91,7 @@ agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一
   - Codex：`codex mcp add t3 --url http://127.0.0.1:3773/mcp` 再 `codex mcp login t3`（2026-11-19 實測 codex-cli 0.168.0：`add` 會寫進 `~/.codex/config.toml` 的 `[mcp_servers.t3]`，並偵測到 OAuth、直接印出授權網址等瀏覽器回呼；沒有核准時 `codex mcp list` 顯示 Not logged in。登入核准後能不能叫用 T3 工具【待驗證】）。
 - 在外部 agent 用 `t3_thread_launch`，不要用 `delegate_task`（會回錯）。
 - 斷線（2026-11-21 查證）：看到 `t3 (ECONNREFUSED)` 或工具清單沒有 `mcp__t3__*`，代表這段對話開的時候 T3 在重啟、更新或沒開，不是沒裝。agent 不能自己重撥：請使用者在本對話打 `/mcp` 選 t3 按 Reconnect，同時改走 `t3_cli`，不要回答派不了。SessionStart hook `t3_watch.py` 會在連不上時叫起 T3 並留提醒。
-- 思考程度：`modelSelection.options` 是陣列，例如 `[{id: "thinking_level", value: "high"}]`。claudeAgent 系列的 id 是 `effort`（low、medium、high、xhigh、max、ultrathink），antigravity 是 `thinking_level`（low、medium、high；Gemini 只能用 high，政策禁用 low、medium）；值以 `orchestrator_capabilities` 查到的為準。【待驗證】antigravity_ava、antigravity_kai 的 capabilities 模型清單是空的，帶 `thinking_level` 開 Flash 能跑完，但在 Gemini 端有沒有生效還不知道。
+- 思考程度：`modelSelection.options` 是陣列，例如 `[{id: "thought_level", value: "xhigh"}]`。claudeAgent 系列的 id 是 `effort`（low、medium、high、xhigh、max、ultrathink），antigravity 是 `thought_level`（low、medium、high、xhigh；Carbon 最高 high；Gemini 政策禁用 low、medium）；值以 `orchestrator_capabilities` 查到的為準（2026-11-25 實查 7 個 Antigravity 實例皆列出 Neon、Hydrogen、Carbon）。
 - 結案：`t3_thread_organize` 帶 `action: "settle"` 與 `threadId`，再用 `t3_thread_read` 回讀確認 `settled: true`。
 - 記紀錄時 `--channel t3_thread_launch --instance <實例>`。
 
@@ -109,7 +109,7 @@ agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一
   - 要獨立 worktree：加 `--worktree <分支或 commit>`，可再加 `--branch <新分支名>`。
   - `--wait` 等它做完並印回覆；結束碼 1 是執行失敗、2 是對話在等人回答（用 `send` 回它）。不加 `--wait` 就只印對話 id，適合長任務。
 - 之後：`t3 thread show <id> --json` 看狀態與最新訊息；`t3 thread send <id> "<訊息>" --wait` 追問；`t3 thread list --json` 列出對話。
-- 限制（t3 v0.1.10）：沒有思考程度參數，Antigravity 的模型只能把程度寫進代號（`gemini-4-hydrogen-xhigh`）；沒有 settle 子指令，主控有 T3 MCP 就用 `t3_thread_organize` 結案，沒有就在回報裡列出對話 id 與標題，請使用者在 T3 結案。
+- 限制（t3 v0.1.12）：已支援 `--option id=value`（例如 `--option thought_level=xhigh` 或 `--option effort=high`），Antigravity 也可把程度寫進代號（`gemini-4-hydrogen-xhigh`）；目前沒有 settle 子指令，主控有 T3 MCP 就用 `t3_thread_organize` 結案，沒有就在回報裡列出對話 id 與標題，請使用者在 T3 結案。
 - 記紀錄時 `--channel t3_cli --instance <實例>`。
 
 ### 和其他管道的分工
@@ -125,7 +125,7 @@ uv run scripts/run.py log --task <任務類型> --class <模型類別> --thinkin
   [--channel native|agy_cli|t3_cli|delegate_task|t3_thread_launch] [--instance <實例>] [--retries N] [--escalations N] [--final-class <類別>] [--error <種類> | --error-text <原文>] [--resets-at <時間>] [--error-url <https://...>] [--control] [--note <一句話>]
 ```
 
-- `--task`：共用層 `tasks` 的 key（docs、ui-small、readonly、code-small、accounting、risk、orders、design-decision、hard-bug、acceptance-loop、verify）。級別會自動帶出來。
+- `--task`：共用層 `tasks` 的 key（docs、ui-small、readonly、code-small、accounting、risk、orders、design-decision、hard-bug、acceptance-loop、verify、architecture）。級別會自動帶出來。
 - `--verdict`：驗收結論。`skipped` 是沒有驗收，不算進通過率。
 - `--error`／`--error-text`：錯誤分類（`rate_limit`、`quota_exhausted`、`auth_expired`、`validation_required`、`tos_banned`、`hard_forbidden`、`model_forbidden`、`timeout_15min`、`other`）。寫進 `log.jsonl` 並自動同步更新 `pool-state.json`（敏感 token 自動遮罩）；`verdict=pass` 且無錯時會自動清除該實例的暫時鎖定。
 - 一次通過：沒寫 `--first-pass` 時，結論是 pass 而且沒有重跑、沒有升級才算。

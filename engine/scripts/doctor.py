@@ -68,21 +68,49 @@ def check_rules(env, rec):
     except SystemExit as e:
         return [row("規則", profiles.NAMES.get(a, a), "受管區塊", UNKNOWN, str(e.code)) for a in rec["agents"]]
     out = []
-    targets = [(a, env.rules[a], profiles.NAMES[a]) for a in rec["agents"]]
+    targets = []
+    for a in rec["agents"]:
+        if a == "antigravity":
+            gem = env.rules["antigravity"]
+            ag = gem.with_name("AGENTS.md")
+            targets.append(("antigravity-shared", ag, profiles.NAMES[a]))
+            targets.append(("antigravity-personal", gem, profiles.NAMES[a]))
+        else:
+            targets.append((a, env.rules[a], profiles.NAMES[a]))
     if "claude-code" in rec["agents"]:  # 其他設定目錄（多帳號、啟動器指定的）也要有區塊
         targets += [("claude-code", p, agents.label_of(agents.extra_key(p.parent))) for p in env.claude_extra_rules]
     if "codex" in rec["agents"]:
         targets += [("codex", p, agents.label_of(agents.extra_key(p.parent, "codex"))) for p in env.codex_extra_rules]
     for agent, path, label in targets:
-        want = (profiles.claude_block(env.data, env.state, name) if agent == "claude-code"
-                else profiles.content_block(profiles.compose(env.data, env.state, name)))
-        found = profiles.BLOCK.search(profiles.text(path)) if path.exists() else None
+        if agent == "claude-code":
+            want = profiles.claude_block(env.data, env.state, name)
+        elif agent == "antigravity-shared":
+            want = profiles.content_block(profiles.compose_shared(env.data))
+        elif agent == "antigravity-personal":
+            want = profiles.content_block(profiles.compose_personal(env.data, env.state, name))
+        else:
+            want = profiles.content_block(profiles.compose(env.data, env.state, name))
+        raw_text = profiles.text(path) if path.exists() else ""
+        found = profiles.BLOCK.search(raw_text) if path.exists() else None
+        size_b = len(raw_text.encode("utf-8"))
         if not found:
-            out.append(row("規則", label, path.name, FAIL, f"{path} 沒有 OmniKit 受管區塊：重跑 install.ps1"))
+            out.append(row("規則", label, path.name, FAIL, f"{path} 沒有 OmniKit 受管區塊：跑 profiles.py 或重跑 install.ps1"))
+        elif agent.startswith("antigravity-") and size_b > profiles.AGY_MAX_FILE_BYTES:
+            out.append(row("規則", label, path.name, FAIL, f"大小 {size_b:,} bytes 超過上限 {profiles.AGY_MAX_FILE_BYTES:,} bytes（會被靜默截斷）"))
         elif same_text(found.group(0), want):
-            out.append(row("規則", label, path.name, OK, f"跟 profile {name} 一致"))
+            out.append(row("規則", label, path.name, OK, f"跟 profile {name} 一致（{size_b:,} bytes）"))
         else:
             out.append(row("規則", label, path.name, FAIL, f"受管區塊跟 profile {name} 不同（區塊裡被手改，或規則更新了還沒同步）"))
+    if "antigravity" in rec["agents"]:
+        gem = env.rules["antigravity"]
+        ag = gem.with_name("AGENTS.md")
+        if ag.exists() and gem.exists():
+            try:
+                if os.path.samefile(ag, gem):
+                    out.append(row("規則", profiles.NAMES["antigravity"], "硬連結檢查", FAIL,
+                                   f"{ag} 與 {gem} 是同一個硬連結，會導致規則重複載入兩份：跑 profiles.py 修復"))
+            except OSError:
+                pass
     return out
 
 
@@ -381,7 +409,10 @@ def selftest():
         rows = collect(env, record_path, run=fake_run, which=which)
         status = {(r["area"], r["agent"], r["item"]): r["status"] for r in rows}
         check("剛接上：寫入檢查全部通過", all(r["status"] == OK for r in rows if r["area"] != "清單"))
-        check("規則：三個 agent 的受管區塊都比對了", sum(1 for k in status if k[0] == "規則") == 3)
+        check("規則：三個 agent 的受管區塊都比對了（Antigravity 檢查 AGENTS.md 與 GEMINI.md 兩檔）",
+              sum(1 for k in status if k[0] == "規則") == 4
+              and status[("規則", "Antigravity", "AGENTS.md")] == OK
+              and status[("規則", "Antigravity", "GEMINI.md")] == OK)
         check("skills：三邊各 2 個（Antigravity 在 ~/.gemini/config/skills）",
               sum(1 for k in status if k[0] == "skills") == 6 and status[("skills", "Antigravity", "alpha")] == OK)
         check("MCP：三邊帳本都比對了", sum(1 for k in status if k[0] == "MCP" and status[k] == OK) == 3)

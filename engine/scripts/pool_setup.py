@@ -202,8 +202,8 @@ def recommend(discovered):
 
 
 DEFAULT_CLASSES_BY_DRIVER = {
-    "claudeAgent": ["claude-opus", "claude-sonnet"],
-    "antigravity": ["gemini-pro", "gemini-fast", "antigravity-opus"],
+    "claudeAgent": ["claude-opus", "claude-sonnet", "claude-fable"],
+    "antigravity": ["gemini-pro", "gemini-fast", "gemini-carbon", "gemini-orchestrator", "antigravity-opus"],
     "codex": [],
 }
 

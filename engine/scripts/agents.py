@@ -1446,7 +1446,7 @@ def disconnect(env):
         if kept:
             lines.append(f"MCP：{label_of(key)} 的 {'、'.join(kept)} 在 OmniKit 寫入之後被改過，當成你的設定，沒有拿掉")
     lines += profiles.disconnect_block(env.rules["codex"])
-    lines += profiles.disconnect_block(env.rules["antigravity"])
+    lines += profiles.disconnect_antigravity(env.rules["antigravity"])
     rules_of = {"claude-code": "CLAUDE.md", "codex": "AGENTS.md"}
     recorded = [(agent_of(k), home_of(k)) for k in known_homes(rec) if home_of(k)]
     extra = [h / "CLAUDE.md" for h in env.claude_homes] + [h / "AGENTS.md" for h in env.codex_homes] \

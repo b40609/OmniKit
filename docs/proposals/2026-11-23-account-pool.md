@@ -57,18 +57,16 @@
 
 ## 四、額度用完的接手
 
-- 一手證據（T3 v0.1.12 server 原始碼 `summaryWindows` ＋ 2026-11-23 `agy 1.5.14` 實測 `agy -p /usage --output-format json`）：一個 Antigravity 帳號的額度分三桶：
-  - `Gemini Models`（`gemini-weekly`、`gemini-5h`）：官方明列包含 `Gemini 4 Neon`、`Gemini 4 Hydrogen`、`Orchestrator (Neon)`、`Gemini 3.8 Flash`。
+- 一手證據（2026-11-25 `agy 1.5.16` 實測 `agy -p /usage --output-format json` 更新；原 11-23 `agy 1.5.14` 為三桶，1.5.16 起 Argon 已併入 Gemini 大桶）：一個 Antigravity 帳號的額度分兩組：
+  - `Gemini Models`（`gemini-weekly`、`gemini-5h`）：官方明列包含 `Gemini 4 Neon`、`Gemini 4 Carbon`、`Gemini 4 Argon`、`Gemini 4 Hydrogen`、`Orchestrator (Neon/Carbon/Argon)`、`Gemini 3.8 Flash`（共用週額度與 5 小時額度）。
   - `Claude and GPT models`（`3p-weekly`、`3p-5h`）：官方明列包含 `Claude Opus 5.5`、`Claude Sonnet 5.5`、`GPT-OSS 120B`。
-  - `Gemini 4 Argon`（`gemini-argon-wtu-weekly`）：Pro 方案獨立一桶（Ultra 才併入 Gemini 大桶）。
-  所以 Gemini 用完時，同帳號的 Argon 桶與 Claude 額度桶各自獨立。
-- 自動派工的接手順序（Ryan D1、D2 定案；每段都能在 profile 開關）：
-  1. `antigravity_ryan` 的 Gemini（Neon、Hydrogen）。
-  2. 同一個帳號的另一個 Gemini 桶（Argon，自己一桶；Argon 還在試用，只接它能做的角色）。
-  3. 同一個帳號的「Claude & GPT」桶：Claude Opus 5.5（最高 high；Opus 子任務照 Ryan 規則用 medium）。同桶的 Sonnet 5.5 因 Antigravity 沒有角色使用且被同桶 Opus 壓過，已由模型淘汰過濾規則 2 過濾（同帳號無 Opus 才退到 Sonnet）。仍是 2B 這一個帳號，不算輪換。
-  4. Claude 實例（`claudeAgent`、`claudeAgent_2`、`claudeAgent_claude_kai`），在工作包邊界依額度挑（D3）。
-  5. `prompt_manual_switch`：停下來列出每個帳號剩多少、幾點重置，建議換哪個，等 Ryan 決定。
-  - 例外：派給 Gemini 的理由是「跨家審查 Claude 寫的東西」時，跳過第 3、4 步（換成 Claude 就失去跨家的意義），直接到第 5 步，或改用同模型新對話審。
+  所以 Gemini 用完時，同帳號的 Claude & GPT 額度桶仍獨立可用（2026-11-25 經 T3 對 `antigravity_ryan` 送 `claude-opus-5-5` 實測通過）。
+- 自動派工的接手順序（Ryan D1、D2 定案，2026-11-25 依兩桶更新為 4 步；每段都能在 profile 開關）：
+  1. `antigravity_ryan` 的 `Gemini Models` 桶（Neon、Hydrogen、Carbon、Orchestrator (Neon)）。
+  2. 同一個帳號的「Claude & GPT」桶：Claude Opus 5.5（最高 high）。同桶的 Sonnet 5.5 因 Antigravity 沒有角色使用且被同桶 Opus 壓過，已由模型淘汰過濾規則 2 過濾（同帳號無 Opus 才退到 Sonnet）。仍是 2B 這一個帳號，不算輪換。
+  3. Claude 實例（`claudeAgent`、`claudeAgent_2`、`claudeAgent_claude_kai`），在工作包邊界依額度挑（D3）。
+  4. `prompt_manual_switch`：停下來列出全部 6 個手動帳號（`stk608`、`km0529`、`stk824`、`kanny163`、`itri`、`ava`）的狀態與重置時間，建議換哪個，等 Ryan 決定。
+  - 例外：派給 Gemini 的理由是「跨家審查 Claude 寫的東西」時，跳過第 2、3 步（換成 Claude 就失去跨家的意義），直接到第 4 步，或改用同模型新對話審。
 - 你自己開的對話（`prompt_manual_switch`）：顯示「ryan 剩 3%、7 小時後重置；建議下一條改用 km0529（剩 80%）」。換帳號接續靠交接檔，因為每個帳號的 Antigravity 對話記憶是分開的。
 - 額度資料來源：
   - Claude：Claude Code 狀態列本來就有 5 小時與 7 天用量；`claude_allow.py` 已自動串接到全部三個設定目錄（`~/.claude`、`~/.claude-kai`、`~/.claude-retis`，各自帶 `--dir` 並用 `--then` 保留既有狀態列）。
@@ -101,22 +99,22 @@
 - 審查有目的才開：一般任務用同模型新對話審；高風險（帳務、風控、下單）或有明確理由才加跨家審查。
 - 指派由資料推出：能力矩陣（探測）＋試用成績（委派紀錄一次通過率，樣本 20 筆以上才算）＋規約＋使用者偏好 → 每個角色的候選鏈，每格附原因。
 - 新模型、新帳號自動進「試用」：探測通過 → 煙霧題組（5 到 10 題、能自動判對錯）→ 累積委派紀錄 → 每週差異提醒建議升級或下架。
-- Ryan 現況的初步分工：
+- Ryan 現況的初步分工（**2026-11-25 更新：下表已由 `data/rules/dispatch-policy.md` 規則版本 `2026-11-25-1` 的新分工與兩階段防迎合盲審表取代**；以下保留 11-23 歷史對照）：
 
   | 角色 | 第一順位 | 備註 |
   |---|---|---|
   | 主控、定案、高風險 | Claude Opus | 帳務、風控、下單的紅線不變 |
   | 主力實作 | Claude Opus 或 Sonnet；你自己開的對話可用 Neon xhigh | |
   | 前置苦工、調研 | Neon xhigh | 自動派工走 `antigravity_ryan`（D1），用完照第四節 |
-  | 審查 | 同模型新對話；高風險加 Neon xhigh 或 Hydrogen xhigh（作者是 Claude 時） | |
+  | 審查 | 同模型新對話；高風險加 Neon xhigh 或 Hydrogen xhigh（作者是 Claude 時） | 2026-11-25 改為 Carbon high 反審、Fable 5.2 high 架構兩階段盲審 |
   | 可平行的研究、審查、文件大工作包 | Orchestrator (Neon) | 寫碼不拆 |
   | 快速雜事、文件 | Hydrogen | 取代 3.8 Flash（D7） |
-  | 待定 | Argon | 進試用，用煙霧題組決定擺哪 |
-  | 不用 | 3.8 Flash、GPT-OSS 120B | 被過濾（見下） |
+  | 待定 | Argon | 11-23 實測後已加入 `exclude_models` 屏蔽 |
+  | 不用 | 3.8 Flash、GPT-OSS 120B、Haiku 5.5 | 被過濾（見下） |
 
 ### 模型淘汰過濾（D7，Ryan 11-23：「OmniKit 應該幫用戶自動過濾這種舊又 CP 值低的爛模型」）
 
-- 證據（2026-11-23 查）：T3 每天下載的模型單價表（`~/.t3/userdata/usage-model-rates.json`，內容是 LiteLLM 的模型價格資料）裡，`github_copilot/gemini-3.8-flash` 與 3.6、3.7 Flash 的 `successor_model` 都寫 `gemini-4-hydrogen`（Google 自己的 `gemini/`、`vertex_ai/` 3.8 Flash 條目還沒標，所以規則 1 要跨供應商比對同名模型）；同一份表的 API 單價 Hydrogen 是 3.8 Flash 的 2 倍（每百萬 token 輸入 1.5 對 0.75 美元、輸出 7.5 對 3.75），所以淘汰的理由是「有後繼模型」，不是「比較便宜」。對 ryan 價格與額度消耗都不列入考量（帳號多、Gemini token 不用省，2026-11-23 再確認）；只有替額度少的使用者產配置建議時，才把「每輪扣多少額度」當成考量，兩者扣不扣同一桶、各扣多少，等讀得到額度後實測（待驗證）。
+- 證據（2026-11-23 查）：T3 每天下載的模型單價表（`~/.t3/userdata/usage-model-rates.json`，內容是 LiteLLM 的模型價格資料）裡，`github_copilot/gemini-3.8-flash` 與 3.6、3.7 Flash 的 `successor_model` 都寫 `gemini-4-hydrogen`（Google 自己的 `gemini/`、`vertex_ai/` 3.8 Flash 條目還沒標，所以規則 1 要跨供應商比對同名模型）；同一份表的 API 單價 Hydrogen 是 3.8 Flash 的 2 倍（每百萬 token 輸入 1.5 對 0.75 美元、輸出 7.5 對 3.75），所以淘汰的理由是「有後繼模型」，不是「比較便宜」。注意：Claude 這邊轉售平台把 Opus 5.5、Sonnet 5.5 標後繼 `claude-fable-5-2`，只顯示「提醒（不過濾）」，因為那只代表有更新型號，不等於該全面替換（Fable 單價較高，僅放在重大架構盲審與升級最後一層）。對 ryan 價格與額度消耗都不列入考量（帳號多、Gemini token 不用省，2026-11-23 再確認）；只有替額度少的使用者產配置建議時，才把「每輪扣多少額度」當成考量，兩者扣不扣同一桶、各扣多少，等讀得到額度後實測（待驗證）。
 - 規則（資料驅動，不寫死模型名）：
   1. **有後繼模型或已公告下架**：價格表的 `successor_model`、`deprecation_date` 有值 → 標「已淘汰」，原因寫出後繼是誰。
   2. **被同帳號的模型完全壓過**：同一個帳號、同一個額度桶裡，有另一個模型的能力等級不低於它、而且已通過探測 → 標「被取代」。
