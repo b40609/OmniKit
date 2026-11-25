@@ -93,6 +93,17 @@ def schema_errors(check, doc, path):
 # 模組的三層，也是看板與攤平槽位的順序：先看要交付什麼（領域），再看用到什麼（能力），最後是 agent 自己的運作（基礎）
 KINDS = ("domain", "capability", "foundation")
 
+# Golden Path 四環名冊對應（Adopt / Trial / Assess / Hold）
+RING_OF_STATUS = {
+    "default": "adopt",
+    "trial": "trial",
+    "on_demand": "trial",
+    "assess": "assess",
+    "pending": "assess",
+    "rejected": "hold",
+    "retired": "hold",
+}
+
 
 def load_modules(data):
     """讀 data/modules/<層>/<id>.yaml，回傳（問題清單, 模組清單）。模組照層、再照 id 排；每個模組多一個 path。"""
@@ -380,6 +391,10 @@ def check(data, profile=None, state=None, private=False):
                 errors.append(f"{show(path)}: 找不到槽位「{slot}」")
             if doc["status"] == "default":
                 defaults.setdefault(slot, []).append(tool_id)
+        if doc.get("ring") and doc["ring"] != RING_OF_STATUS.get(doc["status"]):
+            errors.append(
+                f"{show(path)}: ring「{doc['ring']}」與 status「{doc['status']}」所屬四環（{RING_OF_STATUS.get(doc['status'])}）不一致"
+            )
         if doc.get("replaces") and doc["replaces"] not in tools:
             errors.append(f"{show(path)}: replaces 指向不存在的工具「{doc['replaces']}」")
     for slot, ids in sorted(defaults.items()):
@@ -449,8 +464,16 @@ def main():
     tool_count = len(list((data / "tools").glob("*.yaml")))
     mine = roster["private"]
     public = [m for m in roster["modules"] if not m.get("private")]
+    ring_counts = {"adopt": 0, "trial": 0, "assess": 0, "hold": 0}
+    for t in roster["tools"].values():
+        r = t.get("ring") or RING_OF_STATUS.get(t["status"], "assess")
+        ring_counts[r] = ring_counts.get(r, 0) + 1
+    ring_summary = (
+        f"Adopt {ring_counts['adopt']} / Trial {ring_counts['trial']} / "
+        f"Assess {ring_counts['assess']} / Hold {ring_counts['hold']}"
+    )
     print(f"名冊驗證通過：{len(public)} 個模組、{len([s for s in roster['slots'] if not s.get('private')])} 個槽位、"
-          f"{tool_count} 張工具卡，情境用 profile：{roster['profile'] or '（範本）'}。")
+          f"{tool_count} 張工具卡（{ring_summary}），情境用 profile：{roster['profile'] or '（範本）'}。")
     # 私有模組只在這台生效：有問題只提醒，不算驗證失敗（pre-commit 不該因為個人檔案擋下來）
     if mine["loaded"]:
         print(f"這台另外有 {len(mine['loaded'])} 個私有模組：{'、'.join(mine['loaded'])}（{mine['dir']}）。")

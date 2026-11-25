@@ -53,10 +53,11 @@ uv run scripts/layer0.py <GitHub 網址或 owner/repo> [--scan]
 
    | 判定 | 意思 | 卡片怎麼改 |
    |---|---|---|
-   | Keep | 維持現任 | 挑戰者記 `rejected`，或繼續 `pending` |
-   | Update | 換成新工具 | 新工具 `trial`，`trial_until` 設兩週後；現任維持 `default` 到試用結束 |
+   | Keep | 維持現任（Hold / Assess） | 挑戰者記 `rejected`，或列 `assess`（寫明重評條件與日期）／繼續 `pending` |
+   | Update | 換成新工具（Trial -> Adopt） | 新工具 `trial`，`trial_until` 設兩週後；現任維持 `default` 到試用結束 |
+   | On-demand | 收為按需備案（Trial 環，0 token 常駐） | 記 `on_demand` 並填 `trigger_when` |
    | Improve | 保留現任，調整用法或設定 | 只改現任的卡片 |
-   | Retire | 現任退役 | 現任 `retired` |
+   | Retire | 現任退役（Hold） | 現任 `retired` |
    | Merge | 把新工具的長處併進現任 | 例如只取它的一個 skill |
 
 **用工具跑（客觀題）：** `scripts/layer2.py`。決策規則寫好之後，在 `data/evals/<名稱>/spec.yaml` 寫題目、各組設定（現任或內建當基準，加上挑戰者的 MCP 與工具、`watch` 寫叫用哪些工具才算用到它）與評審，然後：
@@ -92,22 +93,13 @@ uv run scripts/layer0.py <GitHub 網址或 owner/repo> [--scan]
 
 ## 每週彙整
 
-這是給維護者評估工具用的。個人週報（`omnikit-weekly`）已在 2026-11-17 停用；使用者想看自己的使用情況，用 Claude Code 的 `/doctor` 與 `/insights`。
+這是給維護者評估工具用的。個人週報與本機使用率統計已退役；使用者想看自己的使用情況，用官方的 `/doctor` 與 `/insights`。
 
 ```
 uv run scripts/digest.py [--since YYYY-MM-DD]
 ```
 
-會列出快到期的試用、這段期間新進的工具、本週深度評估用了幾次，以及建議這週評估的槽位，讓使用者勾選。
-
-最後一節是這台電腦 30 天沒用到的 skill 與 plugin（`engine/scripts/usage.py` 讀 Claude Code、Codex、Antigravity 的本機紀錄；只算實際讀取或呼叫，對話開頭列出的 skill 清單不算；裝不到 30 天的先不判斷）。照這樣處理：
-
-- **名冊上是 default 或 trial 的**：跟使用者確認後，把卡片改成 `retired`（或試用到期時不續用），理由寫「30 天沒用到」與日期。
-- **標成「可能是重複的」**：同一個 agent 讀得到兩份同名 skill，建議只留有在用的那份。
-- **其他只裝在這台的**：列給使用者看，問要不要移除。移除是刪除，一定要先問，使用者同意後才動手；Claude Code 的 plugin 用 `/plugin uninstall`。
-- 使用者說「先留著」就不要再追問，下週彙整還會列出來。
-
-想看完整清單或換天數：在 repo 根目錄跑 `uv run engine/scripts/usage.py [--days 60]`。
+會列出快到期的試用、這段期間新進的工具、本週深度評估用了幾次、建議這週評估的槽位，以及評估漏斗進度，讓使用者勾選。
 
 ## 改完名冊之後
 

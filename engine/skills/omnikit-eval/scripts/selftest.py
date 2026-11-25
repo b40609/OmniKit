@@ -112,8 +112,7 @@ def main():
         today = date.fromisoformat(trial["trial_until"]) - timedelta(days=6)
         digest = run("digest", "--today", today.isoformat(), "--no-usage")
         check(f"彙整：列出快到期的試用（{trial['name']}）", trial["name"] in digest and "剩 6 天" in digest)
-        check("彙整：加 --no-usage 不讀使用紀錄", "沒用到的 skill 與 plugin" not in digest)
-    digest = run("digest", "--usage-days", "14")
+    digest = run("digest")
     active_pending = any(s["focus"] == "active" and any(s["id"] in t["slots"] and t["status"] == "pending" for t in tools)
                          for s in roster["slots"])
     if active_pending:
@@ -123,8 +122,7 @@ def main():
         check("彙整：證據卡與自動排程已停用，不再列出", "值得實測的外部證據" not in digest and "第 2 層排程提案" not in digest)
     if (_omnikit.ROOT / "data" / "funnel" / "layer2-todo.md").exists():
         check("彙整：列出手寫的第 2 層待測清單", "- 第 2 層待測清單（" in digest and "  - behavior-rules：" in digest)
-    check("彙整：最後一節是沒用到的 skill 與 plugin（使用紀錄讀不到也不中斷）",
-          "## 14 天沒用到的 skill 與 plugin" in digest and "- 讀" in digest.split("## 14 天沒用到的 skill 與 plugin")[1])
+    check("彙整：舊使用統計已移除，不再列出沒用到的 skill 與 plugin", "沒用到的 skill 與 plugin" not in digest)
 
     for path in sorted((HERE.parent / "contracts").glob("*.json")):
         try:

@@ -1,0 +1,13 @@
+id: microsoft-apm
+name: Agent Package Manager (microsoft/apm)
+kind: cli
+slots: [session-management]
+status: assess
+ring: assess
+url: https://github.com/microsoft/apm
+works_with: [claude, codex]
+decided_at: "2026-11-25"
+reason: "Fable 5.2 架構評估：apm 能做 apm.yml 套件鎖版與跨 agent 分發，但目前不支援 GEMINI_HOME、Antigravity 使用者層規則分拆、T3 多帳號實例路徑與無帳本 junction 同步；列 Assess 觀察。"
+sources: ["Fable 5.2 架構定案（2026-11-25）"]
+notes: "重評條件：當 OmniKit 引用 5 個以上外部第三方 skill 套件需要統一鎖版，或上游補齊 GEMINI_HOME 與 Antigravity 使用者層規則／hooks 支援時再重評。"
+added: "2026-11-25"

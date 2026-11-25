@@ -39,6 +39,7 @@
     default: "預設",
     trial: "試用",
     on_demand: "按需備案",
+    assess: "觀察",
     pending: "待評估",
     rejected: "拒絕",
     retired: "退役",
@@ -652,7 +653,7 @@
       $("#tools-grid").innerHTML = `<div class="empty-inline">沒有符合的工具卡。</div>`;
       return;
     }
-    const clsMap = { default: "pill-active", trial: "pill-trial", on_demand: "pill-info", pending: "pill-muted", rejected: "pill-blocked", retired: "pill-settle" };
+    const clsMap = { default: "pill-active", trial: "pill-trial", on_demand: "pill-info", assess: "pill-info", pending: "pill-muted", rejected: "pill-blocked", retired: "pill-settle" };
     $("#tools-grid").innerHTML = list.map((t) => `
       <article class="tool-card">
         <div class="tool-head">

@@ -39,7 +39,21 @@ MARKETPLACES = {
     "codex": ROOT / ".agents" / "plugins" / "marketplace.json",
 }
 
-STATUS = {"default": "預設", "trial": "試用", "on_demand": "按需備案", "pending": "待評估", "rejected": "拒絕", "retired": "退役"}
+STATUS = {
+    "default": "預設",
+    "trial": "試用",
+    "on_demand": "按需備案",
+    "assess": "觀察",
+    "pending": "待評估",
+    "rejected": "拒絕",
+    "retired": "退役",
+}
+RING_LABELS = {
+    "adopt": "Adopt · 預設",
+    "trial": "Trial · 試用與備案",
+    "assess": "Assess · 觀察與待評",
+    "hold": "Hold · 拒絕與退役",
+}
 FOCUS = {"active": "主動找", "watch": "有新工具才看", "frozen": "凍結"}
 # 模組的三層：領域是要交付的成果，能力是 agent 碰得到什麼，基礎是 agent 自己怎麼運作
 LAYER = {"domain": "領域", "capability": "能力", "foundation": "基礎"}
@@ -48,8 +62,8 @@ KIND = {
     "service": "線上服務", "library": "程式庫", "native": "原生功能", "collection": "skill 合集", "rules": "規則包",
 }
 AGENT = {"claude": "Claude Code", "codex": "Codex"}
-# 卡片在槽位裡的排列：先看已經決定的，待評估放最後
-ORDER = {"default": 0, "trial": 1, "on_demand": 2, "rejected": 3, "retired": 4, "pending": 5}
+# 卡片在槽位裡的排列：Golden Path 四環由內往外（Adopt -> Trial -> Assess -> Hold），待評估放最後
+ORDER = {"default": 0, "trial": 1, "on_demand": 2, "assess": 3, "rejected": 4, "retired": 5, "pending": 6}
 # 內嵌的 favicon，省掉一個請求，也不會 404
 FAVICON = (
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E"
@@ -351,6 +365,10 @@ def page(roster):
     cfg = roster["config"]
     tools = roster["tools"].values()
     counts = Counter(t["status"] for t in tools)
+    ring_counts = Counter(t.get("ring") or validate.RING_OF_STATUS.get(t["status"], "assess") for t in tools)
+    ring_stats = "".join(
+        f'<li><b>{ring_counts.get(rk, 0)}</b>{rv}</li>' for rk, rv in RING_LABELS.items()
+    )
     stats = "".join(
         f'<li class="st-{k}"><b>{counts.get(k, 0)}</b>{v}</li>' for k, v in STATUS.items()
     )
@@ -375,7 +393,8 @@ def page(roster):
 <header class="masthead"><div class="wrap">
 <h1>{esc(cfg["title"])}</h1>
 <p class="tagline">{esc(cfg["tagline"])}</p>
-<ul class="stats"><li><b>{len(roster["modules"])}</b>個模組</li><li><b>{len(roster["slots"])}</b>個槽位</li><li><b>{len(tools)}</b>張工具卡</li>{stats}</ul>
+<ul class="stats"><li><b>{len(roster["modules"])}</b>個模組</li><li><b>{len(roster["slots"])}</b>個槽位</li><li><b>{len(tools)}</b>張工具卡</li>{ring_stats}</ul>
+<ul class="stats" style="margin-top:8px">{stats}</ul>
 <p class="meta">由 <a href="{repo_url}">{esc(cfg["repo"])}</a> 的名冊自動產生 · 更新於 {built}{f"（{sha}）" if sha else ""}</p>
 </div></header>
 <main>

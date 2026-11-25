@@ -1306,7 +1306,7 @@ def collect_tools_overlay(state_dir: Path | None = None, data_dir: Path | None =
             "replaces": doc.get("replaces") or "",
         })
 
-    order_map = {"default": 0, "trial": 1, "on_demand": 2, "retired": 3, "rejected": 4, "pending": 5}
+    order_map = {"default": 0, "trial": 1, "on_demand": 2, "assess": 3, "retired": 4, "rejected": 5, "pending": 6}
     tools_list.sort(key=lambda t: (order_map.get(t["status"], 9), t["name"].lower()))
 
     # 整理個人實例清單（絕不印出任何敏感資料）

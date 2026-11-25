@@ -14,6 +14,7 @@
   --s-default: #1c7448;  --s-default-bg: #e2f2e8;
   --s-trial: #6440c2;    --s-trial-bg: #eee8fc;
   --s-on_demand: #1d5b8c; --s-on_demand-bg: #e3eff9;
+  --s-assess: #0f6e8c;   --s-assess-bg: #e1f3f8;
   --s-pending: #67645e;  --s-pending-bg: #eeece7;
   --s-rejected: #b03020; --s-rejected-bg: #fbe6e2;
   --s-retired: #85560f;  --s-retired-bg: #f7edd9;
@@ -43,6 +44,7 @@
     --s-default: #74d29f;  --s-default-bg: #183224;
     --s-trial: #bba5f6;    --s-trial-bg: #2a2342;
     --s-on_demand: #7db8e8; --s-on_demand-bg: #182b3b;
+    --s-assess: #6fd0ed;   --s-assess-bg: #162e36;
     --s-pending: #a5a29a;  --s-pending-bg: #2a2926;
     --s-rejected: #f29d8e; --s-rejected-bg: #3a1f1a;
     --s-retired: #e4b76d;  --s-retired-bg: #352919;
@@ -71,6 +73,7 @@ code, time { font-family: var(--mono); }
 .st-default { --c: var(--s-default); --cbg: var(--s-default-bg); }
 .st-trial { --c: var(--s-trial); --cbg: var(--s-trial-bg); }
 .st-on_demand { --c: var(--s-on_demand); --cbg: var(--s-on_demand-bg); }
+.st-assess { --c: var(--s-assess); --cbg: var(--s-assess-bg); }
 .st-pending { --c: var(--s-pending); --cbg: var(--s-pending-bg); }
 .st-rejected { --c: var(--s-rejected); --cbg: var(--s-rejected-bg); }
 .st-retired { --c: var(--s-retired); --cbg: var(--s-retired-bg); }

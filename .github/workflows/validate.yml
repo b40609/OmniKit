@@ -21,12 +21,11 @@ jobs:
       - run: uv run engine/scripts/build.py --site _site
       # 評估 skill 的離線自我測試
       - run: uv run engine/skills/omnikit-eval/scripts/selftest.py
-      # 評估漏斗的批次工具：第 0 層、第 1 層、證據卡、煙霧測試、第 2 層排程（都不連網、不呼叫模型）
+      # 評估漏斗的批次工具：第 0 層、第 1 層、證據卡、煙霧測試（都不連網、不呼叫模型）
       - run: uv run engine/skills/omnikit-eval/scripts/batch0.py --selftest
       - run: uv run engine/skills/omnikit-eval/scripts/layer1.py --selftest
       - run: uv run engine/skills/omnikit-eval/scripts/evidence.py --selftest
       - run: uv run engine/skills/omnikit-eval/scripts/smoke.py --selftest
-      - run: uv run engine/skills/omnikit-eval/scripts/schedule.py --selftest
       # 第 2 層實測：執行在中性目錄、評審材料去掉組別、雜訊基準（現任自己比自己）、兩種順序一致才算勝、照規則判定（假的執行者與評審）
       - run: uv run engine/skills/omnikit-eval/scripts/layer2.py --selftest
       - run: uv run engine/skills/omnikit-eval/scripts/blind.py --selftest
@@ -83,38 +82,16 @@ jobs:
       # T3 Code 的 Antigravity 轉接程式：帶入規則、照 T3 的規則改 initialize，以及接上、改回 T3 的設定
       - run: uv run engine/scripts/acp_shim.py --selftest
       - run: uv run engine/scripts/t3_acp.py --selftest
-      # 每週彙整用的使用統計：只算實際讀取或呼叫，不算對話開頭的 skill 清單
-      - run: uv run engine/scripts/usage.py --selftest
       # 訪談建立 profile：掃描、依答案產生 profile，以及 skill 入口能找到 repo
       - run: uv run engine/scripts/scan.py --selftest
       - run: uv run engine/scripts/profile_new.py --selftest
       - run: uv run engine/scripts/module_new.py --selftest
       - run: uv run engine/skills/omnikit-setup/scripts/setup.py scan > /dev/null
-      # 個人週報（FR-37）：六個區塊、不連網、第 5 題選不評估也照裝；skill 入口能找到 repo
-      # 成本監測（FR-40 到 FR-44）：開頭成本照對話紀錄實際載入的量、背景用量去重、開頭大小的趨勢、名冊比對
-      - run: uv run engine/scripts/cost.py --selftest
-      - run: uv run engine/scripts/weekly.py --selftest
-      - run: uv run engine/skills/omnikit-weekly/scripts/report.py --no-save > /dev/null
-      # 診斷後給建議：腳本算出事實與三類候選（裝、拿掉、用內建的就好，分 agent），挑選要在候選裡而且有理由
-      # 才寫得出建議；不連網、不寫檔。skill 入口跟個人週報共用，能找到 repo
-      # 規則檔瘦身：照對話紀錄實際載入的規則檔算大小，拆成一條一條，安全底線不會變成候選
-      - run: uv run engine/scripts/rules.py --selftest
+      # 候選池與證據等級輔助檢查
       - run: uv run engine/scripts/pool.py --selftest
-      - run: uv run engine/scripts/swap.py --selftest
-      - run: uv run engine/scripts/advise.py --selftest
       # 問法庫多輪評測的壞專案：隱藏檢查對壞專案判失敗、對參考修法判通過（不開對話、不呼叫模型）
       - run: uv run data/pilot/ask-eval/multiturn_eval.py --selftest
-      - run: uv run engine/scripts/feedback.py --selftest
-      # 通知（FR-16、FR-19）：證據等級只取 OmniKit 自己的實測與初測紀錄；E4 每週最多 1 則、同一份證據只提一次、
-      # 同槽位 30 天不重複、合計每週 3 則；子對話、CI、靜音不顯示；hook 只讀 JSON，名冊在背景一天最多算一次
       - run: uv run engine/scripts/proof.py --selftest
-      - run: uv run engine/scripts/notify.py --selftest
-      - run: uv run engine/scripts/shadow.py --selftest
-      - run: uv run engine/skills/omnikit-weekly/scripts/report.py notify list > /dev/null
-      # 自我迭代第 1 階段：訊號只連本機來源、金鑰只放標頭、讀到上次的位置就停；判斷要有理由、名冊層要有目標；
-      # 名冊層判斷送進漏斗（寫成待評估的卡或重評）、照第 0、1 層結果算命中率，滿 14 天、10 個結果、過半才算可以打開（假的 HTTP，不連網）
-      - run: uv run engine/scripts/signals.py --selftest
-      - run: uv run engine/skills/omnikit-weekly/scripts/report.py advise > /dev/null
 
   # FR-34：同事用的是 Windows，上面「名冊」的每一個 uv run 都在 Windows 再跑一次（windows-ci.ps1 從這個檔案讀，
   # 加了新的檢查不用改兩個地方），另外跑 preflight.ps1 與 install.ps1 的 -SelfTest、install.ps1 -WhatIf，

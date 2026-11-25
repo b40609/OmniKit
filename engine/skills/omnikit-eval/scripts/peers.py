@@ -36,6 +36,8 @@ def main():
         "profile_dir": roster["profile_dir"],
         "slot": slot,
         "incumbents": pick("default", "trial"),
+        "on_demand": pick("on_demand"),
+        "assess": pick("assess"),
         "rejected": pick("rejected"),
         "retired": pick("retired"),
         "pending": [{"id": t["id"], "name": t["name"]} for t in tools if t["status"] == "pending"],

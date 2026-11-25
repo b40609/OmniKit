@@ -19,8 +19,12 @@
       "items": { "$ref": "#/$defs/id" }
     },
     "status": {
-      "description": "default 預設、trial 試用、on_demand 按需備案（Progressive Disclosure，不常駐）、pending 待評估、rejected 拒絕、retired 退役",
-      "enum": ["default", "trial", "on_demand", "pending", "rejected", "retired"]
+      "description": "Golden Path 四環對應：Adopt（default 預設）、Trial（trial 試用、on_demand 按需備案）、Assess（assess 觀察中、pending 待評估）、Hold（rejected 拒絕、retired 退役）",
+      "enum": ["default", "trial", "on_demand", "assess", "pending", "rejected", "retired"]
+    },
+    "ring": {
+      "description": "Golden Path 四環分類（adopt / trial / assess / hold）；未填時依 status 自動推導",
+      "enum": ["adopt", "trial", "assess", "hold"]
     },
     "trigger_when": {
       "description": "on_demand 工具的按需觸發條件索引（Progressive Disclosure，不載入常駐規則或工作流）",
@@ -82,8 +86,8 @@
       "then": { "required": ["reason", "decided_at"], "properties": { "slots": { "minItems": 1 } } }
     },
     {
-      "description": "拒絕要留理由與日期（不在任何槽位範圍的工具可留空 slots）",
-      "if": { "properties": { "status": { "const": "rejected" } } },
+      "description": "觀察（Assess）或拒絕（Hold）都要留評估理由與日期（不在任何槽位範圍的工具可留空 slots）",
+      "if": { "properties": { "status": { "enum": ["assess", "rejected"] } } },
       "then": { "required": ["reason", "decided_at"] }
     },
     {
