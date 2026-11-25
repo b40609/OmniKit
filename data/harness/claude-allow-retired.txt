@@ -1,0 +1,4 @@
+# Claude Code 下架權限墓碑清單（Retired Permissions Tombstones）
+# 當某條曾由 OmniKit 加入 data/harness/claude-allow.txt 的權限規則下架時，
+# 將它移入本檔（每行一條）。同步器會從各 Claude 設定目錄 settings.json 的 permissions.allow
+# 移除列於此處的規則，實現零本機雜湊帳本的安全下架；不在現行或墓碑清單內的使用者自訂權限一律保留不動。

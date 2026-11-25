@@ -24,11 +24,11 @@ agent 為了讓檢查變綠，常見的捷徑（reward hacking）是繞過 hook�
 三、Stop：這段對話改過的 .py 還有 ruff 錯誤，就擋回去一次；第二次收尾（stop_hook_active）一定放行，不會無限迴圈。
 
 所有錯誤都安靜結束（exit 0），檢查壞掉不能卡住對話。OMNIKIT_HARNESS=off 整個關掉。
-註冊範圍：目前只註冊在 Claude Code（claude_allow.py）。輸入同時吃 Claude Code／Codex 的 snake_case
-（hook_event_name、tool_name、tool_input）與 Antigravity 的 camelCase（hookEventName、toolCall.name 為
+註冊範圍：Claude Code（薄 plugin 與 claude_allow.py 備案）與 Antigravity（薄 plugin）。輸入同時吃 Claude Code／Codex 的
+snake_case（hook_event_name、tool_name、tool_input）與 Antigravity 的 camelCase（hookEventName、toolCall.name 為
 run_command／write_file／edit_file、toolCall.args、continuationActive），見 normalize()。Antigravity 的 PostToolUse
 只收空 JSON {}、不能注入文字，所以只記下改過的檔案、一律回 {}，ruff 問題在 Stop 擋（continuationActive 當
-stop_hook_active，第二次放行）。Antigravity 的 PreToolUse／Stop 輸出格式未一手核對，接上 Antigravity 前要先實測（待驗證）。
+stop_hook_active，第二次放行）；PreToolUse 放行回傳官方必填的 {"decision": "allow"}，攔截回傳 {"decision": "deny", "reason": ...}。
 
 用法：uv run engine/scripts/harness_hooks.py             從 stdin 讀 hook 輸入（hook 用）
       uv run engine/scripts/harness_hooks.py --selftest
@@ -312,9 +312,12 @@ def edited_files(sid: str) -> dict:
 
 # ---------- hook 本身 ----------
 
-def deny(reason: str) -> dict:
+def deny(reason: str, agy: bool = False) -> dict:
+    msg = f"OmniKit 護欄：{reason}"
+    if agy:
+        return {"decision": "deny", "reason": msg}
     return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
-                                   "permissionDecisionReason": f"OmniKit 護欄：{reason}"}}
+                                   "permissionDecisionReason": msg}}
 
 
 AGY_TOOLS = {"run_command": "Bash", "write_file": "Write", "edit_file": "Edit", "read_file": "Read",
@@ -366,10 +369,10 @@ def handle(data: dict, runner=None, env=None):
         if tool in ("Bash", "PowerShell"):
             why = bypass_reason(inp.get("command") or "")
             if why:
-                return deny(f"{why}。請修好讓檢查通過，不要繞過；真的要跳過請使用者自己下指令。")
+                return deny(f"{why}。請修好讓檢查通過，不要繞過；真的要跳過請使用者自己下指令。", agy)
         why = secret_read_reason(tool, inp)
         if why:
-            return deny(why + "。範例檔（.env.example 等）可以讀。")
+            return deny(why + "。範例檔（.env.example 等）可以讀。", agy)
         if tool in ("Edit", "Write", "MultiEdit"):
             fp = inp.get("file_path") or ""
             if re.search(r"\.pyi?$", fp, re.IGNORECASE) and (runner is not None or ruff_exe()):
@@ -377,8 +380,8 @@ def handle(data: dict, runner=None, env=None):
             n, name = lint_relax(tool, inp)
             if n >= RELAX_BLOCK_AT and str(env.get("OMNIKIT_LINT_RELAX", "")).lower() != "allow":
                 return deny(f"這次修改在 {name} 一次新增 {n} 個 ignore／disable／skip 類項目，看起來是在關掉門禁規則。"
-                            "請改程式碼讓檢查通過；使用者明確要放寬時，請他設 OMNIKIT_LINT_RELAX=allow。")
-        return None
+                            "請改程式碼讓檢查通過；使用者明確要放寬時，請他設 OMNIKIT_LINT_RELAX=allow。", agy)
+        return {"decision": "allow"} if agy else None
 
     if event == "PostToolUse":
         if tool not in ("Edit", "Write", "MultiEdit"):
@@ -399,7 +402,7 @@ def handle(data: dict, runner=None, env=None):
 
     if event == "Stop":
         if data.get("stop_hook_active"):
-            return None  # 已經擋過一次、agent 重新收尾了：放行，不無限迴圈
+            return {} if agy else None  # 已經擋過一次、agent 重新收尾了：放行，不無限迴圈
         problems = []
         for p, base in edited_files(data.get("session_id") or "").items():
             if Path(p).is_file():
@@ -408,8 +411,9 @@ def handle(data: dict, runner=None, env=None):
                     problems.append(out)
         if problems:
             text = "\n".join(problems)[:MAX_FEEDBACK]
-            return {"decision": "block", "reason": f"OmniKit 護欄：這段對話改過的 Python 檔還有 ruff 錯誤，修好再收尾（只擋這一次）：\n{text}"}
-        return None
+            reason_msg = f"OmniKit 護欄：這段對話改過的 Python 檔還有 ruff 錯誤，修好再收尾（只擋這一次）：\n{text}"
+            return {"decision": "continue" if agy else "block", "reason": reason_msg}
+        return {} if agy else None
     return None
 
 
@@ -580,14 +584,14 @@ def selftest() -> int:
                             "args": {"AbsolutePath": "C:/p/.env"}}}, env={})
             a_ok = handle({"hookEventName": "PreToolUse", "toolCall": {"name": "run_command",
                            "args": {"CommandLine": "git status"}}}, env={})
-            ok("Antigravity camelCase：toolCall.name／args 一樣擋 --no-verify 與讀 .env，正常指令放行",
-               denied(a_pre) and denied(a_sec) and a_ok is None)
+            ok("Antigravity camelCase：原生 decision=deny 擋 --no-verify 與讀 .env，正常指令回 decision=allow 放行",
+               a_pre.get("decision") == "deny" and a_sec.get("decision") == "deny" and a_ok == {"decision": "allow"})
             a_post = handle({"hookEventName": "PostToolUse", "sessionId": "ag1", "toolCall": {"name": "write_file",
                              "args": {"TargetFile": str(py)}}}, runner=bad, env={})
             a_stop1 = handle({"hookEventName": "Stop", "sessionId": "ag1"}, runner=bad, env={})
             a_stop2 = handle({"hookEventName": "Stop", "sessionId": "ag1", "continuationActive": True}, runner=bad, env={})
-            ok("Antigravity：PostToolUse 一律回 {}（不注入文字），問題留到 Stop 擋一次，continuationActive 時放行",
-               a_post == {} and a_stop1 and a_stop1["decision"] == "block" and a_stop2 is None)
+            ok("Antigravity：PostToolUse 回 {}，問題留到 Stop 回 decision=continue 擋一次，continuationActive 回 {} 放行",
+               a_post == {} and a_stop1 and a_stop1["decision"] == "continue" and a_stop2 == {})
         finally:
             os.environ.pop("OMNIKIT_STATE", None)
 

@@ -35,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import profiles  # noqa: E402  這台選的 profile
 import validate  # noqa: E402  讀模組檔
 
-# OmniKit 接得上的 agent（agents.py 會設定的）；其他的只回報有沒有裝
+# OmniKit 接得上的 agent（sync.py 會設定的）；其他的只回報有沒有裝
 SUPPORTED = {"claude-code", "codex", "antigravity"}
 
 # id、名稱、設定目錄（相對家目錄，任一個存在就算）、指令（任一個在 PATH 上就算）
@@ -182,10 +182,15 @@ def omnikit_state(data, state, tracked=None):
     available = profiles.available(data, state)
     chosen = profiles.chosen(state)
     current = chosen if chosen in available else profiles.DEFAULT
-    try:
-        connected = json.loads((state / "agents.json").read_text(encoding="utf-8")).get("agents", [])
-    except (OSError, ValueError, AttributeError):
-        connected = []
+    connected = []
+    for fname in ("config.json", "agents.json"):
+        p = state / fname
+        if p.is_file():
+            try:
+                connected = json.loads(p.read_text(encoding="utf-8-sig")).get("agents", [])
+                break
+            except (OSError, ValueError, AttributeError):
+                pass
     return {
         "root": str(data.parent),
         "profile": current,
@@ -317,7 +322,7 @@ def selftest():
         check("撞到現有 profile 就改用登入帳號", suggest_name("Ryan", "alice", {"ryan"}) == "alice")
 
         write(state / "profile.json", '{"profile": "ryan"}')
-        write(state / "agents.json", '{"agents": ["claude-code", "antigravity"]}')
+        write(state / "config.json", '{"agents": ["claude-code", "antigravity"]}')
         again = scan(home, data, state, which=paths.get, run=fake_run, login="user", git_name=None)
         check("選過 profile：帶出上次的訪談答案", again["omnikit"]["profile"] == "ryan"
               and again["omnikit"]["previous_answers"] == {"name": "ryan"})

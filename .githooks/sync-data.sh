@@ -5,11 +5,9 @@
 #   data/mcp/：把 MCP server 同步到接上的 agent
 #   engine/skills/：同步 skills（Claude 用連結，內容改動本來就會反映；Codex 與 Antigravity 用複製品，要重新複製）
 #   data/profiles/：也同步 skills（訪談答案決定裝哪些，例如不評估工具就不裝 omnikit-eval）
-#   agents.py、homes.py、t3_acp.py、acp_shim.py：skills 與 MCP 都重新同步（新找到的設定目錄也一起接上；
-#     T3 Code 的 Antigravity 轉接程式也一起更新）
-#   data/harness/、claude_allow.py、session_nudge.py、home_watch.py：把權限規則、開新對話提醒、說做不到查證與設定目錄檢查補進
-#     Claude Code 的使用者設定
-#   codex_hooks.py、claude_allow.py、session_nudge.py：把開新對話提醒與說做不到查證補進 Codex 的 config.toml
+#   sync.py、homes.py、t3_acp.py、acp_shim.py：skills、hooks 與 MCP 都重新同步（新找到的設定目錄也一起接上）
+#   data/harness/、claude_allow.py、codex_hooks.py、session_nudge.py、claim_check.py、t3_watch.py、home_watch.py、harness_hooks.py：
+#     透過 sync.py sync --mcp 依各目錄薄 plugin 實際狀態更新快取版本、權限清單、狀態列與備案 hooks（不會無條件誤刪備案 hooks）
 # 只有維護者版會自動同步。同事版不設 git hook；萬一還是跑到這裡，也只提醒、不改任何設定（edition.py）
 # linked worktree（例如 .claude/worktrees/ 底下）也不同步：worktree 共用主 repo 的 core.hooksPath，
 # 在這裡同步會把 skills 連結與複製品改指向 worktree，worktree 清掉後就斷了。合進 main 後由主 checkout 同步。
@@ -63,29 +61,12 @@ fi
 
 skills=0
 mcp=0
-printf '%s\n' "$changed" | grep -qE '^(engine/skills/|data/profiles/|engine/scripts/(agents|profiles|homes|t3_acp|acp_shim)\.py$)' && skills=1
-printf '%s\n' "$changed" | grep -qE '^(data/mcp/|engine/scripts/(agents|homes|t3_acp|acp_shim)\.py$)' && mcp=1
+printf '%s\n' "$changed" | grep -qE '^(engine/skills/|data/profiles/|engine/scripts/(sync|profiles|homes|t3_acp|acp_shim)\.py$)' && skills=1
+printf '%s\n' "$changed" | grep -qE '^(data/(mcp|harness)/|engine/scripts/(sync|homes|t3_acp|acp_shim|claude_allow|codex_hooks|session_nudge|claim_check|t3_watch|home_watch|harness_hooks)\.py$)' && mcp=1
 if [ $skills = 1 ] && [ $mcp = 1 ]; then
-  run "skills 與 MCP 同步" engine/scripts/agents.py sync
+  run "skills、hooks 與 MCP 同步" engine/scripts/sync.py sync
 elif [ $skills = 1 ]; then
-  run "skills 同步" engine/scripts/agents.py sync --skills
+  run "skills 同步" engine/scripts/sync.py sync --skills
 elif [ $mcp = 1 ]; then
-  run "MCP 同步" engine/scripts/agents.py sync --mcp
-fi
-
-if printf '%s\n' "$changed" | grep -qE '^(data/harness/|engine/scripts/(claude_allow|session_nudge|home_watch)\.py$)'; then
-  if "$uv" run --quiet engine/scripts/claude_allow.py >/dev/null 2>&1; then
-    echo "OmniKit：已同步 Claude 的權限規則與 OmniKit 的 hook"
-  else
-    echo "OmniKit：claude_allow.py 失敗，Claude 的權限規則與 OmniKit 的 hook 可能還是舊的" >&2
-  fi
-fi
-
-if printf '%s\n' "$changed" | grep -qE '^engine/scripts/(codex_hooks|claude_allow|session_nudge)\.py$'; then
-  if out=$("$uv" run --quiet engine/scripts/codex_hooks.py 2>&1); then
-    # 只有新註冊或改了指令才需要使用者到 Codex 重新信任，這時把提示轉出來
-    case "$out" in 已註冊*) echo "OmniKit：$out" ;; esac
-  else
-    echo "OmniKit：codex_hooks.py 失敗，Codex 的 OmniKit hook 可能還是舊的" >&2
-  fi
+  run "hooks、權限與 MCP 同步" engine/scripts/sync.py sync --mcp
 fi

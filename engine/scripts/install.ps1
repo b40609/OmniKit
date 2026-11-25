@@ -16,18 +16,18 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 4. 舊版把訪談產生的 profile 存在 repo 裡（data/profiles/<名稱>，有 answers.json、沒進版本控制）的話，
    交給 profiles.py --migrate 搬到 repo 外（~/.omnikit/profiles）；刪掉 repo 裡的舊檔前先問，
    不能互動時什麼都不改，只列出來（FR-38）。
-   agents.py connect：
-   - 規則 = 安全底線（data/rules/baseline.md）+ 分派共用層（data/rules/dispatch.md）+ profile 的 AGENTS.md（profile 有 dispatch.md 也接）。訪談產生的 profile 在
+   sync.py connect：
+   - 規則 = 安全底線（data/rules/baseline.md）+ 分派共用層（data/rules/dispatch.md）+ profile 的 AGENTS.md。訪談產生的 profile 在
      ~/.omnikit/profiles/<名稱>（不在 repo 裡），default 與維護者手寫的在 data/profiles/<名稱>；同名時 repo 外的優先。
      Claude 在 ~/.claude/CLAUDE.md 用受管區塊 import；Codex 的 ~/.codex/AGENTS.md 與 Antigravity 的
-     ~/.gemini/GEMINI.md 在開頭加受管區塊（原地改寫，硬連結不會斷），原本的規則留在區塊外照常生效，
+     ~/.gemini/AGENTS.md（共用）、GEMINI.md（個人）在開頭加受管區塊（原地改寫，硬連結不會斷），原本的規則留在區塊外照常生效，
      也先備份成 .pre-omnikit。沒指定也沒選過 profile 就用 default（下載、安裝前會先問）。
      其他設定目錄（engine/scripts/homes.py 找：CLAUDE_CONFIG_DIR、CODEX_HOME、T3 Code 每個實例的 homePath、
-     有 .claude.json 的 ~/.claude-*、~/.codex-* 等）：Claude 的 CLAUDE.md、Codex 的 AGENTS.md 也放同一個區塊，
-     MCP 也寫進去，Claude 的 skills 也連進去。agent 只讀自己設定目錄的規則，不放就讀不到。
+     明確列舉於 config.json 的額外目錄）：Claude 的 CLAUDE.md、Codex 的 AGENTS.md 也放同一個區塊，
+     MCP 也寫進去，Claude 與 Codex 的 skills 也連進去。agent 只讀自己設定目錄的規則，不放就讀不到。
      Claude 的其他設定目錄也同步你自己裝在 ~/.claude 的 skill（資料夾連結）與啟用中的 plugin
-     （claude plugin install，CLAUDE_CONFIG_DIR 指過去）；之後新裝的，重跑 agents.py sync 就補上。
-     安裝之後才新增的帳號：開新對話時 home_watch.py 發現，就在背景接上（也可以跑 agents.py sync）。
+     （claude plugin install，CLAUDE_CONFIG_DIR 指過去）；之後新裝的，重跑 sync.py sync 就補上。
+     安裝之後才新增的帳號：開新對話時 home_watch.py 發現，就在背景接上（也可以跑 sync.py sync）。
      T3 Code 的 Antigravity 實例走 ACP 模式、不讀規則檔：把實例的 Binary path 指到 OmniKit 的轉接程式
      （~/.omnikit/acp/omnikit-acp.cmd，engine/scripts/t3_acp.py 與 acp_shim.py），
      開新對話時帶入 ~/.gemini/GEMINI.md；你自己設了 Binary path 的實例不動，doctor 會列出來。
@@ -97,7 +97,7 @@ $GitleaksSha256 = @{
 
 $Repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $ProfilesPy = Join-Path $Repo 'engine\scripts\profiles.py'
-$AgentsPy = Join-Path $Repo 'engine\scripts\agents.py'
+$AgentsPy = Join-Path $Repo 'engine\scripts\sync.py'
 $EditionPy = Join-Path $Repo 'engine\scripts\edition.py'
 $StatedirPy = Join-Path $Repo 'engine\scripts\statedir.py'
 $PreflightPs1 = Join-Path $Repo 'engine\scripts\preflight.ps1'
@@ -133,7 +133,7 @@ function Get-Uv {
 
 function Get-FileText($path) { if (Test-Path $path) { [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8) } else { '' } }
 
-# 跟 agents.py 的 detect 一樣：看設定資料夾或 PATH 上的指令
+# 跟 sync.py 的 detect_agents 一樣：看設定資料夾或 PATH 上的指令
 function Get-Agents {
   $has = { param($dirs, $commands)
     foreach ($d in $dirs) { if (Test-Path (Join-Path $env:USERPROFILE $d)) { return $true } }
@@ -310,7 +310,7 @@ function Get-EditionPreview($wanted) {
 # 同事版：免問核准每個工具先問，本人同意了才寫入（預設否）；不能互動時一個都不寫
 function Request-AutoApprove {
   $r = Invoke-UvRun (Get-Uv) @('run', '--quiet', $AgentsPy, 'approvals', '--ask')
-  if ($r.Code -ne 0) { throw "agents.py approvals 失敗（exit $($r.Code)）" }
+  if ($r.Code -ne 0) { throw "sync.py approvals 失敗（exit $($r.Code)）" }
 }
 
 # profile 的資料夾：跟 profiles.py 的 folder 一樣，先找 repo 外的（訪談產生的），再找 repo 裡的；都沒有回 $null
@@ -369,25 +369,12 @@ function Move-LegacyProfiles {
   if ($r.Code -ne 0) { throw "profiles.py --migrate 失敗（exit $($r.Code)）" }
 }
 
-# 規則、skills、MCP 都交給 agents.py（維護者版的 git hook 也用它同步）。
-# MCP 被使用者改過、或同名但不是 OmniKit 的，--ask 會逐一問；不能互動時略過那個 server 並列出來，其他照常寫
+# 規則、skills、hooks 與 MCP 都交給無帳本同步器 sync.py（維護者版的 git hook 也用它同步）。
+# sync.py 會依各設定目錄的薄 plugin 實際安裝狀態決定寫入權限或備案 hooks，不需額外無條件清掉備案 hooks。
 function Connect-Agents {
   $profileArgs = @(if ($ProfileName) { '--profile', $ProfileName })
   $r = Invoke-UvRun (Get-Uv) (@('run', '--quiet', $AgentsPy, 'connect') + $profileArgs + '--ask')
-  if ($r.Code -ne 0) { throw "agents.py connect 失敗（exit $($r.Code)）" }
-}
-
-# Claude Code 免問的權限規則；JSON 交給 Python 改，PowerShell 5.1 的 ConvertTo-Json 會改掉原本的格式
-function Grant-ClaudePermissions {
-  $r = Invoke-UvRun (Get-Uv) @('run', '--quiet', (Join-Path $Repo 'engine\scripts\claude_allow.py'))
-  if ($r.Code -ne 0) { throw "claude_allow.py 失敗（exit $($r.Code)）" }
-}
-
-# Codex 的 Stop hook（開新對話提醒、說做不到查證）；TOML 交給 Python 改，寫入前會驗證沒動到其他設定。
-# 失敗時警告就好，不擋後面的步驟
-function Register-CodexHook {
-  $r = Invoke-UvRun (Get-Uv) @('run', '--quiet', (Join-Path $Repo 'engine\scripts\codex_hooks.py'))
-  if ($r.Code -ne 0) { Write-Warning "codex_hooks.py 失敗（exit $($r.Code)），Codex 的 hook 沒有註冊" }
+  if ($r.Code -ne 0) { throw "sync.py connect 失敗（exit $($r.Code)）" }
 }
 
 # 只留下 OmniKit 的受管區塊；舊內容先備份
@@ -572,9 +559,15 @@ function Show-NextSteps($edition) {
   $version = if ($text -match '規則版本：(\S+)') { $Matches[1] } else { 'data/rules/baseline.md 開頭的版本' }
   # 只接 ASCII 的值：profile 名稱只能用小寫英數與 -
   $name = (Invoke-UvRun (Get-Uv) @('run', '--quiet', $ProfilesPy, '--show') -Capture).Output.Trim()
-  $record = try { [IO.File]::ReadAllText($AgentsFile) | ConvertFrom-Json } catch { $null }
+  $cfgFile = Join-Path $StateDir 'config.json'
+  $record = if (Test-Path $cfgFile) { try { [IO.File]::ReadAllText($cfgFile) | ConvertFrom-Json } catch { $null } } else { try { [IO.File]::ReadAllText($AgentsFile) | ConvertFrom-Json } catch { $null } }
   $connected = @($record.agents | Where-Object { $_ } | ForEach-Object { $AgentNames[$_] })
-  $hasEval = @($record.skills.PSObject.Properties.Value | ForEach-Object { $_ }) -contains 'omnikit-eval'
+  $profileDir = Get-ProfileDir $name
+  $answersFile = if ($profileDir) { Join-Path $profileDir 'answers.json' } else { '' }
+  $hasEval = $true
+  if ($answersFile -and (Test-Path -LiteralPath $answersFile)) {
+    try { if ((Get-FileText $answersFile | ConvertFrom-Json).evaluate_tools -eq $false) { $hasEval = $false } } catch { }
+  }
   Write-Host ''
   Write-Host "OmniKit 已接上 $($connected -join '、')（profile：$name），開新的 session 才會生效："
   Write-Host "  - 問「OmniKit 規則版本與 profile 是什麼？」，應該回答 $version 與 $name"
@@ -586,7 +579,7 @@ function Show-NextSteps($edition) {
   Write-Host '  - 換 profile：重跑 install.ps1 -ProfileName <名稱>，或 uv run engine/scripts/profiles.py --set <名稱>'
   if ($edition -ne 'maintainer') {
     Write-Host '  - 這台是同事版：pull 不會自動改設定；要套用更新，先跑 install.ps1 -WhatIf 預覽，再跑 install.ps1'
-    Write-Host '  - 免問核准：uv run engine/scripts/agents.py approvals 查看；--grant <名稱> 同意、--revoke <名稱> 撤回'
+    Write-Host '  - 免問核准：uv run engine/scripts/sync.py approvals 查看；--grant <名稱> 同意、--revoke <名稱> 撤回'
   }
   if ($hasEval) {
     Write-Host '  - 評估新工具：說「幫我評估」加上 GitHub 連結（Claude Code 也可以輸入 /omnikit-eval，Codex 輸入 $omnikit-eval）'
@@ -757,8 +750,6 @@ Install-McpPackages
 if ($CurrentEdition -ne 'maintainer') { Request-AutoApprove }
 Move-LegacyProfiles
 Connect-Agents
-Grant-ClaudePermissions
-Register-CodexHook
 if ($Fresh) { Clear-OldClaudeRules }
 Set-GitHooks $CurrentEdition
 if ($CurrentEdition -eq 'maintainer') { Test-GitIdentity }

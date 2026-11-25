@@ -7,7 +7,7 @@
 為什麼要轉接見 acp_shim.py：T3 Code 用 ACP 模式跑 Antigravity，server 不讀 ~/.gemini/GEMINI.md，
 只能在開新對話時由 client 帶入；轉接程式站在 T3 與 server 中間帶入規則。
 
-agents.py connect 與 sync 呼叫這裡（只在 Windows；T3 Code 在其他系統的執行方式沒實測）：
+sync.py connect 與 sync 呼叫這裡（只在 Windows；T3 Code 在其他系統的執行方式沒實測）：
 1. ~/.omnikit/acp/ 放三個檔（見下面「為什麼放這裡」）：
    - acp_shim.py：engine/scripts/acp_shim.py 的複本，內容變了才換（T3 每開一段對話讀一次，repo 搬家或切分支不影響）
    - omnikit-acp.cmd：用 uv 跑旁邊的 acp_shim.py。uv 寫絕對路徑；cmd 用 OEM 編碼讀 .cmd，
@@ -221,16 +221,17 @@ def state(home, folder, platform=sys.platform, is_native=None):
         value = binary_of(inst)
         if is_native:
             leftover = isinstance(value, str) and value.strip() and same_path(value, launcher)
-            out[iid] = (BROKEN, "T3 已原生讀規則，但 Binary path 還指著停用的轉接程式：跑 uv run engine/scripts/agents.py sync")                 if leftover else (NATIVE, "T3 原生讀 AGENTS.md 與 GEMINI.md（0.1.11-nightly.20261120.4979 起），不用轉接程式")
+            out[iid] = (BROKEN, "T3 已原生讀規則，但 Binary path 還指著停用的轉接程式：跑 uv run engine/scripts/sync.py sync") \
+                if leftover else (NATIVE, "T3 原生讀 AGENTS.md 與 GEMINI.md（0.1.11-nightly.20261120.4979 起），不用轉接程式")
         elif platform != "win32":
             out[iid] = (UNSUPPORTED, "轉接程式目前只支援 Windows，這個實例讀不到 OmniKit 規則")
         elif isinstance(value, str) and value.strip() and same_path(value, launcher):
             out[iid] = (OK, "Binary path 是 OmniKit 的轉接程式") if files_ok else \
-                (BROKEN, f"Binary path 指到轉接程式，但 {folder} 裡的檔不全：跑 uv run engine/scripts/agents.py sync")
+                (BROKEN, f"Binary path 指到轉接程式，但 {folder} 裡的檔不全：跑 uv run engine/scripts/sync.py sync")
         elif isinstance(value, str) and value.strip():
             out[iid] = (CUSTOM, f"Binary path 是你自己設的（{value}），OmniKit 沒有改；這個實例讀不到 OmniKit 規則")
         else:
-            out[iid] = (MISSING, "Binary path 還沒設成轉接程式：跑 uv run engine/scripts/agents.py sync")
+            out[iid] = (MISSING, "Binary path 還沒設成轉接程式：跑 uv run engine/scripts/sync.py sync")
     return out
 
 

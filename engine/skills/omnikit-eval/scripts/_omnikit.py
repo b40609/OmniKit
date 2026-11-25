@@ -6,27 +6,43 @@ from pathlib import Path
 
 
 def repo_root():
-    """找 OmniKit repo：Claude Code 用資料夾連結，resolve 之後就回到 repo 裡；Codex 與 Antigravity 用的是複製品，
-    看 skill 資料夾裡 agents.py 寫的 .omnikit.json；都找不到再看 OMNIKIT_HOME。"""
-    here = Path(__file__).resolve()
-    for parent in here.parents:
-        if (parent / "data" / "omnikit.yaml").exists():
-            return parent
-    try:
-        repo = Path(json.loads((here.parents[1] / ".omnikit.json").read_text(encoding="utf-8"))["repo"])
-        if (repo / "data" / "omnikit.yaml").exists():
-            return repo
-    except (OSError, ValueError, KeyError, TypeError):
-        pass
+    """找 OmniKit repo：優先看 OMNIKIT_HOME；次看連結解析（若落在 ~/.omnikit/current 則優先轉回 config.json 的開發 repo）；
+    最後看 ~/.omnikit/config.json。"""
     env = os.environ.get("OMNIKIT_HOME")
     if env and (Path(env) / "data" / "omnikit.yaml").exists():
         return Path(env)
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        if (parent / "data" / "omnikit.yaml").exists():
+            if parent.name == "current":
+                if (parent.parent / "config.json").is_file():
+                    try:
+                        cfg_repo = Path(json.loads((parent.parent / "config.json").read_text(encoding="utf-8-sig"))["repo"])
+                        if (cfg_repo / "data" / "omnikit.yaml").exists():
+                            return cfg_repo
+                    except (OSError, ValueError, KeyError, TypeError):
+                        pass
+                sys.stderr.write(
+                    f"警告：目前落在乾淨參照副本 {parent}（config.json 無有效 repo 欄位），請在開發倉庫執行 uv run engine/scripts/sync.py sync\n"
+                )
+            return parent
+    state = Path(os.environ.get("OMNIKIT_STATE_DIR") or (Path.home() / ".omnikit"))
+    for candidate_fn in (
+        lambda: Path(json.loads((state / "config.json").read_text(encoding="utf-8-sig"))["repo"]),
+        lambda: state / "current",
+    ):
+        try:
+            cand = candidate_fn()
+            if (cand / "data" / "omnikit.yaml").exists():
+                return cand
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
     sys.exit("找不到 OmniKit repo：請把環境變數 OMNIKIT_HOME 設成 repo 根目錄")
 
 
 ROOT = repo_root()
 sys.path.insert(0, str(ROOT / "engine" / "scripts"))
-import validate  # noqa: E402  共用名冊的讀取與驗證
+import validate  # 共用名冊的讀取與驗證
 
 
 def roster():

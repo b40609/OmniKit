@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniKit MCP server",
-  "description": "data/mcp/servers.yaml：agents.py 依這份把 MCP server 寫進 Claude Code、Codex 與 Antigravity。",
+  "description": "data/mcp/servers.yaml：sync.py 依這份把 MCP server 寫進 Claude Code、Codex 與 Antigravity。",
   "type": "object",
   "required": ["servers"],
   "additionalProperties": false,

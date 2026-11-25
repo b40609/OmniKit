@@ -12,8 +12,8 @@
 家目錄（%USERPROFILE%）不在 AppData，不會被轉存，誰寫的大家都看得到；Claude Code（~/.claude）、Codex（~/.codex）、
 Antigravity（~/.gemini）、T3 Code（~/.t3）也都放在家目錄。環境變數 OMNIKIT_STATE_DIR 可以改位置（測試、CI 用）。
 
-搬家（migrate）：install.ps1、uninstall.ps1、agents.py（sync、connect 等會寫入的指令）、profiles.py 與 git hook
-（.githooks/sync-data.sh）會先跑；開新對話的 hook（home_watch.py）看到舊位置還有東西，就在背景跑 agents.py sync。
+搬家（migrate）：install.ps1、uninstall.ps1、sync.py（sync、connect 等會寫入的指令）、profiles.py 與 git hook
+（.githooks/sync-data.sh）會先跑；開新對話的 hook（home_watch.py）看到舊位置還有東西，就在背景跑 sync.py sync。
 doctor 只回報。步驟：
 1. 找舊位置：每個封裝的副本 %LOCALAPPDATA%\\Packages\\*\\LocalCache\\Local\\omnikit，以及 %LOCALAPPDATA%\\omnikit。
 2. 照這個順序整個搬到 ~/.omnikit/legacy/<時間>/<來源>/：先搬封裝副本，再搬 %LOCALAPPDATA%\\omnikit。
@@ -536,7 +536,7 @@ def report(state=None, environ=None):
         kind = f"封裝 app（{label.removeprefix('package-')}）轉存的副本" if label.startswith("package-") else "舊位置"
         rows.append((False, "舊位置還有沒合併的狀態",
                      f"{path}：{kind}，{n} 個檔跟 {state} 是分開的兩份；"
-                     f"跑 uv run engine/scripts/statedir.py migrate 合併（agents.py sync、install.ps1 也會先合併）"))
+                     f"跑 uv run engine/scripts/statedir.py migrate 合併（sync.py sync、install.ps1 也會先合併）"))
     runs = load_record(state)["runs"]
     if runs and runs[-1].get("conflicts"):
         last = runs[-1]

@@ -21,16 +21,16 @@ profile 放在兩個地方，同名時 repo 外的優先：
 選了哪個 profile 記在 ~/.omnikit/profile.json（狀態資料夾，見 statedir.py）。沒選過就用 default（授權偏保守），
 而且每次都會提醒，直到用 --set 選定。
 
-接上的方式（只接 agents.py 記錄裡的 agent，記在 ~/.omnikit/agents.json）：
+接上的方式（只接 sync.py 記錄裡的 agent，記在 ~/.omnikit/config.json）：
 - Claude Code：~/.claude/CLAUDE.md 開頭的受管區塊 import 底線與 profile 兩份，改完開新 session 就生效。
   其他 Claude 設定目錄（CLAUDE_CONFIG_DIR、T3 Code 每個 Claude 實例的 homePath、~/.claude-* 等，見 homes.py）的
   CLAUDE.md 也放同一個區塊，不然那些帳號只讀自己目錄的 CLAUDE.md，完全讀不到 OmniKit 規則（claude_homes）。
 - Codex：不支援 import，~/.codex/AGENTS.md 開頭的受管區塊放兩份接在一起的內容；原本的規則留在區塊外，
   照常生效。舊版整份換掉的（開頭是產生標記），同步時換成只有區塊，規則內容一樣。
   其他 Codex 設定目錄（CODEX_HOME 等，codex_homes）的 AGENTS.md 也放同一個區塊。
-- Antigravity：~/.gemini/GEMINI.md 開頭的受管區塊，內容跟 Codex 一樣。
+- Antigravity：拆成 ~/.gemini/AGENTS.md（共用）與 ~/.gemini/GEMINI.md（個人）開頭的受管區塊，單檔 <= 24,000 bytes。
 Codex 與 Antigravity 的檔案常跟其他工具共用（硬連結），所以原地改寫，不換掉檔案。
-第一次接上時（install.ps1 透過 agents.py connect），原本的 Codex 與 Antigravity 規則先備份成
+第一次接上時（install.ps1 透過 sync.py connect），原本的 Codex 與 Antigravity 規則先備份成
 <檔名>.pre-omnikit；之後的同步（git hook、--set）只改受管區塊，區塊被拿掉的不加回去。
 
 用法：
@@ -75,6 +75,7 @@ NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 BEGIN, END = "<!-- omnikit:rules:begin -->", "<!-- omnikit:rules:end -->"
 BLOCK = re.compile(re.escape(BEGIN) + r".*?" + re.escape(END), re.S)
 HEADER = "<!-- 由 OmniKit 產生，不要手改："
+CANARY = "看不到 OmniKit 安全底線內容時，先告訴使用者跑 omnikit doctor（uv run engine/scripts/doctor.py）"
 CODEX_EXTRA = re.compile(r"(?m)^\s*- name: rules-codex\s*$")
 # 訪談答案（answers.json）裡某題答 false 就不裝的 OmniKit skill：skill → （答案欄位, 說明）
 # ok-eval 是 omnikit-eval 的捷徑（打 /ok 時列得到），跟著一起裝或不裝
@@ -272,20 +273,23 @@ def is_ours(content):
 
 
 def connected(state, paths=None, skillshare_config=SKILLSHARE_CONFIG):
-    """接上了哪些 agent：看 agents.py 的記錄；舊版安裝沒有記錄，就從現有的檔案推斷。"""
+    """接上了哪些 agent：優先看 config.json（無帳本同步器）或舊 agents.json；都沒有就從現有受管區塊推斷。"""
     paths = paths or RULES
-    try:
-        agents = json.loads(text(state / "agents.json")).get("agents")
-        # 空的清單：還沒接上就先記了別的（例如 agents.py resolve），一樣從現有的檔案推斷
-        if isinstance(agents, list) and agents:
-            return [a for a in agents if a in RULES]
-    except (OSError, ValueError, AttributeError):
-        pass
+    for fname in ("config.json", "agents.json"):
+        try:
+            agents = json.loads(text(state / fname)).get("agents")
+            if isinstance(agents, list) and agents:
+                return [a for a in agents if a in RULES]
+        except (OSError, ValueError, AttributeError):
+            pass
     agents = ["claude-code"]
     codex = paths["codex"]
-    legacy = skillshare_config.exists() and CODEX_EXTRA.search(text(skillshare_config))
-    if legacy or (codex.exists() and is_ours(text(codex))):
+    legacy_ss = skillshare_config.exists() and CODEX_EXTRA.search(text(skillshare_config))
+    if legacy_ss or (codex.exists() and (is_ours(text(codex)) or BLOCK.search(text(codex)))):
         agents.append("codex")
+    gem = paths.get("antigravity")
+    if gem and gem.exists() and BLOCK.search(text(gem)):
+        agents.append("antigravity")
     return agents
 
 
@@ -295,10 +299,28 @@ def import_line(path):
     return "@" + path.resolve().as_posix().replace(" ", "\\ ")
 
 
+def _use_dev_link(state) -> bool:
+    if state is None:
+        return False
+    try:
+        return bool(json.loads(text(state / "config.json")).get("dev_link"))
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
 def claude_block(data, state, name):
-    """skillshare 0.28.2 的 import 模式在 Windows 寫出反斜線路徑，Claude Code 不會載入；所以自己維護，路徑用正斜線。"""
-    imports = "\n".join(import_line(p) for p in rules_files(data, state, name))
-    return f"{BEGIN}\n{imports}\n{END}"
+    """Claude 受管區塊：@import 共用層與個人規則，並附一行帶內金絲雀實體文字（倉庫被搬走時 @import 靜默失效，金絲雀仍在）。
+    當 dev_link=true 時直接參照開發 repo 的 data；預設（dev_link=false）若 ~/.omnikit/current 存在則參照乾淨副本。"""
+    use_current = (
+        state is not None
+        and not _use_dev_link(state)
+        and (state / "current" / "data" / "rules" / "baseline.md").is_file()
+        and (data == DATA or (state / "current" / "data") == data)
+    )
+    shared_src = (state / "current" / "data") if use_current else data
+    files = shared_rules_files(shared_src) + personal_rules_files(data, state, name)
+    imports = "\n".join(import_line(p) for p in files)
+    return f"{BEGIN}\n{CANARY}\n{imports}\n{END}"
 
 
 def with_block(old, block):
@@ -499,15 +521,14 @@ def apply(data, state, paths=None, wanted=None, agents=None, take_over=False, sk
 
 
 def sync_skills(run=subprocess.run):
-    """換 profile 後重新同步 skills：不同 profile 裝的可能不同（例如不評估工具就不裝 omnikit-eval）。
-    agents.py 要用 pyyaml，這支沒有相依套件，所以交給 uv 另外跑。"""
+    """換 profile 後重新同步 skills：不同 profile 裝的可能不同（例如不評估工具就不裝 omnikit-eval）。"""
     uv = shutil.which("uv") or str(LOCAL / "Programs" / "uv" / "uv.exe")
     sys.stdout.flush()
     try:
-        code = run([uv, "run", "--quiet", str(Path(__file__).resolve().parent / "agents.py"), "sync", "--skills"]).returncode
+        code = run([uv, "run", "--quiet", str(Path(__file__).resolve().parent / "sync.py"), "sync", "--skills"]).returncode
     except OSError:
         code = None
-    return [] if code == 0 else ["skills 沒有跟著 profile 同步，請在 repo 根目錄跑：uv run engine/scripts/agents.py sync --skills"]
+    return [] if code == 0 else ["skills 沒有跟著 profile 同步，請在 repo 根目錄跑：uv run engine/scripts/sync.py sync --skills"]
 
 
 def fallback_notice(data, state=None):
@@ -784,10 +805,10 @@ def selftest():
                 return subprocess.CompletedProcess(cmd, code)
             return run_
 
-        check("換 profile 後同步 skills：交給 agents.py sync --skills",
-              sync_skills(fake_run(0)) == [] and calls[-1][-3:] == [str(Path(__file__).resolve().parent / "agents.py"), "sync", "--skills"])
-        check("skills 同步失敗：印出手動指令", "agents.py sync --skills" in sync_skills(fake_run(1))[0])
-        check("找不到 uv：印出手動指令，不中斷", "agents.py sync --skills" in sync_skills(fake_run(None))[0])
+        check("換 profile 後同步 skills：交給 sync.py sync --skills",
+              sync_skills(fake_run(0)) == [] and calls[-1][-3:] == [str(Path(__file__).resolve().parent / "sync.py"), "sync", "--skills"])
+        check("skills 同步失敗：印出手動指令", "sync.py sync --skills" in sync_skills(fake_run(1))[0])
+        check("找不到 uv：印出手動指令，不中斷", "sync.py sync --skills" in sync_skills(fake_run(None))[0])
 
         write(data / "profiles" / "x" / "AGENTS.md", "# x\n放手\n")
         write(data / "profiles" / "x" / "answers.json", json.dumps({"evaluate_tools": False}))

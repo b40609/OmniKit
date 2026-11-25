@@ -4,14 +4,14 @@ OmniKit 移除：把 install.ps1 對這台電腦做的改動還原，可以重�
 1. Claude Code：拿掉 ~/.claude/CLAUDE.md 的受管區塊。檔案因此變空時，有安裝前的備份
    （CLAUDE.md.pre-omnikit）就還原，沒有就刪掉這個空檔。
 2. Codex：舊版整份換掉的 ~/.codex/AGENTS.md 回到接上 OmniKit 之前的樣子（有備份就還原）；
-   新版的受管區塊交給下一步的 agents.py。
-3. agents.py disconnect：拿掉 OmniKit 的 skills（連結與複製品）與 MCP server（三邊都是，其他設定目錄也是），
-   原地拿掉 ~/.codex/AGENTS.md、~/.gemini/GEMINI.md 與其他設定目錄的受管區塊（只剩區塊就還原安裝前的備份），
+   新版的受管區塊交給下一步的 sync.py。
+3. sync.py disconnect：拿掉 OmniKit 的 skills 連結、鏡像連結、薄 plugin 與 MCP server（三邊都是，其他設定目錄也是），
+   原地拿掉 ~/.codex/AGENTS.md、~/.gemini/AGENTS.md、~/.gemini/GEMINI.md 與其他設定目錄的受管區塊（只剩區塊就還原安裝前的備份），
    T3 Code 的 Antigravity 實例：還指到 OmniKit 轉接程式的 Binary path 拿掉（回到 T3 自動選），
-   刪掉 ~/.omnikit/acp 裡的轉接程式；清掉舊版 skillshare 設定裡 OmniKit 的部分，刪掉 agents.json。
-   同名但不是 OmniKit 的 skill 與 MCP server 不碰；OmniKit 寫入之後被使用者改過的 MCP server 也留著。
-4. 刪掉 ~/.omnikit 裡接好的規則（rules\AGENTS.md）、profile 選擇（profile.json）、
-   版本（edition.json）與免問核准的同意紀錄（consent.json）。
+   刪掉 ~/.omnikit/acp 裡的轉接程式；刪掉 config.json（及舊 agents.json）。
+   同名但不是 OmniKit 的 skill 與 MCP server 不碰。
+4. 刪掉 ~/.omnikit 裡接好的規則（rules\AGENTS.md）、乾淨參照副本（current）、本地薄 plugin 來源（claude-marketplace）、
+   profile 選擇（profile.json）、版本（edition.json）與免問核准的同意紀錄（consent.json）。
 5. 權限與 hook：從 ~/.claude/settings.json（與其他 Claude 設定目錄的）拿掉安裝紀錄裡、由 OmniKit 加的規則、
    Stop hook 與 SessionStart hook；
    從 ~/.codex/config.toml 拿掉 OmniKit 加的 Stop hook。
@@ -42,7 +42,7 @@ param([switch]$Yes, [switch]$KeepTools)
 $ErrorActionPreference = 'Stop'
 
 $Repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$AgentsPy = Join-Path $Repo 'engine\scripts\agents.py'
+$AgentsPy = Join-Path $Repo 'engine\scripts\sync.py'
 $UvExe = Join-Path $env:LOCALAPPDATA 'Programs\uv\uv.exe'
 $ProgramsDir = Join-Path $env:LOCALAPPDATA 'Programs'
 $SkillshareDir = Join-Path $env:APPDATA 'skillshare'
@@ -55,8 +55,11 @@ $StateDir = if ($env:OMNIKIT_STATE_DIR) { $env:OMNIKIT_STATE_DIR } else { Join-P
 $StatedirPy = Join-Path $Repo 'engine\scripts\statedir.py'
 $RecordFile = Join-Path $StateDir 'install-record.json'
 $AgentsFile = Join-Path $StateDir 'agents.json'
+$ConfigFile = Join-Path $StateDir 'config.json'
 # profiles.py 產生的：底線 + profile 接成一份的規則（比對 Codex 用）與這台選的 profile
 $ComposedRules = Join-Path $StateDir 'rules'
+$CurrentClone = Join-Path $StateDir 'current'
+$ClaudeMarketplace = Join-Path $StateDir 'claude-marketplace'
 $ProfileFile = Join-Path $StateDir 'profile.json'
 # edition.py 記的：這台是哪一版，以及免問核准的同意
 $EditionFile = Join-Path $StateDir 'edition.json'
@@ -136,10 +139,10 @@ $legacySkillshare = $legacyCodex -or ($ssText -match '(?m)^  mcp: .*servers\.yam
   (Test-Path (Join-Path $SkillshareDir 'skills\_omnikit'))
 $claudeHasBlock = (Get-FileText $ClaudeMd) -match $BlockPattern
 $codexHasBlock = (Get-FileText $CodexMd) -match $BlockPattern
-# 舊版整份換掉的格式；新版用受管區塊，交給 agents.py disconnect
+# 舊版整份換掉的格式；新版用受管區塊，交給 sync.py disconnect
 $codexOurs = -not $codexHasBlock -and ((Get-FileText $CodexMd).TrimStart().StartsWith($OursHeader) -or $legacyCodex)
 $geminiHasBlock = (Get-FileText $GeminiMd) -match $BlockPattern
-$hasAgents = (Test-Path $AgentsFile) -or $legacySkillshare
+$hasAgents = (Test-Path $ConfigFile) -or (Test-Path $AgentsFile) -or $legacySkillshare
 $hasEditionState = (Test-Path $EditionFile) -or (Test-Path $ConsentFile)
 $hooksOn = (git -C $Repo config --get core.hooksPath) -eq '.githooks'
 $npmPackages = @($record['npm'] | Where-Object { $_ })
@@ -216,7 +219,7 @@ function Remove-ClaudeRules {
 }
 
 # 舊版整份換掉的格式：有備份就還原；沒有備份、而且檔案是 OmniKit 的副本，就刪掉。
-# 新版的受管區塊交給 agents.py disconnect（Disconnect-Agents）
+# 新版的受管區塊交給 sync.py disconnect（Disconnect-Agents）
 function Remove-CodexRules {
   if ($codexHasBlock) { return }
   if (-not ($codexOurs -or (Test-Path "$CodexMd.pre-omnikit"))) { return }
@@ -238,7 +241,7 @@ function Remove-CodexRules {
   Write-Host '已還原 Codex 規則'
 }
 
-# skills、MCP、Codex 與 Antigravity 的規則區塊、舊版 skillshare 設定交給 agents.py；它也會刪掉 agents.json
+# skills、MCP、Codex 與 Antigravity 的規則區塊交給 sync.py；它也會刪掉 config.json / agents.json
 function Disconnect-Agents {
   if (-not ($hasAgents -or $geminiHasBlock -or $codexHasBlock)) { return }
   $uv = Get-Uv
@@ -247,15 +250,23 @@ function Disconnect-Agents {
     return
   }
   $r = Invoke-UvRun $uv @('run', '--quiet', $AgentsPy, 'disconnect')
-  if ($r.Code -ne 0) { throw "agents.py disconnect 失敗（exit $($r.Code)）" }
+  if ($r.Code -ne 0) { throw "sync.py disconnect 失敗（exit $($r.Code)）" }
 }
 
 # 要在 Remove-CodexRules 之後：它拿接好的規則比對 ~/.codex/AGENTS.md 有沒有被改過
 function Remove-ProfileState {
-  if (-not ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile) -or $hasEditionState)) { return }
-  Remove-Item -Recurse -Force $ComposedRules -ErrorAction SilentlyContinue
+  if (-not ((Test-Path $ComposedRules) -or (Test-Path $CurrentClone) -or (Test-Path $ClaudeMarketplace) -or (Test-Path $ProfileFile) -or $hasEditionState)) { return }
+  if (Test-Path -LiteralPath $CurrentClone) {
+    $item = Get-Item -LiteralPath $CurrentClone -Force
+    if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+      [IO.Directory]::Delete($item.FullName)
+    } else {
+      Remove-Item -Recurse -Force -LiteralPath $CurrentClone -ErrorAction SilentlyContinue
+    }
+  }
+  Remove-Item -Recurse -Force $ComposedRules, $ClaudeMarketplace -ErrorAction SilentlyContinue
   Remove-Item -Force $ProfileFile, $EditionFile, $ConsentFile -ErrorAction SilentlyContinue
-  Write-Host '已刪除接好的規則、profile 選擇、版本與免問核准的同意紀錄'
+  Write-Host '已刪除接好的規則、乾淨參照副本、profile 選擇、版本與免問核准的同意紀錄'
 }
 
 function Remove-ClaudePermissions {

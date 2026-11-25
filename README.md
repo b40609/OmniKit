@@ -140,7 +140,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 | skill | 輸入 `/omnikit`，選單裡會出現 `omnikit-setup`、`omnikit-ask` 與 `omnikit-eval`（訪談選了不評估新工具的，沒有 `omnikit-eval`） | 輸入 `$omnikit`，或用 `/skills` 列出來 | 問「你可用的 skill 有哪些？」，會列出這幾個 |
 | MCP | 終端機跑 `claude mcp get chrome_devtools`，狀態是 Connected | 終端機跑 `codex mcp list`，`chrome_devtools` 是 enabled | 終端機跑 `agy mcp list`，`chrome_devtools` 是 enabled |
 
-終端機跑 `uv run engine/scripts/agents.py status`，可以看到這台接上了哪些 agent、OmniKit 管了哪些 skills 與 MCP。
+終端機跑 `uv run engine/scripts/sync.py status`，可以看到這台接上了哪些 agent 與無帳本對帳狀態。
 
 逐項檢查跑 `uv run engine/scripts/doctor.py`：規則區塊、skills、MCP、權限規則與 hook 都還在、跟寫入時一樣，這台每個 agent 設定目錄（多帳號、T3 Code 的實例）都接上了，再用各 agent 自己的清單確認 MCP 已啟用；查不到的標「未知」，不算通過。加 `--preflight` 一併跑安裝前檢查。
 
@@ -234,7 +234,7 @@ flowchart LR
 
 1. **評估**：把工具的 GitHub 連結貼給 agent，`omnikit-eval` 會查 GitHub 現況、對照槽位情境，寫成一張工具卡。
 2. **產生**：commit 時 git hook 驗證名冊並重新產生 marketplace 清單；推到 main 之後，GitHub Actions 重建看板。
-3. **同步**：`install.ps1` 把規則（安全底線 + 你選的 profile）、skills、MCP 接到 Claude Code、Codex 與 Antigravity（`engine/scripts/agents.py`），權限與提醒 hook 接到 Claude Code 與 Codex。維護者版之後 commit 或 pull 動到這些檔案時，git hook 會自動再同步；同事版不設 git hook，pull 不會改任何設定。
+3. **同步**：`install.ps1` 透過無帳本同步器（`engine/scripts/sync.py`）把規則（安全底線 + 你選的 profile）、skills、hooks 與 MCP 接到 Claude Code、Codex 與 Antigravity。維護者版之後 commit 或 pull 動到這些檔案時，git hook 會自動再同步；同事版不設 git hook，pull 不會改任何設定。
 
 想看每個部分、每個檔案在做什麼，打開[互動架構地圖](https://b40609.github.io/OmniKit/map.html)：每個檔案都有白話說明，另有 3 條逐步導覽（評估新工具、改規則、第一次安裝）。建議用電腦開。
 
@@ -254,15 +254,14 @@ flowchart LR
 | `~/.claude/CLAUDE.md` | 在開頭加一段受管區塊，import `data/rules/baseline.md` 與你選的 profile 的 `AGENTS.md`（訪談產生的在 `~/.omnikit/profiles`，其他在 `data/profiles`）；路徑有空白時用 `\ ` 跳脫，不然 Claude Code 讀到空白就斷掉。其他內容不動 |
 | `~/.codex/AGENTS.md` | 在開頭加一段受管區塊，放底線與 profile 接在一起的內容；原本的規則留在區塊外，照常生效，也先備份成 `AGENTS.md.pre-omnikit`。舊版整份換掉的，同步時換成只有區塊（規則內容一樣）；區塊被拿掉的話，同步時不加回去 |
 | `~/.gemini/GEMINI.md` | Antigravity 的規則：在開頭加一段受管區塊，放底線與 profile 接在一起的內容；原本的先備份成 `GEMINI.md.pre-omnikit`。原地改寫，這個檔案跟其他工具共用（硬連結）時，其他名字會一起更新，連結不會斷 |
-| `~/.claude/skills` | `engine/skills` 的每個 skill 用資料夾連結接上，改完馬上生效 |
-| `~/.agents/skills` | Codex 的：`engine/skills` 的每個 skill 複製一份，裡面的 `.omnikit.json` 記來源；同名但不是 OmniKit 的不碰 |
-| `~/.gemini/config/skills` | Antigravity 的（App、IDE 與 CLI 共用）：一樣複製一份、帶 `.omnikit.json`，因為 Antigravity 不跟隨資料夾連結。它不讀 `~/.agents/skills`（`.agents/skills` 只在專案資料夾裡有效） |
-| `~/.claude.json`、`~/.codex/config.toml`、`~/.gemini/config/mcp_config.json` | 寫入 `data/mcp/servers.yaml` 的 MCP server，只動這些 server 裡 OmniKit 管的欄位；你加的欄位（例如停用）與 Codex 的工具核准紀錄都留著。被你改過、被你移除，或同名但不是 OmniKit 的，那個 server 略過不動，見 [MCP 有衝突時](#mcp-有衝突時)。Claude 用 `claude mcp add-json`；Codex 寫入前驗證其他設定沒被動到；Antigravity 不寫 BOM（它讀到 BOM 會整份失敗）。`config.toml` 結尾另加兩段 `[[hooks.Stop]]`：開新對話提醒與說做不到查證 |
-| `~/.omnikit/`（Windows 是 `%USERPROFILE%\.omnikit`；可用環境變數 `OMNIKIT_STATE_DIR` 改位置） | 不放 `%LOCALAPPDATA%`：從 Claude 桌面版這類 MSIX 封裝的 app 裡跑時，那裡新建的檔會被轉存成另一份；舊版留在 `%LOCALAPPDATA%\omnikit` 與轉存副本的，安裝、同步時會合併過來（原檔備份在 `legacy\`）。`profiles/<名稱>/` 是訪談產生的 profile（個人資料，不在 repo 裡；移除時也不刪）；`profile.json` 記這台選的 profile；`edition.json` 記這台是維護者版還是同事版；`consent.json` 記你同意了哪些工具免問；`agents.json` 記接上了哪些 agent、OmniKit 管了哪些 skills，以及每個 MCP server 寫入時的雜湊（判斷有沒有被改過）；`rules/AGENTS.md` 是底線與 profile 接在一起的內容（移除時比對用） |
+| `~/.claude/skills`、`~/.codex/skills` | `engine/skills` 的每個 skill 用 Directory Junction 連結至 `~/.omnikit/current/engine/skills`（加 `--dev` 則直連工作區），零檔案複製與零雜湊帳本 |
+| `~/.gemini/config/skills.json` | Antigravity 的（App、IDE、CLI 與 T3 Code 實例共用）：原生參照實體 skills 路徑，T3 自動同步至全部實例 |
+| `~/.omnikit/claude-marketplace`、`~/.codex/config.toml`、`~/.gemini/config/plugins/omnikit/` | 無帳本掛載 `data/mcp/servers.yaml` 的 MCP server 與護欄 hooks：Claude 安裝本地薄 plugin `omnikit@omnikit-local`；Codex 用 `codex mcp` CLI 與 `config.toml` hooks；Antigravity 與各 T3 實例放置三檔薄 plugin 宣告（不動頂層 `mcp_config.json`，保留 T3 自動標題生成） |
+| `~/.omnikit/`（Windows 是 `%USERPROFILE%\.omnikit`；可用環境變數 `OMNIKIT_STATE_DIR` 改位置） | 不放 `%LOCALAPPDATA%`：從 Claude 桌面版這類 MSIX 封裝的 app 裡跑時，那裡新建的檔會被轉存成另一份；舊版留在 `%LOCALAPPDATA%\omnikit` 與轉存副本的，安裝、同步時會合併過來（原檔備份在 `legacy\`）。`current/` 是保護工作區免受穿透刪除的乾淨 git clone；`profiles/<名稱>/` 是訪談產生的 profile（個人資料，不在 repo 裡；移除時也不刪）；`profile.json` 記這台選的 profile；`edition.json` 記這台是維護者版還是同事版；`consent.json` 記你同意了哪些工具免問；`config.json` 記啟用的 agent 與明確列舉的額外設定目錄 |
 | 舊版的 skillshare | 以前用 skillshare 接的電腦，重跑 `install.ps1` 會改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分；skillshare 本身不刪 |
 | npm 全域套件 | 安裝 `data/mcp/packages.txt` 指定的固定版本 |
 | `~/.claude/settings.json` | 把 `data/harness/claude-allow.txt` 的規則補進 `permissions.allow`，只增不刪；同事版只補你同意過的工具。在 `hooks.Stop` 加上開新對話提醒（`engine/scripts/session_nudge.py`）與說做不到查證（`engine/scripts/claim_check.py`），在 `hooks.SessionStart` 加上設定目錄檢查（`engine/scripts/home_watch.py`：發現新帳號的設定目錄就在背景接上） |
-| 其他設定目錄 | 多帳號或啟動器另外指定的設定目錄（`CLAUDE_CONFIG_DIR`、`CODEX_HOME`、T3 Code 每個實例的 homePath、有 `.claude.json` 的 `~/.claude-*` 等，`engine/scripts/homes.py` 找）：規則區塊、MCP、Claude 的 skills、權限規則與 hook 都跟預設目錄一樣寫。Claude 的其他設定目錄另外同步你自己裝在 `~/.claude` 的東西：`~/.claude/skills` 的 skill 用資料夾連結連過去（`.bak-*` 這類備份、`.` 開頭的、claude.ai 自己同步的 `synced` 不連），`~/.claude/settings.json` 啟用中的 plugin 用官方的 `claude plugin marketplace add` 與 `claude plugin install`（`CLAUDE_CONFIG_DIR` 指到那個目錄）裝進去，停用的不裝；設定檔其他欄位與金鑰不碰。之後在 `~/.claude` 新裝的，重跑 `uv run engine/scripts/agents.py sync`（只同步 plugin：`--plugins`）就補上 |
+| 其他設定目錄 | 多帳號或啟動器另外指定的設定目錄（`CLAUDE_CONFIG_DIR`、`CODEX_HOME`、T3 Code 每個實例的 homePath、以及 `config.json` 明確列舉的額外目錄，`engine/scripts/homes.py` 找）：規則區塊、MCP、skills、權限規則與 hook 都跟預設目錄一樣寫。Claude 的其他設定目錄另外無帳本同步你自己裝在 `~/.claude` 的東西：`~/.claude/skills` 的第三方 skill 用 Directory Junction 連過去（`.bak-*` 這類備份、`.` 開頭的、無 `SKILL.md` 的系統目錄不連），`~/.claude/settings.json` 啟用中的第三方 plugin 用官方的 `claude plugin marketplace add` 與 `claude plugin install`（`CLAUDE_CONFIG_DIR` 指到那個目錄）裝進去，停用的不裝；設定檔其他欄位與金鑰不碰。之後在 `~/.claude` 新裝的，重跑 `uv run engine/scripts/sync.py sync`（只同步 plugin：`--plugins`）就補上 |
 | `~/.t3/userdata/settings.json`、`~/.omnikit/acp/` | T3 Code 的 Antigravity 實例走 ACP 模式，不讀 `GEMINI.md`。把每個實例的 Binary path（`config.binaryPath`）設成 OmniKit 的轉接程式 `omnikit-acp.cmd`，它跑 T3 自己裝的 server，開新對話時把 `~/.gemini/GEMINI.md` 帶進系統提示（`engine/scripts/t3_acp.py`、`acp_shim.py`）。T3 自己補的預設實例（`antigravity`，設定檔沒列）也接上；只改沒設的，你自己設了 Binary path 的不動，`doctor.py` 會列出來。設定後 T3 會重建那個實例，開著的 Antigravity 對話會斷一次。只裝 T3 沒裝 Antigravity CLI 也算有 Antigravity。移除時改回 T3 自動選。目前只支援 Windows。轉接程式不放 `%LOCALAPPDATA%`：從 Claude 桌面版這類 MSIX 封裝的 app 裡安裝時，AppData 底下新建的檔會被轉存到那個 app 的私人位置，T3 看不到 |
 | 這個 repo | 維護者版：`core.hooksPath` 指到 `.githooks`，commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、skills、MCP、權限、提醒 hook 時自動同步。同事版不設 git hook |
 | `~/.omnikit/install-record.json` | 安裝紀錄：記下這台原本沒有、由 OmniKit 裝上的工具、npm 套件與權限規則，移除時只動這些 |
@@ -276,7 +275,7 @@ flowchart LR
 | | 維護者版 | 同事版（預設） |
 |---|---|---|
 | git hook | commit 前掃金鑰、驗證名冊；commit 或 pull 後自動同步。在 git worktree（例如 `.claude/worktrees/` 底下）裡只掃金鑰、驗證名冊，不同步，合進 main 後由主 checkout 同步 | 不設。pull 不會改任何設定；要套用更新，先跑 `install.ps1 -WhatIf` 預覽，再跑 `install.ps1` |
-| 免問核准 | 照 `data/harness/claude-allow.txt` 與 `data/mcp/servers.yaml` 寫入，那是維護者自己同意的 | 每個工具先問你，同意了才寫入（預設否）。之後可以改：`uv run engine/scripts/agents.py approvals` 查看，`--grant <名稱>` 同意、`--revoke <名稱>` 撤回 |
+| 免問核准 | 照 `data/harness/claude-allow.txt` 與 `data/mcp/servers.yaml` 寫入，那是維護者自己同意的 | 每個工具先問你，同意了才寫入（預設否）。之後可以改：`uv run engine/scripts/sync.py approvals` 查看，`--grant <名稱>` 同意、`--revoke <名稱>` 撤回 |
 | gitleaks | 裝，給 pre-commit 用 | 不裝 |
 
 看這台是哪一版：`uv run engine/scripts/edition.py`。
@@ -474,38 +473,23 @@ uv run engine/scripts/dispatch.py stats     # 依級別與模型類別的一次�
 | 1 | 便宜 | 讀 README，對照槽位情境寫卡片，狀態是「待評估」 |
 | 2 | 實測 | 拿槽位情境實際跑一遍並評分，點名才跑；紀錄放在 `data/evals/` |
 
-### 清掉沒在用的 skill
+### 清掉沒在用的 skill（已停用）
 
-個人週報的第一節（維護者每週彙整的最後一節也有），會列出這台電腦 30 天沒用到的 skill 與 plugin，建議移除；每週彙整另外點出名冊上還是預設或試用中的。
+> **2026-11-25 起停用舊版對話掃描腳本。** 取代的做法：直接用 Claude Code 的 `/doctor`、`/usage` 與 `/plugin` 檢視各工具啟用狀態，不再維護本機對話紀錄掃描腳本。
 
-- **怎麼算用到**：讀 Claude Code、Codex、Antigravity 的本機對話紀錄，只算實際讀取或呼叫的。每段對話開頭列出的 skill 清單不算；agent 讀到的檔案內容或指令輸出裡剛好出現 slash 指令的字樣，也不算。Claude Code 只算 Skill 工具呼叫與你自己下的 slash 指令。只輸出名稱、對話數與日期，不輸出對話內容，也不上傳。
-- **Codex 的 plugin**：以最近一次 Codex 對話實際載入的 skill 清單為準，已停用的 plugin 與 skill 不列；讀到 plugin 裡的 SKILL.md，算那個 plugin 用到。
-- **不會誤判剛裝的**：裝不到 30 天的先不判斷。Claude Code 的 plugin 只要累計用過就不列。
-- **重複安裝**：同一個 agent 讀得到兩份同名 skill、只有一份有在用時，會標成「可能是重複的」。
-- **移除前會先問**：agent 只會列出來問你，不會自己刪。
+### 無帳本對帳與檢查
 
-想看完整清單或換天數：
+OmniKit 採用無狀態對帳（不維護 `agents.json` 或 `.omnikit.json` 雜湊帳本），所有期望狀態皆由 repo 內的 manifest（`data/rules/`、`engine/skills/`、`data/mcp/servers.yaml`、`data/harness/claude-allow*.txt`）直接計算：
 
-```powershell
-uv run engine/scripts/usage.py --days 60
-```
+- **Claude Code 與 Antigravity 的 MCP／hooks**：包裝在獨立薄 plugin 目錄（`omnikit@omnikit-local` 與 `config/plugins/omnikit/`），不與你自己在頂層 `.claude.json` 或 `mcp_config.json` 設定的其他 server 混寫衝突。
+- **Codex 的 MCP**：透過 `codex mcp` CLI 對帳設定，不會抹掉其他自訂 server。
 
-### MCP 有衝突時
-
-OmniKit 寫入 MCP server 之後，`agents.json` 會記下它管的欄位的雜湊。下次同步發現下面三種情況，那個 server 就略過不動，規則、skills 與其他 server 照常寫，並列出不同的欄位名稱（不列值，值可能是金鑰）：
-
-- 你在 agent 裡改過 OmniKit 管的欄位，例如 `args`。
-- OmniKit 加過的 server 被你移除了。
-- 已經有同名的 server，但不是 OmniKit 加的。
-
-`install.ps1` 會逐一問你；不能互動的時候（例如 git hook），決定之後執行其中一個：
+想在不修改任何檔案的前提下檢查本機設定與端到端護欄健康狀態：
 
 ```powershell
-uv run engine/scripts/agents.py resolve <名稱> --use-omnikit   # 改用 data/mcp/servers.yaml 的設定
-uv run engine/scripts/agents.py resolve <名稱> --keep-mine     # 保留你的設定，OmniKit 之後不再管它
+uv run engine/scripts/sync.py sync --check   # 純唯讀對帳，有差異回傳 exit 1
+uv run engine/scripts/doctor.py              # 全面健康檢查（含三方言 hook 端到端自測與 T3 實例檢查）
 ```
-
-選了 `--keep-mine` 之後想改回由 OmniKit 管，再執行一次 `--use-omnikit` 就好。
 
 ### 新增一種業務
 
@@ -656,14 +640,14 @@ engine/                      引擎：不用改
 
 以前規則、skills 與 MCP 是靠 [skillshare](https://github.com/runkids/skillshare) 同步。公司電腦的防毒（例如 Trend Micro 的「新出現的程式」偵測）會擋下從網路下載、很少人用或剛發布的程式：執行前跳通知要你按允許，要剛好盯著畫面才按得到，錯過就擋下。git hook 與 agent 在背景同步時常沒人看畫面，同步就失敗，放行之後也可能又被擋。
 
-OmniKit 只支援 Claude Code、Codex 與 Antigravity 三個 agent，所以改由自己的 Python 腳本（`engine/scripts/agents.py`）直接接，用的是 uv 與 Python，不再需要另外放行。以前用 skillshare 接的電腦，重跑一次 `install.ps1` 就會改由 OmniKit 接手；skillshare 本身留著，不需要的話可以自己移除。
+OmniKit 只支援 Claude Code、Codex 與 Antigravity 三個 agent，所以改由自己的無帳本同步腳本（`engine/scripts/sync.py`）直接接，用的是 uv 與 Python，不再需要另外放行。以前用 skillshare 接的電腦，重跑一次 `install.ps1` 就會改由 OmniKit 接手；skillshare 本身留著，不需要的話可以自己移除。
 
 </details>
 
 <details>
 <summary><b>Antigravity 看不到 OmniKit 的 skill？</b></summary>
 
-Antigravity 的全域 skill 只讀 `~/.gemini/config/skills`，而且不跟隨資料夾連結，所以 OmniKit 把 skill 複製到那裡。2026-11-17 以前的版本裝到 `~/.agents/skills`，Antigravity 讀不到（那份 Codex 還在用，留著）；更新 OmniKit 後跑一次 `uv run engine/scripts/agents.py sync --skills`（維護者版 commit 或 pull 時 git hook 會自動跑，同事版重跑 `install.ps1`）就會補裝。改了 `engine/skills` 裡的 skill 也一樣要 commit 或跑這個指令才會重新複製。同名的資料夾已經存在、而且不是 OmniKit 的，OmniKit 不會覆蓋，同步時會印出來。
+Antigravity 的全域 skill 不跟隨資料夾連結，因此 OmniKit 改透過 `~/.gemini/config/skills.json` 原生參照實體 skills 目錄（T3 Code 也會自動同步到所有 Antigravity 實例）。更新 OmniKit 後跑一次 `uv run engine/scripts/sync.py sync`（維護者版 commit 或 pull 時 git hook 會自動跑，同事版重跑 `install.ps1`）就會補齊並清掉舊版複製品。
 
 </details>
 

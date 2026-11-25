@@ -5,7 +5,7 @@
 2. Layer 1 納入 user_note 與 community_counterpoints，產出回應提問並將社群限制列入待驗證 claims。
 3. layer0.py 安全掃描盲區修補與結構化 security_badge（skill_scan_pass / executable_needs_review / risk_flagged）。
 4. scripts/record_decision.py：approve_l2（符合 layer2-request.schema.json）、on_demand（0 token 常駐）、reject（命中 similar_rejected）。
-5. 契約測試與 .omnikit.json 路徑一致性檢查。
+5. 契約測試與無帳本探索路徑（~/.omnikit/config.json 與 Directory Junction）一致性檢查。
 """
 import hashlib
 import json
@@ -31,12 +31,12 @@ for _p in (str(EVAL_SCRIPTS), str(ENGINE_SCRIPTS)):
 import _cheap  # noqa: E402
 import _github  # noqa: E402
 import _omnikit  # noqa: E402
-import agents  # noqa: E402
 import build  # noqa: E402
 import eval_single  # noqa: E402
 import layer0  # noqa: E402
 import layer1  # noqa: E402
 import record_decision  # noqa: E402
+import sync  # noqa: E402
 import validate  # noqa: E402
 
 
@@ -606,46 +606,50 @@ def test_record_decision_cli_subprocess_utf8_roundtrip(tmp_path):
     assert (data_copy / "tools" / "cli-roundtrip-tool.yaml").is_file()
 
 
-# ---------- 5. .omnikit.json 路徑一致性與腳本探索 ----------
+# ---------- 5. 無帳本同步器路徑一致性與腳本探索 ----------
 
-def test_omnikit_json_marker_consistency_and_script_discovery(tmp_path):
+def test_stateless_sync_path_consistency_and_script_discovery(tmp_path):
     fake_home = tmp_path / "home"
     fake_state = tmp_path / "state"
-    fake_ss = tmp_path / "skillshare"
-    fake_home.mkdir()
+    (fake_home / ".claude").mkdir(parents=True)
+    (fake_home / ".codex").mkdir(parents=True)
+    (fake_home / ".gemini" / "config").mkdir(parents=True)
     fake_state.mkdir()
 
-    env = agents.Env(home=fake_home, repo=ROOT, state=fake_state, skillshare=fake_ss, which=lambda _: None)
-    rec = agents.load_record(env)
-    agents.sync_skills(env, ["claude-code", "codex", "antigravity"], rec)
+    env = sync.Env(home=fake_home, repo=ROOT, state=fake_state, which=lambda _: None, environ={})
+    rc, _ = sync.run_sync(
+        env,
+        agents_override=["claude-code", "codex", "antigravity"],
+        do_rules=False,
+        do_skills=True,
+        do_mcp=False,
+        dev=True,
+    )
+    assert rc == 0
 
-    # 1. ~/.agents/skills/omnikit-eval/.omnikit.json（Codex，與 OmniKeep 優先偵測路徑完全一致）
-    codex_marker = fake_home / ".agents" / "skills" / "omnikit-eval" / ".omnikit.json"
-    assert codex_marker.is_file()
-    marker_doc = json.loads(codex_marker.read_text(encoding="utf-8"))
-    detected_repo = Path(marker_doc["repo"])
+    # 1. config.json 記錄開發 repo 路徑（供外部橋接與 current 副本轉回真實 repo）
+    cfg = json.loads((fake_state / "config.json").read_text(encoding="utf-8"))
+    detected_repo = Path(cfg["repo"])
     assert detected_repo.resolve() == ROOT.resolve()
-
-    # 從偵測出的 repo root 確認 OmniKeep 優先尋找的兩個腳本皆存在
     assert (detected_repo / "scripts" / "eval_single.py").is_file()
     assert (detected_repo / "scripts" / "record_decision.py").is_file()
-    # 同步出去的 omnikit-eval skill 複製品內也附帶兩支腳本
-    assert (fake_home / ".agents" / "skills" / "omnikit-eval" / "scripts" / "eval_single.py").is_file()
-    assert (fake_home / ".agents" / "skills" / "omnikit-eval" / "scripts" / "record_decision.py").is_file()
 
-    # 2. ~/.gemini/config/skills/omnikit-eval/.omnikit.json（Antigravity copy 模式）
-    agy_marker = fake_home / ".gemini" / "config" / "skills" / "omnikit-eval" / ".omnikit.json"
-    assert agy_marker.is_file()
-    assert Path(json.loads(agy_marker.read_text(encoding="utf-8"))["repo"]).resolve() == ROOT.resolve()
+    # 2. ~/.codex/skills/omnikit-eval（Directory Junction，resolve().parents[2] 回到 repo）
+    codex_dir = fake_home / ".codex" / "skills" / "omnikit-eval"
+    assert sync.is_link(codex_dir)
+    assert codex_dir.resolve().parents[2] == ROOT.resolve()
+    assert (codex_dir / "scripts" / "eval_single.py").is_file()
+    assert (codex_dir / "scripts" / "record_decision.py").is_file()
 
-    # 3. ~/.claude/skills/omnikit-eval：預設 link 模式指向 repo，若 fallback copy 則寫出 .omnikit.json
+    # 3. ~/.claude/skills/omnikit-eval（Directory Junction，零 .omnikit.json 污染）
     claude_dir = fake_home / ".claude" / "skills" / "omnikit-eval"
-    assert claude_dir.exists()
-    if agents.is_link(claude_dir):
-        assert claude_dir.resolve() == (ROOT / "engine" / "skills" / "omnikit-eval").resolve()
-        # 確保沒有在 repo 裡留下 untracked 的 .omnikit.json
-        assert not (ROOT / "engine" / "skills" / "omnikit-eval" / ".omnikit.json").exists()
-    else:
-        claude_marker = claude_dir / ".omnikit.json"
-        assert claude_marker.is_file()
-        assert Path(json.loads(claude_marker.read_text(encoding="utf-8"))["repo"]).resolve() == ROOT.resolve()
+    assert sync.is_link(claude_dir)
+    assert claude_dir.resolve() == (ROOT / "engine" / "skills" / "omnikit-eval").resolve()
+    assert not (ROOT / "engine" / "skills" / "omnikit-eval" / ".omnikit.json").exists()
+    assert not (fake_state / "agents.json").exists()
+
+    # 4. ~/.gemini/config/skills.json（Antigravity 原生參照實體路徑）
+    skills_json = json.loads((fake_home / ".gemini" / "config" / "skills.json").read_text(encoding="utf-8"))
+    agy_entry = skills_json["entries"][0]["path"]
+    agy_skills = Path(agy_entry.lstrip("/") if os.name == "nt" and len(agy_entry) > 2 and agy_entry[2] == ":" else agy_entry)
+    assert agy_skills.resolve() == (ROOT / "engine" / "skills").resolve()

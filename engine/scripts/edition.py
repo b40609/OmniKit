@@ -75,7 +75,7 @@ def resolve(state=STATE, repo=ROOT, git=hooks_path):
     value = read_json(state / "edition.json").get("edition")
     if value in EDITIONS:
         return value, "recorded"
-    if (state / "agents.json").exists() and git(repo) == ".githooks":
+    if ((state / "config.json").exists() or (state / "agents.json").exists()) and git(repo) == ".githooks":
         return "maintainer", "legacy"
     return "colleague", "default"
 
@@ -200,7 +200,7 @@ def selftest():
                                    env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
                 return r.returncode, r.stdout.strip(), r.stderr.strip()
 
-            code, out, err = hook("data/mcp/servers.yaml\nengine/scripts/agents.py\n")
+            code, out, err = hook("data/mcp/servers.yaml\nengine/scripts/sync.py\n")
             check("git hook：同事版動到 MCP 與腳本，只印一行提醒、不同步",
                   code == 0 and len(out.splitlines()) == 1 and "不是維護者版" in out and not err)
             code, out, _ = hook("docs/v2/prd/prd.md\n")
@@ -209,13 +209,13 @@ def selftest():
             code, out, _ = hook("docs/v2/prd/prd.md\n")
             check("git hook：維護者版沒動到同步的檔案，什麼都不做", code == 0 and out == "")
 
-            # linked worktree：暫存 repo 放假的 edition.py（固定維護者版）與 agents.py（只寫記號檔），
+            # linked worktree：暫存 repo 放假的 edition.py（固定維護者版）與 sync.py（只寫記號檔），
             # 實際同步什麼都碰不到；主 checkout 要寫出記號，證明假腳本有接上，worktree 不寫才有意義
             main, wt, mark = tmp / "wt-main", tmp / "wt-linked", tmp / "synced.txt"
             scripts = main / "engine" / "scripts"
             scripts.mkdir(parents=True)
             (scripts / "edition.py").write_text('print("maintainer")\n', encoding="utf-8")
-            (scripts / "agents.py").write_text(
+            (scripts / "sync.py").write_text(
                 "import os, sys\n"
                 f"with open({str(mark)!r}, 'a', encoding='utf-8') as f:\n"
                 "    f.write(' '.join(sys.argv[1:]) + ' @ ' + os.getcwd() + '\\n')\n", encoding="utf-8")

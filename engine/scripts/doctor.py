@@ -5,31 +5,33 @@
 # [tool.uv]
 # exclude-newer = "2026-11-01T00:00:00Z"
 # ///
-"""doctor（FR-11）：逐項確認 OmniKit 寫進這台的設定都還在、跟記錄一樣，再用各 agent 自己的清單確認。
-只讀不寫。查不到的標「未知」，不當作通過；有任何一項失敗就 exit 1。
+"""OmniKit doctor（無帳本對帳＋Fable Stage 2 第 6 節全面防呆健康檢查）。
 
-狀態：狀態資料夾（~/.omnikit，見 statedir.py）只能有一份。舊位置（%LOCALAPPDATA%\\omnikit，以及 Claude 桌面版
-這類封裝的 app 轉存的副本 %LOCALAPPDATA%\\Packages\\*\\LocalCache\\Local\\omnikit）還有沒合併的狀態檔，列成失敗；
-上次合併有衝突就列出來（用了較新的，另一份在備份裡）。
-寫入檢查（照 ~/.omnikit 的 agents.json 與 install-record.json）：
-- 規則：~/.claude/CLAUDE.md、~/.codex/AGENTS.md、~/.gemini/GEMINI.md 的受管區塊，跟這台選的 profile 產生的一樣。
-- skills：記錄裡的每個 skill 都在；連結指向 repo，複製品的雜湊跟 repo 一樣。
-- MCP：帳本裡的每個 server 都在，OmniKit 管的欄位雜湊跟寫入時一樣（被改過就用 agents.py resolve 決定）。
-- 免問核准與 hook：記錄裡的 Claude 權限規則還在 ~/.claude/settings.json；提醒 hook（Stop）與設定目錄檢查
-  （SessionStart）、T3 MCP 斷線防護（SessionStart）有註冊；Codex 的提醒 hook 有註冊。
-- 設定目錄：這台找得到的其他設定目錄（homes.py：多帳號、T3 Code 的實例、CLAUDE_CONFIG_DIR、CODEX_HOME…）
-  都接上了；上面各項也逐一檢查那些目錄。T3 Code 的 Antigravity 實例：T3 4979 起原生讀規則，
-  Binary path 沒指著停用的轉接程式就通過；更舊的 T3 看 Binary path 是不是轉接程式（t3_acp.py），不是的列成失敗。
-agent 自己的清單：
-- MCP：claude mcp list（會順便測連線）、codex mcp list --json、agy mcp list。
-- skills：三個 agent 都沒有列出 skill 的指令，記「未知」；檔案在不在由寫入檢查確認。
-安裝前檢查：加 --preflight 時一併跑 preflight.ps1（FR-35）。
+只讀不寫；查不到的標「未知」，不當作通過；任一項失敗 exit 1。
+檢查範圍：
+1. 無狀態設定對帳（由 repo manifest 直接算期望狀態，不依賴 agents.json）：
+   - 規則：Claude（@import＋帶內金絲雀行，並依 dev_link 檢查目標與 current HEAD 是否最新）、
+     Codex（受管區塊 <= 32 KiB）、Antigravity（AGENTS.md 共用＋GEMINI.md 個人，單檔 <= 24,000 bytes、無同目錄硬連結）。
+   - Skills：Claude 與 Codex 的每個設定目錄皆有指向目標的 Directory Junction；Antigravity 的 config/skills.json 有參照。
+   - Hooks 與 MCP：Claude 薄 plugin（透過 --json 驗證 enabled 與內容雜湊版本）或備案 hooks、
+     權限清單（現行有、墓碑無，並列出自訂權限）；Codex MCP（含 default_tools_approval_mode）與 Stop hooks；
+     Antigravity 薄 plugin（~/.gemini 與全部 T3 實例）。
+2. Hook 端到端自測與實際執行檔檢查：對 harness_hooks.py 實跑餵入三種輸入方言的假危險指令確認皆回傳 deny，
+   並檢查已安裝 hook 實際指向的 uv / Python 執行檔真實存在且非 WindowsApps Store 別名。
+3. T3 專屬健康檢查（~/.t3 存在時必跑）：
+   - 列舉到 0 個 Antigravity 實例直接報錯（不沉默）；
+   - 每個實例的 config/skills 是指向 ~/.gemini/config/skills 的 junction；
+   - 比對每個實例的 AGENTS.md、GEMINI.md、config/skills.json 與 ~/.gemini 本尊位元組是否一致（不同標記「T3 同步已卡住」）；
+   - 每個實例的 config/plugins/omnikit/hooks.json 已就位。
+4. SKILL.md 與 MCP 規範檢查：目錄名 == name、有 description、無 UTF-8 BOM、無穿出 skills 根目錄的相對路徑；
+   servers.yaml 的 env 不得寫死密鑰值；同步器與 doctor 原始碼零遞迴刪除。
 
 用法：uv run engine/scripts/doctor.py [--preflight] [--json] [--no-lists]
       uv run engine/scripts/doctor.py --selftest
 """
+from __future__ import annotations
+
 import argparse
-import dataclasses
 import json
 import os
 import re
@@ -37,265 +39,403 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
+import tomllib
 from pathlib import Path
 
+import yaml
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import agents  # noqa: E402
-import claude_allow  # noqa: E402
-import homes  # noqa: E402
-import profiles  # noqa: E402
-import statedir  # noqa: E402
-import t3_acp  # noqa: E402
+import claude_allow
+import edition
+import homes
+import profiles
+import sync
 
 OK, FAIL, UNKNOWN = "ok", "fail", "unknown"
 MARK = {OK: "✓", FAIL: "✗", UNKNOWN: "？"}
-CODEX_SCRIPTS = (claude_allow.NUDGE, claude_allow.CLAIM, claude_allow.T3W)  # OmniKit 在 Codex 註冊的 hook
+CODEX_SCRIPTS = (claude_allow.NUDGE, claude_allow.CLAIM, claude_allow.T3W)
+REL_LINK_RE = re.compile(r"\]\(([^)]+)\)")
+QUOTED_EXE_RE = re.compile(r'^(?:call\s+)?"([^"]+)"')
 
 
-def row(area, agent, item, status, detail=""):
+def row(area: str, agent: str, item: str, status: str, detail: str = "") -> dict:
     return {"area": area, "agent": agent, "item": item, "status": status, "detail": detail}
 
 
-def same_text(a, b):
+def same_text(a: str, b: str) -> bool:
     return a.replace("\r\n", "\n").strip() == b.replace("\r\n", "\n").strip()
 
 
-# ---------- 寫入檢查 ----------
+def _git_head(repo_dir: Path) -> str | None:
+    if not (repo_dir / ".git").exists() or not shutil.which("git"):
+        return None
+    git_env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    r = subprocess.run(["git", "-C", str(repo_dir), "rev-parse", "HEAD"],
+                       env=git_env, capture_output=True, text=True, timeout=10, check=False)
+    return r.stdout.strip() if r.returncode == 0 else None
 
-def check_rules(env, rec):
+
+def check_current_clone(env: sync.Env) -> list[dict]:
+    cfg = sync.load_config(env.state)
+    real_repo = sync.resolve_real_repo(env.repo, env.state)
+    if cfg.get("dev_link"):
+        return [row("參照副本", "", "dev_link 模式", OK, f"直接連結開發倉庫 {real_repo}")]
+    if not (real_repo / ".git").exists():
+        return []
+    cur = env.state / "current"
+    repo_head = _git_head(real_repo)
+    cur_head = _git_head(cur)
+    if repo_head and cur_head == repo_head:
+        return [row("參照副本", "", "~/.omnikit/current", OK, f"與 repo HEAD 一致（{cur_head[:7]}）")]
+    return [row("參照副本", "", "~/.omnikit/current", FAIL,
+                f"與 repo HEAD 不一致或尚未建立（current={cur_head[:7] if cur_head else '無'} vs repo={repo_head[:7] if repo_head else '未知'}）：跑 sync.py sync")]
+
+
+def check_rules(env: sync.Env, agents: list[str], claude_dirs: list[Path], codex_dirs: list[Path]) -> list[dict]:
+    real_repo = sync.resolve_real_repo(env.repo, env.state)
+    data = real_repo / "data"
     try:
-        name, _ = profiles.resolve(env.data, env.state)
+        name, _ = profiles.resolve(data, env.state)
     except SystemExit as e:
-        return [row("規則", profiles.NAMES.get(a, a), "受管區塊", UNKNOWN, str(e.code)) for a in rec["agents"]]
+        return [row("規則", profiles.NAMES.get(a, a), "受管區塊", FAIL, str(e.code)) for a in agents]
     out = []
     targets = []
-    for a in rec["agents"]:
-        if a == "antigravity":
-            gem = env.rules["antigravity"]
-            ag = gem.with_name("AGENTS.md")
-            targets.append(("antigravity-shared", ag, profiles.NAMES[a]))
-            targets.append(("antigravity-personal", gem, profiles.NAMES[a]))
-        else:
-            targets.append((a, env.rules[a], profiles.NAMES[a]))
-    if "claude-code" in rec["agents"]:  # 其他設定目錄（多帳號、啟動器指定的）也要有區塊
-        targets += [("claude-code", p, agents.label_of(agents.extra_key(p.parent))) for p in env.claude_extra_rules]
-    if "codex" in rec["agents"]:
-        targets += [("codex", p, agents.label_of(agents.extra_key(p.parent, "codex"))) for p in env.codex_extra_rules]
-    for agent, path, label in targets:
-        if agent == "claude-code":
-            want = profiles.claude_block(env.data, env.state, name)
-        elif agent == "antigravity-shared":
-            want = profiles.content_block(profiles.compose_shared(env.data))
-        elif agent == "antigravity-personal":
-            want = profiles.content_block(profiles.compose_personal(env.data, env.state, name))
-        else:
-            want = profiles.content_block(profiles.compose(env.data, env.state, name))
+    if "claude-code" in agents:
+        for i, d in enumerate(claude_dirs):
+            lbl = "Claude Code" if i == 0 else f"Claude Code（{d.name}）"
+            targets.append(("claude-code", d / "CLAUDE.md", lbl))
+    if "codex" in agents:
+        for i, d in enumerate(codex_dirs):
+            lbl = "Codex" if i == 0 else f"Codex（{d.name}）"
+            targets.append(("codex", d / "AGENTS.md", lbl))
+    if "antigravity" in agents:
+        gem = env.home / ".gemini" / "GEMINI.md"
+        targets.append(("antigravity-shared", gem.with_name("AGENTS.md"), "Antigravity"))
+        targets.append(("antigravity-personal", gem, "Antigravity"))
+
+    for kind, path, lbl in targets:
         raw_text = profiles.text(path) if path.exists() else ""
         found = profiles.BLOCK.search(raw_text) if path.exists() else None
         size_b = len(raw_text.encode("utf-8"))
         if not found:
-            out.append(row("規則", label, path.name, FAIL, f"{path} 沒有 OmniKit 受管區塊：跑 profiles.py 或重跑 install.ps1"))
-        elif agent.startswith("antigravity-") and size_b > profiles.AGY_MAX_FILE_BYTES:
-            out.append(row("規則", label, path.name, FAIL, f"大小 {size_b:,} bytes 超過上限 {profiles.AGY_MAX_FILE_BYTES:,} bytes（會被靜默截斷）"))
-        elif same_text(found.group(0), want):
-            out.append(row("規則", label, path.name, OK, f"跟 profile {name} 一致（{size_b:,} bytes）"))
+            out.append(row("規則", lbl, path.name, FAIL, f"{path} 沒有 OmniKit 受管區塊：跑 uv run engine/scripts/sync.py sync"))
+            continue
+        if kind == "claude-code":
+            want = profiles.claude_block(data, env.state, name)
+            has_canary = profiles.CANARY in found.group(0)
+            if not has_canary:
+                out.append(row("規則", lbl, path.name, FAIL, "缺少帶內金絲雀行：跑 uv run engine/scripts/sync.py sync"))
+            elif same_text(found.group(0), want):
+                out.append(row("規則", lbl, path.name, OK, f"與 profile {name} 一致（含金絲雀行）"))
+            else:
+                out.append(row("規則", lbl, path.name, FAIL, f"受管區塊與 profile {name} 不同：跑 uv run engine/scripts/sync.py sync"))
+        elif kind == "antigravity-shared":
+            want = profiles.content_block(profiles.compose_shared(data))
+            if size_b > profiles.AGY_MAX_FILE_BYTES:
+                out.append(row("規則", lbl, path.name, FAIL, f"{size_b:,} bytes 超過上限 {profiles.AGY_MAX_FILE_BYTES:,} bytes"))
+            elif same_text(found.group(0), want):
+                out.append(row("規則", lbl, path.name, OK, f"與共用層一致（{size_b:,} bytes）"))
+            else:
+                out.append(row("規則", lbl, path.name, FAIL, "受管區塊與共用規則不同"))
+        elif kind == "antigravity-personal":
+            want = profiles.content_block(profiles.compose_personal(data, env.state, name))
+            if size_b > profiles.AGY_MAX_FILE_BYTES:
+                out.append(row("規則", lbl, path.name, FAIL, f"{size_b:,} bytes 超過上限 {profiles.AGY_MAX_FILE_BYTES:,} bytes"))
+            elif same_text(found.group(0), want):
+                out.append(row("規則", lbl, path.name, OK, f"與 profile {name} 一致（{size_b:,} bytes）"))
+            else:
+                out.append(row("規則", lbl, path.name, FAIL, f"受管區塊與 profile {name} 不同"))
         else:
-            out.append(row("規則", label, path.name, FAIL, f"受管區塊跟 profile {name} 不同（區塊裡被手改，或規則更新了還沒同步）"))
-    if "antigravity" in rec["agents"]:
-        gem = env.rules["antigravity"]
+            want = profiles.content_block(profiles.compose(data, env.state, name))
+            if size_b > profiles.CODEX_MAX_FILE_BYTES:
+                out.append(row("規則", lbl, path.name, FAIL, f"{size_b:,} bytes 超過 Codex 32 KiB 上限"))
+            elif same_text(found.group(0), want):
+                out.append(row("規則", lbl, path.name, OK, f"與 profile {name} 一致（{size_b:,} bytes）"))
+            else:
+                out.append(row("規則", lbl, path.name, FAIL, f"受管區塊與 profile {name} 不同"))
+
+    if "antigravity" in agents:
+        gem = env.home / ".gemini" / "GEMINI.md"
         ag = gem.with_name("AGENTS.md")
         if ag.exists() and gem.exists():
             try:
                 if os.path.samefile(ag, gem):
-                    out.append(row("規則", profiles.NAMES["antigravity"], "硬連結檢查", FAIL,
-                                   f"{ag} 與 {gem} 是同一個硬連結，會導致規則重複載入兩份：跑 profiles.py 修復"))
+                    out.append(row("規則", "Antigravity", "硬連結檢查", FAIL, "AGENTS.md 與 GEMINI.md 為同一硬連結，會雙重載入"))
             except OSError:
                 pass
     return out
 
 
-def check_skills(env, rec):
+def check_skills(env: sync.Env, agents: list[str], claude_dirs: list[Path], codex_dirs: list[Path]) -> list[dict]:
     out = []
-    for key, names in rec["skills"].items():
-        # 沒接上的 agent 的資料夾，sync 不會更新（例如舊版給 Antigravity 裝在 ~/.agents/skills、這台沒有 Codex），不檢查
-        if key not in env.skill_dirs or agents.agent_of(key) not in rec["agents"]:
-            continue
-        folder, _ = env.skill_dirs[key]
-        label = agents.label_of(key)
-        for name in names:
-            dest, src = folder / name, env.skills_src / name
-            if not agents.present(dest):
-                out.append(row("skills", label, name, FAIL, f"{dest} 不見了：跑 agents.py sync"))
-            elif not src.is_dir():
-                out.append(row("skills", label, name, FAIL, "repo 已經沒有這個 skill：跑 agents.py sync 拿掉"))
-            elif agents.is_link(dest):
-                ok = agents.same_path(agents.link_target(dest), src)
-                out.append(row("skills", label, name, OK if ok else FAIL, "連結指向 repo" if ok else "連結指到別的地方"))
-            else:
-                try:
-                    recorded = json.loads((dest / agents.MARKER).read_text(encoding="utf-8")).get("hash")
-                except (OSError, ValueError):
-                    recorded = None
-                ok = recorded == agents.tree_hash(src) and agents.tree_hash(dest) == agents.tree_hash(src)
-                out.append(row("skills", label, name, OK if ok else FAIL, "複製品跟 repo 一樣" if ok else "複製品跟 repo 不同：跑 agents.py sync"))
-    return out
-
-
-def check_mcp(env, rec):
-    out = []
-    for agent, ledger in rec["mcp"].items():  # agent 或 <agent>@<目錄>（其他設定目錄）
-        label = agents.label_of(agent) if agents.agent_of(agent) in profiles.NAMES else agent
-        try:
-            current = agents.read_servers(env, agent)
-        except SystemExit as e:
-            out += [row("MCP", label, n, UNKNOWN, f"讀不到設定：{e.code}") for n in ledger]
-            continue
-        for name, entry in ledger.items():
-            cur = current.get(name)
-            if cur is None:
-                out.append(row("MCP", label, name, FAIL, "設定裡沒有這個 server：跑 agents.py sync"))
-            elif entry is None:
-                out.append(row("MCP", label, name, UNKNOWN, "舊版記錄沒有雜湊，下次同步後才能比對"))
-            elif agents.digest(cur, entry["keys"]) == entry["sha256"]:
-                out.append(row("MCP", label, name, OK, "OmniKit 管的欄位跟寫入時一樣"))
-            else:
-                out.append(row("MCP", label, name, FAIL, f"OmniKit 管的欄位被改過：{agents.RESOLVE.replace('<名稱>', name)}"))
-    return out
-
-
-def check_harness(home, record_path):
-    out = []
-    record = claude_allow.load(record_path) if record_path.exists() else {}
-    targets = [(home / ".claude" / "settings.json", record, "Claude Code")]
-    # 其他 Claude 設定目錄（T3 Code 的多帳號）：各自的 settings.json 與紀錄
-    targets += [(Path(p), e, agents.label_of(agents.extra_key(Path(p).parent)))
-                for p, e in claude_allow.extra_entries(record).items()]
-    for settings_path, entry, label in targets:
-        try:
-            settings = claude_allow.load(settings_path)
-        except ValueError:
-            out.append(row("權限", label, "settings.json", UNKNOWN, f"{settings_path} 不是合法的 JSON"))
-            continue
-        allow = settings.get("permissions", {}).get("allow", [])
-        for rule in entry.get("claude_allow", []):
-            out.append(row("權限", label, rule, OK if rule in allow else FAIL,
-                           "在 permissions.allow" if rule in allow else "記錄有、設定裡沒有：重跑 install.ps1"))
-        names = claude_allow.HOOK_NAMES
-        for event, script, _ in claude_allow.HOOKS:
-            if script not in (entry.get("claude_hooks") or []):
-                continue
-            hooked = any(claude_allow.is_ours(h, script) for g in settings.get("hooks", {}).get(event, []) for h in g.get("hooks", []))
-            out.append(row("hook", label, names[script], OK if hooked else FAIL,
-                           "" if hooked else f"{event} hook 不見了：重跑 install.ps1"))
-    recorded = record.get("codex_hooks") or []
-    if recorded:
-        toml = home / ".codex" / "config.toml"
-        text = toml.read_text(encoding="utf-8", errors="replace") if toml.exists() else ""
-        # 舊版的紀錄只有提醒 hook；說做不到查證要紀錄裡有才檢查
-        for script in [s for s in CODEX_SCRIPTS if s == claude_allow.NUDGE or s in recorded]:
-            hooked = bool(re.search(r"(?m)^command\s*=.*" + re.escape(script), text))
-            out.append(row("hook", "Codex", claude_allow.HOOK_NAMES[script], OK if hooked else FAIL,
-                           "要在 Codex 的 /hooks 信任後才會執行" if hooked else "config.toml 裡沒有：重跑 install.ps1"))
-    return out
-
-
-def check_homes(rec, found, acp=None):
-    """這台找得到的其他設定目錄（homes.py）都接上了沒有。新帳號在安裝之後才出現時，
-    開一段新的 Claude Code 對話（home_watch.py）或跑 agents.py sync 就會接上。
-    acp：t3_acp.state() 的結果，T3 Code 的 Antigravity 實例看它（Binary path 是不是轉接程式）。"""
-    out = []
-    known = {os.path.normcase(k) for k in agents.known_homes(rec)}
-    acp = acp or {}
-    for f in found:
-        label = agents.label_of(f.key)
-        if f.instance:
-            if f.agent not in rec["agents"]:
-                continue
-            status, detail = acp.get(f.instance, (t3_acp.MISSING, "Binary path 還沒設成轉接程式：跑 uv run engine/scripts/agents.py sync"))
-            if status == t3_acp.CUSTOM:
-                detail += "；要讓它讀得到，在 T3 把這個實例的 Binary path 清空，再跑 agents.py sync"
-            level = OK if status in (t3_acp.OK, t3_acp.NATIVE) else UNKNOWN if status == t3_acp.UNSUPPORTED else FAIL
-            out.append(row("設定目錄", profiles.NAMES[f.agent], f.source, level, detail))
-        elif not f.writable or f.agent not in rec["agents"]:
-            continue
-        elif os.path.normcase(f.key) in known:
-            out.append(row("設定目錄", label, f.source, OK, "已接上"))
+    troot = env.target_root()
+    real_repo = sync.resolve_real_repo(env.repo, env.state)
+    wanted, skipped = sync.expected_skills(troot, real_repo / "data", env.state)
+    src_root = troot / "engine" / "skills"
+    dir_checks = []
+    if "claude-code" in agents:
+        dir_checks += [(d / "skills", "Claude Code" if i == 0 else f"Claude Code（{d.name}）") for i, d in enumerate(claude_dirs)]
+    if "codex" in agents:
+        dir_checks += [(d / "skills", "Codex" if i == 0 else f"Codex（{d.name}）") for i, d in enumerate(codex_dirs)]
+    for sdir, lbl in dir_checks:
+        missing = [n for n in wanted if not (sync.is_link(sdir / n) and sync.same_path(sync.link_target(sdir / n), src_root / n))]
+        stale = [p.name for p in (sdir.iterdir() if sdir.is_dir() else []) if sync.is_omnikit_skill(p.name) and p.name not in wanted]
+        if not missing and not stale:
+            out.append(row("skills", lbl, f"{len(wanted)} 個 junction", OK, f"皆指向 {src_root}"))
         else:
-            out.append(row("設定目錄", label, f.source, FAIL,
-                           "還沒接上：跑 uv run engine/scripts/agents.py sync（開一段新的 Claude Code 對話也會在背景接上）"))
+            detail = []
+            if missing:
+                detail.append(f"缺少或指錯：{', '.join(missing[:5])}")
+            if stale:
+                detail.append(f"多餘未清：{', '.join(stale[:5])}")
+            out.append(row("skills", lbl, "junction 對帳", FAIL, "；".join(detail) + "（跑 sync.py sync）"))
+    if "antigravity" in agents:
+        sj = env.home / ".gemini" / "config" / "skills.json"
+        want_p = sync.agy_posix_skills_path(src_root)
+        doc = sync.read_json_nobom(sj) if sj.is_file() else {}
+        matched = next((e for e in (doc.get("entries") or []) if isinstance(e, dict) and e.get("path") == want_p), None)
+        if matched is not None and set(matched.get("exclude") or []) == skipped:
+            out.append(row("skills", "Antigravity", "config/skills.json", OK, f"參照 {want_p}"))
+        else:
+            out.append(row("skills", "Antigravity", "config/skills.json", FAIL, f"未正確參照 {want_p}：跑 sync.py sync"))
     return out
 
 
-# ---------- agent 自己的清單 ----------
-
-def run_cli(cmd, run=subprocess.run):
-    try:
-        r = run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180, stdin=subprocess.DEVNULL)
-    except (OSError, subprocess.TimeoutExpired) as e:
-        return None, str(e)
-    return (r.stdout, None) if r.returncode == 0 else (None, (r.stderr or r.stdout).strip()[-200:])
-
-
-def claude_mcp_status(text, name):
-    for line in text.splitlines():
-        if line.startswith(f"{name}: "):
-            tail = line.rsplit(" - ", 1)[-1]
-            if "Connected" in tail:
-                return OK, "已連線"
-            if "Failed" in tail or "✗" in tail:
-                return FAIL, "列在清單裡但連不上"
-            return UNKNOWN, tail.strip()
-    return FAIL, "claude mcp list 裡沒有"
-
-
-def agent_lists(rec, run=subprocess.run, which=shutil.which):
+def check_permissions_and_hooks(env: sync.Env, agents: list[str], claude_dirs: list[Path], codex_dirs: list[Path]) -> list[dict]:
     out = []
-    wanted = {a: list(ledger) for a, ledger in rec["mcp"].items()}
-    if wanted.get("claude-code"):
-        exe = which("claude")
-        text, err = run_cli([exe, "mcp", "list"], run) if exe else (None, "找不到 claude 指令")
-        for name in wanted["claude-code"]:
-            out.append(row("清單", "Claude Code", f"MCP {name}", *(claude_mcp_status(text, name) if text is not None else (UNKNOWN, err))))
-    if wanted.get("codex"):
-        exe = which("codex")
-        text, err = run_cli([exe, "mcp", "list", "--json"], run) if exe else (None, "找不到 codex 指令")
-        try:
-            listed = {s["name"]: s for s in json.loads(text)} if text is not None else None
-        except (ValueError, TypeError, KeyError):
-            listed, err = None, "codex mcp list 的輸出看不懂"
-        for name in wanted["codex"]:
-            if listed is None:
-                out.append(row("清單", "Codex", f"MCP {name}", UNKNOWN, err))
-            elif name not in listed:
-                out.append(row("清單", "Codex", f"MCP {name}", FAIL, "codex mcp list 裡沒有"))
+    real_repo = sync.resolve_real_repo(env.repo, env.state)
+    troot = env.target_root()
+    servers = sync.load_mcp_manifest(troot)
+    allowed = edition.approver(env.state, real_repo)
+    listed = claude_allow.rules(real_repo)
+    retired = set(claude_allow.retired_rules(real_repo))
+    wanted_allow = [r for r in listed if r not in retired and allowed(edition.tool_of(r))]
+
+    if "claude-code" in agents:
+        claude_exe = env.which("claude")
+        want_ver, _, _ = sync.claude_plugin_payloads(troot, servers)
+        plug_folder = env.state / "claude-marketplace" / "plugins" / "omnikit"
+        for i, d in enumerate(claude_dirs):
+            lbl = "Claude Code" if i == 0 else f"Claude Code（{d.name}）"
+            sp = d / "settings.json"
+            try:
+                sdoc = claude_allow.load(sp)
+            except ValueError:
+                out.append(row("權限", lbl, "settings.json", FAIL, "不是合法 JSON"))
+                continue
+            cur_allow = sdoc.get("permissions", {}).get("allow", [])
+            missing_a = [r for r in wanted_allow if r not in cur_allow]
+            zombie_a = [r for r in cur_allow if r in retired]
+            custom_a = [r for r in cur_allow if r not in listed and r not in retired]
+            extra_note = f"；manifest 外自訂 {len(custom_a)} 項" if custom_a else ""
+            if not missing_a and not zombie_a:
+                out.append(row("權限", lbl, "permissions.allow", OK, f"現行齊全、墓碑已清{extra_note}"))
             else:
-                enabled = listed[name].get("enabled") is not False
-                out.append(row("清單", "Codex", f"MCP {name}", OK if enabled else FAIL, "已啟用" if enabled else "被停用了"))
-    if wanted.get("antigravity"):
-        exe = which("agy")
-        text, err = run_cli([exe, "mcp", "list"], run) if exe else (None, "找不到 agy 指令")
-        # 表格：NAME TYPE STATUS COMMAND/URL
-        listed = {parts[0]: parts[2] for line in (text or "").splitlines()[1:] if len(parts := line.split()) >= 3}
-        for name in wanted["antigravity"]:
-            if text is None:
-                out.append(row("清單", "Antigravity", f"MCP {name}", UNKNOWN, err))
-            elif name not in listed:
-                out.append(row("清單", "Antigravity", f"MCP {name}", FAIL, "agy mcp list 裡沒有"))
+                out.append(row("權限", lbl, "permissions.allow", FAIL, f"缺 {missing_a} 或殘留墓碑 {zombie_a}：跑 sync.py sync"))
+
+            cenv = sync.claude_cli_env(env.home, d)
+            if claude_exe or env.runner is not None:
+                entry = sync.find_claude_plugin_entry(env, claude_exe or "claude", cenv)
+                enabled_ok = entry is not None and entry.get("enabled") is True
+                ver_ok = entry is not None and entry.get("version") == want_ver
+                folder_ok = entry is not None and sync.same_path(Path(str(entry.get("readFromFolder") or "")), plug_folder)
+                if enabled_ok and ver_ok and folder_ok:
+                    out.append(row("hook/MCP", lbl, sync.PLUGIN_ID, OK, f"薄 plugin 已啟用且快取版本最新（{want_ver}）"))
+                elif entry is None:
+                    out.append(row("hook/MCP", lbl, sync.PLUGIN_ID, FAIL, "薄 plugin 未安裝：跑 sync.py sync"))
+                elif not enabled_ok:
+                    out.append(row("hook/MCP", lbl, sync.PLUGIN_ID, FAIL, "薄 plugin 已被停用（護欄未生效）：跑 sync.py sync"))
+                else:
+                    out.append(row("hook/MCP", lbl, sync.PLUGIN_ID, FAIL,
+                                   f"薄 plugin 快取版本或路徑過期（目前 {entry.get('version')}，期望 {want_ver}）：跑 sync.py sync"))
             else:
-                enabled = listed[name] == "enabled"
-                out.append(row("清單", "Antigravity", f"MCP {name}", OK if enabled else FAIL, "已啟用" if enabled else f"狀態是 {listed[name]}"))
-    for agent in rec["agents"]:
-        out.append(row("清單", profiles.NAMES[agent], "skills", UNKNOWN, "沒有列出 skill 的指令；檔案在不在看上面的寫入檢查"))
+                has_fb = any(claude_allow.is_ours(h, claude_allow.HARNESS)
+                             for g in sdoc.get("hooks", {}).get("PreToolUse", []) for h in g.get("hooks", []))
+                out.append(row("hook", lbl, "settings.json 備案", OK if has_fb else UNKNOWN,
+                               "已註冊" if has_fb else "環境無 claude CLI 無法查詢 plugin 清單"))
+
+    if "codex" in agents:
+        codex_wanted = {}
+        for name, s in servers.items():
+            if "codex" not in (s.get("targets") or []):
+                continue
+            opts = dict((s.get("options") or {}).get("codex") or {})
+            if "default_tools_approval_mode" in opts and not allowed(name):
+                opts.pop("default_tools_approval_mode", None)
+            codex_wanted[name] = {"command": s["command"], "args": list(s.get("args") or []), **opts}
+
+        for i, d in enumerate(codex_dirs):
+            lbl = "Codex" if i == 0 else f"Codex（{d.name}）"
+            toml_p = d / "config.toml"
+            txt = toml_p.read_text(encoding="utf-8", errors="replace") if toml_p.is_file() else ""
+            missing_h = [claude_allow.HOOK_NAMES[s] for s in CODEX_SCRIPTS if not re.search(r"(?m)^command\s*=.*" + re.escape(s), txt)]
+            out.append(row("hook", lbl, "config.toml Stop hooks", OK if not missing_h else FAIL,
+                           "3 支 Stop hook 皆已登記（需於 /hooks 信任）" if not missing_h else f"缺少 {'、'.join(missing_h)}"))
+            try:
+                tdoc = tomllib.loads(txt) if txt.strip() else {}
+                mcps = tdoc.get("mcp_servers") or {}
+                mcp_probs = []
+                for mname, mspec in codex_wanted.items():
+                    cur_m = mcps.get(mname)
+                    if not isinstance(cur_m, dict) or cur_m.get("command") != mspec["command"]:
+                        mcp_probs.append(f"{mname} 未設定或指令不符")
+                        continue
+                    has_opt = "default_tools_approval_mode" in (((servers[mname].get("options") or {}).get("codex")) or {})
+                    if has_opt and cur_m.get("default_tools_approval_mode") != mspec.get("default_tools_approval_mode"):
+                        mcp_probs.append(f"{mname} 免問核准欄位不符")
+                out.append(row("MCP", lbl, "config.toml mcp_servers", FAIL if mcp_probs else OK,
+                               "；".join(mcp_probs) + "：跑 sync.py sync" if mcp_probs else f"{len(codex_wanted)} 個 MCP server 一致"))
+            except ValueError as e:
+                out.append(row("MCP", lbl, "config.toml", FAIL, f"TOML 語法錯誤：{e}"))
+
+    if "antigravity" in agents:
+        gp = env.home / ".gemini" / "config" / "plugins" / "omnikit" / "hooks.json"
+        out.append(row("hook/MCP", "Antigravity", "~/.gemini 薄 plugin", OK if gp.is_file() else FAIL,
+                       "已就位" if gp.is_file() else f"缺少 {gp}：跑 sync.py sync"))
     return out
 
 
-def preflight(run=subprocess.run):
+def check_t3_health(home: Path, agents: list[str]) -> list[dict]:
+    """T3 專屬健康檢查（Fable 第 6 節第 7 點）：列舉實例、skills junction、規則卡住比對、實例薄 plugin。"""
+    if "antigravity" not in agents or not (home / ".t3").is_dir() or not homes.t3_initialized(home):
+        return []
+    found_profiles, err = homes.t3_antigravity_profiles(home)
+    if err:
+        return [row("T3 健康", "Antigravity", "實例列舉", FAIL, err)]
+    out = []
+    canonical_gem = home / ".gemini"
+    existing_dirs = [f for f in found_profiles if f.path.is_dir()]
+    if not existing_dirs:
+        return [row("T3 健康", "Antigravity", "實例目錄", OK, f"已設定 {len(found_profiles)} 個實例（尚未啟動建立目錄）")]
+
+    for f in existing_dirs:
+        pdir = f.path
+        lbl = f"T3（{f.instance}）"
+        slink = pdir / "config" / "skills"
+        if (canonical_gem / "config" / "skills").is_dir():
+            ok_j = sync.is_link(slink) and sync.same_path(sync.link_target(slink), canonical_gem / "config" / "skills")
+            out.append(row("T3 健康", lbl, "config/skills junction", OK if ok_j else FAIL,
+                           "指向 ~/.gemini/config/skills" if ok_j else "非連結或指錯（該實例將靜默失去全域 skills）"))
+        stuck = []
+        for rel in ("AGENTS.md", "GEMINI.md", "config/skills.json"):
+            src_f, dst_f = canonical_gem / rel, pdir / rel
+            if src_f.is_file() and dst_f.is_file() and src_f.read_bytes() != dst_f.read_bytes():
+                stuck.append(rel)
+        out.append(row("T3 健康", lbl, "規則與 skills.json 副本", OK,
+                       f"注意：T3 同步已卡住（{', '.join(stuck)} 與 ~/.gemini 不同，下次重啟 T3 不會自動更新）" if stuck else "與 ~/.gemini 本尊一致（或待下次啟動刷新）"))
+        hp = pdir / "config" / "plugins" / "omnikit" / "hooks.json"
+        out.append(row("T3 健康", lbl, "plugins/omnikit", OK if hp.is_file() else FAIL,
+                       "護欄與 MCP 薄 plugin 已就位" if hp.is_file() else "缺少薄 plugin：跑 sync.py sync"))
+    return out
+
+
+def check_hook_e2e_and_python(env: sync.Env, repo: Path) -> list[dict]:
+    """對 harness_hooks.py 實跑餵入三種方言確認拿到 deny，並檢查實際裝入 hook 的執行檔路徑存在且非 Store stub。"""
+    out = []
+    py_exe = Path(sys.executable)
+    is_store = "windowsapps" in str(py_exe).lower()
+    out.append(row("護欄自測", "", "Python 直譯器", FAIL if is_store else OK,
+                   f"{py_exe}（Microsoft Store 別名會拖慢或失效）" if is_store else str(py_exe)))
+
+    # 檢查實際寫入薄 plugin hooks.json 的啟動程式（如 uv.exe）是否真實存在且非 WindowsApps stub
+    hook_files = [
+        env.state / "claude-marketplace" / "plugins" / "omnikit" / "hooks" / "hooks.json",
+        env.home / ".gemini" / "config" / "plugins" / "omnikit" / "hooks.json",
+    ]
+    checked_exes: set[str] = set()
+    bad_exes: list[str] = []
+    for hf in hook_files:
+        if not hf.is_file():
+            continue
+        for m in re.finditer(r'"command"\s*:\s*"((?:\\.|[^"\\])*)"', hf.read_text("utf-8", errors="replace")):
+            cmd_str = json.loads(f'"{m.group(1)}"')
+            em = QUOTED_EXE_RE.match(cmd_str)
+            if not em:
+                continue
+            exe_raw = em.group(1)
+            checked_exes.add(exe_raw)
+            resolved_exe = shutil.which(exe_raw) if "/" not in exe_raw and "\\" not in exe_raw else (exe_raw if Path(exe_raw).is_file() else None)
+            if not resolved_exe or "windowsapps" in str(resolved_exe).lower():
+                bad_exes.append(exe_raw)
+    if checked_exes:
+        out.append(row("護欄自測", "", "已安裝 hook 執行檔路徑", FAIL if bad_exes else OK,
+                       f"找不到或為 Store 別名：{', '.join(sorted(set(bad_exes)))}" if bad_exes else f"已驗證 {', '.join(sorted(checked_exes))} 存在可用"))
+
+    harness = repo / "engine" / "scripts" / "harness_hooks.py"
+    dialects = [
+        ("Claude Code 方言", {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "git commit --no-verify -m x"}},
+         lambda d: (d.get("hookSpecificOutput") or {}).get("permissionDecision") == "deny"),
+        ("通用 snake_case 方言", {"hook_event_name": "PreToolUse", "tool_name": "PowerShell", "tool_input": {"command": "Get-Content .env"}},
+         lambda d: (d.get("hookSpecificOutput") or {}).get("permissionDecision") == "deny"),
+        ("Antigravity 方言", {"hookEventName": "PreToolUse", "toolCall": {"name": "run_command", "args": {"CommandLine": "git push --no-verify"}}},
+         lambda d: d.get("decision") == "deny"),
+    ]
+    t0 = time.monotonic()
+    for dname, payload, verifier in dialects:
+        try:
+            r = subprocess.run([sys.executable, str(harness)], input=json.dumps(payload).encode("utf-8"),
+                               capture_output=True, timeout=10, check=False)
+            parsed = json.loads(r.stdout.decode("utf-8") or "{}")
+            passed = r.returncode == 0 and verifier(parsed)
+            out.append(row("護欄自測", dname, "PreToolUse deny 端到端", OK if passed else FAIL,
+                           "成功攔截假危險指令" if passed else f"未攔截：rc={r.returncode} out={r.stdout[:120]!r}"))
+        except Exception as e:  # noqa: BLE001
+            out.append(row("護欄自測", dname, "PreToolUse deny 端到端", FAIL, str(e)[:160]))
+    elapsed_ms = int((time.monotonic() - t0) * 1000 / len(dialects))
+    out.append(row("護欄自測", "", "單次啟動延遲", OK if elapsed_ms < 3000 else FAIL, f"平均約 {elapsed_ms} ms"))
+    return out
+
+
+def check_repo_invariants(repo: Path) -> list[dict]:
+    """檢查 SKILL.md 規範、MCP 無寫死密鑰、以及同步器原始碼零遞迴刪除。"""
+    out = []
+    forbidden = "rm" + "tree"
+    scripts_dir = Path(__file__).resolve().parent
+    bad_rec_del = [fn for fn in ("sync.py", "doctor.py") if (scripts_dir / fn).is_file() and forbidden in (scripts_dir / fn).read_text("utf-8")]
+    out.append(row("防呆規範", "", "零遞迴刪除", FAIL if bad_rec_del else OK,
+                   f"{', '.join(bad_rec_del)} 出現禁用遞迴刪除" if bad_rec_del else "sync.py 與 doctor.py 無遞迴刪除"))
+
+    skills_root = (repo / "engine" / "skills").resolve()
+    skill_probs = []
+    if skills_root.is_dir():
+        for sd in sorted(skills_root.iterdir()):
+            if not sd.is_dir():
+                continue
+            sm = sd / "SKILL.md"
+            if not sm.is_file():
+                continue
+            raw = sm.read_bytes()
+            if raw.startswith(b"\xef\xbb\xbf"):
+                skill_probs.append(f"{sd.name}: 含 UTF-8 BOM")
+            txt = raw.decode("utf-8-sig")
+            parts = txt.split("---", 2)
+            fm = yaml.safe_load(parts[1]) if len(parts) >= 3 else {}
+            if not isinstance(fm, dict) or fm.get("name") != sd.name or not str(fm.get("description") or "").strip():
+                skill_probs.append(f"{sd.name}: name 與目錄不符或缺 description")
+            for md in sd.rglob("*.md"):
+                for target in REL_LINK_RE.findall(md.read_text("utf-8", errors="replace")):
+                    if ".." in target and not target.startswith(("http://", "https://", "#")):
+                        resolved = (md.parent / target.split("#")[0]).resolve()
+                        if not str(resolved).startswith(str(skills_root)):
+                            skill_probs.append(f"{sd.name}/{md.name}: 相對連結穿出 skills 目錄 ({target})")
+    out.append(row("防呆規範", "", "SKILL.md 格式與邊界", FAIL if skill_probs else OK,
+                   "；".join(skill_probs[:4]) if skill_probs else "目錄名、description、無 BOM、相對路徑皆合規"))
+
+    try:
+        sync.load_mcp_manifest(repo)
+        out.append(row("防呆規範", "", "MCP 無密鑰檢查", OK, "servers.yaml 未寫死 env 密鑰"))
+    except SystemExit as e:
+        out.append(row("防呆規範", "", "MCP 無密鑰檢查", FAIL, str(e.code)))
+    return out
+
+
+def preflight(run=subprocess.run) -> list[dict]:
     script = Path(__file__).with_name("preflight.ps1")
     shell = shutil.which("pwsh") or shutil.which("powershell")
     if not shell:
         return [row("安裝前", "", "preflight.ps1", UNKNOWN, "找不到 PowerShell")]
     try:
-        # 有項目不通過時 preflight.ps1 會 exit 1，但 JSON 還是印出來了，所以不看結束碼
         r = run([shell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script), "-Json"], capture_output=True,
                 text=True, encoding="utf-8", errors="replace", timeout=180, stdin=subprocess.DEVNULL)
         text = r.stdout or ""
@@ -305,56 +445,41 @@ def preflight(run=subprocess.run):
     return [row("安裝前", "", i["name"], OK if i["ok"] else FAIL) for i in items]
 
 
-# ---------- 彙整 ----------
-
-def installed_repo(env, rec):
-    """安裝時接上的 repo：Claude 的 skill 連結指向 <repo>/engine/skills/<名稱>，複製品的 .omnikit.json 記了 repo。"""
-    for key, names in rec["skills"].items():
-        folder, _ = env.skill_dirs.get(key, (None, None))
-        for name in names if folder else []:
-            dest = folder / name
-            try:
-                if agents.is_link(dest):
-                    return agents.link_target(dest).parents[2]
-                return Path(json.loads((dest / agents.MARKER).read_text(encoding="utf-8"))["repo"])
-            except (OSError, ValueError, KeyError, IndexError):
-                continue
-    return None
-
-
-def check_state(state, environ=None):
-    """狀態資料夾只能有一份：舊位置（%LOCALAPPDATA%\\omnikit、封裝的 app 轉存的副本）還有沒合併的就是失敗。"""
-    return [row("狀態", "", item, OK if ok else FAIL, detail) for ok, item, detail in statedir.report(state, environ)]
-
-
-def collect(env, record_path, lists=True, pre=False, run=subprocess.run, which=shutil.which, found=None, environ=None):
-    """found：homes.discover() 的結果；沒給就照 env.home 找（測試用的 home 不看這個行程的環境變數）。
-    environ：找舊狀態位置用的環境變數；沒給時一樣，測試用的 home 不看這個行程的。"""
-    rec = agents.load_record(env)
+def collect(env: sync.Env, lists: bool = True, pre: bool = False, run=subprocess.run, environ: dict | None = None) -> list[dict]:
+    import statedir
     environ = (None if env.home == homes.HOME else {}) if environ is None else environ
-    found = homes.discover(env.home, environ) if found is None else found
-    state_rows = check_state(env.state, environ)
-    if not rec["agents"]:
+    state_rows = [row("狀態", "", item, OK if ok else FAIL, detail) for ok, item, detail in statedir.report(env.state, environ)]
+    cfg = sync.load_config(env.state)
+    agents = sync.active_agents(env)
+    has_any_block = any(
+        p.is_file() and profiles.BLOCK.search(profiles.text(p))
+        for p in (env.home / ".claude" / "CLAUDE.md", env.home / ".codex" / "AGENTS.md", env.home / ".gemini" / "GEMINI.md")
+    )
+    if not cfg.get("agents") and not has_any_block:
         legacy = any(r["status"] == FAIL for r in state_rows)
-        return [row("記錄", "", "agents.json", FAIL,
-                    "狀態資料夾還沒有 agents.json，舊位置的還沒合併過來：跑 agents.py sync" if legacy
-                    else "這台還沒接上 OmniKit（沒有 agents.json）：跑 install.ps1")] + state_rows
+        return [row("記錄", "", "連線狀態", FAIL,
+                    "舊位置的狀態還沒合併過來：跑 uv run engine/scripts/sync.py sync" if legacy
+                    else "這台還沒接上 OmniKit：跑 install.ps1 或 uv run engine/scripts/sync.py connect")] + state_rows
+
+    found = homes.discover(env.home, environ)
+    claude_dirs = [env.home / ".claude", *[f.path for f in found if f.agent == "claude-code" and f.writable]]
+    codex_dirs = [env.home / ".codex", *[f.path for f in found if f.agent == "codex" and f.writable]]
+
     rows = []
-    repo = installed_repo(env, rec)
-    if repo and not agents.same_path(repo, env.repo) and (repo / "data").is_dir():
-        rows.append(row("記錄", "", "repo", OK, f"這台接的是 {repo}，以它為準比對（doctor 是從 {env.repo} 執行的）"))
-        env = dataclasses.replace(env, repo=repo)
-    rows += check_rules(env, rec) + check_skills(env, rec) + check_mcp(env, rec) + check_harness(env.home, record_path)
-    rows += check_homes(rec, found, t3_acp.state(env.home, t3_acp.acp_dir(env.home)))
+    rows += check_current_clone(env)
+    rows += check_rules(env, agents, claude_dirs, codex_dirs)
+    rows += check_skills(env, agents, claude_dirs, codex_dirs)
+    rows += check_permissions_and_hooks(env, agents, claude_dirs, codex_dirs)
+    rows += check_t3_health(env.home, agents)
+    rows += check_hook_e2e_and_python(env, sync.ROOT)
+    rows += check_repo_invariants(sync.resolve_real_repo(env.repo, env.state))
     rows += state_rows
-    if lists:
-        rows += agent_lists(rec, run, which)
     if pre:
         rows += preflight(run)
     return rows
 
 
-def report(rows):
+def report(rows: list[dict]) -> list[str]:
     counts = {s: sum(1 for r in rows if r["status"] == s) for s in (OK, FAIL, UNKNOWN)}
     lines = [f"# OmniKit doctor：通過 {counts[OK]}、失敗 {counts[FAIL]}、未知 {counts[UNKNOWN]}（未知不算通過）", ""]
     for r in rows:
@@ -363,145 +488,110 @@ def report(rows):
     return lines
 
 
-# ---------- 自我測試 ----------
-
-def selftest():
+def selftest() -> int:
     checks = []
 
-    def check(name, ok):
+    def check(name: str, ok: bool) -> None:
         checks.append((name, bool(ok)))
 
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        tmp = Path(tmp)
-        home, repo, state = tmp / "home", tmp / "repo", tmp / "state"
+        base = Path(tmp)
+        home, repo, state = base / "home", base / "repo", base / "state"
+        for d in (home / ".claude", home / ".codex", home / ".gemini" / "config" / "skills"):
+            d.mkdir(parents=True)
+        (repo / "data" / "rules").mkdir(parents=True)
+        (repo / "data" / "rules" / "baseline.md").write_text("# 底線\n不碰金鑰\n", encoding="utf-8")
+        (repo / "data" / "profiles" / "default").mkdir(parents=True)
+        (repo / "data" / "profiles" / "default" / "AGENTS.md").write_text("# default\n保守\n", encoding="utf-8")
+        (repo / "data" / "harness").mkdir(parents=True)
+        (repo / "data" / "harness" / "claude-allow.txt").write_text("mcp__devtools\n", encoding="utf-8")
+        (repo / "data" / "harness" / "claude-allow-retired.txt").write_text("mcp__retired\n", encoding="utf-8")
+        for sname in ("omnikit-alpha", "ok-alpha"):
+            sd = repo / "engine" / "skills" / sname
+            sd.mkdir(parents=True)
+            (sd / "SKILL.md").write_text(f"---\nname: {sname}\ndescription: {sname} desc\n---\n", encoding="utf-8")
+        (repo / "data" / "mcp").mkdir(parents=True)
+        (repo / "data" / "mcp" / "servers.yaml").write_text(
+            "servers:\n  devtools:\n    command: cmd\n    args: [/c, echo, x]\n    targets: [claude, codex, antigravity]\n",
+            encoding="utf-8",
+        )
+        t3_s = home / ".t3" / "userdata" / "settings.json"
+        t3_s.parent.mkdir(parents=True)
+        t3_s.write_text(json.dumps({"providerInstances": {"antigravity": {"driver": "antigravity"}}}), encoding="utf-8")
+        inst_d = homes.t3_antigravity_dir(home, "antigravity")
+        (inst_d / "config").mkdir(parents=True)
+        sync.make_dir_link(home / ".gemini" / "config" / "skills", inst_d / "config" / "skills")
 
-        def put(path, content):
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content, encoding="utf-8")
+        edition.set_edition(state, "maintainer")
+        plugin_enabled = [True]
 
-        put(repo / "data" / "rules" / "baseline.md", "# 底線\n不碰金鑰\n")
-        put(repo / "data" / "profiles" / "default" / "AGENTS.md", "# default\n保守\n")
-        put(repo / "engine" / "skills" / "alpha" / "SKILL.md", "---\nname: alpha\n---\n")
-        put(repo / "engine" / "skills" / "beta" / "SKILL.md", "---\nname: beta\n---\n")
-        put(repo / "data" / "mcp" / "servers.yaml", "servers:\n  devtools:\n    command: cmd\n    args: [/c, node, x.js]\n"
-                                                    "    targets: [claude, codex, antigravity]\n")
-        (home / ".claude").mkdir(parents=True)
-        (home / ".codex").mkdir(parents=True)
-        (home / ".gemini" / "config").mkdir(parents=True)
-        env = agents.Env(home=home, repo=repo, state=state, skillshare=tmp / "appdata" / "skillshare", which=lambda _: None)
-        agents.connect(env, profile="default", agents=["claude-code", "codex", "antigravity"])
-        record_path = state / "install-record.json"
-        put(record_path, json.dumps({"claude_allow": ["mcp__devtools"], "claude_hooks": [claude_allow.NUDGE], "codex_hooks": ["x"]}))
-        put(home / ".claude" / "settings.json", json.dumps({"permissions": {"allow": ["mcp__devtools"]},
-                                                            "hooks": {"Stop": [{"hooks": [{"type": "command", "command": f"uv run {claude_allow.NUDGE}"}]}]}}))
-        toml = home / ".codex" / "config.toml"
-        toml.write_text(toml.read_text(encoding="utf-8") + f'\n[[hooks.Stop]]\n[[hooks.Stop.hooks]]\ncommand = "& uv run {claude_allow.NUDGE}"\n', encoding="utf-8")
+        def fake_runner(cmd, env_map):
+            if cmd[0] == "claude":
+                if cmd[1:4] == ["plugin", "list", "--json"]:
+                    pjson = state / "claude-marketplace" / "plugins" / "omnikit" / ".claude-plugin" / "plugin.json"
+                    if not pjson.is_file():
+                        return 0, "[]", ""
+                    ver = json.loads(pjson.read_text("utf-8"))["version"]
+                    return 0, json.dumps([
+                        {"id": "other@builtin", "enabled": True, "version": "1.0.0"},
+                        {"id": sync.PLUGIN_ID, "enabled": plugin_enabled[0], "version": ver,
+                         "readFromFolder": str(state / "claude-marketplace" / "plugins" / "omnikit")},
+                    ]), ""
+                return 0, '{"outcome":"ok"}', ""
+            if cmd[0] == "codex":
+                ch = env_map.get("CODEX_HOME") or str(home / ".codex")
+                if cmd[1:3] == ["mcp", "list"]:
+                    return 0, json.dumps([{"name": "devtools", "enabled": True, "transport": {"command": "cmd", "args": ["/c", "echo", "x"]}}]), ""
+                if cmd[1:3] == ["mcp", "add"]:
+                    toml_p = Path(ch) / "config.toml"
+                    prev = toml_p.read_text("utf-8") if toml_p.is_file() else ""
+                    if "[mcp_servers.devtools]" not in prev:
+                        toml_p.write_text(prev + '\n[mcp_servers.devtools]\ncommand = "cmd"\nargs = ["/c", "echo", "x"]\n', encoding="utf-8")
+            return 0, '{"outcome":"ok"}', ""
 
-        claude_out = "Checking MCP server health…\n\ndevtools: cmd /c node x.js - ✓ Connected\nclaude.ai Gmail: https://x - ✓ Connected\n"
-        codex_out = json.dumps([{"name": "devtools", "enabled": True}])
-        agy_out = "NAME      TYPE   STATUS   COMMAND/URL\ndevtools  stdio  enabled  cmd /c node x.js\n"
+        env = sync.Env(home=home, repo=repo, state=state, which=lambda n: sys.executable if n == "uv" else (n if n in ("claude", "codex", "agy") else None),
+                       runner=fake_runner, environ={})
+        os.environ["UV"] = sys.executable
+        sync.run_sync(env, profile="default", agents_override=["claude-code", "codex", "antigravity"], take_over=True)
+        # 補齊 fake runner 的 codex config.toml MCP 表格（因 fake list 一開始就回傳已存在）
+        ctoml = home / ".codex" / "config.toml"
+        ctoml.write_text(ctoml.read_text("utf-8") + '\n[mcp_servers.devtools]\ncommand = "cmd"\nargs = ["/c", "echo", "x"]\n', encoding="utf-8")
 
-        def fake_run(cmd, **kw):
-            out = {"claude": claude_out, "codex": codex_out, "agy": agy_out}[cmd[0]]
-            return subprocess.CompletedProcess(cmd, 0, stdout=out, stderr="")
+        rows = collect(env, lists=False, environ={})
+        check("無帳本同步完成後 doctor 全部項目通過（含三方言 hook 端到端自測、實際執行檔與 T3 健康檢查）",
+              all(r["status"] == OK for r in rows))
 
-        which = lambda name: name if name in ("claude", "codex", "agy") else None  # noqa: E731
-        rows = collect(env, record_path, run=fake_run, which=which)
-        status = {(r["area"], r["agent"], r["item"]): r["status"] for r in rows}
-        check("剛接上：寫入檢查全部通過", all(r["status"] == OK for r in rows if r["area"] != "清單"))
-        check("規則：三個 agent 的受管區塊都比對了（Antigravity 檢查 AGENTS.md 與 GEMINI.md 兩檔）",
-              sum(1 for k in status if k[0] == "規則") == 4
-              and status[("規則", "Antigravity", "AGENTS.md")] == OK
-              and status[("規則", "Antigravity", "GEMINI.md")] == OK)
-        check("skills：三邊各 2 個（Antigravity 在 ~/.gemini/config/skills）",
-              sum(1 for k in status if k[0] == "skills") == 6 and status[("skills", "Antigravity", "alpha")] == OK)
-        check("MCP：三邊帳本都比對了", sum(1 for k in status if k[0] == "MCP" and status[k] == OK) == 3)
-        check("權限與兩邊的提醒 hook", status[("權限", "Claude Code", "mcp__devtools")] == OK
-              and status[("hook", "Claude Code", "開新對話提醒")] == OK and status[("hook", "Codex", "開新對話提醒")] == OK)
-        check("agent 清單：Claude 已連線、Codex 與 Antigravity 已啟用", status[("清單", "Claude Code", "MCP devtools")] == OK
-              and status[("清單", "Codex", "MCP devtools")] == OK and status[("清單", "Antigravity", "MCP devtools")] == OK)
-        check("查不到的標未知：三個 agent 的 skill 清單", all(status[("清單", a, "skills")] == UNKNOWN
-                                                        for a in ("Claude Code", "Codex", "Antigravity")))
+        # B2 驗證：即使內建其他 plugin 為 enabled，只要 omnikit@omnikit-local 被停用，doctor 立即抓出 FAIL
+        plugin_enabled[0] = False
+        rows_disabled = collect(env, lists=False, environ={})
+        check("B2 防護：薄 plugin 被停用時（即使其他內建 plugin enabled），doctor 精準判為 FAIL",
+              any(r["item"] == sync.PLUGIN_ID and r["status"] == FAIL for r in rows_disabled))
+        plugin_enabled[0] = True
 
-        codex_md = home / ".codex" / "AGENTS.md"
-        codex_md.write_text(codex_md.read_text(encoding="utf-8").replace("保守", "大膽"), encoding="utf-8")
-        shutil.rmtree(home / ".agents" / "skills" / "beta")
-        (home / ".agents" / "skills" / "alpha" / "SKILL.md").write_text("改過", encoding="utf-8")
-        cj = home / ".claude.json"
-        doc = json.loads(cj.read_text(encoding="utf-8"))
-        doc["mcpServers"]["devtools"]["args"] = ["/c", "node", "evil.js"]
-        cj.write_text(json.dumps(doc), encoding="utf-8")
-        rec = agents.load_record(env)
-        rec["mcp"]["antigravity"]["devtools"] = None
-        agents.save_record(env, rec)
-        (home / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"allow": []}}), encoding="utf-8")
-        claude_out = "devtools: cmd /c node evil.js - ✗ Failed to connect\n"
-        codex_out = json.dumps([{"name": "devtools", "enabled": False}])
-        agy_out = "NAME  TYPE  STATUS  COMMAND/URL\n"
-        rows = collect(env, record_path, run=fake_run, which=which)
-        status = {(r["area"], r["agent"], r["item"]): r["status"] for r in rows}
-        check("規則區塊被手改：失敗", status[("規則", "Codex", "AGENTS.md")] == FAIL and status[("規則", "Claude Code", "CLAUDE.md")] == OK)
-        check("skill 不見了、複製品被改：失敗，只算那一邊", status[("skills", "Codex", "beta")] == FAIL
-              and status[("skills", "Codex", "alpha")] == FAIL and status[("skills", "Claude Code", "alpha")] == OK
-              and status[("skills", "Antigravity", "alpha")] == OK)
-        check("MCP 被改過：失敗，並提示 resolve", status[("MCP", "Claude Code", "devtools")] == FAIL
-              and any("resolve devtools" in r["detail"] for r in rows))
-        check("舊版沒有雜湊：未知", status[("MCP", "Antigravity", "devtools")] == UNKNOWN)
-        check("權限規則與 hook 不見了：失敗", status[("權限", "Claude Code", "mcp__devtools")] == FAIL
-              and status[("hook", "Claude Code", "開新對話提醒")] == FAIL)
-        check("清單：連不上、被停用、不在清單裡都是失敗", status[("清單", "Claude Code", "MCP devtools")] == FAIL
-              and status[("清單", "Codex", "MCP devtools")] == FAIL and status[("清單", "Antigravity", "MCP devtools")] == FAIL)
-        nothing = collect(env, record_path, run=fake_run, which=lambda _: None)
-        check("找不到 agent 指令：清單記未知", {r["status"] for r in nothing if r["area"] == "清單"} == {UNKNOWN})
-        text = "\n".join(report(rows))
-        check("報告列出通過、失敗、未知的數量", text.startswith("# OmniKit doctor：通過 ") and "✗ 規則：Codex／AGENTS.md" in text)
-        empty = agents.Env(home=tmp / "nohome", repo=repo, state=tmp / "nostate", skillshare=tmp / "x")
-        other = tmp / "other-checkout"
-        shutil.copytree(repo, other)
-        moved = collect(dataclasses.replace(env, repo=other), record_path, lists=False)
-        check("從別的 checkout 執行：以安裝時的 repo 為準", moved[0]["item"] == "repo"
-              and next(r for r in moved if r["area"] == "skills" and r["agent"] == "Claude Code")["status"] == OK)
-        check("還沒接上：直接說要跑 install.ps1", collect(empty, tmp / "none.json", lists=False)[0]["status"] == FAIL)
+        # 模擬 T3 副本被手改導致「T3 同步已卡住」
+        (inst_d / "AGENTS.md").write_text("手改過\n", encoding="utf-8")
+        rows_stuck = collect(env, lists=False, environ={})
+        check("T3 實例規則副本與 ~/.gemini 不同時標出『T3 同步已卡住』",
+              any("T3 同步已卡住" in r["detail"] for r in rows_stuck))
 
-        # 狀態只能有一份：封裝的 app（Claude 桌面版）轉存的副本還沒合併，列成失敗並說怎麼合併
-        local = tmp / "AppData" / "Local"
-        put(local / "Packages" / "Claude_x" / "LocalCache" / "Local" / "omnikit" / "install-record.json", "{}")
-        rows = collect(env, record_path, lists=False, environ={"LOCALAPPDATA": str(local)})
-        st = [r for r in rows if r["area"] == "狀態"]
-        check("狀態：列出狀態資料夾；封裝轉存的副本沒合併是失敗，說要跑 statedir.py migrate",
-              st[0]["status"] == OK and st[0]["detail"] == str(state) and st[1]["status"] == FAIL
-              and "Claude_x" in st[1]["detail"] and "statedir.py migrate" in st[1]["detail"])
-        first = collect(empty, tmp / "none.json", lists=False, environ={"LOCALAPPDATA": str(local)})
-        check("還沒有 agents.json 但舊位置有：說要先合併，不叫你重裝", "agents.py sync" in first[0]["detail"]
-              and any(r["area"] == "狀態" and r["status"] == FAIL for r in first))
+        # 模擬刪除 Codex skill junction 與塞回墓碑權限 -> doctor 抓出 FAIL
+        sync.remove_dir_link(home / ".codex" / "skills" / "omnikit-alpha")
+        s_doc = claude_allow.load(home / ".claude" / "settings.json")
+        s_doc["permissions"]["allow"].append("mcp__retired")
+        claude_allow.save(home / ".claude" / "settings.json", s_doc)
+        rows_bad = collect(env, lists=False, environ={})
+        st_bad = {(r["area"], r["agent"]): r["status"] for r in rows_bad if r["status"] == FAIL}
+        check("skill junction 遺失與墓碑權限殘留皆被 doctor 判為 FAIL",
+              ("skills", "Codex") in st_bad and ("權限", "Claude Code") in st_bad)
 
-        # 其他設定目錄：接上的通過；安裝後才出現的列成失敗；沒接上的 agent 不管
-        kai, work, cx = home / ".claude-kai", home / ".claude-work", home / ".codex-x"
-        found = [homes.Found("claude-code", kai, "T3 Code 的 kai 實例"), homes.Found("claude-code", work, "掃描 ~/.claude-*"),
-                 homes.Found("antigravity", home / "agy", "T3 Code 的 antigravity 實例", False, "antigravity"),
-                 homes.Found("codex", cx, "環境變數 CODEX_HOME")]
-        rows = check_homes({"agents": ["claude-code"], "skills": {}, "homes": [agents.extra_key(kai)]}, found)
-        status = {r["item"]: r["status"] for r in rows}
-        check("設定目錄：接上的通過，新出現的失敗，沒接上的 agent（Codex、Antigravity）不列",
-              status == {"T3 Code 的 kai 實例": OK, "掃描 ~/.claude-*": FAIL}
-              and "agents.py sync" in next(r["detail"] for r in rows if r["item"] == "掃描 ~/.claude-*"))
-        agy = [homes.Found("antigravity", home / f"agy{i}", f"T3 Code 的 agy{i} 實例", False, f"agy{i}") for i in range(5)]
-        acp = {"agy0": (t3_acp.OK, "Binary path 是 OmniKit 的轉接程式"), "agy1": (t3_acp.CUSTOM, "你自己設的"),
-               "agy2": (t3_acp.BROKEN, "檔不全"), "agy4": (t3_acp.UNSUPPORTED, "只支援 Windows")}
-        rows = check_homes({"agents": ["antigravity"], "skills": {}}, agy, acp)
-        check("T3 4979 起原生讀規則的實例通過",
-              check_homes({"agents": ["antigravity"], "skills": {}}, agy[:1], {"agy0": (t3_acp.NATIVE, "原生")})[0]["status"] == OK)
-        check("T3 的 Antigravity 實例：Binary path 是轉接程式才通過；自己設的、檔不全、還沒設的失敗並說怎麼修；"
-              "不是 Windows 的列「不確定」不叫你 sync",
-              [r["status"] for r in rows] == [OK, FAIL, FAIL, FAIL, UNKNOWN] and "清空" in rows[1]["detail"]
-              and "agents.py sync" in rows[3]["detail"] and "sync" not in rows[4]["detail"] and rows[0]["agent"] == "Antigravity")
-        check("設定目錄：舊版記錄沒有 homes，用 skills 的 key 判斷",
-              check_homes({"agents": ["claude-code"], "skills": {agents.extra_key(kai): []}}, found[:1])[0]["status"] == OK)
-
-        def fake_pwsh(cmd, **kw):
-            return subprocess.CompletedProcess(cmd, 1, stdout='[{"name":"git","ok":true},{"name":"npm","ok":false}]', stderr="")
-        pre = preflight(fake_pwsh) if (shutil.which("pwsh") or shutil.which("powershell")) else [row("安裝前", "", "git", OK), row("安裝前", "", "npm", FAIL)]
-        check("安裝前檢查：沒通過時也讀得到結果", [(r["item"], r["status"]) for r in pre] == [("git", OK), ("npm", FAIL)])
+        # 未接上的全新環境 -> 提示 install.ps1；若有舊狀態未合併 -> 提示 sync.py sync
+        empty = sync.Env(home=base / "nohome", repo=repo, state=base / "nostate", environ={})
+        check("未接上環境直接提示 install.ps1", collect(empty, lists=False, environ={})[0]["status"] == FAIL)
+        local = base / "AppData" / "Local"
+        (local / "Packages" / "Claude_x" / "LocalCache" / "Local" / "omnikit").mkdir(parents=True)
+        (local / "Packages" / "Claude_x" / "LocalCache" / "Local" / "omnikit" / "install-record.json").write_text("{}", encoding="utf-8")
+        first = collect(empty, lists=False, environ={"LOCALAPPDATA": str(local)})
+        check("舊位置有未合併狀態時提示合併", "sync.py sync" in first[0]["detail"])
 
     failed = [n for n, ok in checks if not ok]
     for name, ok in checks:
@@ -510,10 +600,10 @@ def selftest():
     return 1 if failed else 0
 
 
-def main():
-    parser = argparse.ArgumentParser(description="OmniKit doctor：確認寫入的設定還在、agent 看得到")
-    parser.add_argument("--preflight", action="store_true", help="一併跑安裝前檢查（preflight.ps1）")
-    parser.add_argument("--no-lists", action="store_true", help="不呼叫 agent 的清單指令（比較快）")
+def main() -> int:
+    parser = argparse.ArgumentParser(description="OmniKit doctor：無帳本對帳與端到端健康檢查")
+    parser.add_argument("--preflight", action="store_true")
+    parser.add_argument("--no-lists", action="store_true")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args()
@@ -521,8 +611,8 @@ def main():
         sys.stdout.reconfigure(encoding="utf-8")
     if args.selftest:
         return selftest()
-    env = agents.real_env()
-    rows = collect(env, claude_allow.RECORD, lists=not args.no_lists, pre=args.preflight)
+    env = sync.real_env()
+    rows = collect(env, lists=not args.no_lists, pre=args.preflight)
     print(json.dumps(rows, ensure_ascii=False, indent=1) if args.json else "\n".join(report(rows)))
     return 1 if any(r["status"] == FAIL for r in rows) else 0
 

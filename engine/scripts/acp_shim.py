@@ -3,7 +3,7 @@
 # dependencies = []
 # ///
 """【停用，2026-11-20】T3 0.1.11-nightly.20261120.4979 起（PR 39531）Antigravity 原生讀全域 AGENTS.md 與 GEMINI.md，
-agents.py sync 在這版以上會拿掉 Binary path、刪掉 ~/.omnikit/acp；這支只留給更舊的 T3。實測見 t3_acp.py。
+sync.py sync 在這版以上會拿掉 Binary path、刪掉 ~/.omnikit/acp；這支只留給更舊的 T3。實測見 t3_acp.py。
 
 T3 Code 的 Antigravity 轉接程式：讓 T3 裡的 Antigravity 也讀得到使用者的全域規則（~/.gemini/GEMINI.md，含 OmniKit 規則）。
 
@@ -19,7 +19,7 @@ PR 連結的說明）。所以這支站在 T3 與 server 中間，只做兩件�
    完全存取與自動接受修改的模式照 T3 的規則改成 default。
 其他訊息原樣轉送，stdout 與 stderr 也原樣轉回 T3。
 
-怎麼接上：agents.py（t3_acp.py）把這支複製到 ~/.omnikit/acp/，旁邊放啟動檔 omnikit-acp.cmd 與一個空的
+怎麼接上：過渡期轉接程式（T3 0.1.11 起已停用並由 sync.py 自動移除；舊版把這支複製到 ~/.omnikit/acp/，旁邊放啟動檔 omnikit-acp.cmd 與一個空的
 localharness_external.exe（T3 認自訂執行檔的條件：旁邊要有這個檔；它的路徑這裡會換成 T3 裝的那一份），
 再把 T3 每個 Antigravity 實例的 Binary path 設成 omnikit-acp.cmd。T3 會監看設定檔，改了馬上生效（新的對話起）。
 T3 更新 ACP server 時，這支照 T3 的 active.json 找新的版本，不用重裝。

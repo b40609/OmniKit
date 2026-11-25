@@ -73,9 +73,10 @@ def test_selftest_passes():
 def test_antigravity_camelcase(tmp_path, monkeypatch):
     monkeypatch.setenv("OMNIKIT_STATE", str(tmp_path))
     agy_pre = {"hookEventName": "PreToolUse", "toolCall": {"name": "run_command", "args": {"CommandLine": "git commit -n -m x"}}}
-    assert is_deny(hh.handle(agy_pre, env={}))
+    res_pre = hh.handle(agy_pre, env={})
+    assert res_pre and res_pre.get("decision") == "deny" and "hookSpecificOutput" not in res_pre
     agy_ok = {"hookEventName": "PreToolUse", "toolCall": {"name": "edit_file", "args": {"TargetFile": str(tmp_path / "a.ts")}}}
-    assert hh.handle(agy_ok, env={}) is None
+    assert hh.handle(agy_ok, env={}) == {"decision": "allow"}
     py = tmp_path / "b.py"
     py.write_text("import os\n", encoding="utf-8")
 
@@ -83,5 +84,5 @@ def test_antigravity_camelcase(tmp_path, monkeypatch):
         return 1, f"{cmd[-1]}:1:8: F401 `os` imported but unused\n"
     post = {"hookEventName": "PostToolUse", "sessionId": "ag", "toolCall": {"name": "write_file", "args": {"TargetFile": str(py)}}}
     assert hh.handle(post, runner=bad, env={}) == {}
-    assert hh.handle({"hookEventName": "Stop", "sessionId": "ag"}, runner=bad, env={})["decision"] == "block"
-    assert hh.handle({"hookEventName": "Stop", "sessionId": "ag", "continuationActive": True}, runner=bad, env={}) is None
+    assert hh.handle({"hookEventName": "Stop", "sessionId": "ag"}, runner=bad, env={})["decision"] == "continue"
+    assert hh.handle({"hookEventName": "Stop", "sessionId": "ag", "continuationActive": True}, runner=bad, env={}) in ({}, None)

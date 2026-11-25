@@ -1,6 +1,6 @@
-# MCP servers：engine/scripts/agents.py 依這份寫進 targets 列的 agent：
-#   claude → ~/.claude.json、codex → ~/.codex/config.toml、antigravity → ~/.gemini/config/mcp_config.json
-# 只動這裡列的 server 與 OmniKit 管的欄位，使用者改過的先停下來問。維護者版 commit 或 pull 動到這裡時，
+# MCP servers：engine/scripts/sync.py 依這份寫進 targets 列的 agent：
+#   claude → 本地薄 plugin .mcp.json、codex → codex mcp CLI（~/.codex/config.toml）、antigravity → config/plugins/omnikit/mcp_config.json
+# 只動這裡列的 server，維護者版 commit 或 pull 動到這裡時，
 # git hook 會自動同步；同事版要重跑 install.ps1。
 # options.<agent> 的欄位原樣寫進那個 agent；免問核准（codex 的 default_tools_approval_mode）同事版要本人同意才寫。
 # 格式見 engine/schema/mcp.schema.json；金鑰不要寫在這裡。
@@ -22,5 +22,5 @@ servers:
     options:
       codex:
         # Codex 非互動模式的核准政策是 never；不設這個，開頁、導向這類工具會全部被拒。
-        # 免問核准：維護者版照寫；同事版本人同意了才寫（agents.py approvals）
+        # 免問核准：維護者版照寫；同事版本人同意了才寫（sync.py approvals）
         default_tools_approval_mode: approve
