@@ -130,14 +130,14 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 ## 裝好之後
 
-安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了八個 skill（`omnikit-setup`、`omnikit-ask`、`omnikit-weekly`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-research`、`omnikit-capabilities`、`omnikit-eval`；訪談選了不評估新工具的沒有 `omnikit-eval`）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
+安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了六個核心 skill（`omnikit-setup`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-research`、`omnikit-capabilities`、`omnikit-eval`；訪談選了不評估新工具的沒有 `omnikit-eval`）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
 
 ### 確認接上了
 
 | 檢查 | Claude Code | Codex | Antigravity |
 |---|---|---|---|
 | 規則 | 問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的「規則版本」一樣，profile 是你選的 | 同左 | 同左 |
-| skill | 輸入 `/omnikit`，選單裡會出現 `omnikit-setup`、`omnikit-ask` 與 `omnikit-eval`（訪談選了不評估新工具的，沒有 `omnikit-eval`） | 輸入 `$omnikit`，或用 `/skills` 列出來 | 問「你可用的 skill 有哪些？」，會列出這幾個 |
+| skill | 輸入 `/omnikit`，選單裡會出現 `omnikit-setup`、`omnikit-handoff` 與 `omnikit-eval` 等（訪談選了不評估新工具的，沒有 `omnikit-eval`） | 輸入 `$omnikit`，或用 `/skills` 列出來 | 問「你可用的 skill 有哪些？」，會列出這幾個 |
 | MCP | 終端機跑 `claude mcp get chrome_devtools`，狀態是 Connected | 終端機跑 `codex mcp list`，`chrome_devtools` 是 enabled | 終端機跑 `agy mcp list`，`chrome_devtools` 是 enabled |
 
 終端機跑 `uv run engine/scripts/sync.py status`，可以看到這台接上了哪些 agent 與無帳本對帳狀態。
@@ -150,8 +150,8 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 |---|---|---|
 | 規則（`data/rules/baseline.md` + `data/rules/dispatch.md`（分派的原則，完整政策在 `dispatch-policy.md`，要派才讀）+ profile 的 `AGENTS.md`，profile 有 `dispatch.md` 也一起接） | 安全底線所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問 | Claude Code 直接讀這兩份，改完開新 session 就生效。Codex 與 Antigravity 讀的是兩份接在一起的內容：改了 profile 要跑 `uv run engine/scripts/profiles.py` 重新接上（維護者版改的是 repo 裡的檔案的話，commit 時 git hook 會自動同步） |
 | `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 三邊說「幫我設定 OmniKit」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-setup`，Codex 輸入 `$omnikit-setup` |
-| `omnikit-ask` skill | 說「我不知道怎麼問：〔狀況〕」，依情境給問法、做法與該用的官方功能（73 個情境，三家 agent 的對照表）。 | 三家都能用；只有 Claude Code 有的官方功能，表裡寫了其他兩家的替代做法 |
-| `omnikit-weekly` skill（已停用） | 2026-11-17 起停用，改用官方的 `/doctor`、`/insights` 與 `omnikit-ask`。原本是：說「OmniKit 本週週報」，列出你的個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率；還查不到的標「未知」。不連網，見[個人週報](#個人週報)。說「OmniKit 給我建議」，依這台裝了什麼、用了什麼，分成裝、拿掉、用內建的就好三類，見[建議](#建議裝拿掉用內建的就好) | 三邊說「OmniKit 本週週報」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-weekly`，Codex 輸入 `$omnikit-weekly`。訪談怎麼答都會裝。建議只有 Claude Code 與 Codex 有 |
+| `omnikit-ask` skill（已退役） | 2026-11-25 起退役刪除：三次實測與沒裝打平，改用內建 `/plan` 或 `/grill-me`（見 [docs/reviews/2026-11-25-ask-sota-reeval.md](docs/reviews/2026-11-25-ask-sota-reeval.md)）；三家指令對照表移至 [docs/cli-features.md](docs/cli-features.md) | — |
+| `omnikit-weekly` skill（已停用） | 2026-11-17 起停用，改用官方的 `/doctor`、`/insights`。原本是：說「OmniKit 本週週報」，列出你的個人週報：沒在用的工具、上游有新版的工具、有更好的選擇、被手動改過的設定、主動建議的接受率；還查不到的標「未知」。不連網，見[個人週報](#個人週報)。說「OmniKit 給我建議」，依這台裝了什麼、用了什麼，分成裝、拿掉、用內建的就好三類，見[建議](#建議裝拿掉用內建的就好) | — |
 | `omnikit-handoff` skill | 說「交接」，agent 把做到一半的工作 commit、push，寫一份交接檔到你的狀態 repo，再開新對話接著做；新對話說「讀 <交接檔路徑> 接著做」就照交接檔接手。狀態 repo 的位置寫在你的 profile，沒寫 agent 會先問 | 三邊說「交接」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-handoff`，Codex 輸入 `$omnikit-handoff` |
 | `omnikit-dispatch` skill | 派子任務、開子對話時照分派政策選模型與思考程度，收完結果後記一行委派紀錄（存在這台，不上傳）；也能看 Sonnet 試行的比較與本週 Claude 用量。見[子任務分派與委派紀錄](#子任務分派與委派紀錄) | 三邊說「委派紀錄」「分派統計」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-dispatch`，Codex 輸入 `$omnikit-dispatch`。本週用量的快照只有 Claude Code 的狀態列存得到 |
 | `omnikit-research` skill | 說「先查業界做法」「找同類工具」「比較方案」，agent 每個管道都查（網頁中英文、GitHub topic 與星數、fork 與競品、skill／MCP 目錄、Hacker News、Product Hunt），關鍵字從結果擴展，連續 3 組沒有新名字才停（長尾題目改看 ★1,000 以上的名字，標「長尾未飽和」；12 組還沒停先回報）；報告附查了哪些管道與關鍵字、第幾組停、哪裡查不到，星數與授權用 `gh api` 實測並寫日期。安全底線有一行要求調研照這個 skill 做 | 三邊說「找同類工具」「調研」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-research`，Codex 輸入 `$omnikit-research`。GitHub 的管道要先 `gh auth login` |
@@ -307,7 +307,7 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 ### 個人週報（已停用）
 
-> **2026-11-17 起停用。** 這一節留著當紀錄。取代的做法：沒在用的工具與成本看 Claude Code 的 `/doctor`、`/usage`；使用習慣看 `/insights`；卡住怎麼問用 `omnikit-ask`；新電腦該裝什麼看 [docs/starter.md](docs/starter.md)。原因見 [docs/proposals/2026-11-17-summary.md](docs/proposals/2026-11-17-summary.md)。
+> **2026-11-17 起停用。** 這一節留著當紀錄。取代的做法：沒在用的工具與成本看 Claude Code 的 `/doctor`、`/usage`；使用習慣看 `/insights`；需求沒想清楚用內建 `/plan` 或 `/grill-me`（三家指令見 [docs/cli-features.md](docs/cli-features.md)）；新電腦該裝什麼看 [docs/starter.md](docs/starter.md)。原因見 [docs/proposals/2026-11-17-summary.md](docs/proposals/2026-11-17-summary.md)。
 
 每週在 Claude Code、Codex 或 Antigravity 裡說一次「OmniKit 本週週報」（`omnikit-weekly`）。不管訪談時有沒有選評估新工具都有，依序列出：
 
@@ -329,7 +329,7 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 ### 建議：裝、拿掉、用內建的就好（已停用）
 
-> **2026-11-17 起停用。** 這一節留著當紀錄。取代的做法：沒在用的工具與成本看 Claude Code 的 `/doctor`、`/usage`；使用習慣看 `/insights`；卡住怎麼問用 `omnikit-ask`；新電腦該裝什麼看 [docs/starter.md](docs/starter.md)。原因見 [docs/proposals/2026-11-17-summary.md](docs/proposals/2026-11-17-summary.md)。
+> **2026-11-17 起停用。** 這一節留著當紀錄。取代的做法：沒在用的工具與成本看 Claude Code 的 `/doctor`、`/usage`；使用習慣看 `/insights`；需求沒想清楚用內建 `/plan` 或 `/grill-me`（三家指令見 [docs/cli-features.md](docs/cli-features.md)）；新電腦該裝什麼看 [docs/starter.md](docs/starter.md)。原因見 [docs/proposals/2026-11-17-summary.md](docs/proposals/2026-11-17-summary.md)。
 
 在 Claude Code 或 Codex 裡說「OmniKit 給我建議」（跟個人週報同一個 `omnikit-weekly`）。agent 只看自己那一邊，分三類回報：
 
@@ -394,7 +394,7 @@ profile 選了領域的話，只對那些領域的槽位出建議；沒選過就
 
 ### 回流：把使用情況回報給維護者（已停用）
 
-> **2026-11-17 起停用。** 這一節留著當紀錄。取代的做法：沒在用的工具與成本看 Claude Code 的 `/doctor`、`/usage`；使用習慣看 `/insights`；卡住怎麼問用 `omnikit-ask`；新電腦該裝什麼看 [docs/starter.md](docs/starter.md)。原因見 [docs/proposals/2026-11-17-summary.md](docs/proposals/2026-11-17-summary.md)。
+> **2026-11-17 起停用。** 這一節留著當紀錄。取代的做法：沒在用的工具與成本看 Claude Code 的 `/doctor`、`/usage`；使用習慣看 `/insights`；需求沒想清楚用內建 `/plan` 或 `/grill-me`（三家指令見 [docs/cli-features.md](docs/cli-features.md)）；新電腦該裝什麼看 [docs/starter.md](docs/starter.md)。原因見 [docs/proposals/2026-11-17-summary.md](docs/proposals/2026-11-17-summary.md)。
 
 說「匯出回流」（`omnikit-weekly`）。OmniKit 不會自己送出任何東西：同意之後，`engine/scripts/feedback.py` 在這台產生一個檔，由你自己放到試點約定的共用位置。
 
@@ -594,8 +594,6 @@ engine/                      引擎：不用改
   scripts/                   安裝、接上三個 agent、掃描、使用統計、個人週報、建議、規則檔的大小與內容、產生與選 profile、驗證、產生看板與 marketplace、開新對話提醒、說做不到查證
   site/                      看板的樣式與程式，以及匯出的架構地圖（map.html）
   skills/omnikit-setup/      訪談建立個人 profile 的 skill
-  skills/omnikit-ask/        問法庫與官方功能對照的 skill（每個人都有）
-  skills/omnikit-weekly/     個人週報與建議的 skill（2026-11-17 停用，腳本留著）
   skills/omnikit-eval/       評估新工具的 skill
   skills/omnikit-handoff/    交接與接手的 skill
   skills/omnikit-dispatch/   子任務分派與委派紀錄的 skill

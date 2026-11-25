@@ -89,8 +89,6 @@ jobs:
       - run: uv run engine/skills/omnikit-setup/scripts/setup.py scan > /dev/null
       # 候選池與證據等級輔助檢查
       - run: uv run engine/scripts/pool.py --selftest
-      # 問法庫多輪評測的壞專案：隱藏檢查對壞專案判失敗、對參考修法判通過（不開對話、不呼叫模型）
-      - run: uv run data/pilot/ask-eval/multiturn_eval.py --selftest
       - run: uv run engine/scripts/proof.py --selftest
 
   # FR-34：同事用的是 Windows，上面「名冊」的每一個 uv run 都在 Windows 再跑一次（windows-ci.ps1 從這個檔案讀，

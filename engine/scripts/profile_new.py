@@ -319,7 +319,7 @@ def run(answers_path, data, state=None, write=False, apply=False, force=False, a
         skip = {s: why for s, (key, why) in profiles.OPTIONAL_SKILLS.items() if a.get(key) is False}
         if skip:
             print(f"\n套用時不裝 {'、'.join(skip)}（選了{'、'.join(dict.fromkeys(skip.values()))}）；已經裝了的會拿掉。"
-                  "卡住時說「我不知道怎麼問」（omnikit-ask）照樣有。")
+                  "交接、分派、調研等常駐 skill（omnikit-handoff 等）照樣有。")
         if problem:
             print(f"\n不能寫入：{problem}")
             return 1
@@ -429,8 +429,8 @@ def selftest():
         check("備份與寫入時檔案被防毒短暫鎖住：等一下再試，照樣完成", moved.calls == 2 and wrote.calls == 3)
 
         code, out = quiet(answers_file("bob", evaluate_tools=False, projects=None), data)
-        check("不評估工具：預覽說明不裝 omnikit-eval，問法庫照樣有（FR-4；週報 2026-11-17 停用）",
-              code == 0 and "套用時不裝 omnikit-eval" in out and "omnikit-ask" in out)
+        check("不評估工具：預覽說明不裝 omnikit-eval，常駐 skill 照樣有（FR-4；週報 2026-11-17 停用、問法庫 2026-11-25 退役）",
+              code == 0 and "套用時不裝 omnikit-eval" in out and "omnikit-handoff" in out)
         check("要評估工具：預覽不提", "套用時不裝" not in quiet(answers_file("alice"), data)[1])
         code, out = quiet(answers_file("bob", evaluate_tools=False, projects=None), data, write=True)
         errors, roster = validate.check(data, profile="bob", state=state)

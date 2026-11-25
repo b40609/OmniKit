@@ -1,4 +1,0 @@
-body { font-family: sans-serif; margin: 24px; }
-table.orders { border-collapse: collapse; }
-table.orders th, table.orders td { border-bottom: 1px solid #ddd; padding: 8px 12px; text-align: left; white-space: nowrap; }
-td.total { text-align: right; }

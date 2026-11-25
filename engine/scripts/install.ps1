@@ -584,7 +584,7 @@ function Show-NextSteps($edition) {
   if ($hasEval) {
     Write-Host '  - 評估新工具：說「幫我評估」加上 GitHub 連結（Claude Code 也可以輸入 /omnikit-eval，Codex 輸入 $omnikit-eval）'
   }
-  Write-Host '  - 卡住或不知道怎麼開口：說「我不知道怎麼問：你的狀況」（Claude Code 也可以輸入 /omnikit-ask，Codex 輸入 $omnikit-ask）'
+  Write-Host '  - 需求沒想清楚想先對焦：用內建 /plan（Antigravity 亦可用 /grill-me）；三家指令對照見 docs/cli-features.md'
   Write-Host '  - 預設 plugin 不會自動安裝；安裝方式與其他說明見 README 的「裝好之後」'
 }
 

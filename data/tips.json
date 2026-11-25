@@ -1,8 +1,6 @@
 {
-  "note": "當下提醒在主線對話的第一回合結束時講的小提示：一天最多一則，每則只講一次。agents 寫 claude、codex；text 一句話，講情況、功能、怎麼用。新的官方功能加在最後，added 寫日期。來源與核對狀態見 engine/skills/omnikit-ask/features.md。",
+  "note": "當下提醒在主線對話的第一回合結束時講的小提示：一天最多一則，每則只講一次。agents 寫 claude、codex；text 一句話，講情況、功能、怎麼用。新的官方功能加在最後，added 寫日期。來源與核對狀態見 docs/cli-features.md。",
   "tips": [
-    {"id": "ask", "added": "2026-11-17", "agents": ["claude", "codex"],
-     "text": "小提示：卡住或不知道怎麼開口時，說「我不知道怎麼問：〔你的狀況〕」，問法庫會給做法與該用的官方功能。"},
     {"id": "clear-between-tasks", "added": "2026-11-17", "agents": ["claude"],
      "text": "小提示：下一件事跟目前的無關時，先 /clear（桌面版開新對話）。每次請求都會重送整段對話，清掉不花成本，舊對話用 /resume 找得回來。"},
     {"id": "clear-between-tasks-codex", "added": "2026-11-17", "agents": ["codex"],

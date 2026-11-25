@@ -112,13 +112,13 @@ uv run scripts/setup.py profile --answers <answers_file> --write --apply
 - 開新的 session 才會生效。確認方式：問「OmniKit 規則版本與 profile 是什麼？」
 - 第 5 題選「先不要」：輸出會有「不裝 omnikit-eval」，評估工具的 skill 已經拿掉；之後想用，重新訪談選「要」就會裝回來。
 - 依第 2 題給一個試試看的例子，例如選了 `scope-creep`：請它改一個小地方，看它會不會順手改別的。
-- 卡住或不知道怎麼開口時：說「我不知道怎麼問：〔狀況〕」（`omnikit-ask`）。新電腦該裝什麼、哪些不用裝：看 repo 的 `docs/starter.md`。
+- 需求還沒想清楚時：用內建 `/plan`（Antigravity 亦可用 `/grill-me`）讓 agent 先訪談對焦再動手。三家指令對照看 `docs/cli-features.md`；新電腦該裝什麼、哪些不用裝看 `docs/starter.md`。
 - profile 存在這台電腦的 `profiles_dir`（`~/.omnikit/profiles/<名稱>/`），在 repo 外，不會被 commit 或上傳。之後想手動改，直接改那裡的 `AGENTS.md`，再在 repo 根目錄跑 `uv run engine/scripts/profiles.py` 重新接上（Claude Code 直接讀這份；Codex 與 Antigravity 讀的是接在一起的副本）；想換別的 profile，跑 `uv run engine/scripts/profiles.py --set <名稱>`。
 - 輸出提到某個 agent 的規則「沒有覆蓋」或「沒有加回去」：那是使用者自己改過的檔案，這次沒動；要接上就在 repo 根目錄重跑 `install.ps1`。
 
 ## 4b. 套用之後：三項設定
 
-profile 套用完，再逐項問這三項。每一項都是改使用者的設定檔：先講會改哪個檔、改成什麼，同意才改；不要的就跳過。改之前備份原檔。細節與各家的對應見 `omnikit-ask` 的 `features.md`。
+profile 套用完，再逐項問這三項。每一項都是改使用者的設定檔：先講會改哪個檔、改成什麼，同意才改；不要的就跳過。改之前備份原檔。細節與各家的對應見 `docs/cli-features.md`。
 
 1. **帳號池與多模型分派設定（4 到 5 題）**
    - 掃描結果的 `account_pool`（或跑 `uv run scripts/setup.py pool recommend`）已經列出這台偵測到的 T3 實例、多個 `CLAUDE_CONFIG_DIR`／`CODEX_HOME`、環境變數裡有沒有 API 金鑰／雲端專案（只看有沒有，絕不讀值），以及每一項設定的**建議值與原因**。使用者的選擇永遠優先。

@@ -1203,7 +1203,7 @@ def selftest() -> int:
         (repo / "data" / "harness").mkdir(parents=True)
         (repo / "data" / "harness" / "claude-allow.txt").write_text("mcp__devtools\n", encoding="utf-8")
         (repo / "data" / "harness" / "claude-allow-retired.txt").write_text("mcp__retired_old\n", encoding="utf-8")
-        for sname in ("omnikit-ask", "ok-ask", "omnikit-eval", "ok-eval"):
+        for sname in ("omnikit-handoff", "ok-handoff", "omnikit-eval", "ok-eval"):
             sd = repo / "engine" / "skills" / sname
             sd.mkdir(parents=True)
             (sd / "SKILL.md").write_text(f"---\nname: {sname}\ndescription: test {sname}\n---\n", encoding="utf-8")
@@ -1274,13 +1274,13 @@ def selftest() -> int:
               any(c[0] == "claude" and c[2] is False for c in cli_calls)
               and not any(c[0] == "claude" and c[3] == "" for c in cli_calls))
         check("B8 鏡像：Claude 與 .claude-kai 皆有 OmniKit junction，且 ~/.claude 自訂 skill 自動鏡像至 .claude-kai、不碰 .claude-mem",
-              is_link(home / ".claude" / "skills" / "omnikit-ask")
-              and is_link(home / ".claude-kai" / "skills" / "ok-ask")
+              is_link(home / ".claude" / "skills" / "omnikit-handoff")
+              and is_link(home / ".claude-kai" / "skills" / "ok-handoff")
               and is_link(home / ".claude-kai" / "skills" / "my-own-skill")
               and not (home / ".claude-mem" / "CLAUDE.md").exists())
         codex_cfg = tomllib.loads((home / ".codex" / "config.toml").read_text("utf-8"))
         check("B6 Codex：skills junction 與 MCP CLI 就位，且 default_tools_approval_mode 合法寫入 TOML",
-              is_link(home / ".codex" / "skills" / "omnikit-ask")
+              is_link(home / ".codex" / "skills" / "omnikit-handoff")
               and codex_cfg["mcp_servers"]["devtools"].get("default_tools_approval_mode") == "approve")
 
         # 測試同事版撤回核准時，B6 能乾淨移除 default_tools_approval_mode 且不產生重複鍵
@@ -1330,9 +1330,9 @@ def selftest() -> int:
         # disconnect 乾淨移除，.claude-kai 鏡像連結移除且 ~/.claude 使用者自己的 skill 本尊完好無損
         disconnect(env)
         check("disconnect：移除所有 OmniKit 連結、鏡像連結與薄 plugin，~/.claude 使用者自訂 skill 本尊完好保留",
-              not is_link(home / ".claude" / "skills" / "omnikit-ask")
+              not is_link(home / ".claude" / "skills" / "omnikit-handoff")
               and not is_link(home / ".claude-kai" / "skills" / "my-own-skill")
-              and not is_link(home / ".codex" / "skills" / "omnikit-ask")
+              and not is_link(home / ".codex" / "skills" / "omnikit-handoff")
               and not (agy_inst / "config" / "plugins" / "omnikit").exists()
               and not (state / "claude-marketplace").exists()
               and (home / ".claude" / "skills" / "my-own-skill" / "SKILL.md").is_file())

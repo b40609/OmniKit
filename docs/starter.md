@@ -32,6 +32,7 @@
 | 找一手來源、抓網頁 | 裝了 firecrawl，6 次只被叫用 1 次 | `data/evals/2026-11-13-web-sources-WR1.md` |
 | 程式碼理解（找呼叫者、影響範圍） | 內建兩題都不輸；graphify、Floorplan 裝著 6 次都沒被叫用 | `data/evals/2026-11-16-code-understanding-C1C2.md` |
 | 精簡回覆（caveman 的回覆風格） | 內建的 Concise 做同一件事。caveman 自己的數字：比一句「Answer concisely.」只再短 3%；回覆文字只佔用量的一小部分 | 用的是 caveman 公開的數字與一台電腦的用量組成，不是 OmniKit 的對照實測 |
+| 情境問法百科（原 `omnikit-ask`） | 三次實測（外部 41 題、多輪 26 段、真實對話 10 題）與沒裝皆打平；需求模糊改用內建 `/plan` 或 `/grill-me` | `docs/reviews/2026-11-25-ask-sota-reeval.md` |
 
 實測的範圍都很小（一兩個情境、中型的專案）。你的情況差很多時，結論可能不同。
 
@@ -45,7 +46,7 @@
 | T3 Code（多家模型的桌面應用） | 維護者在用，試用中；只測過它會正確載入規則與 skill |
 | taste-skill（行銷頁的設計） | 試用到 2026-11-28 |
 | caveman 的「先壓縮 log 與測試輸出再給 agent 讀」 | 省的是輸入，作者自測整段對話少 33.2% |
-| superpowers、mattpocock/skills 的 grill-me | 外面的清單最常推薦的兩個；跟 OmniKit 的問法庫是同一類東西 |
+| superpowers、mattpocock/skills 的 grill-me | 外面的清單最常推薦的兩個（Antigravity 已內建 `/grill-me`） |
 | 型別語言的 code intelligence plugin | 官方推薦：用「跳到定義」取代搜尋加讀檔 |
 
 官方的另一個建議：能用 CLI 的就不要裝 MCP（`gh`、`aws`、`gcloud` 這類），agent 可以直接跑指令。
@@ -76,6 +77,4 @@
 | 想每次都自動發生、不用開口 | 寫 hook |
 | 第二個 repo 要同一套設定 | 包成 plugin |
 
-同一張表也用來判斷「已經有的要不要改」：同一個錯誤一再出現、或審查時一再留同一句意見，就改規則檔，不要只在對話裡糾正一次；一直手動調整的流程，就是 skill 該改版了。各家怎麼做見 `features.md`；Codex 與 Antigravity 沒有的，問法庫裡有替代做法。
-
-各家的指令對照與「什麼情況用哪個」在 `engine/skills/omnikit-ask/features.md`。
+同一張表也用來判斷「已經有的要不要改」：同一個錯誤一再出現、或審查時一再留同一句意見，就改規則檔，不要只在對話裡糾正一次；一直手動調整的流程，就是 skill 該改版了。各家的指令對照與「什麼情況用哪個」在 `docs/cli-features.md`。

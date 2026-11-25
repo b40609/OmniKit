@@ -28,8 +28,8 @@ STATE = statedir.STATE  # ~/.omnikit
 TIPS = Path(__file__).resolve().parents[2] / "data" / "tips.json"
 REPORT = Path.home() / ".claude" / "usage-data" / "report.html"
 INSIGHTS_DAYS = 14
-INSIGHTS = ("這件事告一段落了。/insights 已經 {age} 沒跑：它會讀你最近的對話，整理常卡住的地方、建議寫進規則檔的內容與可以直接貼的問法。"
-            "拿到建議後說「我不知道怎麼問：一直重複提醒同一件事」，問法庫會帶你把建議放到對的地方。")
+INSIGHTS = ("這件事告一段落了。/insights 已經 {age} 沒跑：它會讀你最近的對話，整理常卡住的地方與建議寫進規則檔的內容。"
+            "拿到建議後，只挑重複發生兩次以上的錯誤寫進規則檔或確定性 hook。")
 
 
 def read_json(path, default):
