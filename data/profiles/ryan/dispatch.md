@@ -39,7 +39,9 @@ instances:
   antigravity_stk608:   {driver: antigravity, account: stk608,   classes: []}
   antigravity_stk824:   {driver: antigravity, account: stk824,   classes: []}
   antigravity_itri:     {driver: antigravity, account: itri,     classes: []}
-  # antigravity_ava、antigravity_kai（印度 Jio 方案，只剩 3.8 Flash）：11-22 退出派工並從 T3 移除；資料夾 2026-11-23 已刪。
+  # 2026-11-25 ryan 確認：ava 恢復可用 Gemini 4 Neon（同日實測用 gemini-4-carbon 跑完 3 輪），保留；classes 留空，比照 5 個 Pro 帳號只給 ryan 自己開的對話用，agent 不自動派。
+  antigravity_ava:      {driver: antigravity, account: ava,      classes: []}
+  # antigravity_kai（印度 Jio 方案，只剩 3.8 Flash）：11-22 退出派工並從 T3 移除；資料夾 2026-11-23 已刪。
 
 # 2026-11-22 ryan 定案（帳號池 1A＋2B，細節 data/evals/2026-11-22-gemini-pro-pool.md）：
 # - ryan 新買 5 個 Gemini Pro（正式付費、能用 Neon），只給 ryan 自己開的對話用，一次一個帳號，額度用完 ryan 在 T3 手動換；
@@ -55,4 +57,4 @@ instances:
 # 2026-11-20 更新（agy 多帳號已修好）：T3 0.1.11-nightly.20261120.4979 合入上游 PR 39485（原 issue #37587），三個 Antigravity 實例各自登入（實測 Ryan 23 個模型、kai 6 個、ava 6 個）。Ryan 的實例 id 改為 antigravity_ryan（原 antigravity），kai、ava 沿用原 id。
 ```
 
-# 2026-11-19 定案（Gemini 3.8 Flash 分派限制）：只要目前對話是由 Gemini 3.8 Flash（如 antigravity_ava、antigravity_kai）所運行，所分配/派發出去的子對話或子任務，一律只能派給 kai 或 ava 的 Gemini 3.8 Flash（providerInstanceId: antigravity_kai 或 antigravity_ava），思考程度固定 high。嚴禁從 Gemini 3.8 Flash 主線跨派給 Claude 或其他模型。
+# 2026-11-19 定案（Gemini 3.8 Flash 分派限制）：只要目前對話是由 Gemini 3.8 Flash（例如在任一 Antigravity 實例上選了 3.8 Flash）所運行，所分配/派發出去的子對話或子任務，一律只能派給 kai 或 ava 的 Gemini 3.8 Flash（providerInstanceId: antigravity_kai 或 antigravity_ava），思考程度固定 high。嚴禁從 Gemini 3.8 Flash 主線跨派給 Claude 或其他模型。

@@ -55,4 +55,4 @@ profile：ryan
 - 全自動模式：不要用會觸發 T3／Claude 跨目錄審批彈窗的指令。不直接讀寫或 cd 到目前工作目錄以外的資料夾，也不在那裡建 worktree；要動其他專案，就開在那個專案裡的子對話去做。
 - **子任務開在 T3 看得到的對話**（2026-11-21 定案）：派出去的子任務要開成我在 T3 看得到的對話，我要能看 prompt 和過程；設定在我 profile 的 `dispatch.md`（`visibility: visible`），管道順序照 `run.py show`。agy 無頭派送只在我同意或 T3 沒在跑時用，用了要在回報寫明「這次走無頭模式，T3 看不到」。
 
-- **Gemini 3.8 Flash 子任務分派限制**（2026-11-19 定案）：只要目前對話是由 Gemini 3.8 Flash 運行（如 antigravity_ava、antigravity_kai），後續分配/派發出的所有子對話或子任務，**一律只能派給 kai 或 ava 的 Gemini 3.8 Flash**（providerInstanceId: antigravity_kai 或 antigravity_ava），且思考程度**固定為 high**。嚴禁從 Gemini 3.8 Flash 主線跨模型派給 Claude、Codex 或其他模型。
+- **Gemini 3.8 Flash 子任務分派限制**（2026-11-19 定案）：只要目前對話是由 Gemini 3.8 Flash 運行（例如在任一 Antigravity 實例上選了 3.8 Flash），後續分配/派發出的所有子對話或子任務，**一律只能派給 kai 或 ava 的 Gemini 3.8 Flash**（providerInstanceId: antigravity_kai 或 antigravity_ava），且思考程度**固定為 high**。嚴禁從 Gemini 3.8 Flash 主線跨模型派給 Claude、Codex 或其他模型。
