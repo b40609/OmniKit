@@ -160,6 +160,8 @@ def _run_cmd(args: list[str], cwd: Path | None = None, timeout: int = 8) -> tupl
         kwargs["cwd"] = str(cwd)
     if os.name == "nt":
         kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        if args and args[0] == "git" and "core.longpaths=true" not in args:
+            args = ["git", "-c", "core.longpaths=true", *args[1:]]
     try:
         proc = subprocess.run(args, check=False, **kwargs)
         return proc.returncode, proc.stdout or "", proc.stderr or ""

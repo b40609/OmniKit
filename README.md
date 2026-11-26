@@ -26,7 +26,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 ## 看板與新模型提醒
 
-- **線上槽位看板**：[https://b40609.github.io/OmniKit/](https://b40609.github.io/OmniKit/)（由 `.github/workflows/pages.yml` 的「部署看板」自動建置部署）。
+- **線上槽位看板**：[https://b40609.github.io/OmniKit/](https://b40609.github.io/OmniKit/)（目前已凍結自動部署，改由 `.github/workflows/pages.yml` 的「部署看板」手動觸發建置；日常跨專案進度改用[本機 Cockpit 面板](#本機-cockpit-多專案面板個人進階功能同事版預設不啟用)）。
 - **每週新模型差異提醒的三個出口**（Plan B 模型角色化定案，預定 2026-12-01 解凍後上線，僅提建議、不靜默換模型）：
   1. **看板首頁置頂的「新模型」區塊**：打開[槽位看板](https://b40609.github.io/OmniKit/#new-models)即可看到每週偵測到的新模型、淘汰與建議對應。
   2. **專案 `NOW.md` 的「等 Ryan 決定」**：自動整理異動清單與建議角色順位，待拍板後才寫入政策。
@@ -49,7 +49,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 可以直接在 Claude Code 或 Codex 說「幫我安裝 OmniKit：https://github.com/b40609/OmniKit」，agent 會照下面的步驟做；也可以自己在 PowerShell 跑。
 
-1. **Clone。** 放在之後不會搬動的地方：規則與 skills 會連到這個資料夾。
+1. **Clone。** 放在之後不會搬動的淺層路徑（如 `$env:USERPROFILE\OmniKit`，避免 Windows 預設長路徑上限）：規則與 skills 會連到這個資料夾。
 
    ```powershell
    git clone https://github.com/b40609/OmniKit.git "$env:USERPROFILE\OmniKit"
@@ -101,7 +101,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
    偵測到這是 fork 時，會自動把 `data/omnikit.yaml` 的 `repo`、`owner`、`marketplace` 改成你的、看板用的 `profile` 改回 `default`，並重新產生 marketplace 清單，避免跟原作者的撞名。
 
-5. **推上去。** 推到 main 之後，GitHub Actions 會部署看板到 `https://<你的帳號>.github.io/OmniKit/`。
+5. **推上去。** 推到 main 之後，到 Actions 的「部署看板」手動觸發一次（`workflow_dispatch`），就會部署到 `https://<你的帳號>.github.io/OmniKit/`。
 
    ```powershell
    git commit -am "chore: 改成自己的 OmniKit"
@@ -231,7 +231,7 @@ flowchart LR
 ```
 
 1. **評估**：把工具的 GitHub 連結貼給 agent，`omnikit-eval` 會查 GitHub 現況、對照槽位情境，寫成一張工具卡。
-2. **產生**：commit 時 git hook 驗證名冊並重新產生 marketplace 清單；推到 main 之後，GitHub Actions 重建看板。
+2. **產生**：commit 時 git hook 驗證名冊並重新產生 marketplace 清單；需要更新線上看板時於 GitHub Actions 手動觸發「部署看板」。
 3. **同步**：`install.ps1` 透過無帳本同步器（`engine/scripts/sync.py`）把規則（安全底線 + 你選的 profile）、skills、hooks 與 MCP 接到 Claude Code、Codex 與 Antigravity。維護者版之後 commit 或 pull 動到這些檔案時，git hook 會自動再同步；同事版不設 git hook，pull 不會改任何設定。
 
 想看每個部分、每個檔案在做什麼，打開[互動架構地圖](https://b40609.github.io/OmniKit/map.html)：每個檔案都有白話說明，另有 3 條逐步導覽（評估新工具、改規則、第一次安裝）。建議用電腦開。（註：`map.html` 為早期架構快照，最新無帳本同步架構與檔案清單以本頁[安裝會改動哪些地方](#安裝會改動哪些地方)與[目錄結構](#目錄結構)為準。）

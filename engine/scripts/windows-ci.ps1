@@ -87,7 +87,7 @@ function Invoke-Child([string]$script, [ValidatePattern('^(-[A-Za-z]+\s*)+$')][s
   return @{ Code = $p.ExitCode; Output = $text }
 }
 
-function Get-Status { return ((git -C $Repo status --porcelain --untracked-files=all) -join "`n") }
+function Get-Status { return ((git -C $Repo -c core.longpaths=true status --porcelain --untracked-files=all) -join "`n") }
 
 # 防毒（例如 Trend Micro）會短暫鎖住 uv 剛在 TEMP 建好的執行檔（uv-trampoline-*.exe），uv 回報
 # 「Failed to update Windows PE resources」或 os error 32。只有這類錯誤等 3 秒重試一次（FR-34），其他失敗不重試；

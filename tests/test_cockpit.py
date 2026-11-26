@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import tempfile
 import threading
 import urllib.error
 import urllib.request
@@ -37,17 +38,25 @@ def _http_json(url: str, *, method: str = "GET", payload: dict | None = None, co
         return exc.code, body
 
 
+@pytest.fixture
+def short_tmp():
+    """在系統 TEMP（含 windows-ci 長路徑與中文空白）下建立簡短暫存目錄，避免 pytest 多層前綴讓 Windows git init 超出 260 字元。"""
+    with tempfile.TemporaryDirectory(prefix="ck") as d:
+        yield Path(d)
+
+
 def _init_git_repo(path: Path, message: str = "init") -> None:
     path.mkdir(parents=True, exist_ok=True)
     for args in (
-        ["git", "init"],
-        ["git", "config", "user.name", "Test"],
-        ["git", "config", "user.email", "test@example.com"],
+        ["git", "-c", "core.longpaths=true", "init", "--template="],
+        ["git", "-c", "core.longpaths=true", "config", "core.longpaths", "true"],
+        ["git", "-c", "core.longpaths=true", "config", "user.name", "Test"],
+        ["git", "-c", "core.longpaths=true", "config", "user.email", "test@example.com"],
     ):
         subprocess.run(args, cwd=str(path), check=True, capture_output=True)
     (path / "README.md").write_text("demo\n", encoding="utf-8")
-    subprocess.run(["git", "add", "README.md"], cwd=str(path), check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", message], cwd=str(path), check=True, capture_output=True)
+    subprocess.run(["git", "-c", "core.longpaths=true", "add", "README.md"], cwd=str(path), check=True, capture_output=True)
+    subprocess.run(["git", "-c", "core.longpaths=true", "commit", "-m", message], cwd=str(path), check=True, capture_output=True)
 
 
 def test_parse_now_md_four_quadrants_and_legacy_compat():
@@ -127,7 +136,8 @@ def test_critique_write_preserves_header_timestamp_and_blocks_traversal(tmp_path
         collector.add_critique(state, "../escape", text="nope")
 
 
-def test_lanes_reconciliation_and_multimachine_remote(tmp_path: Path):
+def test_lanes_reconciliation_and_multimachine_remote(short_tmp: Path):
+    tmp_path = short_tmp
     state = tmp_path / "state"
     now = datetime(2026, 11, 24, 12, 0, 0, tzinfo=UTC)
 
@@ -180,7 +190,8 @@ def test_lanes_reconciliation_and_multimachine_remote(tmp_path: Path):
     assert ov["summary"]["parked"] == 1
 
 
-def test_http_server_crud_and_security(tmp_path: Path):
+def test_http_server_crud_and_security(short_tmp: Path):
+    tmp_path = short_tmp
     state = tmp_path / "state"
     repo = tmp_path / "MyApp"
     _init_git_repo(repo)
@@ -226,10 +237,11 @@ def test_http_server_crud_and_security(tmp_path: Path):
         httpd.server_close()
 
 
-def test_reconcile_queue_single_and_batch_api(tmp_path: Path):
+def test_reconcile_queue_single_and_batch_api(short_tmp: Path):
     """驗證單專案與全部過期專案背景自動對帳佇列、遠端略過與狀態刷新。"""
     import time
 
+    tmp_path = short_tmp
     state = tmp_path / "state"
     repo_local = tmp_path / "LocalProj"
     _init_git_repo(repo_local)
