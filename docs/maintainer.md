@@ -90,7 +90,9 @@ uv 不在 PATH 上的話，把 `uv` 換成 `& "$env:LOCALAPPDATA\Programs\uv\uv.
 uv run engine/site/readme_art.py --fonts <字體資料夾>
 ```
 
-字體是 SIL OFL 的 Geist、Geist Mono 與 Noto Sans TC，下載網址寫在 `readme_art.py` 檔頭，不進 repo。終端機預覽的字串要跟 `engine/skills/ok/SKILL.md` 的主選單、`engine/scripts/harness_hooks.py` 的攔截訊息一致。
+字體是 SIL OFL 的 Geist、Geist Mono 與 Noto Sans TC，下載網址寫在 `readme_art.py` 檔頭，不進 repo。終端機預覽的字串要跟 `engine/skills/ok/SKILL.md` 的主選單、`engine/scripts/harness_hooks.py` 的攔截訊息一致（攔截訊息只取每則的前半句）。
+
+貼連結到 LINE、Slack 時顯示的社群預覽圖是 `.github/assets/social-preview.png`（1280×640，`hero-light.svg` 置中放在同色底上的截圖）。GitHub 沒有上傳預覽圖的 API，要到 repo 的 **Settings → General → Social preview → Edit → Upload an image** 手動換。
 
 ## 更新架構地圖
 

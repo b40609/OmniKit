@@ -596,7 +596,7 @@ function Show-NextSteps($edition) {
     Write-Host '  - 評估新工具：說「幫我評估」加上 GitHub 連結（Claude Code 也可以輸入 /omnikit-eval，Codex 輸入 $omnikit-eval）'
   }
   Write-Host '  - 需求沒想清楚想先對焦：用內建 /plan（Antigravity 亦可用 /grill-me）；三家指令對照見 docs/cli-features.md'
-  Write-Host '  - 預設 plugin 不會自動安裝；安裝方式與其他說明見 docs/usage.md'
+  Write-Host '  - 預設 plugin 不會自動安裝；安裝方式見 docs/install.md 的「預設 plugin 要另外裝」，日常用法見 docs/usage.md'
 }
 
 # -SelfTest：%LOCALAPPDATA% 換成暫存資料夾、repo 換成暫存 git repo，測版本判斷與 git hook 設定

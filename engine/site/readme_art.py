@@ -14,7 +14,7 @@
   https://raw.githubusercontent.com/google/fonts/main/ofl/notosanstc/NotoSansTC%5Bwght%5D.ttf
 
 配色：淺色 stone-blueprint、深色 blue-black-cornflower（taste-skill 依「開發者工具」抽出的配色）。
-終端機預覽的字串取自實際程式：/ok 選單照 engine/skills/ok/SKILL.md，攔截訊息照 engine/scripts/harness_hooks.py。
+終端機預覽的字串取自實際程式：/ok 選單照 engine/skills/ok/SKILL.md，攔截訊息照 engine/scripts/harness_hooks.py（只取每則的前半句，後面的替代做法說明太長、圖上放不下）。
 
 用法：
   uv run engine/site/readme_art.py --fonts <字體資料夾> [--out .github/assets]
@@ -196,7 +196,7 @@ def hero(ts, c):
     p.append(f'<g fill="{c["ink"]}">{d}</g>')
     d, _ = ts.run("Coding agent 的共用設定層", lx, 222, 36, "sans", 520, cjk_weight=560, tracking=-0.02)
     p.append(f'<g fill="{c["ink"]}">{d}</g>')
-    d, _ = ts.run("安全底線、技能、MCP 與護欄寫一次，同步到三個 agent。", lx, 266, 19, "sans", 420, cjk_weight=420)
+    d, _ = ts.run("安全底線、技能、MCP 與護欄寫一次，同步到三個 agent。", lx, 268, 21, "sans", 420, cjk_weight=420)
     p.append(f'<g fill="{c["muted"]}">{d}</g>')
     tx = lx
     for label in ("Claude Code", "Codex", "Antigravity"):
@@ -254,7 +254,7 @@ SESSION = [
 
 
 def session(ts, c):
-    W, size, lh, pad, bar = 1200, 17, 31, 32, 44
+    W, size, lh, pad, bar = 1200, 19, 34, 36, 48
     cell = size * 0.6
     H = bar + pad * 2 + lh * len(SESSION) - 8
     ts.reset()
@@ -268,8 +268,8 @@ def session(ts, c):
     for i in range(3):
         p.append(f'<circle cx="{26 + i * 18}" cy="{bar / 2}" r="5" fill="none" stroke="{c["dim"]}" stroke-width="1.5"/>')
     title = "~/projects/my-app"
-    tw = ts.width(title, 14, "mono", 450)
-    d, _ = ts.run(title, (W - tw) / 2, bar / 2 + 5, 14, "mono", 450)
+    tw = ts.width(title, 15, "mono", 450)
+    d, _ = ts.run(title, (W - tw) / 2, bar / 2 + 5, 15, "mono", 450)
     p.append(f'<g fill="{c["muted"]}">{d}</g>')
     y = bar + pad + size
     for line in SESSION:

@@ -40,7 +40,7 @@
 
 ## Fork 一份自己維護（維護者用）
 
-想換成自己的名冊、看板與 marketplace，就 fork 一份。fork 會帶著原作者已經整理好的 100 多張工具卡，可以直接當起點。另外需要 GitHub 帳號。
+想換成自己的名冊、看板與 marketplace，就 fork 一份。fork 會帶著原作者已經整理好的 160 多張工具卡，可以直接當起點。另外需要 GitHub 帳號。
 
 1. **Fork 並開啟看板。** 按 repo 頁右上角的 **Fork**，接著在你的 fork 上：
    - **Actions** 分頁：fork 的 workflow 預設是關的，按 **I understand my workflows, go ahead and enable them**。
@@ -116,7 +116,7 @@
 | `~/.gemini/AGENTS.md`、`~/.gemini/GEMINI.md` | Antigravity 的規則：拆成 `AGENTS.md`（共用層）與 `GEMINI.md`（個人層）兩份受管區塊，強制檢查單檔 <= 24,000 bytes 避免靜默截斷；原本的內容留在區塊外，先備份成 `.pre-omnikit`。原地改寫，避免硬連結斷裂 |
 | `~/.claude/skills`、`~/.codex/skills` | `engine/skills` 的每個 skill 用 Directory Junction 連結至 `~/.omnikit/current/engine/skills`（加 `--dev` 則直連工作區），零檔案複製與零雜湊帳本 |
 | `~/.gemini/config/skills.json` | Antigravity 的（App、IDE、CLI 與 T3 Code 實例共用）：原生參照實體 skills 路徑，T3 自動同步至全部實例 |
-| `~/.omnikit/claude-marketplace`、`~/.codex/config.toml`、`~/.gemini/config/plugins/omnikit/` | 無帳本掛載 `data/mcp/servers.yaml` 的 MCP server 與護欄 hooks：Claude 安裝本地薄 plugin `omnikit@omnikit-local`；Codex 用 `codex mcp` CLI 與 `config.toml` hooks；Antigravity 與各 T3 實例放置三檔薄 plugin 宣告（不動頂層 `mcp_config.json`，保留 T3 自動標題生成） |
+| `~/.omnikit/claude-marketplace`、`~/.codex/config.toml`、`~/.gemini/config/plugins/omnikit/` | 無帳本掛載 `data/mcp/servers.yaml` 的 MCP server 與護欄 hooks：Claude 安裝本地薄 plugin `omnikit@omnikit-local`；Codex 用 `codex mcp` CLI 與 `config.toml` 的提醒類 hooks（不含確定性護欄）；Antigravity 與各 T3 實例放置三檔薄 plugin 宣告（不動頂層 `mcp_config.json`，保留 T3 自動標題生成） |
 | `~/.omnikit/`（Windows 是 `%USERPROFILE%\.omnikit`；可用環境變數 `OMNIKIT_STATE_DIR` 改位置） | 不放 `%LOCALAPPDATA%`：從 Claude 桌面版這類 MSIX 封裝的 app 裡跑時，那裡新建的檔會被轉存成另一份；舊版留在 `%LOCALAPPDATA%\omnikit` 與轉存副本的，安裝、同步時會合併過來（原檔備份在 `legacy\`）。`current/` 是保護工作區免受穿透刪除的乾淨 git clone；`profiles/<名稱>/` 是訪談產生的 profile（個人資料，不在 repo 裡；移除時也不刪）；`profile.json` 記這台選的 profile；`edition.json` 記這台是維護者版還是同事版；`consent.json` 記你同意了哪些工具免問；`config.json` 記啟用的 agent 與明確列舉的額外設定目錄 |
 | 舊版的 skillshare | 以前用 skillshare 接的電腦，重跑 `install.ps1` 會改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分；skillshare 本身不刪 |
 | npm 全域套件 | 安裝 `data/mcp/packages.txt` 指定的固定版本 |

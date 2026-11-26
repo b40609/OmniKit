@@ -256,6 +256,9 @@ def validate_pool_answers(answers, data):
                 errors.append(f"instances.{iid}：模型類別不存在：{cls}")
             elif pol["model_classes"][cls].get("driver") != drv:
                 errors.append(f"instances.{iid}：{cls} 要用 {pol['model_classes'][cls]['driver']}，但實例是 {drv}")
+    if "opt_in_classes" in answers:
+        # 選配類別（例如 claude-fable）：照 dispatch.check 的同一套規則擋寫錯的
+        errors += [e for e in dispatch.check(pol, {"opt_in_classes": answers["opt_in_classes"]}) if "opt_in_classes" in e]
     return errors
 
 
@@ -462,6 +465,10 @@ def selftest():
         }
         ok("合法答案通過驗證並產出合法 dispatch.md（寫在 repo 外，重寫自動備份）",
            validate_pool_answers(good, profiles.DATA) == [])
+        ok("opt_in_classes：寫 claude-fable 通過；寫非選配或不存在的類別、或不是清單會擋",
+           validate_pool_answers({**good, "opt_in_classes": ["claude-fable"]}, profiles.DATA) == []
+           and len(validate_pool_answers({**good, "opt_in_classes": ["claude-opus", "ghost"]}, profiles.DATA)) == 2
+           and validate_pool_answers({**good, "opt_in_classes": "claude-fable"}, profiles.DATA) != [])
         md = render_dispatch_md(good, profiles.DATA, today="2026-11-23")
         t1, b1 = write_dispatch_md(st, "alice", md)
         t2, b2 = write_dispatch_md(st, "alice", md + "\n", force=True)

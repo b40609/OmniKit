@@ -363,9 +363,20 @@ def resolved(pol, mine, agent="claude", judge=None, model_note=None, claude_orde
     judge（accounts.annotate 給的）：(實例, 模型) → (能不能自動派, 原因)；不能派的實例移到 blocked 並附原因。
     model_note：模型被淘汰過濾時回原因（整個選項跳過）。
     claude_order：依額度策略排好的 Claude 實例優先順序（工作包邊界挑）。"""
-    configured_drivers = {(spec or {}).get("driver") for spec in ((mine or {}).get("instances") or {}).values() if (spec or {}).get("driver")}
+    # 第二家：只算真的能派的實例（有 classes、不是只給手動）；登記了但只給手動的帳號不算有第二家
+    configured_drivers = {(spec or {}).get("driver") for spec in ((mine or {}).get("instances") or {}).values()
+                          if (spec or {}).get("driver") and (spec or {}).get("classes") and (spec or {}).get("usage_scope") != "manual_only"}
     if AGENT_DRIVER.get(agent):
         configured_drivers.add(AGENT_DRIVER[agent])
+
+    def usable(cls_name):
+        """這個類別在 judge 與模型淘汰過濾之後還剩的實例（判斷 fallback_for 的主選項是不是真的能用）。"""
+        model = pol["model_classes"][cls_name]["model"]
+        if model_note and model_note(model):
+            return []
+        got = instances_for(pol, mine, cls_name, agent)
+        return [i for i in got if judge(i, model)[0]] if judge else got
+
     out = {}
     for level, lv in pol["levels"].items():
         tasks = [t for t, v in pol["tasks"].items() if v["level"] == level]
@@ -375,8 +386,8 @@ def resolved(pol, mine, agent="claude", judge=None, model_note=None, claude_orde
             for o in items:
                 cls = pol["model_classes"][o["class"]]
                 single_vendor_skip = kind == "second_opinion" and not (configured_drivers - {cls["driver"]})
-                # fallback_for：主選項的類別這個人有（例如有 Fable），這個備援就不用
-                superseded = o.get("fallback_for") if o.get("fallback_for") and instances_for(pol, mine, o["fallback_for"], agent) else None
+                # fallback_for：主選項的類別這個人有、而且過了 judge 與淘汰過濾還能派（例如有 Fable），這個備援就不用
+                superseded = o.get("fallback_for") if o.get("fallback_for") and usable(o["fallback_for"]) else None
                 opt_in_missing = not opted_in(pol, mine, o["class"])
                 inst, blocked = ([] if single_vendor_skip or superseded else instances_for(pol, mine, o["class"], agent)), []
                 if claude_order and cls["driver"] == "claudeAgent" and inst:
@@ -1166,6 +1177,20 @@ def selftest():
        and pick(gt, "verify", "claude-opus", "second_opinion")["instances"] == ["native"]
        and pick(gt, "verify", "claude-opus", "second_opinion")["thinking"] == "xhigh"
        and pick(gt, "verify", "gemini-carbon", "second_opinion")["instances"] == ["ag"])
+    gone = resolved(pol, ryan, "claude", None, lambda m: "測試：淘汰" if m == pol["model_classes"]["claude-fable"]["model"] else "")
+    ok("宣告了 Fable 但它被淘汰過濾：Opus 備援不跳過，architecture 仍派得出去",
+       pick(gone, "architecture", "claude-fable")["skip"]
+       and not pick(gone, "architecture", "claude-opus")["skip"] and pick(gone, "architecture", "claude-opus")["superseded"] is None)
+    gem_only = {"instances": {"ag": {"driver": "antigravity", "classes": ["gemini-carbon"]},
+                              "cl": {"driver": "claudeAgent", "classes": ["claude-opus", "claude-fable"]}}}
+    blk = resolved(pol, gem_only, "antigravity", lambda i, m: (not (i == "cl" and m == pol["model_classes"]["claude-fable"]["model"]), "測試：擋 Fable"))
+    ok("Fable 的實例都被 judge 擋下：Opus 備援接手（不因為登記過 Fable 就整個跳過）",
+       pick(blk, "architecture", "claude-opus")["superseded"] is None and pick(blk, "architecture", "claude-opus")["instances"] == ["cl"])
+    manual = {"instances": {"ag": {"driver": "antigravity", "usage_scope": "manual_only", "classes": ["gemini-carbon"]},
+                            "ag2": {"driver": "antigravity"}}}
+    ok("只給手動或沒寫 classes 的實例不算第二家：Claude 的第二意見照樣跳過，不會只剩派不出去的那行",
+       all(o["skip"] and o["single_vendor_skip"] for o in resolved(pol, manual, "claude")["verify"]["options"]
+           if o["kind"] == "second_opinion" and o["class"].startswith("claude")))
     bad_fb = json.loads(json.dumps(pol))
     bad_fb["levels"]["architecture"]["route"][1]["fallback_for"] = "nope"
     bad_fb["model_classes"]["claude-fable"]["opt_in"] = "yes"

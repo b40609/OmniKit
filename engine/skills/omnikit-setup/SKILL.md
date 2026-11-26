@@ -123,6 +123,7 @@ profile 套用完，再逐項問這三項。每一項都是改使用者的設定
 1. **帳號池與多模型分派設定（4 到 5 題）**
    - 掃描結果的 `account_pool`（或跑 `uv run scripts/setup.py pool recommend`）已經列出這台偵測到的 T3 實例、多個 `CLAUDE_CONFIG_DIR`／`CODEX_HOME`、環境變數裡有沒有 API 金鑰／雲端專案（只看有沒有，絕不讀值），以及每一項設定的**建議值與原因**。使用者的選擇永遠優先。
    - 只有單一供應商單一帳號、且不想跨家分派：不用寫 `dispatch.md`，只用原生子代理。
+   - 一律問一句方案有沒有 Claude Fable 5.2：它是選配類別，有的才在答案檔寫 `opt_in_classes: [claude-fable]`（單帳號也要寫這一行），沒有的不用寫，Fable 的選項自動改走 Opus 備援。
    - 多帳號或想跨供應商派工時，把偵測結果與每格建議呈現給使用者，問 4 到 5 題：
      1. **各實例的方案與用途（`usage_scope`）**：新帳號預設 `manual_only`（只給手動）。要改成 `auto_dispatch` 或 `fallback_only`，先確認 `owner` 是本人（`self`），對照規約表 `data/rules/provider-terms.md` 告知風險，需知情同意者由使用者明確同意後填入 `tos_ack`（agent 不得代填，規約 `forbidden` 一律禁止）。
      2. **思考程度偏好（`thinking_preference`）**：`max_available`（每個模型最高檔）／`balanced`（定案、審查、前置苦工高檔）／`economy`（只有定案與審查高檔）／`custom`。附建議器原因。

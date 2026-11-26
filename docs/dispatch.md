@@ -40,19 +40,21 @@
 
 ## 設定自己的帳號對應
 
-在你的 profile 資料夾（訪談產生的在 `~/.omnikit/profiles/<名稱>/`）新增 `dispatch.md`。實例 id 用 T3 的 `orchestrator_capabilities` 查（列出的 `providerInstanceId`），`classes` 只能寫共用層 `model_classes` 裡有的類別，而且要跟實例的 driver 對得上：
+最省事的是跟 agent 說「幫我設定 OmniKit」，訪談的帳號池那幾題會掃描這台、逐格給建議並產生這份檔（背後是 `engine/scripts/pool_setup.py`）。要自己寫的話，在你的 profile 資料夾（訪談產生的在 `~/.omnikit/profiles/<名稱>/`）新增 `dispatch.md`。實例 id 用 T3 的 `orchestrator_capabilities` 查（列出的 `providerInstanceId`），`classes` 只能寫共用層 `model_classes` 裡有的類別，而且要跟實例的 driver 對得上：
 
 ````markdown
 # 個人分派設定：<名稱>
 
 ```yaml
 instances:
-  claudeAgent:  {driver: claudeAgent, account: 我的 Claude, classes: [claude-opus, claude-sonnet]}
-  antigravity:  {driver: antigravity, account: 我的 Google, classes: [gemini-carbon, gemini-pro, gemini-fast, antigravity-opus]}
+  claudeAgent:  {driver: claudeAgent, account: 我的 Claude, owner: self, tos_ack: "<日期>：讀過規約表，本人帳號、自己用", classes: [claude-opus, claude-sonnet]}
+  antigravity:  {driver: antigravity, account: 我的 Google, owner: self, tos_ack: "<日期>：讀過規約表，知道消費方案的限制", classes: [gemini-carbon, gemini-pro, gemini-fast, antigravity-opus]}
 ```
 ````
 
-寫完跑 `uv run engine/scripts/dispatch.py check` 檢查，再跑 `uv run engine/scripts/dispatch.py show` 看套上之後每一級會用什麼。`data/profiles/ryan/dispatch.md` 是完整的例子。帳號池訪談（`engine/scripts/pool_setup.py`）也能幫你產生這份檔。
+`owner: self` 表示帳號是你本人的；三家條款都禁止把帳號給別人用，不是本人的一律不自動派。訂閱方案登入的帳號，規約表 [`data/rules/provider-terms.md`](../data/rules/provider-terms.md) 標的是「要知情同意」：讀過那一列的原文、仍要讓 agent 自動派，才填 `tos_ack`（寫日期與一句理由，要你自己填，agent 不會代填）。沒填的實例 `show` 會列在「不派」並寫原因；規約寫 `forbidden` 的填了也不派。
+
+寫完跑 `uv run engine/scripts/dispatch.py check` 檢查，再跑 `uv run engine/scripts/dispatch.py show` 看套上之後每一級會用什麼。`data/profiles/ryan/dispatch.md` 是完整的例子。
 
 ## 選配模型：Fable 5.2
 
@@ -64,7 +66,7 @@ opt_in_classes: [claude-fable]
 
 # 或者在實例的 classes 列出它
 instances:
-  claudeAgent: {driver: claudeAgent, account: 我的 Claude, classes: [claude-opus, claude-sonnet, claude-fable]}
+  claudeAgent: {driver: claudeAgent, account: 我的 Claude, owner: self, tos_ack: "<日期>：…", classes: [claude-opus, claude-sonnet, claude-fable]}
 ```
 
 宣告之後：

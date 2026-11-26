@@ -12,7 +12,7 @@
 [![平台 Windows 11](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%2011-26251e)](docs/install.md#疑難排解)
 [![支援 Claude Code、Codex、Antigravity](https://img.shields.io/badge/agent-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Antigravity-2456d6)](#一份設定三個-agent)
 
-[快速開始](#快速開始) · [裝好之後](#裝好之後) · [功能](#功能) · [文件](#文件) · [常見問題](#常見問題)
+[快速開始](#快速開始) · [裝好之後](#裝好之後) · [功能](#功能) · [文件](#文件) · [常見問題](#常見問題) · [線上槽位看板](https://b40609.github.io/OmniKit/)
 
 </div>
 
@@ -68,7 +68,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 
 ### 安全底線與護欄
 
-刪檔、`git push -f`、對外發送、付款之前先問你；金鑰不讀、不印、不寫死。規則之外還有確定性的 hook：讀 `.env`、用 `--no-verify` 跳過檢查、一次塞進一堆 lint ignore，都會被擋下並說明原因。
+刪檔、`git push -f`、對外發送、付款之前先問你；金鑰不讀、不印、不寫死。規則之外，Claude Code 與 Antigravity 還有確定性的 hook：讀 `.env`、用 `--no-verify` 跳過檢查、一次塞進一堆 lint ignore，都會被擋下並說明原因（Codex 目前只接提醒類 hook，靠規則約束）。
 
 </td>
 <td width="50%" valign="top">
@@ -100,7 +100,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 
 ### 有理由的工具名冊
 
-160 多張工具卡分在 26 個槽位，每張記下狀態、日期與理由。新工具拿槽位的真實情境跟現任比，比贏才換。貼上 GitHub 連結說「幫我評估」，agent 會寫成一張卡。
+160 多張工具卡分在 26 個槽位，每張記下狀態、日期與理由。新工具拿槽位的真實情境跟現任比，比贏才換，結果列在[線上槽位看板](https://b40609.github.io/OmniKit/)。貼上 GitHub 連結說「幫我評估」，agent 會寫成一張卡。
 
 </td>
 <td valign="top">
@@ -130,7 +130,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 <details>
 <summary><b>會不會蓋掉我原本的設定？</b></summary>
 
-不會直接蓋掉。`~/.claude/CLAUDE.md` 與 `~/.gemini/GEMINI.md` 只加一段受管區塊；`~/.codex/AGENTS.md` 第一次接上時會先備份；MCP 與權限都是合併寫入，同名但不是 OmniKit 的 skill 也不碰。只有加上 `-Fresh` 才會移除 CLAUDE.md 的其他內容，而且也會先備份。完整清單見[安裝會改動哪些地方](docs/install.md#安裝會改動哪些地方)。
+不會直接蓋掉。`~/.claude/CLAUDE.md`、`~/.gemini/AGENTS.md` 與 `~/.gemini/GEMINI.md` 只加一段受管區塊，原本的內容留在區塊外；`~/.codex/AGENTS.md` 第一次接上時會先備份；MCP 與權限都是合併寫入，同名但不是 OmniKit 的 skill 也不碰。只有加上 `-Fresh` 才會移除 CLAUDE.md 的其他內容，而且也會先備份。完整清單見[安裝會改動哪些地方](docs/install.md#安裝會改動哪些地方)。
 
 </details>
 

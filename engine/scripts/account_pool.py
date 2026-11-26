@@ -1112,7 +1112,7 @@ def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=
         if cross_review_gemini:
             steps.append({"step": 1, "stage": "antigravity_gemini", "instance": iid, "bucket": "gemini",
                           "models": g_models, "status": "skipped",
-                          "why": "跨家審查 Gemini 寫的東西：跳過換回 Gemini，優先走 Claude 實例（Fable 5.2 high）"})
+                          "why": "跨家審查 Gemini 寫的東西：跳過換回 Gemini，優先走 Claude 實例（有 Fable 用 Fable 5.2 high，沒有用 Opus xhigh）"})
         elif blk:
             steps.append({"step": 1, "stage": "antigravity_gemini", "instance": iid, "bucket": "gemini",
                           "models": g_models, "status": "skipped", "why": why})

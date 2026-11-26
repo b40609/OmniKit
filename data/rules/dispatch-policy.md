@@ -115,11 +115,11 @@ levels:
         note: 同帳號 Claude & GPT 桶的 Opus 額度備援，只用在這三類
       - class: claude-opus
         thinking: high
-        when: 沒有可用的 Fable 5.2（選配沒宣告，或本週用量 >= 80%），也沒有 Carbon 實例
+        when: 沒有可用的 Fable 5.2（選配沒宣告，或本週用量 >= 80%），也沒有可用的 Carbon 實例
         note: 沒有 Fable 的人高級就用這一項（Opus 5.5 high）；有 Fable 的人當額度備援
     second_opinion:
       - {class: gemini-carbon, thinking: high, role: 跨家唯讀審查 Claude（Fable／Opus）的產出（Carbon high，審查者不比作者弱）}
-      - {class: claude-fable, thinking: high, role: 跨家唯讀審查 Gemini（Carbon／Neon）的重要產出（Fable 5.2 high，避免降級用 Opus 審 Carbon）}
+      - {class: claude-fable, thinking: high, role: 跨家唯讀審查 Gemini（Carbon／Neon）的重要產出（有 Fable 時用 Fable 5.2 high，不降級用 Opus 審 Carbon）}
       - {class: claude-opus, thinking: xhigh, fallback_for: claude-fable, role: 沒有 Fable 時審 Gemini 重要產出的備援（Opus xhigh；回報註明審查者是備援）}
       - {class: gemini-pro, thinking: xhigh, role: Carbon 不可用時審 Claude Opus 產出的備援（Neon xhigh）}
   higher:
@@ -138,7 +138,7 @@ levels:
       - {class: claude-opus, thinking: xhigh, role: 高風險主驗收（維持 Opus 5.5 xhigh；失敗或審 Gemini Carbon／Neon 重要產出時，有 Fable 才升 Fable 5.2 high）}
     second_opinion:
       - {class: gemini-carbon, thinking: high, role: 跨家唯讀第二意見（作者是 Claude 時用 Carbon high）}
-      - {class: claude-fable, thinking: high, role: 跨家唯讀第二意見（作者是 Gemini Carbon／Neon 時用 Fable 5.2 high；日常中級才允許 Opus xhigh）}
+      - {class: claude-fable, thinking: high, role: 跨家唯讀第二意見（作者是 Gemini Carbon／Neon、而且有 Fable 時用 Fable 5.2 high；日常中級才允許 Opus xhigh）}
       - {class: claude-opus, thinking: xhigh, fallback_for: claude-fable, role: 沒有 Fable 時審 Gemini 產出的備援（Opus xhigh；回報註明審查者是備援）}
   architecture:
     name: 重大架構盲審
@@ -167,10 +167,11 @@ escalation:
   - {from: gemini-fast, to: gemini-pro, thinking: xhigh, why: Hydrogen xhigh 驗收不過，先升 Neon xhigh 重跑}
   - {from: gemini-pro, to: claude-opus, thinking: high, why: Neon xhigh 驗收不過，改由 Opus high 定案重跑}
   - {from: claude-sonnet, to: claude-opus, thinking: same, why: Sonnet 試行的品質保護：驗收不過就用 Opus、同一級 effort 重跑}
-  - {from: medium, to: higher, after_failures: 2, why: 中級任務驗收不過 2 次升到 higher（Opus xhigh）；high 主路由已是 Fable／Carbon，不降回 Opus xhigh}
-  - {from: {class: claude-opus, thinking: high, levels: [high]}, to: {class: claude-fable, thinking: high}, why: high 級 Opus high 備援驗收不過時升到 Fable 5.2 high（中級 Opus high 不走這條，走失敗 2 次升 Opus xhigh）}
-  - {from: {class: claude-opus, thinking: xhigh}, to: {class: claude-fable, thinking: high}, why: Opus xhigh 仍無法收斂或遇高風險架構／重要統整時升到 Fable 5.2 high（max 不預設，僅限使用者明確指定）}
-  - {from: {class: gemini-carbon, thinking: high}, to: {class: claude-fable, thinking: high}, once: true, why: Carbon high 驗收不過時換家改由 Fable 5.2 high 定案（僅對調一次，不循環）}
+  - {from: medium, to: higher, after_failures: 2, why: 中級任務驗收不過 2 次升到 higher（Opus xhigh）；high 級自己的主路由（Fable／Carbon，都沒有時 Opus high）照下面幾條升，不走這條}
+  - {from: {class: claude-opus, thinking: high, levels: [high]}, to: {class: claude-fable, thinking: high}, when: 有可用的 Fable 5.2, why: high 級 Opus high 備援驗收不過時升到 Fable 5.2 high（中級 Opus high 不走這條，走失敗 2 次升 Opus xhigh）}
+  - {from: {class: claude-opus, thinking: xhigh}, to: {class: claude-fable, thinking: high}, when: 有可用的 Fable 5.2, why: Opus xhigh 仍無法收斂或遇高風險架構／重要統整時升到 Fable 5.2 high（max 不預設，僅限使用者明確指定）}
+  - {from: {class: gemini-carbon, thinking: high}, to: {class: claude-fable, thinking: high}, once: true, when: 有可用的 Fable 5.2, why: Carbon high 驗收不過時換家改由 Fable 5.2 high 定案（僅對調一次，不循環）}
+  - {from: {class: gemini-carbon, thinking: high}, to: {class: claude-opus, thinking: xhigh}, once: true, when: 沒有可用的 Fable 5.2, why: 沒有 Fable 的人，Carbon high 驗收不過時換家改由 Opus xhigh 定案（僅一次；仍不過照 Opus xhigh 的終點停下）}
   - {from: {class: claude-fable, thinking: high}, to: {class: gemini-carbon, thinking: high}, once: true, when: 有 Gemini Carbon 實例且尚未跑過 Carbon, why: Fable 5.2 high 驗收不過時換家改由 Carbon high 定案（僅對調一次，不循環）}
   - {from: {class: claude-fable, thinking: high}, to: stop, after_peer: true, why: Fable 5.2 high 與 Carbon high 皆無法收斂（或無跨家實例）時為升級終點，停下來回報【等你決定】（使用者明確指定才開 xhigh／max）}
   - {from: {class: claude-opus, thinking: high, levels: [high]}, to: {class: claude-opus, thinking: xhigh}, when: 沒有可用的 Fable 5.2, why: 沒有 Fable 的人，high 級 Opus high 驗收不過時升到 Opus xhigh}
