@@ -21,8 +21,11 @@ policy_version: 1
 # - gemini-4-argon（後繼 gemini-4-carbon，且已併入 Gemini Models 桶）與 gemini-3.8-flash（後繼 gemini-4-hydrogen）已於 2026-11-25 移出類別；
 #   舊模型淘汰過濾由 engine/scripts/accounts.py 依價格表資料驅動處理。
 # - gemini-orchestrator 與 antigravity-opus 在 T3 目錄未列出，但 2026-11-25 經 T3 對 Antigravity 實例送代號實測皆正常回傳 OK。
+# 選配類別（opt_in: true，2026-11-26 定案）：多數訂閱方案沒有 Fable 5.2，所以 claude-fable 不再自動算進原生子代理。
+#   個人層 dispatch.md 寫 opt_in_classes: [claude-fable]，或在某個實例的 classes 列出它，才會出現；
+#   沒宣告的人，含 Fable 的選項自動跳過，改走標了 fallback_for: claude-fable 的 Opus 備援（不會出現派不出去的級別）。
 model_classes:
-  claude-fable:        {model: claude-fable-5-2,            driver: claudeAgent, default_thinking: high,   max_thinking: max}
+  claude-fable:        {model: claude-fable-5-2,            driver: claudeAgent, default_thinking: high,   max_thinking: max,  opt_in: true}
   claude-opus:         {model: claude-opus-5-5,             driver: claudeAgent, default_thinking: medium, max_thinking: max}
   claude-sonnet:       {model: claude-sonnet-5-5,           driver: claudeAgent, default_thinking: high,   max_thinking: max}
   gemini-carbon:       {model: gemini-4-carbon,             driver: antigravity, default_thinking: high,   max_thinking: high,  forbid_thinking: [low, medium]}
@@ -60,10 +63,14 @@ tasks:
 # - 讀檔／雜務（docs、readonly）：Gemini 4 Hydrogen xhigh，或 Claude Opus effort medium。
 # - 日常多檔／UI 實作（ui-small、code-small）：Gemini 4 Neon xhigh，或 Claude Opus effort high。
 # - 重要統整、設計決策與核心／高風險改動（synthesis、major-change、design-decision、accounting、risk、orders）：
-#   前置 Neon xhigh，定案首選 Claude Fable 5.2 effort high 或 Gemini 4 Carbon thought_level high（依主線供應商互補；Opus 5.5 high 退作額度備援）。
-# - 高風險獨立驗收（verify）與難題（higher）：Claude Opus effort xhigh（省 Fable 額度；失敗或遇高風險架構／重要統整才升 Fable 5.2 high；不預設 max）。
-# - 重大架構兩階段盲審（architecture）：Claude Fable 5.2 effort high（死結才升 xhigh）與 Gemini 4 Carbon high 對決；強制隔離跨對話記憶注入。
-# - 雙向對等跨家審查：Claude（Fable／Opus）產出 → Gemini 4 Carbon high 審；Gemini（Carbon／Neon）重要產出 → Claude Fable 5.2 high 審（日常中級才允許 Opus xhigh，避免用 Opus 審 Carbon）。
+#   前置 Neon xhigh，定案首選 Claude Fable 5.2 effort high 或 Gemini 4 Carbon thought_level high（依主線供應商互補）；
+#   沒有 Fable（選配沒宣告）或額度受限時由 Opus 5.5 high 接手。
+# - 高風險獨立驗收（verify）與難題（higher）：Claude Opus effort xhigh（失敗或遇高風險架構／重要統整，有 Fable 才升 Fable 5.2 high；不預設 max）。
+# - 重大架構兩階段盲審（architecture）：Claude Fable 5.2 effort high（死結才升 xhigh）與 Gemini 4 Carbon high 對決；沒有 Fable 用 Opus 5.5 xhigh；
+#   強制隔離跨對話記憶注入。
+# - 雙向對等跨家審查（審查者不比作者弱）：Claude 產出 → Gemini 4 Carbon high 審；Gemini（Carbon／Neon）重要產出 → Claude Fable 5.2 high 審
+#   （有 Fable 時不用 Opus 審 Carbon；沒有 Fable 才退回 Opus xhigh，回報註明審查者是備援）。
+# - 只有一家模型（例如只有 Claude）：跨家第二意見全部跳過，不會出現同模型自己審自己。
 levels:
   medium:
     name: 中
@@ -90,15 +97,14 @@ levels:
   high:
     name: 高
     prework:
-      - {class: gemini-pro, thinking: xhigh, role: 前置苦工：讀程式、收資料、重現、列候選與證據，不下結論、不改檔；交由 Fable 5.2 或 Carbon 定案}
+      - {class: gemini-pro, thinking: xhigh, role: 前置苦工：讀程式、收資料、重現、列候選與證據，不下結論、不改檔；交由主路由定案}
     route:
       - class: claude-fable
         thinking: high
-        when: 本週 Claude 用量未達 80%（未知視為未達，見 usage_signal），且帳號支援 claude-fable-5-2
-        note: 重要統整、設計決策與核心／高風險改動首選 Fable 5.2 high（與 Gemini 主線互補）
+        when: 本週 Claude 用量未達 80%（未知視為未達，見 usage_signal）
+        note: 重要統整、設計決策與核心／高風險改動首選 Fable 5.2 high（選配：個人層宣告了 claude-fable 才會出現）
         pending: >-
-          【待驗證】非維護者訂閱方案能否呼叫 claude-fable-5-2，以及 Fable 與 Opus 週額度是否共池；
-          不支援或達 80% 時由上往下自動改走下一順位
+          【待驗證】Fable 與 Opus 的週額度是否共池；達 80% 時由上往下自動改走下一順位
       - class: gemini-carbon
         thinking: high
         note: 對等雙強主路由（Carbon high，與 Claude 主線互補；單一自動派工實例忙碌時優先派 Claude 實例免排隊）
@@ -109,35 +115,40 @@ levels:
         note: 同帳號 Claude & GPT 桶的 Opus 額度備援，只用在這三類
       - class: claude-opus
         thinking: high
-        when: Fable 5.2 不可用（方案不支援或額度受限）且無 Carbon／Antigravity 實例時的備援
-        note: Opus 5.5 high 退作日常 medium 多檔實作與 high 級額度備援
+        when: 沒有可用的 Fable 5.2（選配沒宣告，或本週用量 >= 80%），也沒有 Carbon 實例
+        note: 沒有 Fable 的人高級就用這一項（Opus 5.5 high）；有 Fable 的人當額度備援
     second_opinion:
       - {class: gemini-carbon, thinking: high, role: 跨家唯讀審查 Claude（Fable／Opus）的產出（Carbon high，審查者不比作者弱）}
       - {class: claude-fable, thinking: high, role: 跨家唯讀審查 Gemini（Carbon／Neon）的重要產出（Fable 5.2 high，避免降級用 Opus 審 Carbon）}
+      - {class: claude-opus, thinking: xhigh, fallback_for: claude-fable, role: 沒有 Fable 時審 Gemini 重要產出的備援（Opus xhigh；回報註明審查者是備援）}
       - {class: gemini-pro, thinking: xhigh, role: Carbon 不可用時審 Claude Opus 產出的備援（Neon xhigh）}
   higher:
     name: 更高
     prework:
       - {class: gemini-pro, thinking: xhigh, role: 前置苦工：讀程式、重現錯誤、縮小範圍、列假設與證據，不改檔；交由主路由定案}
     route:
-      - {class: claude-opus, thinking: xhigh, note: 維持 Opus 5.5 xhigh 省 Fable 額度（不預設 max）；仍無法收斂或遇高風險架構／重要統整時升 Fable 5.2 high}
+      - {class: claude-opus, thinking: xhigh, note: 維持 Opus 5.5 xhigh（不預設 max）；仍無法收斂或遇高風險架構／重要統整時，有 Fable 才升 Fable 5.2 high}
     second_opinion:
       - {class: gemini-carbon, thinking: high, role: 跨家唯讀審查 Claude Opus 的修法（Carbon high）}
       - {class: claude-fable, thinking: high, role: 跨家唯讀審查 Gemini 的修法（Fable 5.2 high）}
+      - {class: claude-opus, thinking: xhigh, fallback_for: claude-fable, role: 沒有 Fable 時審 Gemini 修法的備援（Opus xhigh）}
   verify:
     name: 獨立驗收
     route:
-      - {class: claude-opus, thinking: xhigh, role: 高風險主驗收（維持 Opus 5.5 xhigh 省 Fable 額度；失敗或審 Gemini Carbon／Neon 重要產出時升 Fable 5.2 high）}
+      - {class: claude-opus, thinking: xhigh, role: 高風險主驗收（維持 Opus 5.5 xhigh；失敗或審 Gemini Carbon／Neon 重要產出時，有 Fable 才升 Fable 5.2 high）}
     second_opinion:
       - {class: gemini-carbon, thinking: high, role: 跨家唯讀第二意見（作者是 Claude 時用 Carbon high）}
       - {class: claude-fable, thinking: high, role: 跨家唯讀第二意見（作者是 Gemini Carbon／Neon 時用 Fable 5.2 high；日常中級才允許 Opus xhigh）}
+      - {class: claude-opus, thinking: xhigh, fallback_for: claude-fable, role: 沒有 Fable 時審 Gemini 產出的備援（Opus xhigh；回報註明審查者是備援）}
   architecture:
     name: 重大架構盲審
     route:
       - {class: claude-fable, thinking: high, role: 兩階段防迎合盲審（Stage 1 零錨定獨立設計寫盤 → Stage 2 讀提案對決；強制隔離記憶注入；死結才 xhigh）}
+      - {class: claude-opus, thinking: xhigh, fallback_for: claude-fable, role: 沒有 Fable 時的兩階段盲審（Opus 5.5 xhigh；協定與記憶隔離照 blind_review）}
     second_opinion:
       - {class: gemini-carbon, thinking: high, role: 跨家架構盲審（作者或主審是 Claude 時用 Carbon high；強制隔離記憶注入）}
       - {class: claude-fable, thinking: high, role: 跨家架構盲審（作者或主審是 Gemini 時用 Fable 5.2 high；強制隔離記憶注入）}
+      - {class: claude-opus, thinking: xhigh, fallback_for: claude-fable, role: 沒有 Fable 時的跨家架構盲審備援（Opus xhigh；強制隔離記憶注入）}
 
 # 重大架構兩階段防迎合盲審協定（2026-11-25 定案）。
 blind_review:
@@ -162,6 +173,8 @@ escalation:
   - {from: {class: gemini-carbon, thinking: high}, to: {class: claude-fable, thinking: high}, once: true, why: Carbon high 驗收不過時換家改由 Fable 5.2 high 定案（僅對調一次，不循環）}
   - {from: {class: claude-fable, thinking: high}, to: {class: gemini-carbon, thinking: high}, once: true, when: 有 Gemini Carbon 實例且尚未跑過 Carbon, why: Fable 5.2 high 驗收不過時換家改由 Carbon high 定案（僅對調一次，不循環）}
   - {from: {class: claude-fable, thinking: high}, to: stop, after_peer: true, why: Fable 5.2 high 與 Carbon high 皆無法收斂（或無跨家實例）時為升級終點，停下來回報【等你決定】（使用者明確指定才開 xhigh／max）}
+  - {from: {class: claude-opus, thinking: high, levels: [high]}, to: {class: claude-opus, thinking: xhigh}, when: 沒有可用的 Fable 5.2, why: 沒有 Fable 的人，high 級 Opus high 驗收不過時升到 Opus xhigh}
+  - {from: {class: claude-opus, thinking: xhigh}, to: stop, when: 沒有可用的 Fable 5.2, why: 沒有 Fable 的人以 Opus xhigh 為升級終點，仍不過就停下來回報【等你決定】}
 
 # 管道。
 channels:

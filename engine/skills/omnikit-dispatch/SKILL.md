@@ -13,7 +13,7 @@ description: 派子任務或開子對話時，照 OmniKit 分派政策選管道�
 uv run scripts/run.py show
 ```
 
-印出套上你的實例之後，每一級依序可以用的選項，開頭附本週 Claude 用量。由上往下挑第一個「有實例、額度沒用完、條件成立」的。用量是「未知」時不要假設已達 80%。開子對話或派子代理時，在任務說明寫明級別與思考程度（Claude 寫 `effort`，Gemini／Antigravity 寫 `thought_level`）。重大架構盲審（`architecture`）與工具評測子對話必須隔離跨對話記憶注入：用 `t3_project_list` 查得「No project」（`~/.t3/scratch`）的 `projectId`，傳給 `create_threads` / `t3_thread_launch` 或 `t3 thread start <No-project-id>` 開立獨立 Scratch 對話並將證據直接放入訊息（主控不跨目錄寫檔），或指定無記憶外掛實例；勿僅靠任務首行文字標記（`claude-mem` 會經 `SessionStart` 與 `PreToolUse:Read` 雙通道注入）。
+印出套上你的實例之後，每一級依序可以用的選項，開頭附本週 Claude 用量。由上往下挑第一個「有實例、額度沒用完、條件成立」的。Fable 5.2 這類選配類別（政策標 `opt_in: true`）只有 profile 的 `dispatch.md` 宣告過（`opt_in_classes: [claude-fable]`，或寫進實例的 `classes`）才會出現；沒宣告的人自動改走標了 `fallback_for` 的 Opus 備援，不要自己派給方案裡沒有的模型。用量是「未知」時不要假設已達 80%。開子對話或派子代理時，在任務說明寫明級別與思考程度（Claude 寫 `effort`，Gemini／Antigravity 寫 `thought_level`）。重大架構盲審（`architecture`）與工具評測子對話必須隔離跨對話記憶注入：用 `t3_project_list` 查得「No project」（`~/.t3/scratch`）的 `projectId`，傳給 `create_threads` / `t3_thread_launch` 或 `t3 thread start <No-project-id>` 開立獨立 Scratch 對話並將證據直接放入訊息（主控不跨目錄寫檔），或指定無記憶外掛實例；勿僅靠任務首行文字標記（`claude-mem` 會經 `SessionStart` 與 `PreToolUse:Read` 雙通道注入）。
 
 ## 帳號與模型：哪些能自動派、哪些被過濾（帳號池第一、二階段）
 

@@ -202,7 +202,8 @@ def recommend(discovered):
 
 
 DEFAULT_CLASSES_BY_DRIVER = {
-    "claudeAgent": ["claude-opus", "claude-sonnet", "claude-fable"],
+    # claude-fable 是選配（多數方案沒有），不放進預設；方案有的在答案檔的 classes 或 opt_in_classes 明確寫
+    "claudeAgent": ["claude-opus", "claude-sonnet"],
     "antigravity": ["gemini-pro", "gemini-fast", "gemini-carbon", "gemini-orchestrator", "antigravity-opus"],
     "codex": [],
 }
@@ -272,6 +273,8 @@ def render_dispatch_md(answers, data, today=None):
         doc["exclude_models"] = list(answers["exclude_models"])
     if answers.get("include_models"):
         doc["include_models"] = list(answers["include_models"])
+    if answers.get("opt_in_classes"):
+        doc["opt_in_classes"] = list(answers["opt_in_classes"])
     insts = {}
     for iid, spec in (answers.get("instances") or {}).items():
         scope = spec.get("usage_scope", "manual_only")

@@ -162,6 +162,8 @@ def check(pol, mine=None):
         for k in ("default_thinking", "max_thinking"):
             if k in c and c[k] not in THINKING:
                 errors.append(f"model_classes.{name}.{k} 不是 {THINKING} 之一：{c[k]}")
+        if "opt_in" in c and not isinstance(c["opt_in"], bool):
+            errors.append(f"model_classes.{name}.opt_in 要是 true 或 false：{c['opt_in']}")
     for task, t in (pol.get("tasks") or {}).items():
         if t.get("level") not in levels:
             errors.append(f"tasks.{task} 的級別不存在：{t.get('level')}")
@@ -186,6 +188,9 @@ def check(pol, mine=None):
                     errors.append(f"{where}：tasks 裡的任務類型不存在：{task}")
             if o.get("trial") and o["trial"] not in (pol.get("trials") or {}):
                 errors.append(f"{where}：試行不存在：{o['trial']}")
+            fb = o.get("fallback_for")
+            if fb is not None and (fb not in classes or fb == o.get("class")):
+                errors.append(f"{where}：fallback_for 要寫另一個存在的模型類別：{fb}")
     for name, tr in (pol.get("trials") or {}).items():
         for k in ("class", "baseline", "min_samples", "max_gap_pp"):
             if k not in tr:
@@ -250,6 +255,16 @@ def check(pol, mine=None):
                     errors.append(f"個人層 instances.{inst}：模型類別不存在：{cls}")
                 elif spec.get("driver") and classes[cls].get("driver") != spec["driver"]:
                     errors.append(f"個人層 instances.{inst}：{cls} 要用 {classes[cls]['driver']} 的實例，這個是 {spec['driver']}")
+        opt = mine.get("opt_in_classes")
+        if opt is not None:
+            if not isinstance(opt, list):
+                errors.append("個人層 opt_in_classes 要是模型類別清單，例如 [claude-fable]")
+            else:
+                for cls in opt:
+                    if cls not in classes:
+                        errors.append(f"個人層 opt_in_classes：模型類別不存在：{cls}")
+                    elif not classes[cls].get("opt_in"):
+                        errors.append(f"個人層 opt_in_classes：{cls} 不是選配類別，不用宣告")
         if "visibility" in mine and mine.get("visibility") not in VISIBILITY:
             errors.append(f"個人層 visibility 要是 {list(VISIBILITY)} 之一：{mine.get('visibility')}")
         overrides = mine.get("effort_overrides")
@@ -287,10 +302,23 @@ def visibility(pol, mine=None):
             "fallback": re.sub(r"(?<=[，。；：、（）])\s+", "", " ".join(str(spec.get("fallback", "")).split()))}
 
 
+def opted_in(pol, mine, cls):
+    """選配類別（opt_in: true，例如多數訂閱方案沒有的 Fable）：個人層 opt_in_classes 有列、
+    或有實例的 classes 宣告它，才算這個人有；一般類別一律算有。"""
+    if not pol["model_classes"][cls].get("opt_in"):
+        return True
+    mine = mine or {}
+    if cls in (mine.get("opt_in_classes") or []):
+        return True
+    return any(cls in ((spec or {}).get("classes") or []) for spec in (mine.get("instances") or {}).values())
+
+
 def instances_for(pol, mine, cls, agent="claude"):
-    """這個模型類別可以用的實例，依序。目前的 agent 跟類別同一個供應商時，原生子代理（native）排第一。"""
+    """這個模型類別可以用的實例，依序。目前的 agent 跟類別同一個供應商時，原生子代理（native）排第一；
+    選配類別沒宣告的不算原生子代理（避免派給方案裡沒有的模型）。"""
     found = []
-    if pol["model_classes"][cls].get("driver") == AGENT_DRIVER.get(agent) and cls.startswith(("claude-",)):
+    if (pol["model_classes"][cls].get("driver") == AGENT_DRIVER.get(agent) and cls.startswith(("claude-",))
+            and opted_in(pol, mine, cls)):
         found.append("native")
     for inst, spec in ((mine or {}).get("instances") or {}).items():
         if cls in ((spec or {}).get("classes") or []):
@@ -347,7 +375,10 @@ def resolved(pol, mine, agent="claude", judge=None, model_note=None, claude_orde
             for o in items:
                 cls = pol["model_classes"][o["class"]]
                 single_vendor_skip = kind == "second_opinion" and not (configured_drivers - {cls["driver"]})
-                inst, blocked = ([] if single_vendor_skip else instances_for(pol, mine, o["class"], agent)), []
+                # fallback_for：主選項的類別這個人有（例如有 Fable），這個備援就不用
+                superseded = o.get("fallback_for") if o.get("fallback_for") and instances_for(pol, mine, o["fallback_for"], agent) else None
+                opt_in_missing = not opted_in(pol, mine, o["class"])
+                inst, blocked = ([] if single_vendor_skip or superseded else instances_for(pol, mine, o["class"], agent)), []
                 if claude_order and cls["driver"] == "claudeAgent" and inst:
                     rank = {iid: idx for idx, iid in enumerate(claude_order)}
                     head = [i for i in inst if i == "native"]
@@ -364,8 +395,9 @@ def resolved(pol, mine, agent="claude", judge=None, model_note=None, claude_orde
                              "policy_thinking": o["thinking"], "thinking_name": "effort" if cls["driver"] == "claudeAgent" else "thought_level",
                              "thinking_why": th_why, "when": o.get("when"), "tasks": o.get("tasks"),
                              "instances": [] if filtered else inst, "blocked": blocked, "filtered": filtered,
-                             "single_vendor_skip": single_vendor_skip,
-                             "skip": bool(filtered) or single_vendor_skip or not inst,
+                             "single_vendor_skip": single_vendor_skip, "superseded": superseded,
+                             "opt_in_missing": opt_in_missing, "fallback_for": o.get("fallback_for"),
+                             "skip": bool(filtered) or single_vendor_skip or bool(superseded) or not inst,
                              "trial": o.get("trial"), "pending": o.get("pending"), "note": o.get("note"), "role": o.get("role")})
         out[level] = {"name": lv.get("name", level), "tasks": tasks, "options": rows}
     return out
@@ -628,6 +660,9 @@ def show_text(table, profile, has_personal, usage=None, pol=None, mine=None, acc
             head = {"prework": "前置", "second_opinion": "第二意見"}.get(o["kind"]) or f"{route.index(o) + 1}."
             inst = (f"已過濾，跳過（{o['filtered']}）" if o.get("filtered") else
                     "單一供應商無跨家對象，跳過" if o.get("single_vendor_skip") else
+                    f"已有 {o['superseded']}，不用這個備援" if o.get("superseded") else
+                    f"選配，沒宣告，跳過（方案有 {o['model']} 的在 profile 的 dispatch.md 加 opt_in_classes: [{o['class']}]）"
+                    if o.get("opt_in_missing") and o["skip"] and not o.get("blocked") else
                     ("沒有可自動派的實例，跳過" if o.get("blocked") else "沒有實例，跳過") if o["skip"] else
                     "實例：" + "、".join(o["instances"]))
             extra = (f"；條件：{o['when']}" if o["when"] else "") + (f"；只接：{'、'.join(o['tasks'])}" if o["tasks"] else "")
@@ -1103,7 +1138,41 @@ def selftest():
        all(o["skip"] for lv in bare.values() for o in lv["options"] if not o["class"].startswith("claude-"))
        and all(o["skip"] for lv in bare.values() for o in lv["options"] if o["kind"] == "second_opinion")
        and any(o["class"] == "claude-sonnet" and o["thinking"] == "medium" and not o["skip"] for o in bare["medium"]["options"])
-       and "審 Gemini Carbon／Neon 重要產出時升 Fable 5.2 high" in show_text(t, "ryan", True))
+       and "有 Fable 才升 Fable 5.2 high" in show_text(t, "ryan", True))
+
+    def pick(table, lv, cls, kind="route", nth=0):
+        return [o for o in table[lv]["options"] if o["class"] == cls and o["kind"] == kind][nth]
+    bare_show = show_text(bare, "default", False)
+    ok("Fable 是選配：沒宣告的同事 high 與 architecture 的 Fable 跳過並提示 opt_in_classes，改走 Opus（high 用 Opus high、architecture 用 Opus xhigh 備援）",
+       pick(bare, "high", "claude-fable")["skip"] and pick(bare, "high", "claude-fable")["opt_in_missing"]
+       and pick(bare, "high", "claude-opus")["instances"] == ["native"] and pick(bare, "high", "claude-opus")["thinking"] == "high"
+       and pick(bare, "architecture", "claude-fable")["skip"]
+       and pick(bare, "architecture", "claude-opus")["instances"] == ["native"]
+       and pick(bare, "architecture", "claude-opus")["thinking"] == "xhigh"
+       and all(any(not o["skip"] and o["kind"] == "route" for o in lv["options"]) for lv in bare.values())
+       and "選配，沒宣告，跳過" in bare_show and "opt_in_classes: [claude-fable]" in bare_show)
+    ok("ryan 的實例宣告了 claude-fable：Fable 照用，標 fallback_for 的 Opus 備援自動跳過",
+       pick(t, "architecture", "claude-fable")["instances"][0] == "native"
+       and pick(t, "architecture", "claude-opus")["superseded"] == "claude-fable"
+       and pick(t, "architecture", "claude-opus")["skip"]
+       and "已有 claude-fable，不用這個備援" in show_text(t, "ryan", True))
+    opt = resolved(pol, {"opt_in_classes": ["claude-fable"]}, "claude")
+    ok("只寫 opt_in_classes: [claude-fable]（沒有任何 T3 實例）也能啟用 Fable 的原生子代理",
+       pick(opt, "high", "claude-fable")["instances"] == ["native"] and pick(opt, "architecture", "claude-opus")["skip"])
+    gem = {"instances": {"ag": {"driver": "antigravity", "classes": ["gemini-carbon", "gemini-pro"]}}}
+    gt = resolved(pol, gem, "claude")
+    ok("有 Gemini 沒 Fable：審 Gemini 產出的第二意見由 Opus xhigh 備援接手，Fable 那行跳過",
+       pick(gt, "verify", "claude-fable", "second_opinion")["skip"]
+       and pick(gt, "verify", "claude-opus", "second_opinion")["instances"] == ["native"]
+       and pick(gt, "verify", "claude-opus", "second_opinion")["thinking"] == "xhigh"
+       and pick(gt, "verify", "gemini-carbon", "second_opinion")["instances"] == ["ag"])
+    bad_fb = json.loads(json.dumps(pol))
+    bad_fb["levels"]["architecture"]["route"][1]["fallback_for"] = "nope"
+    bad_fb["model_classes"]["claude-fable"]["opt_in"] = "yes"
+    errs_fb = check(bad_fb, {"opt_in_classes": ["claude-opus", "ghost"]})
+    ok("檢查抓得到：fallback_for 指到不存在的類別、opt_in 不是布林、opt_in_classes 寫了非選配或不存在的類別",
+       any("fallback_for" in e for e in errs_fb) and any("opt_in 要是" in e for e in errs_fb)
+       and any("不是選配類別" in e for e in errs_fb) and any("類別不存在：ghost" in e for e in errs_fb))
 
     ok("agy：類別加思考程度寫進模型代號（Neon xhigh、Hydrogen xhigh、Carbon high、Antigravity 的 Opus high）",
        agy_model(pol, "gemini-pro", "xhigh") == "gemini-4-neon-xhigh"
