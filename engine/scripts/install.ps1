@@ -561,7 +561,7 @@ function Show-InstallPlan {
   # 兩個空白開頭的是上一項的細節，縮排顯示
   $plan | ForEach-Object { if ($_.StartsWith('  ')) { Write-Host "      $($_.Trim())" } else { Write-Host "  - $_" } }
   Write-Host ''
-  Write-Host '拿掉 -WhatIf 再執行就會照做；每一項的說明見 README 的「安裝會改動哪些地方」。'
+  Write-Host '拿掉 -WhatIf 再執行就會照做；每一項的說明見 docs/install.md 的「安裝會改動哪些地方」。'
 }
 
 # 安裝完畫面上不會多出東西，告訴使用者怎麼確認接上了、接下來怎麼用
@@ -596,7 +596,7 @@ function Show-NextSteps($edition) {
     Write-Host '  - 評估新工具：說「幫我評估」加上 GitHub 連結（Claude Code 也可以輸入 /omnikit-eval，Codex 輸入 $omnikit-eval）'
   }
   Write-Host '  - 需求沒想清楚想先對焦：用內建 /plan（Antigravity 亦可用 /grill-me）；三家指令對照見 docs/cli-features.md'
-  Write-Host '  - 預設 plugin 不會自動安裝；安裝方式與其他說明見 README 的「裝好之後」'
+  Write-Host '  - 預設 plugin 不會自動安裝；安裝方式與其他說明見 docs/usage.md'
 }
 
 # -SelfTest：%LOCALAPPDATA% 換成暫存資料夾、repo 換成暫存 git repo，測版本判斷與 git hook 設定
