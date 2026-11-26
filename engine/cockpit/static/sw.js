@@ -1,5 +1,5 @@
-// OmniKit 個人指揮台 Service Worker（v2）：API 永遠直連，靜態外殼網路優先
-const CACHE_NAME = "omnikit-cockpit-v2";
+// OmniKit 個人指揮台 Service Worker（v3）：API 永遠直連，靜態外殼網路優先
+const CACHE_NAME = "omnikit-cockpit-v3";
 const SHELL_ASSETS = ["/", "/style.css", "/app.js", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {

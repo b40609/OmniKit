@@ -1,4 +1,4 @@
-// OmniKit 個人指揮台（Linear × Raycast 主從工作台 + 一鍵背景自動對帳）
+// OmniKit 指揮台：專案值班板、工具名冊、帳號額度、架構地圖
 (() => {
   const state = {
     activeTab: "cockpit",
@@ -20,36 +20,47 @@
   const LANE_ORDER = ["blocked_on_me", "ready_to_settle", "active", "parked"];
   const LANE_NAMES = {
     blocked_on_me: "等你處理",
-    ready_to_settle: "跑完待收尾／需對帳",
+    ready_to_settle: "待收尾",
     active: "執行中",
     parked: "已停泊",
   };
-  const LANE_DOT = {
-    blocked_on_me: "d-blocked",
-    ready_to_settle: "d-settle",
-    active: "d-active",
-    parked: "d-parked",
-  };
-  const SLOPE_LABEL = {
-    uphill: { text: "上坡 · 探索中", cls: "pill-trial" },
-    downhill: { text: "下坡 · 純執行", cls: "pill-active" },
-    unknown: null,
-  };
+  const SLOPE_LABEL = { uphill: "上坡探索中", downhill: "下坡純執行" };
   const STATUS_LABELS = {
     default: "預設",
     trial: "試用",
-    on_demand: "按需備案",
+    on_demand: "按需",
     assess: "觀察",
     pending: "待評估",
     rejected: "拒絕",
     retired: "退役",
   };
+  const STATUS_ORDER = ["default", "trial", "on_demand", "assess", "pending", "rejected", "retired"];
+  const PROFILE_TEXT = {
+    thinking_preference: { max_available: "用能開的最高程度", high: "high", xhigh: "xhigh" },
+    visibility: { visible: "開在 T3 看得到的對話", headless: "無頭執行，只看結果" },
+    on_exhausted: {
+      prompt_manual_switch: "停下來，讓你換帳號",
+      fallback_paid_api: "改走付費 API 備援",
+      fail_closed: "直接停，等額度重置",
+    },
+  };
 
+  const svg = (d, size = 16) =>
+    `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const ICON = {
-    zap: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
-    ext: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
-    back: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>`,
-    alert: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+    sync: svg(`<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>`),
+    ext: svg(`<path d="M7 17 17 7"/><path d="M8 7h9v9"/>`),
+    back: svg(`<path d="m15 18-6-6 6-6"/>`, 18),
+    chev: svg(`<path d="m9 18 6-6-6-6"/>`),
+    alert: svg(`<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>`),
+    file: svg(`<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>`),
+    copy: svg(`<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>`),
+    pause: svg(`<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>`),
+    play: svg(`<path d="m7 4 13 8-13 8Z"/>`),
+    check: svg(`<path d="M20 6 9 17l-5-5"/>`, 14),
+    stepDone: svg(`<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>`),
+    stepNow: svg(`<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>`),
+    stepTodo: svg(`<circle cx="12" cy="12" r="9"/>`),
   };
 
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -62,6 +73,9 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
+
+  // 下一步常以【等使用者】【agent 可直接做】開頭；球權已經用記號表示，畫面上不重複
+  const stripOwnerTag = (text) => String(text || "").replace(/^\s*【[^】]{1,16}】\s*/, "");
 
   let toastTimer = null;
   function showToast(msg) {
@@ -80,7 +94,7 @@
       ...opts,
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `請求失敗 (${res.status})`);
+    if (!res.ok) throw new Error(data.error || `請求失敗（${res.status}）`);
     return data;
   }
 
@@ -98,17 +112,19 @@
         document.execCommand("copy");
         ta.remove();
       }
-      showToast(`已複製：${label}`);
+      showToast(`已複製${label}`);
     } catch {
       showToast("複製失敗，請手動選取");
     }
   }
 
-  // ---------- 深淺色切換 ----------
+  // ---------- 深淺色 ----------
   function initTheme() {
-    const saved = localStorage.getItem("omnikit-theme");
-    if (saved === "light" || saved === "dark") {
-      document.documentElement.dataset.theme = saved;
+    try {
+      const saved = localStorage.getItem("omnikit-theme");
+      if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
+    } catch {
+      // 私密瀏覽等情況讀不到就跟系統
     }
   }
 
@@ -118,20 +134,22 @@
     const isDarkNow = cur ? cur === "dark" : prefersDark;
     const next = isDarkNow ? "light" : "dark";
     document.documentElement.dataset.theme = next;
-    localStorage.setItem("omnikit-theme", next);
+    try {
+      localStorage.setItem("omnikit-theme", next);
+    } catch {
+      // 存不了只影響下次開啟
+    }
   }
 
-  // ---------- 分頁切換 ----------
+  // ---------- 分頁 ----------
   function switchTab(tab) {
     state.activeTab = tab;
     for (const btn of $$("[data-tab]")) {
-      const on = btn.dataset.tab === tab;
-      if (on) btn.setAttribute("aria-current", "page");
+      if (btn.dataset.tab === tab) btn.setAttribute("aria-current", "page");
       else btn.removeAttribute("aria-current");
     }
-    for (const sec of $$(".tab-panel")) {
-      sec.hidden = sec.id !== `tab-${tab}`;
-    }
+    for (const sec of $$(".tab-panel")) sec.hidden = sec.id !== `tab-${tab}`;
+    syncDetailChrome();
     if (tab === "tools" && !state.tools) loadTools();
     if (tab === "accounts" && !state.accounts) loadAccounts(false);
     if (tab === "map" && !state.mapLoaded) {
@@ -143,42 +161,50 @@
   function setMobileDetail(open) {
     state.mobileDetail = Boolean(open);
     $("#tab-cockpit").classList.toggle("mobile-detail", state.mobileDetail);
+    syncDetailChrome();
     if (state.mobileDetail) $("#main-scroll").scrollTop = 0;
   }
 
+  // 手機詳情頁有自己的「對帳」，頂端的全部對帳先收起來，避免同一畫面兩顆
+  function syncDetailChrome() {
+    document.body.classList.toggle("in-detail", state.activeTab === "cockpit" && state.mobileDetail);
+  }
+
   // ---------- 自動對帳輪詢 ----------
+  function staleLocalCount() {
+    return (state.overview?.projects || []).filter((p) => p.stale && p.local_available).length;
+  }
+
   function syncPolling(reconcile) {
     const busy = Boolean(reconcile?.busy);
     const banner = $("#reconcile-banner");
     const bannerText = $("#reconcile-banner-text");
     const allBtn = $("#btn-reconcile-all");
     const allLabel = $("#reconcile-all-label");
-
-    const staleLocal = (state.overview?.projects || []).filter((p) => p.stale && p.local_available).length;
+    const stale = staleLocalCount();
 
     if (busy) {
       const running = reconcile.running_project;
       const runJob = running ? reconcile.jobs?.[running] : null;
+      const rest = Math.max(0, (reconcile.active_count || 1) - 1);
       banner.hidden = false;
-      bannerText.textContent = runJob
-        ? `背景自動對帳中（佇列剩 ${reconcile.active_count}）：${runJob.project_name} — ${runJob.message}`
-        : `背景自動對帳中（剩 ${reconcile.active_count} 個專案）…`;
-      allLabel.textContent = `對帳中 (${reconcile.active_count})`;
+      bannerText.innerHTML = runJob
+        ? `<b>對帳中</b> ${esc(runJob.project_name)}${rest ? `，後面還有 ${rest} 個` : ""}`
+        : `<b>對帳中</b> 還有 ${reconcile.active_count} 個專案`;
+      allLabel.textContent = "對帳中";
       allBtn.disabled = true;
-      if (!state.pollTimer) {
-        state.pollTimer = setInterval(pollReconcile, 3000);
-      }
+      allBtn.classList.remove("btn-primary");
+      if (!state.pollTimer) state.pollTimer = setInterval(pollReconcile, 3000);
     } else {
       banner.hidden = true;
       allBtn.disabled = false;
-      allLabel.textContent = staleLocal > 0 ? `對帳 (${staleLocal})` : "全部對帳";
+      allLabel.textContent = stale > 0 ? `對帳 ${stale}` : "對帳";
+      allBtn.classList.toggle("btn-primary", stale > 0);
       if (state.pollTimer) {
         clearInterval(state.pollTimer);
         state.pollTimer = null;
       }
-      if (state.wasBusy) {
-        showToast("背景自動對帳已完成，已更新最新狀態");
-      }
+      if (state.wasBusy) showToast("對帳完成，已更新");
     }
     state.wasBusy = busy;
   }
@@ -198,7 +224,7 @@
         renderInspector();
       }
     } catch {
-      // 忽略短暫網路波動，下一輪續試
+      // 短暫網路波動，下一輪再試
     }
   }
 
@@ -209,7 +235,7 @@
         body: JSON.stringify({}),
       });
       if (state.overview) state.overview.reconcile = res.reconcile;
-      showToast(`已派送 ${projectId} 自動對帳（T3 可見對話）`);
+      showToast(`已派出 ${projectId} 的對帳，T3 看得到過程`);
       syncPolling(res.reconcile);
       renderList();
       renderInspector();
@@ -219,19 +245,15 @@
   }
 
   async function triggerReconcileAll() {
-    const staleLocal = (state.overview?.projects || []).filter((p) => p.stale && p.local_available).length;
+    const stale = staleLocalCount();
     try {
       const res = await api("/api/reconcile-all", {
         method: "POST",
-        body: JSON.stringify({ only_stale: staleLocal > 0 }),
+        body: JSON.stringify({ only_stale: stale > 0 }),
       });
       if (state.overview) state.overview.reconcile = res.reconcile;
       const n = res.queued?.length || 0;
-      if (n === 0) {
-        showToast("目前沒有需要對帳的本機專案");
-      } else {
-        showToast(`已將 ${n} 個專案排入自動對帳佇列（一次一條安全執行）`);
-      }
+      showToast(n === 0 ? "沒有需要對帳的本機專案" : `已排入 ${n} 個專案，一次跑一個`);
       syncPolling(res.reconcile);
       renderList();
       renderInspector();
@@ -240,23 +262,20 @@
     }
   }
 
-  // ---------- 載入與渲染：專案指揮台 ----------
+  // ---------- 專案 ----------
   async function loadOverview(sync = false, silent = false) {
     const syncBtn = $("#btn-sync");
     if (!silent) syncBtn.disabled = true;
     try {
       const data = await api(`/api/overview${sync ? "?sync=1" : ""}`);
       state.overview = data;
-      // 確保預設選中第一順位專案
       if (!state.selectedId || !data.projects.some((p) => p.id === state.selectedId)) {
         state.selectedId = data.projects[0]?.id || null;
       }
       renderOverview();
-      if (sync) {
-        showToast(data.sync?.synced ? "已同步狀態庫並重新掃描" : "已完成本機重新掃描");
-      }
+      if (sync) showToast(data.sync?.synced ? "已同步狀態庫並重新掃描" : "已重新掃描本機");
     } catch (err) {
-      $("#project-list").innerHTML = `<div class="empty-inline">載入失敗：${esc(err.message)}</div>`;
+      $("#project-list").innerHTML = `<div class="empty-inline">讀取失敗：${esc(err.message)}</div>`;
       if (!silent) showToast(err.message);
     } finally {
       syncBtn.disabled = false;
@@ -288,31 +307,23 @@
   function projectPreviewLine(p) {
     const openCrit = (p.now.critiques || []).find((c) => !c.done);
     if (openCrit) return `待改：${openCrit.pain || openCrit.text}`;
-    if (p.now.next_action?.text) return p.now.next_action.text;
+    if (p.now.next_action?.text) return stripOwnerTag(p.now.next_action.text);
     if (p.now.conclusions?.[0]) return p.now.conclusions[0];
     if (p.git?.last_subject) return `${p.git.last_hash} ${p.git.last_subject}`;
-    return p.stale ? "尚未同步 NOW.md，點自動對帳補齊" : "目前狀態乾淨";
+    return p.stale ? "還沒有 NOW.md，對帳一次就會補上" : "沒有待辦";
   }
 
   function projectRightTag(p, job) {
     if (job && (job.status === "running" || job.status === "queued")) {
-      return { text: job.status === "running" ? "對帳中…" : "排隊中", cls: "t-accent" };
+      return { text: job.status === "running" ? "對帳中" : "排隊中", cls: "t-accent" };
     }
-    if (p.open_critiques_count > 0) {
-      return { text: `待改 ${p.open_critiques_count}`, cls: "t-blocked" };
-    }
-    const commitsBehind = p.git?.commits_since_now || 0;
-    if (commitsBehind > 0) {
-      return { text: `落後 ${commitsBehind}`, cls: "t-warn" };
-    }
-    if (p.stale) {
-      return { text: p.now.exists ? "已過期" : "缺 NOW", cls: "t-warn" };
-    }
+    if (p.open_critiques_count > 0) return { text: `待改 ${p.open_critiques_count}`, cls: "t-warn" };
+    const behind = p.git?.commits_since_now || 0;
+    if (behind > 0) return { text: `落後 ${behind} 個 commit`, cls: "t-warn" };
+    if (p.stale) return { text: p.now.exists ? "需對帳" : "缺 NOW.md", cls: "t-warn" };
     const prog = p.now.progress;
-    if (prog?.total) {
-      return { text: `${prog.done}/${prog.total}`, cls: "" };
-    }
-    return { text: p.last_activity_age, cls: "" };
+    if (prog?.total) return { text: `${prog.done}/${prog.total}`, cls: "" };
+    return { text: "", cls: "" };
   }
 
   function renderList() {
@@ -321,7 +332,7 @@
     const jobs = state.overview?.reconcile?.jobs || {};
 
     if (!list.length) {
-      root.innerHTML = `<div class="empty-inline">沒有符合條件的專案。</div>`;
+      root.innerHTML = `<div class="empty-inline">沒有符合條件的專案</div>`;
       return;
     }
 
@@ -334,41 +345,39 @@
       if (!items.length) continue;
       html.push(`<div class="list-group-head"><span>${LANE_NAMES[lane]}</span><span class="num">${items.length}</span></div>`);
       for (const p of items) {
-        const selected = p.id === state.selectedId;
-        const job = jobs[p.id];
-        const tag = projectRightTag(p, job);
-        const prog = p.now.progress || {};
-        const hasSteps = prog.total != null && prog.total > 0;
-        const pct = hasSteps ? Math.min(100, Math.round((prog.done / prog.total) * 100)) : 0;
-
+        const tag = projectRightTag(p, jobs[p.id]);
         const foot = [];
         if (p.git?.available) {
-          foot.push(esc(p.git.branch));
-          if (p.git.dirty_count > 0) foot.push(`<span class="f-warn">+${p.git.dirty_count}</span>`);
+          foot.push(`<span class="f-branch">${esc(p.git.branch)}</span>`);
+          if (p.git.dirty_count > 0) foot.push(`<span class="f-warn">未提交 ${p.git.dirty_count}</span>`);
         } else if (p.remote_only) {
-          foot.push("遠端");
+          foot.push("<span>遠端</span>");
         }
-        if (p.t3?.unsettled_count > 0) foot.push(`${p.t3.unsettled_count} 對話`);
-        if (p.t3?.overloaded_count > 0) foot.push(`<span class="f-alert">超載</span>`);
-        foot.push(esc(p.last_activity_age));
+        if (p.t3?.unsettled_count > 0) foot.push(`<span>${p.t3.unsettled_count} 條對話</span>`);
+        if (p.t3?.overloaded_count > 0) foot.push(`<span class="f-alert">對話超載</span>`);
+        foot.push(`<span>${esc(p.last_activity_age)}</span>`);
 
         html.push(`
-          <button type="button" class="proj-row ${selected ? "is-selected" : ""}" data-select-project="${esc(p.id)}">
-            <div class="row-top">
-              <span class="row-title">
-                <i class="sdot ${LANE_DOT[p.lane]}"></i>
-                <span class="row-title-text">${esc(p.name)}</span>
+          <button type="button" class="proj-row ${p.id === state.selectedId ? "is-selected" : ""}" data-select-project="${esc(p.id)}">
+            <span class="ball ball-${esc(p.lane)}" aria-hidden="true"></span>
+            <span class="row-body">
+              <span class="row-top">
+                <span class="row-title">${esc(p.name)}</span>
+                ${tag.text ? `<span class="row-tag ${tag.cls}">${esc(tag.text)}</span>` : ""}
               </span>
-              <span class="row-tag ${tag.cls}">${esc(tag.text)}</span>
-            </div>
-            <div class="row-preview">${esc(projectPreviewLine(p))}</div>
-            <div class="row-foot">${foot.join(" · ")}</div>
-            ${hasSteps ? `<div class="mini-progress"><i style="width:${pct}%"></i></div>` : ""}
+              <span class="row-preview">${esc(projectPreviewLine(p))}</span>
+              <span class="row-foot">${foot.join("")}</span>
+            </span>
           </button>
         `);
       }
     }
     root.innerHTML = html.join("");
+  }
+
+  function decisionHtml(text) {
+    const m = String(text).match(/^([^：:]{2,60})[：:]\s*([\s\S]+)$/);
+    return m ? `<b>${esc(m[1])}</b>：${esc(m[2])}` : esc(text);
   }
 
   function renderInspector() {
@@ -378,7 +387,7 @@
 
     const p = ov.projects.find((x) => x.id === state.selectedId) || filteredProjects()[0];
     if (!p) {
-      root.innerHTML = `<div class="empty-inline">目前沒有可顯示的專案。</div>`;
+      root.innerHTML = `<div class="empty-inline">目前沒有專案</div>`;
       return;
     }
 
@@ -386,65 +395,83 @@
     const isBusy = job && (job.status === "running" || job.status === "queued");
     const prog = p.now.progress || {};
     const hasSteps = prog.total != null && prog.total > 0;
-    const pct = hasSteps ? Math.min(100, Math.round((prog.done / prog.total) * 100)) : 0;
     const slope = SLOPE_LABEL[prog.slope];
     const triOpen = state.triFormOpen.has(p.id);
 
-    // 狀態警示橫幅（有過期、超載或正在對帳時才顯示）
+    // 有狀況才出現的提示條
     let alertBanner = "";
     if (isBusy) {
       alertBanner = `
         <div class="alert-strip is-running">
-          <div class="alert-strip-msg"><span class="pulse-dot"></span><span>${esc(job.message)}</span></div>
-          ${job.thread_url ? `<a class="btn btn-subtle btn-sm" href="${esc(job.thread_url)}" target="_blank" rel="noopener">看 T3 過程 ↗</a>` : ""}
-        </div>
-      `;
+          <div class="alert-strip-msg"><span class="live-dot"></span><span>${esc(job.message)}</span></div>
+          ${job.thread_url ? `<a class="btn btn-sm" href="${esc(job.thread_url)}" target="_blank" rel="noopener">看 T3 過程 ${ICON.ext}</a>` : ""}
+        </div>`;
     } else if (job && job.status === "error") {
       alertBanner = `
         <div class="alert-strip">
           <div class="alert-strip-msg">${ICON.alert}<span>${esc(job.message)}</span></div>
-          <button type="button" class="btn btn-subtle btn-sm" data-reconcile="${esc(p.id)}">重試對帳</button>
-        </div>
-      `;
+          <button type="button" class="btn btn-sm" data-reconcile="${esc(p.id)}">重試對帳</button>
+        </div>`;
     } else if (p.stale || p.t3?.overloaded_count > 0) {
-      const msgs = [...p.stale_reasons];
-      if (p.t3?.overloaded_count > 0) msgs.push(`${p.t3.overloaded_count} 條主線超過 ${ov.settings.overload_items} 項建議交接`);
+      const msgs = [...(p.stale_reasons || [])];
+      if (p.t3?.overloaded_count > 0) msgs.push(`${p.t3.overloaded_count} 條主線超過 ${ov.settings.overload_items} 項，建議交接`);
       alertBanner = `
         <div class="alert-strip">
-          <div class="alert-strip-msg">${ICON.alert}<span>${esc(msgs.join(" · "))}</span></div>
-        </div>
-      `;
+          <div class="alert-strip-msg">${ICON.alert}<span>${esc(msgs.join("；"))}</span></div>
+        </div>`;
     }
 
-    // 元資訊條
     const meta = [];
     if (p.git?.available) {
-      meta.push(`<span>${esc(p.git.branch)}</span>`);
-      if (p.git.last_hash) meta.push(`<span>${esc(p.git.last_hash)}</span>`);
+      meta.push(`<span class="m-branch">${esc(p.git.branch)}${p.git.last_hash ? ` · ${esc(p.git.last_hash)}` : ""}</span>`);
       if (p.git.dirty_count > 0) meta.push(`<span class="m-warn">未提交 ${p.git.dirty_count} 檔</span>`);
-      if (p.git.ahead > 0) meta.push(`<span class="m-warn">未推 ${p.git.ahead}</span>`);
+      if (p.git.ahead > 0) meta.push(`<span class="m-warn">未推 ${p.git.ahead} 個 commit</span>`);
     } else {
-      meta.push(`<span>遠端專案（無本機目錄）</span>`);
+      meta.push("<span>遠端專案，這台沒有目錄</span>");
     }
-    if (p.t3?.available) {
-      meta.push(`<span>未結案 ${p.t3.unsettled_count} 條</span>`);
-    }
-    meta.push(`<span>最後活躍 ${esc(p.last_activity_age)}</span>`);
+    if (p.t3?.unsettled_count > 0) meta.push(`<span>${p.t3.unsettled_count} 條對話未結案</span>`);
+    meta.push(`<span>${esc(p.last_activity_age)}活躍</span>`);
 
-    // 1. 下一步
+    const reconcileBtn = (extra = "") => p.local_available
+      ? `<button type="button" class="btn btn-sm ${p.stale && !isBusy ? "btn-primary" : ""} ${extra}" data-reconcile="${esc(p.id)}" ${isBusy ? "disabled" : ""}>${ICON.sync}${isBusy ? "對帳中" : "對帳"}</button>`
+      : "";
+    const t3Link = p.primary_t3_url
+      ? `<a class="btn btn-sm" href="${esc(p.primary_t3_url)}" target="_blank" rel="noopener">T3 ${ICON.ext}</a>`
+      : "";
+
+    // 下一步與要你拍板
     const nxt = p.now.next_action;
-    const ownerPill = nxt
-      ? (nxt.owner === "user"
-        ? `<span class="pill pill-blocked">球權：等你處理</span>`
-        : nxt.owner === "agent"
-          ? `<span class="pill pill-active">球權：Agent 可直接跑</span>`
-          : "")
-      : "";
-    const decisionsHtml = p.now.decisions?.length
-      ? `<div class="decisions-block"><div class="sec-label">待拍板決定</div><ul>${p.now.decisions.map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div>`
+    const owner = nxt?.owner === "user"
+      ? `<span class="sec-aside is-you"><span class="ball ball-blocked_on_me"></span>輪到你</span>`
+      : nxt?.owner === "agent"
+        ? `<span class="sec-aside"><span class="ball ball-active"></span>Agent 可以直接做</span>`
+        : "";
+    const decisions = p.now.decisions || [];
+    const decisionsHtml = decisions.length
+      ? `<div class="decisions">
+          <h4 class="decisions-title">要你拍板（${decisions.length}）</h4>
+          <ol class="decision-list">${decisions.map((d) => `<li>${decisionHtml(d)}</li>`).join("")}</ol>
+        </div>`
       : "";
 
-    // 2. 不滿意待改清單
+    // 進度
+    const steps = prog.steps || [];
+    const doneSteps = steps.filter((s) => s.done);
+    const todoSteps = steps.filter((s) => !s.done);
+    const segs = hasSteps
+      ? `<div class="seg-meter" aria-hidden="true">${Array.from({ length: prog.total }, (_, i) =>
+          `<i class="${i < prog.done ? "is-done" : i === prog.done ? "is-current" : ""}"></i>`).join("")}</div>`
+      : "";
+    const stepsHtml = steps.length
+      ? `${doneSteps.length ? `
+          <details class="steps-done">
+            <summary>${ICON.chev}已完成 ${doneSteps.length} 步</summary>
+            <ol class="step-list">${doneSteps.map((s) => `<li class="is-done clampable"><span class="step-mark">${ICON.stepDone}</span><span>${esc(s.text)}</span></li>`).join("")}</ol>
+          </details>` : ""}
+        <ol class="step-list">${todoSteps.map((s, i) => `<li class="${i === 0 ? "is-current" : "clampable"}"><span class="step-mark">${i === 0 ? ICON.stepNow : ICON.stepTodo}</span><span>${esc(s.text)}</span></li>`).join("")}</ol>`
+      : `<p class="empty-muted">${esc(prog.summary || "還沒拆步驟，對帳一次就會整理")}</p>`;
+
+    // 不滿意待改
     const critiques = p.now.critiques || [];
     const critiquesHtml = critiques.length
       ? `<ul class="critique-list">${critiques.map((c) => {
@@ -457,137 +484,99 @@
               </div>`
             : esc(c.text);
           return `<li class="critique-row ${c.done ? "is-done" : ""}">
-            <button type="button" class="check-hit" data-toggle-critique="${esc(p.id)}" data-idx="${c.index}" data-done="${c.done ? "1" : "0"}" aria-label="${c.done ? "重開待改項" : "勾銷待改項"}">
-              <span class="check-box">${c.done ? "✓" : ""}</span>
+            <button type="button" class="check-hit" data-toggle-critique="${esc(p.id)}" data-idx="${c.index}" data-done="${c.done ? "1" : "0"}" aria-label="${c.done ? "重開這一項" : "勾掉這一項"}">
+              <span class="check-box">${c.done ? ICON.check : ""}</span>
             </button>
             <div class="critique-text">${body}</div>
           </li>`;
         }).join("")}</ul>`
-      : `<p class="empty-muted" style="margin-bottom:10px;">目前沒有未收斂的不滿意項目。</p>`;
+      : `<p class="empty-muted" style="margin-bottom:12px;">沒有未收斂的項目</p>`;
 
-    // 3. T3 活躍對話列表
+    // T3 對話
     const threads = p.t3?.threads || [];
     const threadsHtml = threads.length
       ? `<div class="thread-table">${threads.map((t) => `
           <div class="thread-item">
             <div class="thread-main">
               <div class="thread-name">${esc(t.title)}</div>
-              <div class="thread-sub">
-                ${esc(t.status)} · <span class="${t.overloaded ? "is-over" : ""}">${t.item_count} items${t.overloaded ? "（超載）" : ""}</span>${t.model ? ` · ${esc(t.model)}` : ""}
-              </div>
+              <div class="thread-sub">${esc(t.status)} · <span class="${t.overloaded ? "is-over" : ""}">${t.item_count} 項${t.overloaded ? "，超載" : ""}</span>${t.model ? ` · ${esc(t.model)}` : ""}</div>
             </div>
-            ${t.link ? `<a class="btn btn-subtle btn-sm" href="${esc(t.link)}" target="_blank" rel="noopener">開啟 ↗</a>` : ""}
-          </div>
-        `).join("")}</div>`
-      : `<p class="empty-muted">目前沒有未結案的 T3 對話。</p>`;
-
-    const lanePillCls = {
-      blocked_on_me: "pill-blocked",
-      ready_to_settle: "pill-settle",
-      active: "pill-active",
-      parked: "pill-muted",
-    }[p.lane] || "pill-muted";
+            ${t.link ? `<a class="btn btn-sm" href="${esc(t.link)}" target="_blank" rel="noopener">開啟 ${ICON.ext}</a>` : ""}
+          </div>`).join("")}</div>`
+      : `<p class="empty-muted">沒有未結案的對話</p>`;
 
     root.innerHTML = `
-      <div class="mobile-back-bar">
-        <button type="button" class="btn btn-subtle btn-sm" id="btn-mobile-back">${ICON.back} 所有專案</button>
-        <div style="display:flex;gap:6px;">
-          ${p.local_available ? `<button type="button" class="btn btn-accent btn-sm" data-reconcile="${esc(p.id)}" ${isBusy ? "disabled" : ""}>${ICON.zap} ${isBusy ? "對帳中" : "自動對帳"}</button>` : ""}
-          ${p.primary_t3_url ? `<a class="btn btn-subtle btn-sm" href="${esc(p.primary_t3_url)}" target="_blank" rel="noopener">T3 ↗</a>` : ""}
-        </div>
+      <div class="detail-bar">
+        <button type="button" class="btn btn-quiet" id="btn-mobile-back">${ICON.back}專案</button>
+        <div class="detail-bar-actions">${reconcileBtn()}${t3Link}</div>
       </div>
 
-      <div class="insp-header">
-        <div>
-          <div class="insp-title-row">
-            <h2 class="insp-title">${esc(p.name)}</h2>
-            <span class="pill ${lanePillCls}">${esc(LANE_NAMES[p.lane])}</span>
-            ${slope ? `<span class="pill ${slope.cls}">${slope.text}</span>` : ""}
-            ${p.remote_only ? `<span class="pill pill-info">遠端專案</span>` : ""}
-          </div>
-          <div class="insp-meta">${meta.join("")}</div>
-          <div class="sub-actions">
-            <button type="button" class="link-btn" data-view-now="${esc(p.id)}">檢視 NOW.md 原文</button>
-            <button type="button" class="link-btn" data-copy-next="${esc(p.id)}">複製下一步指令</button>
-            <button type="button" class="link-btn" data-park="${esc(p.id)}" data-parked="${p.manual_parked ? "1" : "0"}">${p.manual_parked ? "移回活躍區" : "移入停泊區"}</button>
-          </div>
+      <header class="insp-header">
+        <div class="insp-status">
+          <span class="ball ball-${esc(p.lane)}" aria-hidden="true"></span>
+          <span>${esc(LANE_NAMES[p.lane] || p.lane)}</span>
+          ${slope ? `<span class="sep">·</span><span>${slope}</span>` : ""}
+          ${p.remote_only ? `<span class="sep">·</span><span>遠端專案</span>` : ""}
         </div>
-
+        <h2 class="insp-title">${esc(p.name)}</h2>
+        <div class="insp-meta">${meta.join("")}</div>
         <div class="insp-actions">
-          ${p.local_available ? `<button type="button" class="btn btn-accent" data-reconcile="${esc(p.id)}" ${isBusy ? "disabled" : ""}>${ICON.zap} ${isBusy ? "對帳中…" : "自動對帳"}</button>` : ""}
-          ${p.primary_t3_url ? `<a class="btn btn-subtle" href="${esc(p.primary_t3_url)}" target="_blank" rel="noopener">打開 T3 ${ICON.ext}</a>` : ""}
+          <span class="desk-only actions-contents">${reconcileBtn()}${p.primary_t3_url ? `<a class="btn btn-sm" href="${esc(p.primary_t3_url)}" target="_blank" rel="noopener">打開 T3 ${ICON.ext}</a>` : ""}</span>
+          <button type="button" class="btn btn-sm" data-view-now="${esc(p.id)}">${ICON.file}NOW.md</button>
+          <button type="button" class="btn btn-sm" data-copy-next="${esc(p.id)}">${ICON.copy}複製下一步</button>
+          <button type="button" class="btn btn-sm btn-quiet" data-park="${esc(p.id)}" data-parked="${p.manual_parked ? "1" : "0"}">${p.manual_parked ? `${ICON.play}移回` : `${ICON.pause}停泊`}</button>
         </div>
-      </div>
+      </header>
 
       ${alertBanner}
 
-      <!-- 焦點 1：下一步 -->
       <section class="insp-section">
-        <div class="sec-kicker">
-          <span class="sec-label">下一步</span>
-          ${ownerPill}
-        </div>
-        <p class="next-lead">${nxt ? esc(nxt.text) : "尚未填寫下一步 — 點右上角「自動對帳」即可由最近進度補齊。"}</p>
+        <div class="sec-head"><h3 class="sec-title">下一步</h3>${owner}</div>
+        <p class="next-lead">${nxt ? esc(stripOwnerTag(nxt.text)) : "還沒寫下一步，對帳一次就會從最近進度補上"}</p>
         ${decisionsHtml}
       </section>
 
-      <!-- 焦點 2：進度 ＋ 現行結論 -->
       <section class="insp-section two-col">
         <div>
-          <div class="sec-kicker"><span class="sec-label">進度與完工路徑</span></div>
-          <div class="big-metric">
-            <strong>${hasSteps ? `${prog.done}/${prog.total}` : "—"}</strong>
-            <span>${hasSteps ? `完成 ${pct}%` : "尚未標記步數"}</span>
-          </div>
-          ${hasSteps ? `<div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>` : ""}
-          ${prog.steps?.length
-            ? `<ul class="clean-list">${prog.steps.map((s) => `<li><span class="step-mark ${s.done ? "is-done" : ""}">${s.done ? "✓" : "○"}</span><span>${esc(s.text)}</span></li>`).join("")}</ul>`
-            : `<p class="empty-muted">${esc(prog.summary || "點「自動對帳」自動整理階段步驟。")}</p>`}
+          <div class="sec-head"><h3 class="sec-title">進度</h3>${hasSteps ? `<span class="sec-aside">${prog.done}/${prog.total}</span>` : ""}</div>
+          ${segs}
+          ${stepsHtml}
         </div>
-
         <div>
-          <div class="sec-kicker"><span class="sec-label">現行結論（最新定案）</span></div>
+          <div class="sec-head"><h3 class="sec-title">現行結論</h3></div>
           ${p.now.conclusions?.length
-            ? `<ul class="clean-list">${p.now.conclusions.slice(0, 3).map((c) => `<li><i class="bullet-dot"></i><span>${esc(c)}</span></li>`).join("")}</ul>`
-            : `<p class="empty-muted">尚未整理現行結論，點「自動對帳」自動摘要近期決策。</p>`}
-          ${p.git?.last_subject ? `<p class="empty-muted" style="margin-top:12px;font-family:var(--mono);font-size:12px;">最新 commit：${esc(p.git.last_hash)} ${esc(p.git.last_subject)}</p>` : ""}
+            ? `<ul class="plain-list">${p.now.conclusions.slice(0, 3).map((c) => `<li class="clampable"><span>${esc(c)}</span></li>`).join("")}</ul>`
+            : `<p class="empty-muted">還沒整理結論，對帳一次就會摘要</p>`}
+          ${p.git?.last_subject ? `<p class="commit-line">最新 commit <code>${esc(p.git.last_hash)}</code> ${esc(p.git.last_subject)}</p>` : ""}
         </div>
       </section>
 
-      <!-- 焦點 3：不滿意待改匣 -->
       <section class="insp-section">
-        <div class="sec-kicker">
-          <span class="sec-label">不滿意待改匣</span>
-          <span class="mono muted-sm">未收斂 ${p.open_critiques_count} 條</span>
-        </div>
+        <div class="sec-head"><h3 class="sec-title">不滿意待改</h3><span class="sec-aside">${p.open_critiques_count} 項未收斂</span></div>
         ${critiquesHtml}
         <form class="critique-composer" data-add-critique="${esc(p.id)}" data-path="${esc(p.path || "")}">
           ${triOpen ? `
             <div class="tri-inputs">
-              <input class="composer-input" name="symptom" placeholder="① 現況（現在長怎樣）">
-              <input class="composer-input" name="pain" placeholder="② 痛點（嫌哪裡不滿意）" required>
-              <input class="composer-input" name="criteria" placeholder="③ 過關標準（改成怎樣算過）">
+              <input class="composer-input" name="symptom" placeholder="現況：現在長怎樣">
+              <input class="composer-input" name="pain" placeholder="不滿：哪裡不滿意" required>
+              <input class="composer-input" name="criteria" placeholder="過關：改成怎樣算過">
             </div>
             <div class="composer-row">
-              <button type="submit" class="btn btn-accent btn-sm">新增待改</button>
-              <button type="button" class="btn btn-subtle btn-sm" data-toggle-tri="${esc(p.id)}">切回單行速記</button>
+              <button type="submit" class="btn btn-sm">記下</button>
+              <button type="button" class="btn btn-sm btn-quiet" data-toggle-tri="${esc(p.id)}">改回一行</button>
             </div>
           ` : `
             <div class="composer-row">
-              <input class="composer-input" name="text" placeholder="隨手記一條不滿意，Enter 直接寫入 NOW.md…" required>
-              <button type="submit" class="btn btn-accent btn-sm">記下</button>
-              <button type="button" class="btn btn-subtle btn-sm" data-toggle-tri="${esc(p.id)}">三段式</button>
+              <input class="composer-input" name="text" placeholder="記一條不滿意，Enter 寫進 NOW.md" required>
+              <button type="submit" class="btn btn-sm">記下</button>
+              <button type="button" class="btn btn-sm btn-quiet" data-toggle-tri="${esc(p.id)}">分三欄</button>
             </div>
           `}
         </form>
       </section>
 
-      <!-- 焦點 4：T3 未結案對話 -->
       <section class="insp-section">
-        <div class="sec-kicker">
-          <span class="sec-label">T3 未結案對話</span>
-          <span class="mono muted-sm">${p.t3?.unsettled_count || 0} 條</span>
-        </div>
+        <div class="sec-head"><h3 class="sec-title">T3 未結案對話</h3><span class="sec-aside">${p.t3?.unsettled_count || 0} 條</span></div>
         ${threadsHtml}
       </section>
     `;
@@ -597,174 +586,253 @@
     const ov = state.overview;
     if (!ov) return;
     const s = ov.summary;
-    $("#sync-meta").textContent = ov.generated_local;
+    $("#sync-meta").textContent = `${ov.generated_local} 更新`;
     $("#kpi-total").textContent = s.total;
     $("#kpi-blocked").textContent = s.blocked_on_me;
     $("#kpi-settle").textContent = s.ready_to_settle;
     $("#kpi-active").textContent = s.active;
     $("#kpi-stale").textContent = s.stale;
-
     syncPolling(ov.reconcile);
     renderList();
     renderInspector();
   }
 
-  // ---------- 分頁 2：工具與模型 ----------
+  // ---------- 工具 ----------
   async function loadTools(refresh = false) {
-    $("#tools-grid").innerHTML = `<div class="empty-inline">載入工具名冊中…</div>`;
+    $("#tools-grid").innerHTML = `<div class="empty-inline">讀取工具名冊中</div>`;
     try {
       state.tools = await api(`/api/tools${refresh ? "?refresh=1" : ""}`);
       renderTools();
     } catch (err) {
-      $("#tools-grid").innerHTML = `<div class="empty-inline">載入失敗：${esc(err.message)}</div>`;
+      $("#tools-grid").innerHTML = `<div class="empty-inline">讀取失敗：${esc(err.message)}</div>`;
     }
+  }
+
+  function profileValue(key, val) {
+    const text = PROFILE_TEXT[key]?.[val];
+    return text ? `<span title="${esc(val)}">${esc(text)}</span>` : `<span class="mono">${esc(val || "未設定")}</span>`;
+  }
+
+  function statusTag(t) {
+    const label = STATUS_LABELS[t.status] || t.status;
+    if (t.status === "default") return `<span class="tag tag-strong">${label}</span>`;
+    if (t.status === "trial") {
+      const until = t.trial_until ? ` 到 ${esc(t.trial_until.slice(5))}` : "";
+      return `<span class="tag tag-outline">${label}${until}</span>`;
+    }
+    return `<span class="tag">${esc(label)}</span>`;
+  }
+
+  function toolCard(t, slotName) {
+    const otherSlots = (t.slot_names || []).filter((n) => n !== slotName);
+    const meta = [t.kind, (t.works_with || []).join("、"), otherSlots.length ? `也用在 ${otherSlots.join("、")}` : ""].filter(Boolean);
+    const name = t.url
+      ? `<a class="tool-name" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.name)}${ICON.ext}</a>`
+      : `<span class="tool-name">${esc(t.name)}</span>`;
+    return `
+      <article class="tool-card">
+        <div class="tool-head">${name}${statusTag(t)}</div>
+        ${t.summary ? `<p class="tool-desc">${esc(t.summary)}</p>` : ""}
+        ${t.trigger_when ? `<p class="tool-desc"><b>什麼時候用</b>　${esc(t.trigger_when)}</p>` : ""}
+        ${meta.length ? `<div class="tool-tags">${meta.map(esc).join(" · ")}</div>` : ""}
+      </article>`;
   }
 
   function renderTools() {
     const data = state.tools;
     if (!data || !data.available) {
-      $("#profile-overlay-body").textContent = data?.error || "無法載入名冊";
+      $("#profile-overlay-body").innerHTML = `<div><dt>個人設定</dt><dd>${esc(data?.error || "讀不到名冊")}</dd></div>`;
       $("#tools-grid").innerHTML = "";
       return;
     }
     const pf = data.profile;
     const excludes = (pf.exclude_models || []).length
-      ? pf.exclude_models.map((m) => `<span class="pill pill-blocked mono">${esc(m)}</span>`).join("")
-      : `<span class="muted-sm">無</span>`;
-
+      ? `<span class="mono">${pf.exclude_models.map(esc).join("、")}</span>`
+      : "沒有";
     $("#profile-overlay-body").innerHTML = `
-      <div class="kv"><span>Profile</span><b>${esc(pf.name)}</b></div>
-      <div class="kv"><span>思考偏好</span><code class="pill pill-active">${esc(pf.thinking_preference)}</code></div>
-      <div class="kv"><span>派送模式</span><code class="pill pill-info">${esc(pf.visibility)}</code></div>
-      <div class="kv"><span>耗盡策略</span><code class="pill pill-settle">${esc(pf.on_exhausted)}</code></div>
-      <div class="kv"><span>屏蔽模型</span>${excludes}</div>
+      <div><dt>個人設定</dt><dd>${esc(pf.name)}</dd></div>
+      <div><dt>思考程度</dt><dd>${profileValue("thinking_preference", pf.thinking_preference)}</dd></div>
+      <div><dt>子任務</dt><dd>${profileValue("visibility", pf.visibility)}</dd></div>
+      <div><dt>額度用完時</dt><dd>${profileValue("on_exhausted", pf.on_exhausted)}</dd></div>
+      <div><dt>不用的模型</dt><dd>${excludes}</dd></div>
     `;
 
     const term = state.toolSearch.trim().toLowerCase();
-    const list = (data.tools || []).filter((t) => {
-      if (!state.toolStatuses.has(t.status)) return false;
-      if (!term) return true;
+    const groups = new Map();
+    const shownIds = new Set();
+    for (const t of data.tools || []) {
       const hay = [t.id, t.name, t.summary, t.trigger_when, ...(t.slot_names || [])].join(" ").toLowerCase();
-      return hay.includes(term);
-    });
+      if (term && !hay.includes(term)) continue;
+      const inFilter = state.toolStatuses.has(t.status);
+      if (inFilter) shownIds.add(t.id);
+      for (const slot of t.slot_names?.length ? t.slot_names : ["沒有歸槽位"]) {
+        if (!groups.has(slot)) groups.set(slot, { shown: [], others: [] });
+        groups.get(slot)[inFilter ? "shown" : "others"].push(t);
+      }
+    }
 
-    $("#tools-count").textContent = `${list.length} / ${data.counts.total}`;
-    if (!list.length) {
-      $("#tools-grid").innerHTML = `<div class="empty-inline">沒有符合的工具卡。</div>`;
+    $("#tools-count").textContent = `${shownIds.size} / ${data.counts.total} 個`;
+    const rank = (t) => STATUS_ORDER.indexOf(t.status);
+    const slots = [...groups.entries()]
+      .filter(([, g]) => g.shown.length)
+      .sort((a, b) => Math.min(...a[1].shown.map(rank)) - Math.min(...b[1].shown.map(rank)) || a[0].localeCompare(b[0], "zh-Hant"));
+
+    if (!slots.length) {
+      $("#tools-grid").innerHTML = `<div class="empty-inline">沒有符合的工具</div>`;
       return;
     }
-    const clsMap = { default: "pill-active", trial: "pill-trial", on_demand: "pill-info", assess: "pill-info", pending: "pill-muted", rejected: "pill-blocked", retired: "pill-settle" };
-    $("#tools-grid").innerHTML = list.map((t) => `
-      <article class="tool-card">
-        <div class="tool-head">
-          <span class="tool-name">${t.url ? `<a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.name)}</a>` : esc(t.name)}</span>
-          <span class="pill ${clsMap[t.status] || "pill-muted"}">${STATUS_LABELS[t.status] || esc(t.status)}</span>
-        </div>
-        ${t.summary ? `<p class="tool-desc">${esc(t.summary)}</p>` : ""}
-        ${t.trigger_when ? `<p class="tool-desc"><b>喚起：</b>${esc(t.trigger_when)}</p>` : ""}
-        <div class="tool-tags">${[t.kind, ...(t.slot_names || [])].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join(" · ")}</div>
-      </article>
-    `).join("");
+    $("#tools-grid").innerHTML = slots.map(([slot, g]) => {
+      const others = g.others.sort((a, b) => rank(a) - rank(b));
+      const othersText = others.length
+        ? `<p class="slot-others">其他候選：${others.slice(0, 6).map((t) => `${esc(t.name)}（${STATUS_LABELS[t.status] || esc(t.status)}）`).join("、")}${others.length > 6 ? ` 等 ${others.length} 個` : ""}</p>`
+        : "";
+      return `
+        <section class="slot-group">
+          <div class="slot-head"><h2 class="slot-name">${esc(slot)}</h2><span class="muted-sm">${g.shown.length + g.others.length} 個工具</span></div>
+          ${othersText}
+          <div class="tool-grid">${g.shown.sort((a, b) => rank(a) - rank(b)).map((t) => toolCard(t, slot)).join("")}</div>
+        </section>`;
+    }).join("");
   }
 
-  // ---------- 分頁 3：帳號與額度 ----------
-  async function loadAccounts(refreshAgy = false) {
+  // ---------- 額度 ----------
+  async function loadAccounts(refresh = false) {
     const btn = $("#btn-refresh-agy");
     btn.disabled = true;
-    btn.textContent = refreshAgy ? "刷新中…" : "載入中…";
+    btn.textContent = "讀取中";
     try {
-      state.accounts = await api(`/api/accounts${refreshAgy ? "?refresh=1" : ""}`);
+      state.accounts = await api(`/api/accounts${refresh ? "?refresh=1" : ""}`);
       renderAccounts();
-      if (refreshAgy) showToast("已刷新 Antigravity 額度");
+      if (refresh) showToast("已重新讀取額度");
     } catch (err) {
       $("#accounts-root").innerHTML = `<div class="empty-inline">讀取失敗：${esc(err.message)}</div>`;
     } finally {
       btn.disabled = false;
-      btn.textContent = "刷新 Antigravity 額度";
+      btn.textContent = "重新讀取";
     }
   }
 
-  function shortIso(iso) {
+  const pad2 = (n) => String(n).padStart(2, "0");
+  function fmtWhen(iso) {
     if (!iso) return "";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "";
-    return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")} 重置`;
+    const now = new Date();
+    const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const diff = Math.round((day(d) - day(now)) / 86400000);
+    const hm = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    if (diff === 0) return `今天 ${hm}`;
+    if (diff === 1) return `明天 ${hm}`;
+    return `${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${hm}`;
+  }
+  function fmtAge(hours) {
+    if (hours == null) return "";
+    if (hours < 1) return "剛更新";
+    if (hours < 48) return `${Math.round(hours)} 小時前更新`;
+    return `${Math.round(hours / 24)} 天前更新`;
   }
 
-  function qRow(label, remPct, resetIso) {
-    const val = remPct == null ? null : Math.max(0, Math.min(100, Math.round(Number(remPct))));
-    const cls = val == null ? "" : val <= 20 ? "is-low" : val <= 45 ? "is-mid" : "";
-    const reset = shortIso(resetIso);
-    return `
-      <div class="qrow">
-        <div class="qrow-head"><span>${esc(label)}${reset ? ` · ${reset}` : ""}</span><b>${val == null ? "未知" : `剩 ${val}%`}</b></div>
-        <div class="bar-track"><div class="bar-fill ${cls}" style="width:${val == null ? 0 : val}%"></div></div>
-      </div>
-    `;
+  function meter(label, rem, resetIso, passed) {
+    if (passed) {
+      return `<div class="meter is-reset"><div class="meter-label">${label}</div><div class="meter-val">已回滿</div><div class="meter-bar"><i style="width:100%"></i></div><div class="meter-sub">重置時間已過</div></div>`;
+    }
+    if (rem == null) {
+      return `<div class="meter is-unknown"><div class="meter-label">${label}</div><div class="meter-val">未知</div><div class="meter-bar"><i style="width:0"></i></div><div class="meter-sub">&nbsp;</div></div>`;
+    }
+    const val = Math.max(0, Math.min(100, Math.round(Number(rem))));
+    const cls = val <= 0 ? "is-empty" : val <= 20 ? "is-low" : "";
+    const when = fmtWhen(resetIso);
+    return `<div class="meter ${cls}"><div class="meter-label">${label}</div><div class="meter-val">${val}%</div><div class="meter-bar"><i style="width:${val}%"></i></div><div class="meter-sub">${when ? `${when} 回滿` : "&nbsp;"}</div></div>`;
   }
+
+  const passedAt = (iso) => {
+    const d = iso ? new Date(iso) : null;
+    return Boolean(d && !Number.isNaN(d.getTime()) && d.getTime() <= Date.now());
+  };
 
   function renderAccounts() {
     const data = state.accounts;
     if (!data || !data.available) {
-      $("#accounts-root").innerHTML = `<div class="empty-inline">${esc(data?.error || "無帳號資料")}</div>`;
+      $("#accounts-root").innerHTML = `<div class="empty-inline">${esc(data?.error || "讀不到帳號資料")}</div>`;
       return;
     }
+    if (data.generated_at) $("#accounts-meta").textContent = `讀取 T3 替每個帳號查到的額度 · ${fmtWhen(data.generated_at)} 讀取`;
+
     const alerts = data.alerts || [];
-    $("#accounts-alerts").innerHTML = alerts.length
-      ? alerts.map((a) => `<div class="alert-strip" style="margin-bottom:12px;"><div class="alert-strip-msg">${ICON.alert}<span>${esc(typeof a === "string" ? a : (a.message || a.text || JSON.stringify(a)))}</span></div></div>`).join("")
+    $("#accounts-alerts").innerHTML = alerts.map((a) => `
+      <div class="alert-strip" style="margin:0 0 16px;"><div class="alert-strip-msg">${ICON.alert}<span>${esc(typeof a === "string" ? a : (a.message || a.text || JSON.stringify(a)))}</span></div></div>`).join("");
+
+    const sel = data.claude_selection || {};
+    const chosen = sel.chosen || "";
+    const chosenRow = (data.claude || []).find((c) => c.instance === chosen);
+    const reco = chosenRow
+      ? `<div class="acct-reco">
+          <div>
+            <p class="acct-reco-title">下一個工作包建議用 Claude · ${esc(chosenRow.account || chosenRow.instance)}</p>
+            ${sel.reason ? `<p class="acct-reco-why">${esc(String(sel.reason).replace(/^策略\s*[\w-]+：/, ""))}</p>` : ""}
+          </div>
+        </div>`
       : "";
 
-    const recInst = data.claude_selection?.selected || data.claude_selection?.instance || "";
-    const claudeHtml = (data.claude || []).map((c) => {
-      const isRec = recInst && c.instance === recInst;
+    const srcName = { statusline: "Claude Code 狀態列", t3_cache: "T3", manual: "手動登記" };
+    const claudeRows = (data.claude || []).map((c) => {
+      const sub = [c.source ? `來自 ${srcName[c.source] || c.source}` : "還沒有資料", fmtAge(c.age_hours)].filter(Boolean);
+      if (c.status === "stale") sub.push(`<span class="is-warn">資料較舊</span>`);
       return `
-        <article class="acct-card ${isRec ? "is-rec" : ""}">
-          <div class="acct-head">
-            <span class="acct-title">Claude · ${esc(c.account || c.instance)}</span>
-            <span class="pill ${isRec ? "pill-active" : "pill-muted"}">${isRec ? "優先選號" : esc(c.status || "ok")}</span>
+        <div class="acct-row">
+          <div>
+            <div class="acct-name"><span>${esc(c.account || c.instance)}</span>${c.instance === chosen ? `<span class="tag tag-accent">建議</span>` : ""}</div>
+            <div class="acct-sub" title="${esc(c.instance)}">${sub.join(" · ")}</div>
           </div>
-          ${qRow("5 小時", c.five_hour_remaining_pct, c.five_hour_resets_at)}
-          ${qRow("本週", c.weekly_remaining_pct, c.weekly_resets_at)}
-          <div class="thread-sub">${esc(c.instance)} · ${c.age_hours != null ? `${c.age_hours}h 前快照` : "無快照"}</div>
-        </article>
-      `;
+          <div class="meters" style="--cols:2">
+            ${meter("5 小時", c.five_hour_remaining_pct, c.five_hour_resets_at, passedAt(c.five_hour_resets_at))}
+            ${meter("本週", c.weekly_remaining_pct, c.weekly_resets_at, passedAt(c.weekly_resets_at))}
+          </div>
+        </div>`;
     }).join("");
 
-    const agyHtml = (data.antigravity || []).map((a) => {
+    const agyRows = (data.antigravity || []).map((a) => {
       const b = a.buckets || {};
       const g = b.gemini || {};
       const t = b["3p"] || {};
+      const tWeekly = t.weekly_remaining_pct != null || t.weekly_reset_passed;
+      const sub = [a.auto ? "自動派工" : "手動"];
+      if (a.quota_source) sub.push(`來自 ${a.quota_source === "t3_cache" ? "T3" : "agy CLI"}`);
+      if (a.quota_age_hours != null) sub.push(a.quota_stale || a.quota_age_hours > 2 ? `<span class="is-warn">${fmtAge(a.quota_age_hours)}</span>` : fmtAge(a.quota_age_hours));
+      if (a.blocked) sub.push(`<span class="is-alert">${esc(a.blocked_reason)}</span>`);
+      else if (!a.quota_source && a.quota_error) sub.push(`<span class="is-warn">${esc(a.quota_error)}</span>`);
       return `
-        <article class="acct-card">
-          <div class="acct-head">
-            <span class="acct-title">Antigravity · ${esc(a.account || a.instance)}</span>
-            <span class="pill ${a.auto ? "pill-active" : "pill-muted"}">${a.auto ? "自動派工" : "手動池"}</span>
+        <div class="acct-row ${a.blocked ? "is-blocked" : ""}">
+          <div>
+            <div class="acct-name"><span>${esc(a.account || a.instance)}</span></div>
+            <div class="acct-sub" title="${esc(a.instance)}">${sub.join(" · ")}</div>
           </div>
-          ${qRow("Gemini 5h", g.five_hour_remaining_pct, g.five_hour_resets_at)}
-          ${qRow("Gemini 週", g.weekly_remaining_pct, g.weekly_resets_at)}
-          ${qRow("Claude & GPT 桶", t.weekly_remaining_pct ?? t.five_hour_remaining_pct, t.weekly_resets_at || t.five_hour_resets_at)}
-          <div class="thread-sub">${esc(a.instance)}${g.stale ? " · 舊快照" : ""}</div>
-        </article>
-      `;
+          <div class="meters" style="--cols:3">
+            ${meter("Gemini 5h", g.five_hour_remaining_pct, g.five_hour_resets_at, g.five_hour_reset_passed)}
+            ${meter("Gemini 週", g.weekly_remaining_pct, g.weekly_resets_at, g.weekly_reset_passed)}
+            ${tWeekly
+              ? meter("Claude/GPT 週", t.weekly_remaining_pct, t.weekly_resets_at, t.weekly_reset_passed)
+              : meter("Claude/GPT 5h", t.five_hour_remaining_pct, t.five_hour_resets_at, t.five_hour_reset_passed)}
+          </div>
+        </div>`;
     }).join("");
 
     $("#accounts-root").innerHTML = `
-      <div>
-        <div class="sec-kicker"><span class="sec-label">Claude 實例（${(data.claude || []).length}）</span></div>
-        <div class="acct-grid">${claudeHtml}</div>
-      </div>
-      <div>
-        <div class="sec-kicker"><span class="sec-label">Antigravity 實例（${(data.antigravity || []).length}）</span></div>
-        <div class="acct-grid">${agyHtml}</div>
-      </div>
+      ${reco}
+      <section class="acct-group">
+        <div class="acct-group-head"><h2>Claude</h2><span class="muted-sm">${(data.claude || []).length} 個帳號</span></div>
+        <div class="acct-table">${claudeRows || `<div class="empty-inline">沒有 Claude 帳號</div>`}</div>
+      </section>
+      <section class="acct-group">
+        <div class="acct-group-head"><h2>Antigravity</h2><span class="muted-sm">${(data.antigravity || []).length} 個帳號</span></div>
+        <div class="acct-table">${agyRows || `<div class="empty-inline">沒有 Antigravity 帳號</div>`}</div>
+      </section>
     `;
   }
 
-  // ---------- 事件綁定 ----------
+  // ---------- 事件 ----------
   function bindEvents() {
-    for (const btn of $$("[data-tab]")) {
-      btn.addEventListener("click", () => switchTab(btn.dataset.tab));
-    }
+    for (const btn of $$("[data-tab]")) btn.addEventListener("click", () => switchTab(btn.dataset.tab));
     $("#btn-theme").addEventListener("click", toggleTheme);
     $("#btn-settings-theme").addEventListener("click", toggleTheme);
     $("#btn-settings-sync").addEventListener("click", () => {
@@ -799,7 +867,6 @@
       renderList();
     });
 
-    // 左欄選擇專案
     $("#project-list").addEventListener("click", (e) => {
       const row = e.target.closest("[data-select-project]");
       if (!row) return;
@@ -809,10 +876,15 @@
       if (window.innerWidth < 920) setMobileDetail(true);
     });
 
-    // 右側焦點工作區互動
     $("#inspector-root").addEventListener("click", async (e) => {
       if (e.target.closest("#btn-mobile-back")) {
         setMobileDetail(false);
+        return;
+      }
+
+      const clamp = e.target.closest(".clampable");
+      if (clamp && !e.target.closest("a, button")) {
+        clamp.classList.toggle("is-open");
         return;
       }
 
@@ -825,7 +897,7 @@
       const copyNext = e.target.closest("[data-copy-next]");
       if (copyNext) {
         const p = state.overview?.projects.find((x) => x.id === copyNext.dataset.copyNext);
-        if (p) copyText(p.commands.next_prompt, `${p.name} 下一步指令`);
+        if (p) copyText(p.commands.next_prompt, ` ${p.name} 的下一步指令`);
         return;
       }
 
@@ -836,7 +908,7 @@
           const data = await api(`/api/projects/${encodeURIComponent(pid)}/now`);
           $("#dlg-now-title").textContent = `${pid} · NOW.md`;
           $("#dlg-now-path").textContent = data.path || "尚未建立";
-          $("#dlg-now-body").textContent = data.exists ? data.content : "（尚未建立 NOW.md，點「自動對帳」即可自動建立。）";
+          $("#dlg-now-body").textContent = data.exists ? data.content : "還沒有 NOW.md，對帳一次就會建立";
           $("#dlg-now").showModal();
         } catch (err) {
           showToast(err.message);
@@ -864,7 +936,7 @@
             method: "PATCH",
             body: JSON.stringify({ done: !curDone }),
           });
-          showToast(curDone ? "已重開待改項" : "已勾銷待改項");
+          showToast(curDone ? "已重開" : "已勾掉");
           await loadOverview(false, true);
         } catch (err) {
           showToast(err.message);
@@ -881,7 +953,7 @@
             method: "PATCH",
             body: JSON.stringify({ parked: !curParked }),
           });
-          showToast(curParked ? `已恢復 ${pid}` : `已將 ${pid} 移入停泊`);
+          showToast(curParked ? `已把 ${pid} 移回` : `已停泊 ${pid}`);
           await loadOverview(false, true);
         } catch (err) {
           showToast(err.message);
@@ -910,14 +982,13 @@
         });
         form.reset();
         state.triFormOpen.delete(pid);
-        showToast(`已記下不滿意待改（${pid}）`);
+        showToast(`已記下（${pid}）`);
         await loadOverview(false, true);
       } catch (err) {
         showToast(err.message);
       }
     });
 
-    // 工具頁過濾
     $("#tools-search").addEventListener("input", (e) => {
       state.toolSearch = e.target.value;
       renderTools();
@@ -934,7 +1005,6 @@
       renderTools();
     });
 
-    // Modal 控制
     for (const closeBtn of $$("[data-close]")) {
       closeBtn.addEventListener("click", () => closeBtn.closest("dialog")?.close());
     }
