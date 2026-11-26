@@ -33,6 +33,7 @@ import os
 import re
 import sys
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 
 # ---- 說法：agent 自己說做不到、沒有工具、要使用者手動做 ----
@@ -285,6 +286,26 @@ def final_messages(entries: list) -> list:
     return out
 
 
+def _record_tripwire(rule: str, session_id: str) -> None:
+    if not session_id or os.environ.get("OMNIKIT_TRIPWIRE_LOG", "").lower() in ("0", "off", "false", "no"):
+        return
+    try:
+        raw = os.environ.get("OMNIKIT_STATE_DIR") or os.environ.get("OMNIKIT_STATE")
+        st = Path(raw) if raw else Path.home() / ".omnikit"
+        p = st / "harness" / "tripwire-hits.jsonl"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        row = {
+            "ts": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "hook": "claim_check",
+            "rule": rule,
+            "agent": "claude_or_codex",
+        }
+        with p.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
+
 def main() -> int:
     try:
         if os.environ.get("OMNIKIT_CLAIM_CHECK", "").lower() in ("0", "off", "false", "no"):
@@ -294,6 +315,7 @@ def main() -> int:
             return 0  # 已經擋過一次、agent 重新收尾了：放行，不無限迴圈
         result = check(last_message(data))
         if result.block:
+            _record_tripwire(result.claims[0][0] if result.claims else "claim", str(data.get("session_id") or ""))
             sys.stdout.buffer.write(json.dumps({"decision": "block", "reason": reason_for(result)},
                                                ensure_ascii=False).encode("utf-8"))
     except Exception:

@@ -53,6 +53,7 @@ run() {
     [ -n "$out" ] && printf '%s\n' "$out" | sed 's/^/OmniKit：/' >&2
     echo "OmniKit：$label 沒有完成，原因見上一行" >&2
   fi
+  return 0
 }
 
 if printf '%s\n' "$changed" | grep -qE '^(data/rules/|data/profiles/|engine/scripts/profiles\.py$)'; then

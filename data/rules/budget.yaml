@@ -1,0 +1,15 @@
+# 常駐規則與自動觸發 Skill 描述預算棘輪（D2 定案，由 validate.py 與 doctor.py 強制守門）
+# 原則：超標即阻斷 CI，除非於同一 commit 顯式調高本檔（讓常駐膨脹成為可見 diff）；每次減肥後將上限下調扣緊。
+
+schema_version: 1
+updated_at: '2026-11-26'
+
+limits:
+  # Antigravity ~/.gemini/AGENTS.md 共用受管區塊上限（瘦身前 6,777 bytes；移出 mobile-web.md 後實測 5,200 bytes）
+  antigravity_shared_max_bytes: 5400
+  # Antigravity ~/.gemini/GEMINI.md 個人受管區塊上限（實測 ryan 8,606 bytes；平台硬上限 24,000 bytes）
+  antigravity_personal_max_bytes: 8800
+  # Codex ~/.codex/AGENTS.md 合併受管區塊上限（瘦身前 15,284 bytes；移出 mobile-web.md 後實測 13,707 bytes；平台硬上限 32,768 bytes）
+  codex_combined_max_bytes: 14000
+  # 所有未設 disable-model-invocation: true 的 engine/skills/*/SKILL.md 之 description 總 UTF-8 bytes（實測 7 個共 3,529 bytes）
+  auto_skill_desc_max_bytes: 3800

@@ -7,7 +7,7 @@
 # 無頭派送（agy_cli）只在 ryan 同意或 T3 沒在跑時用。
 visibility: visible
 
-# 2026-11-23 ryan 暫定（兩週後 2026-12-07 檢討）、2026-11-25 對齊：限定在 Gemini 系列開到該模型的最高檔
+# 2026-11-23 ryan 暫定（兩週後 2026-12-07 檢討）、2026-11-25 對齊：限定在 Gemini 系列開到該模型的最高檔 <!-- review_on: 2026-12-07 reason: Gemini max_available 兩週試用期滿體檢 -->
 # （Neon、Hydrogen、Orchestrator 用 xhigh；Carbon 最高 high）。Claude 系列的 effort 照分派政策 levels 分級，不套用 max_available 誤拉成 max。
 thinking_preference: max_available
 

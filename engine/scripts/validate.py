@@ -29,6 +29,7 @@ pre-commit 與 CI 也不該因為這台的個人檔案失敗。看板用的 prof
 import argparse
 import json
 import sys
+from datetime import date as dt_date
 from pathlib import Path
 
 import yaml
@@ -267,6 +268,213 @@ def enabled_modules(modules, selected):
     return [m["id"] for m in modules if m["kind"] == "foundation" or m["id"] in selected or m["id"] in pulled]
 
 
+def check_patches(data: Path) -> list[str]:
+    """檢查 data/rules/patches.yaml（若有）：確認每個補丁旁註指向的規則檔存在且欄位齊全。"""
+    path = data / "rules" / "patches.yaml"
+    if not path.is_file():
+        return []
+    try:
+        doc = load_yaml(path)
+    except yaml.YAMLError as e:
+        return [f"{show(path)}: YAML 語法錯誤：{e}"]
+    if not isinstance(doc, dict) or not isinstance(doc.get("patches"), list):
+        return [f"{show(path)}: 必須包含 patches 陣列"]
+    repo_base = data.parent if (data.parent / "engine").is_dir() else ROOT
+    errors, seen = [], set()
+    for i, item in enumerate(doc["patches"]):
+        if not isinstance(item, dict):
+            errors.append(f"{show(path)}: patches/{i}: 必須是物件")
+            continue
+        pid = item.get("id")
+        if not isinstance(pid, str) or not pid:
+            errors.append(f"{show(path)}: patches/{i}: 缺少 id")
+        elif pid in seen:
+            errors.append(f"{show(path)}: 補丁 id 重複：{pid}")
+        else:
+            seen.add(pid)
+        for req in ("file", "section", "born_at", "why", "retire_check"):
+            if not isinstance(item.get(req), str) or not item[req].strip():
+                errors.append(f"{show(path)}: patches/{pid or i}: 缺少必填字串欄位 {req}")
+        rel_f = item.get("file")
+        if isinstance(rel_f, str) and rel_f.strip():
+            target_f = (data / rel_f.removeprefix("data/")) if rel_f.startswith("data/") else (repo_base / rel_f)
+            if not target_f.is_file():
+                errors.append(f"{show(path)}: patches/{pid or i}: 指向不存在的檔案「{rel_f}」")
+        hk = item.get("has_hook")
+        if hk is not None and (not isinstance(hk, str) or not (repo_base / hk).is_file()):
+            errors.append(f"{show(path)}: patches/{pid or i}: has_hook 指向不存在的檔案「{hk}」")
+    return errors
+
+
+def auto_skill_desc_bytes(skills_root: Path | None) -> tuple[int, int]:
+    """統計未設 disable-model-invocation: true 的 SKILL.md 之 description 總 UTF-8 bytes 與個數。"""
+    if skills_root is None or not skills_root.is_dir():
+        return 0, 0
+    total, count = 0, 0
+    for sd in sorted(skills_root.iterdir()):
+        sm = sd / "SKILL.md"
+        if not sd.is_dir() or not sm.is_file():
+            continue
+        parts = sm.read_bytes().decode("utf-8-sig").split("---", 2)
+        try:
+            fm = yaml.safe_load(parts[1]) if len(parts) >= 3 else {}
+        except yaml.YAMLError:
+            continue
+        if not isinstance(fm, dict) or fm.get("disable-model-invocation") is True:
+            continue
+        desc = str(fm.get("description") or "").strip()
+        if desc:
+            total += len(desc.encode("utf-8"))
+            count += 1
+    return total, count
+
+
+def check_review_markers(data: Path) -> list[str]:
+    """檢查規則檔中所有 review_on 標記格式與日期合法性，防止拼錯或跨行造成靜默失效。"""
+    rule_paths = sorted((data / "rules").glob("*.md")) if (data / "rules").is_dir() else []
+    if (data / "profiles").is_dir():
+        rule_paths += sorted((data / "profiles").glob("*/*.md"))
+    errors = []
+    for p in rule_paths:
+        if not p.is_file():
+            continue
+        raw = profiles.text(p)
+        raw_occurrences = raw.count("review_on")
+        if raw_occurrences == 0:
+            continue
+        parsed = profiles.scan_review_markers([p])
+        if len(parsed) != raw_occurrences:
+            errors.append(
+                f"{show(p)}: 出現 {raw_occurrences} 次 review_on，但僅解析成功 {len(parsed)} 筆"
+                "（格式須為單行 <!-- review_on: YYYY-MM-DD [reason: ...] -->）"
+            )
+        for m in parsed:
+            try:
+                dt_date.fromisoformat(m["date"])
+            except ValueError:
+                errors.append(f"{show(p)}:{m['line']}: review_on 日期不合法「{m['date']}」")
+    return errors
+
+
+def check_governance(data: Path, skills_root: Path | None = None) -> list[str]:
+    """Commit 與 CI 治理檢查（patches.yaml、review_on 標記語法、常駐預算棘輪），與執行期 check() 解耦。"""
+    if skills_root is None and data.resolve() == (ROOT / "data").resolve():
+        skills_root = ROOT / "engine" / "skills"
+    return check_patches(data) + check_review_markers(data) + check_budget(data, skills_root)[0]
+
+
+def check_budget(data: Path, skills_root: Path | None = None) -> tuple[list[str], dict]:
+    """常駐規則與自動觸發 Skill 描述預算棘輪（data/rules/budget.yaml 存在時才強制檢查）。
+    回傳 (錯誤清單, 實測統計 dict)。"""
+    path = data / "rules" / "budget.yaml"
+    if not path.is_file():
+        return [], {}
+    try:
+        doc = load_yaml(path)
+    except yaml.YAMLError as e:
+        return [f"{show(path)}: YAML 語法錯誤：{e}"], {}
+    limits = (doc or {}).get("limits") if isinstance(doc, dict) else None
+    req_keys = ("antigravity_shared_max_bytes", "antigravity_personal_max_bytes",
+                "codex_combined_max_bytes", "auto_skill_desc_max_bytes")
+    if not isinstance(limits, dict) or any(not isinstance(limits.get(k), int) or limits[k] <= 0 for k in req_keys):
+        return [f"{show(path)}: limits 必須包含正整數欄位：{', '.join(req_keys)}"], {}
+
+    errors = []
+    if limits["antigravity_shared_max_bytes"] > profiles.AGY_MAX_FILE_BYTES:
+        errors.append(f"{show(path)}: antigravity_shared_max_bytes 不可超過平台硬上限 {profiles.AGY_MAX_FILE_BYTES}")
+    if limits["antigravity_personal_max_bytes"] > profiles.AGY_MAX_FILE_BYTES:
+        errors.append(f"{show(path)}: antigravity_personal_max_bytes 不可超過平台硬上限 {profiles.AGY_MAX_FILE_BYTES}")
+    if limits["codex_combined_max_bytes"] > profiles.CODEX_MAX_FILE_BYTES:
+        errors.append(f"{show(path)}: codex_combined_max_bytes 不可超過平台硬上限 {profiles.CODEX_MAX_FILE_BYTES}")
+
+    shared_b = len(profiles.content_block(profiles.compose_shared(data)).encode("utf-8")) if (data / "rules" / "baseline.md").is_file() else 0
+    if shared_b > limits["antigravity_shared_max_bytes"]:
+        errors.append(
+            f"{show(path)}: 共用常駐規則 {shared_b:,} bytes 超過棘輪上限 {limits['antigravity_shared_max_bytes']:,} bytes"
+            "（請先刪減舊規則，或於同一 commit 顯式調高 data/rules/budget.yaml）"
+        )
+    max_personal, max_codex = 0, 0
+    prof_root = data / "profiles"
+    for pdir in sorted(prof_root.iterdir()) if prof_root.is_dir() else []:
+        if not pdir.is_dir() or not (pdir / "AGENTS.md").is_file():
+            continue
+        pb = len(profiles.content_block(profiles.compose_personal(data, None, pdir.name)).encode("utf-8"))
+        cb = len(profiles.content_block(profiles.compose(data, None, pdir.name)).encode("utf-8"))
+        max_personal = max(max_personal, pb)
+        max_codex = max(max_codex, cb)
+        if pb > limits["antigravity_personal_max_bytes"]:
+            errors.append(
+                f"{show(path)}: profile「{pdir.name}」個人常駐規則 {pb:,} bytes 超過棘輪上限 {limits['antigravity_personal_max_bytes']:,} bytes"
+                "（請先刪減舊規則，或於同一 commit 顯式調高 data/rules/budget.yaml）"
+            )
+        if cb > limits["codex_combined_max_bytes"]:
+            errors.append(
+                f"{show(path)}: profile「{pdir.name}」Codex 合併常駐規則 {cb:,} bytes 超過棘輪上限 {limits['codex_combined_max_bytes']:,} bytes"
+                "（請先刪減舊規則，或於同一 commit 顯式調高 data/rules/budget.yaml）"
+            )
+    desc_b, desc_n = auto_skill_desc_bytes(skills_root)
+    if skills_root is not None and desc_b > limits["auto_skill_desc_max_bytes"]:
+        errors.append(
+            f"{show(path)}: {desc_n} 個自動觸發 Skill 的 description 合計 {desc_b:,} bytes，超過棘輪上限 {limits['auto_skill_desc_max_bytes']:,} bytes"
+            "（請精簡描述，或於同一 commit 顯式調高 data/rules/budget.yaml）"
+        )
+    stats = {
+        "shared_bytes": shared_b,
+        "max_personal_bytes": max_personal,
+        "max_codex_bytes": max_codex,
+        "auto_skill_desc_bytes": desc_b,
+        "auto_skill_count": desc_n,
+        "limits": limits,
+    }
+    return errors, stats
+
+
+def governance_status(data: Path, tools: dict | None = None, today: str | None = None) -> dict:
+    """回傳不阻斷 CI 的自我迭代治理狀態：{unverified_defaults, expired_trials, due_reviews, upcoming_trials, upcoming_reviews}。"""
+    today = today or dt_date.today().isoformat()
+    if tools is None:
+        tools = {}
+        if (data / "tools").is_dir():
+            for p in sorted((data / "tools").glob("*.yaml")):
+                try:
+                    tools[p.stem] = load_yaml(p)
+                except yaml.YAMLError:
+                    continue
+    unverified_defaults = sorted(
+        tid for tid, doc in tools.items()
+        if isinstance(doc, dict) and doc.get("status") == "default" and not doc.get("baseline_eval")
+    )
+    expired_trials, upcoming_trials = [], []
+    for tid, doc in sorted(tools.items()):
+        if not isinstance(doc, dict) or doc.get("status") != "trial":
+            continue
+        until = str(doc.get("trial_until") or "")
+        if not until:
+            continue
+        if until <= today:
+            expired_trials.append((tid, until))
+        else:
+            upcoming_trials.append((tid, until))
+
+    rule_paths = sorted((data / "rules").glob("*.md")) if (data / "rules").is_dir() else []
+    if (data / "profiles").is_dir():
+        rule_paths += sorted((data / "profiles").glob("*/*.md"))
+    due_reviews, upcoming_reviews = [], []
+    for m in profiles.scan_review_markers(rule_paths):
+        entry = (f"{show(m['file'])}:{m['line']}", m["date"], m["reason"])
+        if m["date"] <= today:
+            due_reviews.append(entry)
+        else:
+            upcoming_reviews.append(entry)
+    return {
+        "unverified_defaults": unverified_defaults,
+        "expired_trials": expired_trials,
+        "upcoming_trials": upcoming_trials,
+        "due_reviews": due_reviews,
+        "upcoming_reviews": upcoming_reviews,
+    }
+
+
 def check_dispatch(data, d=None):
     """子任務分派：共用層 data/rules/dispatch-policy.md，加上 profile 的 dispatch.md（有才檢查）。沒有共用層不算錯。"""
     try:
@@ -397,6 +605,13 @@ def check(data, profile=None, state=None, private=False):
             )
         if doc.get("replaces") and doc["replaces"] not in tools:
             errors.append(f"{show(path)}: replaces 指向不存在的工具「{doc['replaces']}」")
+        be = doc.get("baseline_eval")
+        if isinstance(be, dict) and be.get("eval_doc"):
+            edoc = be["eval_doc"]
+            repo_base = data.parent if (data.parent / "engine").is_dir() else ROOT
+            target_doc = (data / edoc.removeprefix("data/")) if edoc.startswith("data/") else (repo_base / edoc)
+            if not target_doc.is_file():
+                errors.append(f"{show(path)}: baseline_eval.eval_doc 指向不存在的檔案「{edoc}」")
     for slot, ids in sorted(defaults.items()):
         if len(ids) > 1:
             errors.append(f"槽位「{slot}」有 {len(ids)} 個預設：{'、'.join(ids)}；一個槽位只能留一個")
@@ -456,6 +671,7 @@ def main():
     parser.add_argument("--data", type=Path, default=ROOT / "data", help="資料目錄，預設是 repo 的 data/")
     data = parser.parse_args().data.resolve()
     errors, roster = check(data, private=True)
+    errors += check_governance(data)
     if errors:
         print(f"名冊驗證失敗，共 {len(errors)} 個問題：")
         for e in errors:
@@ -474,6 +690,13 @@ def main():
     )
     print(f"名冊驗證通過：{len(public)} 個模組、{len([s for s in roster['slots'] if not s.get('private')])} 個槽位、"
           f"{tool_count} 張工具卡（{ring_summary}），情境用 profile：{roster['profile'] or '（範本）'}。")
+    gov = governance_status(data, roster["tools"])
+    if gov["expired_trials"]:
+        print("提醒（試用已過期，請結算）：" + "、".join(f"{t}（{d}）" for t, d in gov["expired_trials"]))
+    if gov["due_reviews"]:
+        print("提醒（規則到期需檢討）：" + "；".join(f"{loc}（{d} {why}）".strip() for loc, d, why in gov["due_reviews"]))
+    if gov["unverified_defaults"]:
+        print("提醒（尚未登記裸模型／基準對照 baseline_eval 的 default 卡）：" + "、".join(gov["unverified_defaults"]))
     # 私有模組只在這台生效：有問題只提醒，不算驗證失敗（pre-commit 不該因為個人檔案擋下來）
     if mine["loaded"]:
         print(f"這台另外有 {len(mine['loaded'])} 個私有模組：{'、'.join(mine['loaded'])}（{mine['dir']}）。")

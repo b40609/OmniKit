@@ -148,7 +148,7 @@ OmniKit 把「該用哪個」變成一份有紀錄的名冊。每一種需求是
 
 | 項目 | 會有什麼不同 | 三個 agent 的差別 |
 |---|---|---|
-| 規則（`data/rules/baseline.md` + `data/rules/dispatch.md` + `data/rules/mobile-web.md` + profile 的 `AGENTS.md`） | 安全底線、分派原則與行動端底線所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問。完整分派政策在 `dispatch-policy.md`、個人帳號對應在 `dispatch.md`，都不常駐載入，需要派工時才讀 | Claude Code 直接 import 來源檔，改完開新 session 就生效；Codex 讀合併後的 `~/.codex/AGENTS.md` 受管區塊（<= 32 KiB）；Antigravity 拆成 `~/.gemini/AGENTS.md`（共用層）與 `~/.gemini/GEMINI.md`（個人層），單檔限制 <= 24,000 bytes 避免靜默截斷。改了 profile 跑 `uv run engine/scripts/profiles.py` 重新接上（維護者版 commit 時 git hook 自動同步） |
+| 規則（`data/rules/baseline.md` + `data/rules/dispatch.md` + profile 的 `AGENTS.md`） | 安全底線與分派原則所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問。完整分派政策在 `dispatch-policy.md`、個人帳號對應在 `dispatch.md`、行動端前端底線在 `omnikit-mobile-web` skill，都不常駐載入，需要時才讀 | Claude Code 直接 import 來源檔，改完開新 session 就生效；Codex 讀合併後的 `~/.codex/AGENTS.md` 受管區塊（<= 32 KiB）；Antigravity 拆成 `~/.gemini/AGENTS.md`（共用層）與 `~/.gemini/GEMINI.md`（個人層），單檔限制 <= 24,000 bytes 避免靜默截斷。改了 profile 跑 `uv run engine/scripts/profiles.py` 重新接上（維護者版 commit 時 git hook 自動同步） |
 | `ok`／`ok-*` 簡短入口 | 少打字的快捷選單與捷徑：`ok` 列出 5 項主選單（交接、調研、分派、設定、清點），或直接呼叫 `ok-handoff`、`ok-research`、`ok-dispatch`、`ok-setup`、`ok-eval` | Claude Code 與 Antigravity 輸入 `/ok`（如 `/ok 交接`），Codex 輸入 `$ok` |
 | `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 三邊說「幫我設定 OmniKit」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-setup` 或 `/ok-setup`，Codex 輸入 `$omnikit-setup` |
 | `omnikit-handoff` skill | 說「交接」，agent 把做到一半的工作 commit、push，寫一份交接檔到你的狀態 repo，再開新對話接著做；新對話說「讀 <交接檔路徑> 接著做」就照交接檔接手。狀態 repo 的位置寫在你的 profile，沒寫 agent 會先問 | 三邊說「交接」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-handoff` 或 `/ok-handoff`，Codex 輸入 `$omnikit-handoff` |
@@ -497,7 +497,9 @@ data/                        資料：fork 後換成你的
   rules/baseline.md          安全底線，所有人都套用
   rules/dispatch.md          子任務分派的原則（常駐載入，幾行）
   rules/dispatch-policy.md   子任務分派的完整政策（級別、模型、思考程度、升級、委派紀錄；要派才讀）
-  rules/mobile-web.md        行動端與 WebApp 工程底線（改前端時適用）
+  rules/budget.yaml          常駐規則與自動觸發 skill 描述的 bytes 預算棘輪上限
+  rules/patches.yaml         常駐規則中屬於「模型能力補丁」的旁註與退役檢驗條件
+  rules/mobile-web.md        行動端底線轉址說明（內容已移入 omnikit-mobile-web 按需 skill）
   tips.json                  對話開頭的用法小提示（新的官方功能加在這裡）
   profiles/<名稱>/           跟著 repo 的 profile：個人規則（AGENTS.md）、真實情境（scenarios.yaml）、分派用的實例（dispatch.md，可省略）；
                              default 是沒選時的預設。訪談產生的存在 repo 外（~/.omnikit/profiles）
@@ -519,6 +521,7 @@ engine/                      引擎：不用改
   skills/omnikit-dispatch/   子任務分派與委派紀錄的 skill
   skills/omnikit-research/   飽和式調研（查同類工具、比較方案）的 skill
   skills/omnikit-capabilities/ 說做不到之前的能力清點（指令、MCP、本機端點）的 skill
+  skills/omnikit-mobile-web/ 行動端（iOS Safari／WebKit）與桌面 WebApp 工程底線按需 skill
 scripts/                     頂層工具入口（含本機 Cockpit 多專案面板 scripts/cockpit.py）
 .claude-plugin/              Claude Code 的 marketplace（由名冊產生，不要手改）
 .agents/plugins/             Codex 的 marketplace（由名冊產生，不要手改）

@@ -7,9 +7,9 @@
 agent 讀到的規則是兩層接在一起，依序：
 - data/rules/baseline.md：安全底線，所有人都套用
 - data/rules/dispatch.md：子任務分派的共用層（任務級別、模型類別、思考程度、升級、委派紀錄），所有人都套用
-- data/rules/mobile-web.md（有才接）：行動端與 WebApp 工程底線，只在改前端時適用
 - profile 的 AGENTS.md：個人規則（語言、語氣、授權程度）
-- profile 的 dispatch.md（有才接）：個人的供應商實例與帳號對應；沒有就只用原生子代理
+- profile 的 dispatch.md（查表設定，不常駐載入，由 dispatch.py 讀取）
+（原 data/rules/mobile-web.md 已於 2026-11-26 移出常駐，轉為 omnikit-mobile-web 按需 skill）
 同一個 profile 資料夾裡的 scenarios.yaml 是評估工具用的真實情境，由 validate.py 讀。
 
 profile 放在兩個地方，同名時 repo 外的優先：
@@ -180,15 +180,39 @@ def resolve(data, state, wanted=None):
 
 
 # data/rules/ 底下所有人都套用的，依序；除了安全底線，其他沒有就跳過。
-# mobile-web.md（2026-11-24）：行動端與 WebApp 工程底線（iOS WebKit 地雷），只在改前端時適用，內容要短（每段對話都會載入）
 # 2026-11-25（Step 1.3）：個人層 dispatch.md 屬於查表設定（帳號與實例對照），移出常駐載入規則，改由 dispatch.py 需要時讀，
 # 並將 Antigravity 全域規則拆成 ~/.gemini/AGENTS.md（共用）與 ~/.gemini/GEMINI.md（個人），強制檢查單檔 <= 24,000 bytes、總計 <= 20,000 tokens。
-SHARED_RULES = ("baseline.md", "dispatch.md", "mobile-web.md")
-OPTIONAL_RULES = {"dispatch.md", "mobile-web.md"}
+# 2026-11-26（自我迭代 P0）：mobile-web.md 移出常駐 SHARED_RULES，轉為 omnikit-mobile-web 按需 skill；
+# 規則內的 <!-- review_on: YYYY-MM-DD ... --> 到期標記於組合 Codex／Antigravity 受管區塊時自動剝除（Claude Code 直接 @import 原檔保留行尾註解）。
+SHARED_RULES = ("baseline.md", "dispatch.md")
+OPTIONAL_RULES = {"dispatch.md"}
 PROFILE_RULES = ("AGENTS.md",)  # 個人層常駐載入的規則；dispatch.md 移出 always-on，由 dispatch.py 直接讀
 AGY_MAX_FILE_BYTES = 24_000     # agy-customizations/docs/rules.md:31 單檔超過 24,000 bytes 會在行界靜默截斷
 AGY_MAX_TOTAL_TOKENS = 20_000   # agy-customizations/docs/rules.md:34 全域與 always-on 合計超過 20,000 tokens 會降級為路徑指標
 CODEX_MAX_FILE_BYTES = 32 * 1024
+REVIEW_MARKER_RE = re.compile(r"(?:[ \t]+#(?![#]))?[ \t]*<!--\s*review_on:\s*(\d{4}-\d{2}-\d{2})(?:\s+(?:reason:\s*)?(.*?))?\s*-->")
+
+
+def strip_review_comments(content: str) -> str:
+    """剝除規則文字內的 <!-- review_on: YYYY-MM-DD ... --> 治理標記，避免消耗常駐上下文額度。"""
+    return REVIEW_MARKER_RE.sub("", content)
+
+
+def scan_review_markers(paths) -> list[dict]:
+    """掃描規則檔清單中的 <!-- review_on: YYYY-MM-DD ... --> 標記，回傳 [{file, line, date, reason}]。"""
+    found = []
+    for p in paths:
+        if not Path(p).is_file():
+            continue
+        for lineno, line in enumerate(text(Path(p)).splitlines(), 1):
+            for m in REVIEW_MARKER_RE.finditer(line):
+                found.append({
+                    "file": Path(p),
+                    "line": lineno,
+                    "date": m.group(1),
+                    "reason": (m.group(2) or "").strip(),
+                })
+    return found
 
 
 def shared_rules_files(data):
@@ -203,7 +227,7 @@ def personal_rules_files(data, state, name):
 
 
 def rules_files(data, state, name):
-    """接給 Claude Code 與 Codex 的常駐規則檔，依序：安全底線、分派共用層、行動端底線、個人 AGENTS.md。"""
+    """接給 Claude Code 與 Codex 的常駐規則檔，依序：安全底線、分派共用層、個人 AGENTS.md。"""
     return shared_rules_files(data) + personal_rules_files(data, state, name)
 
 
@@ -247,7 +271,7 @@ def skipped_skills(data, state, name):
 
 
 def _compose_from(files, data, where=None):
-    parts = [text(p).replace("\r\n", "\n").strip() for p in files]
+    parts = [strip_review_comments(text(p).replace("\r\n", "\n")).strip() for p in files]
     names = [f"data/rules/{p.name}" if p.parent == data / "rules" else f"{where}/{p.name}" for p in files]
     header = f"{HEADER}{' + '.join(names)} -->"
     return "\n\n".join([header, *parts]) + "\n"
@@ -904,13 +928,18 @@ def selftest():
               and len([x for x in claude_block(sdata, sstate, "amy").splitlines() if x.startswith("@")]) == 3
               and "# amy 的實例" not in merged
               and merged.index("# 底線") < merged.index("# 分派共用") < merged.index("# amy\n"))
-        # 行動端與 WebApp 底線：有才接，放在共用分派之後、個人規則之前
-        write(sdata / "rules" / "mobile-web.md", "# 行動端\n")
-        check("行動端底線：data/rules/mobile-web.md 有就接在共用層最後、profile 之前",
-              [p.name for p in rules_files(sdata, sstate, "amy")]
-              == ["baseline.md", "dispatch.md", "mobile-web.md", "AGENTS.md"]
-              and compose(sdata, sstate, "amy").index("# 分派共用") < compose(sdata, sstate, "amy").index("# 行動端")
-              < compose(sdata, sstate, "amy").index("# amy\n"))
+        # 行動端與 WebApp 底線已於 2026-11-26 移出常駐（轉為 omnikit-mobile-web 按需 skill），即使舊檔存在也不載入常駐；
+        # 同時驗證 <!-- review_on: ... --> 標記可被掃描且於組合常駐文字時自動剝除。
+        write(sdata / "rules" / "mobile-web.md", "# 行動端舊檔\n")
+        write(sstate / "profiles" / "amy" / "AGENTS.md", "# amy\n暫定規則<!-- review_on: 2026-12-01 reason: 測試到期 -->\n")
+        markers = scan_review_markers([sstate / "profiles" / "amy" / "AGENTS.md"])
+        composed_amy = compose(sdata, sstate, "amy")
+        check("行動端移出常駐且 review_on 註解自動剝除：mobile-web.md 不進 rules_files，review_on 可掃描但不進常駐區塊",
+              [p.name for p in rules_files(sdata, sstate, "amy")] == ["baseline.md", "dispatch.md", "AGENTS.md"]
+              and "# 行動端舊檔" not in composed_amy
+              and "review_on" not in composed_amy
+              and "暫定規則\n" in composed_amy
+              and len(markers) == 1 and markers[0]["date"] == "2026-12-01" and markers[0]["reason"] == "測試到期")
         (sdata / "rules" / "mobile-web.md").unlink()
 
         # ---- 舊版存在 repo 裡的 profile：搬到 repo 外 ----

@@ -1,6 +1,6 @@
 # 自我迭代：感測、判斷影響、提案
 
-日期：2026-11-13。狀態：使用者已同意方向；第 1 階段已實作（`engine/scripts/signals.py`、`engine/schema/signal.schema.json`），其餘階段未做。
+日期：2026-11-13。狀態：**已由 [2026-11-26 自我迭代雙閥門與預算棘輪定案](2026-11-26-self-iterating-omnikit.md) 取代**（原第 1 階段 `signals.py` 與 `signal.schema.json` 因無實際使用已於 2026-11-25 `6359488` 移除；OmniKeep 工具評估改走 `scripts/eval_single.py` 與 `scripts/record_decision.py`）。
 
 ## 結論
 

@@ -430,6 +430,10 @@ def selftest():
         (h / ".claude").mkdir(parents=True)
         (h / ".claude-work").mkdir(parents=True)
         (h / ".claude-work" / ".claude.json").write_text("{}", encoding="utf-8")
+        (h / ".omnikit").mkdir(parents=True)
+        (h / ".omnikit" / "config.json").write_text(
+            json.dumps({"claude_homes": ["~/.claude-work"]}), encoding="utf-8"
+        )
         (h / ".codex").mkdir(parents=True)
         disc = discover_pool(home=h, state=st, data=profiles.DATA, environ={}, which=lambda x: None)
         ok("無 T3 環境：自動從設定目錄偵測多個 Claude 目錄與 Codex 目錄，預設 manual_only",

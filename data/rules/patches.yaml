@@ -1,0 +1,75 @@
+# 常駐規則「補丁（Patch）」旁註清單（自我迭代出口閥索引）
+#
+# 規則三分類（見 docs/proposals/2026-11-26-self-iterating-omnikit.md）：
+# - 紅線（Safety）：刪檔／外發／付款先問、金鑰保護、禁實盤下單、Computer Use 桌面同意。永不因模型變強而退役，只下沉成 Hook。
+# - 契約（Contract）：繁體中文、簡潔回覆、file:line、已回答即定案、禁 LaTeX、git 慣例、狀態標籤、NOW.md、T3 visible 分派與模型角色分工。只在使用者改主意時變動。
+# - 補丁（Patch）：補償當代模型或 harness 的能力缺陷。半衰期約 1–3 代模型（或上游修復），只將此類列於本檔追蹤，不在常駐規則內塞額外詮釋文字。
+
+schema_version: 1
+updated_at: '2026-11-26'
+
+patches:
+  - id: capability-verify-before-denial
+    file: data/rules/baseline.md
+    section: 說做不到之前
+    born_at: '2026-11-18'
+    born_era: claude-opus-5-5 / gemini-4-neon
+    has_hook: engine/scripts/claim_check.py
+    why: Agent 常只看當前 shell（如 Git Bash 找不到 .cmd）或舊訓練資料就斷言「沒有 T3 工具／做不到」。
+    retire_check: >-
+      三段式退役：(1) 先將常駐段落縮短、保留 claim_check.py 絆線；(2) 主力模型換代後觀察 tripwire-hits.jsonl
+      是否連續一整個世代接近 0 命中；(3) 0 命中且黃金題裸跑通過才拆 Hook。
+
+  - id: saturation-research-before-conclusion
+    file: data/rules/baseline.md
+    section: 誠實回報（飽和式調研）
+    born_at: '2026-11-16'
+    born_era: claude-opus-5-5 / gemini-4-hydrogen
+    has_hook: null
+    why: 2026-11-14 調研只搜網頁找到 5 個就停，漏掉 GitHub topic 星數第一的 Archify。
+    retire_check: 主力模型換代時，以 2 題真實調研題對照裸跑是否自發涵蓋多管道與長尾，否則保留路由指向 omnikit-research。
+
+  - id: search-before-uncertain
+    file: data/profiles/ryan/AGENTS.md
+    section: 查證與完成（說不確定之前先上網搜尋）
+    born_at: '2026-11-04'
+    born_era: pre-5.5
+    has_hook: null
+    why: 早期模型容易不查證直接回答「不確定」。
+    retire_check: P2 黃金題有無對照：測試當代前沿模型（Opus 5.5 / Fable 5.2 / Carbon）在無此行時是否已預設先搜尋查證。
+
+  - id: research-prior-art-before-proposal
+    file: data/profiles/ryan/AGENTS.md
+    section: 查證與完成（提新功能前先查業界做法）
+    born_at: '2026-11-04'
+    born_era: pre-5.5
+    has_hook: null
+    why: 過渡規則，防止不看現成開源方案就直接手寫造輪子（與 search-first / omnikit-research 部分重疊）。
+    retire_check: 到期日 2026-12-15 檢討是否與 baseline 飽和調研合併成單句路由。
+
+  - id: no-unannounced-policy-assumptions
+    file: data/profiles/ryan/AGENTS.md
+    section: 查證與完成（沒被告知的限制當作沒有）
+    born_at: '2026-11-10'
+    born_era: pre-5.5
+    has_hook: null
+    why: 防止模型自行腦補公司政策限制而拒絕合理自動化。
+    retire_check: 主力模型換代時併入整包清零測試檢視是否仍會發生腦補限制。
+
+  - id: mark-unverified-third-party-claims
+    file: data/profiles/ryan/AGENTS.md
+    section: 查證與完成（第三方規約無一手證據標待驗證）
+    born_at: '2026-11-23'
+    born_era: claude-opus-5-5 / gemini-4-neon
+    has_hook: null
+    why: 2026-11-23 帳號池與 11-25 模型調研曾出現二手網搜數字未附一手來源卻寫成事實。
+    retire_check: 當代模型在長調研中仍高度依賴此約束（R1–R3 實測有效攔截二手數據），暫不退役；未來換代再驗。
+
+  - id: antigravity-15min-turn-ending
+    file: data/rules/dispatch-policy.md
+    section: antigravity_turns
+    born_at: '2026-11-18'
+    born_era: t3-v0.1.10 / agy-1.5.x
+    has_hook: null
+    why: 上游 T3 AntigravityAdapterV2 寫死 15 分鐘無輸出逾時且偶發回合結束未收合（已移入查表檔，不佔每輪常駐）。
+    retire_check: T3 升版改掉寫死的 promptInactivityTimeout 且連續 20 次 Antigravity 委派無卡住紀錄時移除。

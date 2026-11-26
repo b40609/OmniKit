@@ -372,10 +372,11 @@ def check_hook_e2e_and_python(env: sync.Env, repo: Path) -> list[dict]:
          lambda d: d.get("decision") == "deny"),
     ]
     t0 = time.monotonic()
+    e2e_env = {**os.environ, "OMNIKIT_TRIPWIRE_LOG": "off"}
     for dname, payload, verifier in dialects:
         try:
             r = subprocess.run([sys.executable, str(harness)], input=json.dumps(payload).encode("utf-8"),
-                               capture_output=True, timeout=10, check=False)
+                               capture_output=True, timeout=10, check=False, env=e2e_env)
             parsed = json.loads(r.stdout.decode("utf-8") or "{}")
             passed = r.returncode == 0 and verifier(parsed)
             out.append(row("護欄自測", dname, "PreToolUse deny 端到端", OK if passed else FAIL,
@@ -427,7 +428,65 @@ def check_repo_invariants(repo: Path) -> list[dict]:
         out.append(row("防呆規範", "", "MCP 無密鑰檢查", OK, "servers.yaml 未寫死 env 密鑰"))
     except SystemExit as e:
         out.append(row("防呆規範", "", "MCP 無密鑰檢查", FAIL, str(e.code)))
+
+    import validate
+    gov_errs = validate.check_patches(repo / "data") + validate.check_review_markers(repo / "data")
+    b_errs, b_stats = validate.check_budget(repo / "data", skills_root if skills_root.is_dir() else None)
+    all_b_errs = gov_errs + b_errs
+    if all_b_errs or b_stats:
+        if all_b_errs:
+            b_detail = "；".join(all_b_errs[:3])
+        else:
+            lim = b_stats["limits"]
+            b_detail = (
+                f"共用 {b_stats['shared_bytes']:,}/{lim['antigravity_shared_max_bytes']:,}B、"
+                f"Codex {b_stats['max_codex_bytes']:,}/{lim['codex_combined_max_bytes']:,}B、"
+                f"自動 skill 描述 {b_stats['auto_skill_desc_bytes']:,}/{lim['auto_skill_desc_max_bytes']:,}B"
+            )
+        out.append(row("防呆規範", "", "常駐預算棘輪", FAIL if all_b_errs else OK, b_detail))
+
+    gov = validate.governance_status(repo / "data")
+    due_parts = (
+        [f"試用到期 {t}({d})" for t, d in gov["expired_trials"]]
+        + [f"規則檢討 {loc}({d})" for loc, d, _ in gov["due_reviews"]]
+    )
+    soon_n = len(gov["upcoming_trials"]) + len(gov["upcoming_reviews"])
+    unv_n = len(gov["unverified_defaults"])
+    if due_parts:
+        g_detail = f"注意：{len(due_parts)} 項已到期需結算（{'、'.join(due_parts[:4])}）；未驗裸模型 default 卡 {unv_n} 張"
+    else:
+        g_detail = f"無過期項目（待到期追蹤 {soon_n} 項、待補裸模型對照 default 卡 {unv_n} 張）"
+    out.append(row("自我迭代", "", "到期與世代錨點體檢", OK, g_detail))
     return out
+
+
+def check_tripwire_stats(state: Path) -> list[dict]:
+    """彙總 ~/.omnikit/harness/tripwire-hits.jsonl 的護欄絆線命中紀錄（含近 30 天與累計，對話內不跨目錄讀檔）。"""
+    from datetime import UTC, datetime, timedelta
+    hits_file = state / "harness" / "tripwire-hits.jsonl"
+    if not hits_file.is_file():
+        return [row("自我迭代", "", "護欄絆線命中計數", OK, "尚無攔截紀錄（檔案將於首次真實攔截時自動建立）")]
+    cutoff = (datetime.now(UTC) - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    counts: dict[str, int] = {}
+    recent = 0
+    total = 0
+    for line in hits_file.read_text("utf-8", errors="replace").splitlines():
+        if not line.strip():
+            continue
+        try:
+            d = json.loads(line)
+            if not isinstance(d, dict):
+                continue
+            key = f"{d.get('hook', '?')}:{d.get('rule', '?')}"
+            counts[key] = counts.get(key, 0) + 1
+            total += 1
+            if str(d.get("ts") or "") >= cutoff:
+                recent += 1
+        except ValueError:
+            continue
+    top = "、".join(f"{k}={v}" for k, v in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:5])
+    detail = f"近 30 天 {recent} 次／累計 {total} 次（{top}）" if total else "累計 0 次"
+    return [row("自我迭代", "", "護欄絆線命中計數", OK, detail)]
 
 
 def preflight(run=subprocess.run) -> list[dict]:
@@ -473,6 +532,7 @@ def collect(env: sync.Env, lists: bool = True, pre: bool = False, run=subprocess
     rows += check_t3_health(env.home, agents)
     rows += check_hook_e2e_and_python(env, sync.ROOT)
     rows += check_repo_invariants(sync.resolve_real_repo(env.repo, env.state))
+    rows += check_tripwire_stats(env.state)
     rows += state_rows
     if pre:
         rows += preflight(run)
@@ -592,6 +652,17 @@ def selftest() -> int:
         (local / "Packages" / "Claude_x" / "LocalCache" / "Local" / "omnikit" / "install-record.json").write_text("{}", encoding="utf-8")
         first = collect(empty, lists=False, environ={"LOCALAPPDATA": str(local)})
         check("舊位置有未合併狀態時提示合併", "sync.py sync" in first[0]["detail"])
+
+        # 預算棘輪測試：寫入過低的 budget.yaml 時 doctor 必須判 FAIL
+        (repo / "data" / "rules" / "budget.yaml").write_text(
+            "schema_version: 1\nupdated_at: '2026-11-26'\nlimits:\n"
+            "  antigravity_shared_max_bytes: 10\n  antigravity_personal_max_bytes: 1000\n"
+            "  codex_combined_max_bytes: 1000\n  auto_skill_desc_max_bytes: 1000\n",
+            encoding="utf-8",
+        )
+        rows_over = collect(env, lists=False, environ={})
+        check("常駐預算棘輪超標時 doctor 精準判為 FAIL",
+              any(r["item"] == "常駐預算棘輪" and r["status"] == FAIL for r in rows_over))
 
     failed = [n for n, ok in checks if not ok]
     for name, ok in checks:

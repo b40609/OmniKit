@@ -82,7 +82,7 @@ levels:
         note: 日常多檔／UI 實作的 Claude 選項（Opus effort high），或沒有 Gemini 實例時使用
       - class: claude-sonnet
         thinking: medium
-        note: 退路：Sonnet 試行（凍結至 2026-11-29 到期檢討；沒有 Gemini 實例或省 Opus 額度時可選）
+        note: 退路：Sonnet 試行（凍結至 2026-11-29 到期檢討；沒有 Gemini 實例或省 Opus 額度時可選） # <!-- review_on: 2026-11-29 reason: Sonnet 試行與凍結期結束檢討 -->
         trial: sonnet-trial
   high:
     name: 高
@@ -125,8 +125,11 @@ blind_review:
     - Stage 1（零錨定獨立設計）：只提供問題邊界、限制條件與一手環境／原始碼證據，絕不提供既有提案、選項排名或前人結論；審查者必須先將獨立設計寫入磁碟檔案。
     - Stage 2（正面對決）：確認 Stage 1 檔案寫入磁碟後，才讀取待審提案，逐項對決優劣、潛在靜默漏洞與具體改判條件。
   memory_isolation: >-
-    盲審與工具評測子對話必須隔離跨對話記憶注入（在中性目錄執行、停用 claude-mem 等記憶 plugin 的 SessionStart／Read 注入，
-    或將受審專案排除在觀察注入之外），避免記憶 hook 把前輪審查結論標題提前餵給審查者而破壞零錨定。
+    盲審與工具評測子對話必須隔離跨對話記憶注入。2026-11-26 實測確認 claude-mem 同時經 SessionStart 與 PreToolUse:Read
+    雙通道注入觀察標題，任務首行標記無法攔截；主控不得違反全自動模式自行跨目錄複製檔案，派送盲審時應指定 T3 的「No project」
+    （由 t3_project_list 查得對應 ~/.t3/scratch 之 projectId，傳入 create_threads / t3_thread_launch 或 t3 thread start <No-project-id>）
+    建立獨立 Scratch 對話並將證據內容透過任務訊息傳入（S1 實測 SessionStart 視為無記憶新專案；Read 通道於 Scratch 下之行為【待驗證】），
+    或指定未安裝記憶 plugin 之乾淨實例。
 
 # 驗收不過時怎麼升級。每次升級都要記進紀錄的 escalations；同設定重跑記 retries。
 escalation:

@@ -13,4 +13,8 @@ reason: 'Windows 11 本機實測（2026-11-24）：gitleaks 8.30.1 跑 `gitleaks
 sources:
 - OmniKeep 三路飽和式調研（2026-11-24 gh api 實測星數、授權、最後更新）
 notes: gitleaks/gitleaks，★31,287，MIT（gh api 2026-11-24）。README 明載已進入只做安全修補的模式，作者轉去開發 betterleaks。OmniKit 自己的 pre-commit 與 CI（固定 v8.30.1 並比對 SHA256）仍在用它，短期內照舊；新專案可直接評估 betterleaks。2026-11-24 Windows 11 實測翻盤：betterleaks 在 Windows 上 `git --pre-commit` 會崩潰，改定 gitleaks 為 git-security-gate 的金鑰掃描預設；上游修好後再評估切換。
+baseline_eval:
+  verified_at: '2026-11-24'
+  verified_model: deterministic-cli
+  verdict: essential_infra
 added: '2026-11-24'

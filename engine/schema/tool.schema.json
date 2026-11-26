@@ -77,6 +77,22 @@
       "items": { "type": "string", "minLength": 1 }
     },
     "notes": { "type": "string" },
+    "baseline_eval": {
+      "description": "Anti-Hobbling 裸模型／基準對照錨點（供 default 卡追蹤上次在哪一代模型驗證過仍有正收益）",
+      "type": "object",
+      "required": ["verified_at", "verified_model", "verdict"],
+      "additionalProperties": false,
+      "properties": {
+        "verified_at": { "$ref": "#/$defs/date" },
+        "verified_model": { "type": "string", "minLength": 1 },
+        "verdict": {
+          "description": "beats_vanilla（全面勝過裸模型）、scoped_beats_vanilla（特定環境勝出、其餘與裸模型打平）、ties_vanilla（打平，待檢討降級）、essential_infra（跨家 GUI／資安門禁等裸模型本身不含之基礎設施）",
+          "enum": ["beats_vanilla", "scoped_beats_vanilla", "ties_vanilla", "essential_infra"]
+        },
+        "scope_note": { "type": "string", "minLength": 1 },
+        "eval_doc": { "type": "string", "minLength": 1 }
+      }
+    },
     "added": { "$ref": "#/$defs/date" }
   },
   "allOf": [

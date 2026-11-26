@@ -43,6 +43,7 @@ import subprocess
 import sys
 import tempfile
 from collections import Counter
+from datetime import UTC, datetime
 from pathlib import Path
 
 OFF = ("0", "off", "false", "no")
@@ -52,8 +53,30 @@ RELAX_BLOCK_AT = 3  # 一次新增這麼多個 ignore／disable／skip 類項目
 
 
 def state_dir() -> Path:
-    raw = os.environ.get("OMNIKIT_STATE")
+    raw = os.environ.get("OMNIKIT_STATE_DIR") or os.environ.get("OMNIKIT_STATE")
     return Path(raw) if raw else Path.home() / ".omnikit"
+
+
+def record_tripwire(rule: str, session_id: str, agy: bool = False, env=None) -> None:
+    """真實工作階段觸發攔截時記錄輕量絆線計數（不含指令或機密內容），供模型換代時判斷該護欄是否仍有命中。"""
+    env = os.environ if env is None else env
+    if not session_id or str(env.get("OMNIKIT_TRIPWIRE_LOG", "")).lower() in OFF:
+        return
+    try:
+        raw = env.get("OMNIKIT_STATE_DIR") or env.get("OMNIKIT_STATE")
+        base = Path(raw) if raw else state_dir()
+        p = base / "harness" / "tripwire-hits.jsonl"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        row = {
+            "ts": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "hook": "harness_hooks",
+            "rule": rule,
+            "agent": "antigravity" if agy else "claude_or_codex",
+        }
+        with p.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
 
 
 # ---------- 1. 防繞過 ----------
@@ -366,19 +389,23 @@ def handle(data: dict, runner=None, env=None):
     inp = data.get("tool_input") if isinstance(data.get("tool_input"), dict) else {}
 
     if event == "PreToolUse":
+        sid = data.get("session_id") or ""
         if tool in ("Bash", "PowerShell"):
             why = bypass_reason(inp.get("command") or "")
             if why:
+                record_tripwire("git-bypass", sid, agy, env)
                 return deny(f"{why}。請修好讓檢查通過，不要繞過；真的要跳過請使用者自己下指令。", agy)
         why = secret_read_reason(tool, inp)
         if why:
+            record_tripwire("secret-read", sid, agy, env)
             return deny(why + "。範例檔（.env.example 等）可以讀。", agy)
         if tool in ("Edit", "Write", "MultiEdit"):
             fp = inp.get("file_path") or ""
             if re.search(r"\.pyi?$", fp, re.IGNORECASE) and (runner is not None or ruff_exe()):
-                remember_baseline(data.get("session_id") or "", fp, runner)
+                remember_baseline(sid, fp, runner)
             n, name = lint_relax(tool, inp)
             if n >= RELAX_BLOCK_AT and str(env.get("OMNIKIT_LINT_RELAX", "")).lower() != "allow":
+                record_tripwire("lint-relax", sid, agy, env)
                 return deny(f"這次修改在 {name} 一次新增 {n} 個 ignore／disable／skip 類項目，看起來是在關掉門禁規則。"
                             "請改程式碼讓檢查通過；使用者明確要放寬時，請他設 OMNIKIT_LINT_RELAX=allow。", agy)
         return {"decision": "allow"} if agy else None
@@ -592,6 +619,14 @@ def selftest() -> int:
             a_stop2 = handle({"hookEventName": "Stop", "sessionId": "ag1", "continuationActive": True}, runner=bad, env={})
             ok("Antigravity：PostToolUse 回 {}，問題留到 Stop 回 decision=continue 擋一次，continuationActive 回 {} 放行",
                a_post == {} and a_stop1 and a_stop1["decision"] == "continue" and a_stop2 == {})
+            handle({"hook_event_name": "PreToolUse", "session_id": "tw1", "tool_name": "Bash",
+                    "tool_input": {"command": "git commit --no-verify -m x"}}, env={})
+            handle({"hook_event_name": "PreToolUse", "session_id": "tw1", "tool_name": "Bash",
+                    "tool_input": {"command": "git commit --no-verify -m x"}}, env={"OMNIKIT_TRIPWIRE_LOG": "off"})
+            hits_p = Path(tmp) / "harness" / "tripwire-hits.jsonl"
+            hits = [json.loads(line) for line in hits_p.read_text("utf-8").splitlines()] if hits_p.is_file() else []
+            ok("絆線計數：有 session_id 攔截時記錄規則代號（不含指令原文），無 session_id 或 OMNIKIT_TRIPWIRE_LOG=off 不記",
+               len(hits) == 1 and hits[0]["rule"] == "git-bypass" and "--no-verify" not in hits_p.read_text("utf-8"))
         finally:
             os.environ.pop("OMNIKIT_STATE", None)
 
