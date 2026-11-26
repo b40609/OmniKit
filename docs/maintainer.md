@@ -92,7 +92,7 @@ uv run engine/site/readme_art.py --fonts <字體資料夾>
 
 字體是 SIL OFL 的 Geist、Geist Mono 與 Noto Sans TC，下載網址寫在 `readme_art.py` 檔頭，不進 repo。終端機預覽的字串要跟 `engine/skills/ok/SKILL.md` 的主選單、`engine/scripts/harness_hooks.py` 的攔截訊息一致（攔截訊息只取每則的前半句）。
 
-貼連結到 LINE、Slack 時顯示的社群預覽圖是 `.github/assets/social-preview.png`（1280×640，`hero-light.svg` 置中放在同色底上的截圖）。GitHub 沒有上傳預覽圖的 API，要到 repo 的 **Settings → General → Social preview → Edit → Upload an image** 手動換。
+貼連結到 LINE、Slack 時顯示的社群預覽圖是 `.github/assets/social-preview.png`（1280×640，`hero-light.svg` 置中放在同色底上的截圖）。GitHub 沒有上傳預覽圖的 API，但不用自己動手：agent 在已登入 GitHub 的桌面 Chrome 開 repo 的 **Settings → General**，用 Windows UI Automation 展開 Social preview 的 **Edit → Upload an image…**，檔案對話框用視窗訊息填路徑、按開啟（不動滑鼠鍵盤），選好就會直接存檔。換完用 `gh api graphql -f query='{repository(owner:"b40609",name:"OmniKit"){usesCustomOpenGraphImage openGraphImageUrl}}'` 確認，再把 `openGraphImageUrl` 下載下來跟檔案比對。
 
 ## 更新架構地圖
 
