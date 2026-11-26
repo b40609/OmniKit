@@ -71,6 +71,7 @@
 - 額度資料來源：
   - Claude：Claude Code 狀態列本來就有 5 小時與 7 天用量；`claude_allow.py` 已自動串接到全部三個設定目錄（`~/.claude`、`~/.claude-kai`、`~/.claude-retis`，各自帶 `--dir` 並用 `--then` 保留既有狀態列）。
   - Antigravity：2026-11-23 實測 `agy 1.5.14` 執行 `agy -p /usage --output-format json`（帶 `AGY_CLI_DISABLE_AUTO_UPDATE=true`）可直接回傳本機 `agy` 帳號三個桶的 `remaining_fraction` 與 `reset_time`（0 token 消耗、不讀 token），但 `agy -p` 沒有 `--gemini-dir` 參數、也不吃 `GEMINI_HOME`，無法查其餘 5 個 T3 實例；其餘實例在 T3 上游討論 #15137 開放前，顯示 OmniKit 自己記到的 429／重置時間，其餘請對照 T3 的 Usage → Limits。
+  - 2026-11-26 更新：T3 其實已把每個實例的額度寫在 `~/.t3/caches/<實例 id>.json` 的 `usageLimits`（Claude 早就這樣讀），Antigravity 改成一樣讀它，7 個實例都有數字；`agy -p /usage` 只在查詢時間比 T3 快取新時採用（`engine/scripts/account_pool.py` 的 `t3_agy_quota`、`effective_agy_quota`）。
   - OmniKit 一律不讀 token。
 
 ## 五、為什麼 T3 預設思考程度會不一樣

@@ -22,7 +22,8 @@ uv run scripts/run.py show
 - 模型淘汰過濾：profile 的 `exclude_models`、原廠下架日已過、同帳號同額度桶已有更強模型且這個供應商沒有角色使用（例如 Antigravity 裡的 Sonnet 5.5 被同桶的 Opus 5.5 壓過）、後繼已是你分工裡的模型而且帳號就有、沒有角色使用而且已有後繼，這幾種在 show 標「已過濾」，不派也不探測；`include_models` 可以撈回。轉售平台寫的後繼只顯示「提醒（不過濾）」。
 - 狀態與接手（`engine/scripts/account_pool.py`）：
   - `status`：看所有帳號的六維正交狀態（`paused`、`auth_expired`、`validation_required`、`tos_banned`、`hard_forbidden`、`forbidden_models`、`cooldowns`）與未解決警示。
-  - `usage --refresh-agy`（或 `run.py usage --all --refresh-agy`）：看全部 Claude 設定目錄的狀態列快照，並用 `agy -p /usage --output-format json` 刷新本機 `agy` 帳號的各桶剩餘與重置時間（其餘 Antigravity 帳號看 T3 Usage → Limits）。
+  - `usage --refresh-agy`（或 `run.py usage --all --refresh-agy`）：看全部 Claude 設定目錄的狀態列快照，並用 `agy -p /usage --output-format json` 刷新本機 `agy` 帳號的各桶剩餘與重置時間。
+  - Antigravity 額度來源（2026-11-26 起）：每個實例讀 T3 Code 供應商快取 `~/.t3/caches/<實例 id>.json` 的 `usageLimits`（T3 已替每個帳號查好，只讀額度數字，不讀 auth 欄位）；`agy -p /usage` 只看得到 CLI 登入的那一個帳號，查詢時間比 T3 快取新時才用它。重置時間已過的窗口顯示「已重置」，不再算用完。
   - Claude 額度來源（2026-11-24 起）：狀態列快照、T3 Code 供應商快取 `~/.t3/caches/<實例 id>.json` 的 `usageLimits`（在 T3 裡跑 Claude 不會觸發狀態列，靠它；只讀額度數字，不讀 auth 欄位），都沒有時用 `uv run engine/scripts/account_pool.py set-claude-quota --instance <id> --weekly-used 72 --weekly-resets-at <ISO>`（或 `--weekday wed --hour-utc 21`）手動登記。三者取最新的。
   - 選號 `weekly-first`：距每週重置不到 48 小時、還沒用完的帳號最優先（快過期的額度先燒完，壓過 5 分鐘防震盪）；其次才照最快重置、剩餘額度與防震盪挑。
   - `failover [--purpose cross_review_claude|cross_review_gemini]`：依 `on_exhausted` 與即時狀態印出接手順序（跨家審查時自動跳過換回與作者同一家的步驟）。
@@ -155,4 +156,4 @@ uv run scripts/run.py stats
 uv run scripts/run.py usage [--all] [--refresh-agy]
 ```
 
-不帶參數時讀目前 Claude Code 設定目錄的狀態列快照；加 `--all` 列出全部 Claude 設定目錄（如 `~/.claude`、`~/.claude-work` 等多帳號目錄）與 Antigravity 帳號的額度與狀態，加 `--refresh-agy` 會呼叫 `agy -p /usage --output-format json` 刷新本機 `agy` 帳號的各桶額度。狀態列已由 `claude_allow.py` 自動串接到各 Claude 設定目錄（保留原本的狀態列）。
+不帶參數時讀目前 Claude Code 設定目錄的狀態列快照；加 `--all` 列出全部 Claude 設定目錄（如 `~/.claude`、`~/.claude-work` 等多帳號目錄）與 Antigravity 帳號的額度與狀態（Antigravity 每個帳號讀 T3 快取），加 `--refresh-agy` 會呼叫 `agy -p /usage --output-format json` 刷新本機 `agy` 帳號的各桶額度。狀態列已由 `claude_allow.py` 自動串接到各 Claude 設定目錄（保留原本的狀態列）。

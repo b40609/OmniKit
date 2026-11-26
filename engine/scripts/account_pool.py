@@ -1056,9 +1056,66 @@ def select_claude_instance(rows, mine, quotas, state_doc, *, strategy=None, now=
 
 # ---------- 額度用完接手順序（提案第四節 D1/D2） ----------
 
-def _agy_bucket_status(acc, bucket_key, now_dt):
-    """檢視 pool-state 裡一個 Antigravity 帳號的單一額度桶狀態。"""
-    q = (acc or {}).get("quota") if isinstance(acc, dict) else None
+def t3_agy_quota(iid, home=None):
+    """T3 Code 的供應商快取 ~/.t3/caches/<實例 id>.json 裡的 usageLimits：T3 會替每個登入的 Antigravity 帳號查額度，
+    agy CLI 只看得到它自己登入的那一個帳號，所以多帳號以這份為主。
+    2026-11-26 實測 windows 的 id：gemini-5h、gemini-weekly、3p-5h、3p-weekly、gemini-argon-wtu-weekly，
+    欄位 usedPercent、resetsAt（視窗還沒開始時沒有）、checkedAt。只取這些數字與時間，絕不讀、不回傳 auth 等其他欄位。
+    回傳跟 pool-state 的 quota 同形狀的 dict；沒有就 None。"""
+    import homes
+    base = Path(home) if home else homes.HOME
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", str(iid or "")):
+        return None
+    try:
+        raw = json.loads((base / ".t3" / "caches" / f"{iid}.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    lim = raw.get("usageLimits") if isinstance(raw, dict) else None
+    if not isinstance(lim, dict) or not isinstance(lim.get("windows"), list):
+        return None
+    buckets = {}
+    for w in lim["windows"]:
+        if not isinstance(w, dict):
+            continue
+        wid = str(w.get("id") or "").lower()
+        used = w.get("usedPercent")
+        if not isinstance(used, (int, float)):
+            continue
+        if wid.endswith("-weekly"):
+            prefix = "weekly"
+        elif wid.endswith("-5h"):
+            prefix = "five_hour"
+        else:
+            continue  # 「Reported quota」這類沒有視窗長度的舊格式不硬猜
+        key = ("argon" if "argon" in wid else "3p" if wid.startswith("3p") else
+               "gemini" if wid.startswith("gemini") else None)
+        if key is None:
+            continue
+        ent = buckets.setdefault(key, {})
+        ent[f"{prefix}_remaining_pct"] = round(max(0.0, 100.0 - float(used)), 1)
+        rst = parse_ts(w.get("resetsAt"))
+        if rst:
+            ent[f"{prefix}_resets_at"] = iso_utc(rst)
+    if not buckets:
+        return None
+    chk = parse_ts(lim.get("checkedAt"))
+    ts = iso_utc(chk) if chk else None
+    return {"source": "t3_cache", "fetched_at": ts, "checked_at": ts, "stale": False, "error": None, "buckets": buckets}
+
+
+def effective_agy_quota(acc, iid, home=None):
+    """一個 Antigravity 帳號實際採用的額度：pool-state 的 agy /usage 結果與 T3 快取，取查詢時間較新的那份。
+    兩份都沒有數字時回傳 pool-state 那份（可能帶刷新失敗的原因），再沒有就 None。"""
+    own = acc.get("quota") if isinstance(acc, dict) and isinstance(acc.get("quota"), dict) else None
+    cands = [q for q in (own, t3_agy_quota(iid, home)) if q and q.get("buckets")]
+    if not cands:
+        return own
+    floor = parse_ts(0)
+    return max(cands, key=lambda q: parse_ts(q.get("fetched_at")) or floor)
+
+
+def _agy_bucket_status(q, bucket_key, now_dt):
+    """檢視一個 Antigravity 帳號（effective_agy_quota 選出的那份額度）的單一額度桶狀態。"""
     if not isinstance(q, dict):
         return None
     b = (q.get("buckets") or {}).get(bucket_key)
@@ -1069,21 +1126,30 @@ def _agy_bucket_status(acc, bucket_key, now_dt):
     stale = bool(q.get("stale")) or (age_h is not None and age_h > AGY_STALE_HOURS)
     f_rem, w_rem = b.get("five_hour_remaining_pct"), b.get("weekly_remaining_pct")
     f_rst, w_rst = parse_ts(b.get("five_hour_resets_at")), parse_ts(b.get("weekly_resets_at"))
+    # 查詢之後已過重置時間：那個視窗已回滿，舊數字不再代表現況（不當成見底，也不顯示舊的剩餘）
+    f_passed = bool(f_rst and f_rst <= now_dt)
+    w_passed = bool(w_rst and w_rst <= now_dt)
     parts = []
-    if f_rem is not None:
+    if f_passed:
+        parts.append("5h 已重置")
+    elif f_rem is not None:
         parts.append(f"5h 剩 {f_rem:.0f}%" + (f"（{fmt_local(f_rst)} 重置）" if f_rst else ""))
-    if w_rem is not None:
+    if w_passed:
+        parts.append("週已重置")
+    elif w_rem is not None:
         parts.append(f"週剩 {w_rem:.0f}%" + (f"（{fmt_local(w_rst)} 重置）" if w_rst else ""))
     if stale:
-        parts.append("舊資料")
-    exhausted = ((not stale) and ((f_rem is not None and f_rem <= 0 and (not f_rst or f_rst > now_dt))
-                                  or (w_rem is not None and w_rem <= 0 and (not w_rst or w_rst > now_dt))))
+        parts.append(f"{age_h:.0f} 小時前的資料" if age_h is not None else "舊資料")
+    exhausted = ((not stale) and ((f_rem is not None and f_rem <= 0 and not f_passed)
+                                  or (w_rem is not None and w_rem <= 0 and not w_passed)))
     return {"text": "、".join(parts), "stale": stale, "exhausted": exhausted,
+            "source": q.get("source"), "age_hours": age_h,
             "five_hour_remaining_pct": f_rem, "weekly_remaining_pct": w_rem,
+            "five_hour_reset_passed": f_passed, "weekly_reset_passed": w_passed,
             "five_hour_resets_at": b.get("five_hour_resets_at"), "weekly_resets_at": b.get("weekly_resets_at")}
 
 
-def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=None):
+def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=None, home=None):
     """計算額度用完的接手順序（提案第四節 D1/D2）。
     purpose: 'general'、'cross_review_claude'（審 Claude 寫的東西時跳過換成 Claude）或 'cross_review_gemini'（審 Gemini 寫的東西時跳過換回 Gemini）。"""
     import accounts
@@ -1104,10 +1170,10 @@ def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=
     # Step 1–2：自動派工 Antigravity 實例的兩個桶（Gemini Models → Claude & GPT 桶 Opus；agy 1.5.16 起 Argon 已併入 Gemini 大桶）
     for r in auto_agy:
         iid = r["id"]
-        acc = (state_doc or {}).get("accounts", {}).get(iid)
+        aq = effective_agy_quota((state_doc or {}).get("accounts", {}).get(iid), iid, home)
         # 1. Gemini Models 桶（Neon、Hydrogen、Carbon、Orchestrator）
         blk, why, _ = is_blocked(state_doc, iid, driver="antigravity", bucket="gemini", now=now_dt)
-        bstat = _agy_bucket_status(acc, "gemini", now_dt)
+        bstat = _agy_bucket_status(aq, "gemini", now_dt)
         g_models = ["gemini-4-neon", "gemini-4-hydrogen", "gemini-4-carbon"]
         if cross_review_gemini:
             steps.append({"step": 1, "stage": "antigravity_gemini", "instance": iid, "bucket": "gemini",
@@ -1122,7 +1188,7 @@ def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=
         else:
             steps.append({"step": 1, "stage": "antigravity_gemini", "instance": iid, "bucket": "gemini",
                           "models": g_models, "status": "available",
-                          "why": f"預設自動派工帳號" + (f"（{bstat['text']}）" if bstat and bstat["text"] else "（未刷 agy /usage）")})
+                          "why": "預設自動派工帳號" + (f"（{bstat['text']}）" if bstat and bstat["text"] else "（T3 快取與 agy /usage 都還沒有額度）")})
 
         # 2. 同帳號 Claude & GPT 桶（只用 Opus；Sonnet 同桶已被規則 2 過濾）
         if cross_review_claude:
@@ -1131,7 +1197,7 @@ def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=
                           "why": "跨家審查 Claude 寫的東西：跳過換成 Claude，避免失去跨家審查意義"})
         else:
             blk_3p, why_3p, _ = is_blocked(state_doc, iid, driver="antigravity", model="claude-opus-5-5", bucket="3p", now=now_dt)
-            bstat_3p = _agy_bucket_status(acc, "3p", now_dt)
+            bstat_3p = _agy_bucket_status(aq, "3p", now_dt)
             if blk_3p:
                 steps.append({"step": 2, "stage": "antigravity_3p", "instance": iid, "bucket": "3p",
                               "models": ["claude-opus-5-5"], "status": "skipped", "why": why_3p})
@@ -1158,11 +1224,11 @@ def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=
     manual_suggestions = []
     for r in manual_agy:
         blk, why, _ = is_blocked(state_doc, r["id"], driver="antigravity", bucket="gemini", now=now_dt)
-        acc = (state_doc or {}).get("accounts", {}).get(r["id"])
-        bstat = _agy_bucket_status(acc, "gemini", now_dt)
+        aq = effective_agy_quota((state_doc or {}).get("accounts", {}).get(r["id"]), r["id"], home)
+        bstat = _agy_bucket_status(aq, "gemini", now_dt)
         manual_suggestions.append({
             "instance": r["id"], "account": r.get("account") or r.get("label") or r["id"],
-            "blocked": blk, "why": why if blk else (bstat["text"] if bstat and bstat["text"] else "無異常紀錄（額度請看 T3 Usage → Limits）"),
+            "blocked": blk, "why": why if blk else (bstat["text"] if bstat and bstat["text"] else "無異常紀錄（T3 還沒查過這個帳號的額度）"),
         })
     if mode == "fallback_paid_api" and paid_api:
         steps.append({"step": 4, "stage": "fallback_paid_api", "instances": [r["id"] for r in paid_api],
@@ -1172,7 +1238,7 @@ def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=
                       "why": "fail_closed：訂閱額度用完即停，不自動花付費 API，等窗口重置"})
     else:
         rec_names = [m["instance"] for m in manual_suggestions if not m["blocked"]]
-        hint = f"可手動切換：{'、'.join(rec_names)}" if rec_names else "沒有標記可用的手動帳號，請對照 T3 Usage → Limits"
+        hint = f"可手動切換：{'、'.join(rec_names)}" if rec_names else "沒有標記可用的手動帳號"
         steps.append({"step": 4, "stage": "prompt_manual_switch", "status": "manual",
                       "manual_accounts": manual_suggestions,
                       "why": f"停下來列出各帳號狀態與重置時間由你決定（{hint}；1A 手動帳號同號平行上限 2 條，換帳號接續靠交接檔）"})
@@ -1314,21 +1380,24 @@ def quota_view_data(state, pol, mine, rows, home=None, now=None):
         if r.get("driver") != "antigravity":
             continue
         iid = r["id"]
-        acc = doc["accounts"].get(iid) or {}
+        aq = effective_agy_quota(doc["accounts"].get(iid) or {}, iid, home) or {}
         blk, why, code = is_blocked(doc, iid, driver="antigravity", now=now_dt)
         buckets = {}
         for bk in ("gemini", "argon", "3p"):
-            bs = _agy_bucket_status(acc, bk, now_dt)
+            bs = _agy_bucket_status(aq, bk, now_dt)
             b_blk, b_why, _ = is_blocked(doc, iid, driver="antigravity", bucket=bk, now=now_dt)
             if bs or b_blk:
                 buckets[bk] = {**(bs or {}), "cooldown": b_why if b_blk else None}
+        fetched = parse_ts(aq.get("fetched_at"))
         agy_rows.append({
             "instance": iid, "account": r.get("account") or r.get("label") or iid,
             "usage_scope": r.get("usage_scope"), "auto": r["auto"][0],
             "blocked": blk, "blocked_reason": why, "blocked_code": code,
-            "quota_fetched_at": (acc.get("quota") or {}).get("fetched_at") if isinstance(acc.get("quota"), dict) else None,
-            "quota_stale": (acc.get("quota") or {}).get("stale") if isinstance(acc.get("quota"), dict) else None,
-            "quota_error": (acc.get("quota") or {}).get("error") if isinstance(acc.get("quota"), dict) else None,
+            "quota_source": aq.get("source"),
+            "quota_fetched_at": aq.get("fetched_at"),
+            "quota_age_hours": round(max(0.0, (now_dt - fetched).total_seconds() / 3600.0), 1) if fetched else None,
+            "quota_stale": aq.get("stale"),
+            "quota_error": aq.get("error"),
             "buckets": buckets,
         })
     return {"claude": c_quotas, "claude_selection": sel, "antigravity": agy_rows, "alerts": pending_alerts(doc, rows, now_dt)}
@@ -1351,7 +1420,7 @@ def usage_view_text(view):
     if sel.get("chosen"):
         lines.append(f"  推薦下一個工作包用：{sel['chosen']}（{sel['reason']}）")
 
-    lines.append("\nAntigravity 帳號額度（agy -p /usage 只查本機 agy 帳號；其餘請看 T3 Usage → Limits）：")
+    lines.append("\nAntigravity 帳號額度（T3 快取為主，agy -p /usage 較新時用它）：")
     for a in view["antigravity"]:
         tag = "自動派" if a["auto"] else "手動"
         if a["blocked"]:
@@ -1364,7 +1433,7 @@ def usage_view_text(view):
                 b_parts.append(f"{BUCKET_NAMES.get(bk, bk)}：{txt}")
             lines.append(f"  {a['instance']}（{a['account']}，{tag}）：" + "；".join(b_parts))
         else:
-            note = f"刷新失敗：{a['quota_error']}" if a.get("quota_error") else "尚無快照（加 --refresh-agy 查 agy 帳號，其餘看 T3 Usage → Limits）"
+            note = f"刷新失敗：{a['quota_error']}" if a.get("quota_error") else "尚無額度（T3 還沒查過這個帳號，在 T3 用它開一次對話就會有）"
             lines.append(f"  {a['instance']}（{a['account']}，{tag}）：{note}")
 
     if view["alerts"]:
@@ -1850,9 +1919,34 @@ def selftest():
         # 接手順序（兩桶 4 步）：Gemini 冷卻後直接接手到同帳號 Opus（3p 桶）；跨家審查跳過第 2、3 步；手動清單完整列出全部 6 個手動帳號不截斷
         record_error(c_state, "antigravity_ryan", "quota_exhausted", driver="antigravity", model="gemini-4-neon",
                      resets_at=iso_utc(t0 + timedelta(hours=2)), now=t0)
-        p_gen = failover_plan(pol, mine, rows, load_state(c_state), qs, purpose="general", now=t0)
-        p_rev = failover_plan(pol, mine, rows, load_state(c_state), qs, purpose="cross_review_claude", now=t0)
-        p_rev_g = failover_plan(pol, mine, rows, {}, qs, purpose="cross_review_gemini", now=t0)
+        p_gen = failover_plan(pol, mine, rows, load_state(c_state), qs, purpose="general", now=t0, home=home)
+        p_rev = failover_plan(pol, mine, rows, load_state(c_state), qs, purpose="cross_review_claude", now=t0, home=home)
+        p_rev_g = failover_plan(pol, mine, rows, {}, qs, purpose="cross_review_gemini", now=t0, home=home)
+
+        # Antigravity 多帳號額度讀 T3 快取：agy CLI 只看得到一個帳號，T3 每個帳號都有
+        (home / ".t3" / "caches" / "antigravity_km0529.json").write_text(json.dumps({
+            "auth": {"email": "should-never-be-read@example.test"},
+            "usageLimits": {"checkedAt": iso_utc(t0 - timedelta(minutes=10)), "windows": [
+                {"id": "gemini-5h", "usedPercent": 30, "resetsAt": iso_utc(t0 + timedelta(hours=2))},
+                {"id": "gemini-weekly", "usedPercent": 100, "resetsAt": iso_utc(t0 + timedelta(days=3))},
+                {"id": "3p-5h", "usedPercent": 0},
+                {"id": "3p-weekly", "usedPercent": 25, "resetsAt": iso_utc(t0 - timedelta(hours=1))},
+                {"id": "claude-quota", "kind": "other", "usedPercent": 50}]}}), encoding="utf-8")
+        v_t3 = quota_view_data(c_state, pol, mine, rows, home=home, now=t0)
+        km = next(a for a in v_t3["antigravity"] if a["instance"] == "antigravity_km0529")
+        g_km, p_km = km["buckets"].get("gemini") or {}, km["buckets"].get("3p") or {}
+        ok("Antigravity 多帳號讀 T3 快取：每個帳號各自有數字、週見底算 exhausted、過了重置時間標已重置、不帶出 auth",
+           km["quota_source"] == "t3_cache" and g_km.get("five_hour_remaining_pct") == 70.0
+           and g_km.get("weekly_remaining_pct") == 0.0 and g_km.get("exhausted") is True
+           and p_km.get("weekly_reset_passed") is True and p_km.get("exhausted") is False
+           and "example.test" not in json.dumps(v_t3, ensure_ascii=False)
+           and t3_agy_quota("../evil", home) is None)
+        # agy /usage 比 T3 快取新時用 agy 的
+        newer = {"accounts": {"antigravity_km0529": {"quota": {"source": "agy_usage", "fetched_at": iso_utc(t0), "stale": False,
+                 "buckets": {"gemini": {"weekly_remaining_pct": 55.0}}}}}}
+        ok("兩個來源取查詢時間較新的那份",
+           effective_agy_quota(newer["accounts"]["antigravity_km0529"], "antigravity_km0529", home)["source"] == "agy_usage"
+           and effective_agy_quota({}, "antigravity_km0529", home)["source"] == "t3_cache")
         ok("接手順序：兩桶 4 步，Gemini 冷卻後跳到同帳號 Opus；雙向跨家審查各自跳過同供應商；提示完整列出全部 6 個手動帳號",
            len(p_gen["steps"]) == 4 and p_gen["steps"][0]["status"] == "skipped"
            and p_gen["active_step"]["stage"] == "antigravity_3p"
