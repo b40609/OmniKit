@@ -9,6 +9,6 @@ works_with:
 - claude
 - codex
 sources:
-- Windows 11 本機實裝與 stk824 雙盲對照調研（2026-11-24，三本帳本飽和）
+- Windows 11 本機實裝與跨模型雙盲對照調研（2026-11-24，三本帳本飽和）
 notes: kenryu42/cc-safety-net，★2,096，MIT（調研回報，2026-11-24）。指令語法解析級的 PreToolUse 安全網，擋危險 shell 指令（如 rm -rf、git reset --hard），原生支援 Windows 11，以及 Claude Code、Codex、Antigravity CLI。跟 OmniKit 的 harness_hooks.py 互補：那支管 --no-verify、機密檔與門禁設定，這個管破壞性指令；裝之前要比對兩者會不會重複擋。
 added: '2026-11-24'

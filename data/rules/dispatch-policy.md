@@ -20,7 +20,7 @@ policy_version: 1
 # 模型代號、預設值與上限取自 T3 orchestrator_capabilities 與實機探測（2026-11-25 實際查證）：
 # - gemini-4-argon（後繼 gemini-4-carbon，且已併入 Gemini Models 桶）與 gemini-3.8-flash（後繼 gemini-4-hydrogen）已於 2026-11-25 移出類別；
 #   舊模型淘汰過濾由 engine/scripts/accounts.py 依價格表資料驅動處理。
-# - gemini-orchestrator 與 antigravity-opus 在 T3 目錄未列出，但 2026-11-25 經 T3 對 antigravity_ryan 送代號實測皆正常回傳 OK。
+# - gemini-orchestrator 與 antigravity-opus 在 T3 目錄未列出，但 2026-11-25 經 T3 對 Antigravity 實例送代號實測皆正常回傳 OK。
 model_classes:
   claude-fable:        {model: claude-fable-5-2,            driver: claudeAgent, default_thinking: high,   max_thinking: max}
   claude-opus:         {model: claude-opus-5-5,             driver: claudeAgent, default_thinking: medium, max_thinking: max}
@@ -30,7 +30,7 @@ model_classes:
   gemini-fast:         {model: gemini-4-hydrogen,           driver: antigravity, default_thinking: xhigh,  max_thinking: xhigh, forbid_thinking: [low, medium]}
   gemini-orchestrator: {model: gemini-pro-orchestrator-neon, driver: antigravity, default_thinking: xhigh, max_thinking: xhigh, forbid_thinking: [low, medium]}
   antigravity-opus:    {model: claude-opus-5-5,             driver: antigravity, default_thinking: high,   max_thinking: high}
-# 2026-11-18、2026-11-25 ryan 定案：所有 Gemini 模型的調用，thought_level 永遠是 high 或更高（Neon、Hydrogen、Orchestrator 開 xhigh；
+# 共用政策定案（2026-11-18、2026-11-25）：所有 Gemini 模型的調用，thought_level 永遠是 high 或更高（Neon、Hydrogen、Orchestrator 開 xhigh；
 #   Carbon 最高 high；一律禁用 low、medium，dispatch.py check 與 run.py agy 會擋）。
 # 背景參考（未逐一附官方原始頁 URL 的第三方網搜數據一律標【待驗證】，分派規則只寫定案後的角色與檔位）：
 # - Gemini 4 Hydrogen 對 3.8 Flash：Artificial Analysis 指數與寫程式工作階段勝出，low 表現退步故禁用【待驗證】。
@@ -41,10 +41,12 @@ model_classes:
 
 # 任務類型 → 級別。紀錄的 task 欄位用這裡的 key。
 tasks:
-  docs:            {level: medium,       desc: 規格明確的文件、報表与整理}
+  docs:            {level: medium,       desc: 規格明確的文件、報表與整理}
   readonly:        {level: medium,       desc: 大範圍讀檔、唯讀檢查、盤點、查資料}
   ui-small:        {level: medium,       desc: 介面與多檔實作}
   code-small:      {level: medium,       desc: 規格明確的小修改與多檔實作}
+  synthesis:       {level: high,         desc: 重要調研統整與方案定案}
+  major-change:    {level: high,         desc: 跨模組重要改動與核心規則修改}
   accounting:      {level: high,         desc: 碰到帳務}
   risk:            {level: high,         desc: 碰到風控}
   orders:          {level: high,         desc: 碰到下單}
@@ -54,13 +56,14 @@ tasks:
   verify:          {level: verify,       desc: 獨立高風險驗收}
   architecture:    {level: architecture, desc: 重大架構決策與兩階段防迎合盲審}
 
-# 分工與審查原則（2026-11-25 定案）：
+# 分工與雙向對等跨家審查原則（2026-11-26 定案）：
 # - 讀檔／雜務（docs、readonly）：Gemini 4 Hydrogen xhigh，或 Claude Opus effort medium。
-# - 多檔／UI 實作（ui-small、code-small）：Gemini 4 Neon xhigh，或 Claude Opus effort high。
-# - 高風險實作（accounting、risk、orders、design-decision）：前置 Neon xhigh，定案 Opus effort high，反向審查 Carbon high。
-# - 高風險獨立驗收（verify）與難題（higher）：Claude Opus effort xhigh（不預設 max），反向審查 Gemini 4 Carbon high。
-# - 重大架構兩階段盲審（architecture）：Claude Fable 5.2 effort high（死結才升 xhigh），反向審查 Gemini 4 Carbon high；
-#   盲審子對話必須隔離跨對話記憶注入（見 blind_review）。
+# - 日常多檔／UI 實作（ui-small、code-small）：Gemini 4 Neon xhigh，或 Claude Opus effort high。
+# - 重要統整、設計決策與核心／高風險改動（synthesis、major-change、design-decision、accounting、risk、orders）：
+#   前置 Neon xhigh，定案首選 Claude Fable 5.2 effort high 或 Gemini 4 Carbon thought_level high（依主線供應商互補；Opus 5.5 high 退作額度備援）。
+# - 高風險獨立驗收（verify）與難題（higher）：Claude Opus effort xhigh（省 Fable 額度；失敗或遇高風險架構／重要統整才升 Fable 5.2 high；不預設 max）。
+# - 重大架構兩階段盲審（architecture）：Claude Fable 5.2 effort high（死結才升 xhigh）與 Gemini 4 Carbon high 對決；強制隔離跨對話記憶注入。
+# - 雙向對等跨家審查：Claude（Fable／Opus）產出 → Gemini 4 Carbon high 審；Gemini（Carbon／Neon）重要產出 → Claude Fable 5.2 high 審（日常中級才允許 Opus xhigh，避免用 Opus 審 Carbon）。
 levels:
   medium:
     name: 中
@@ -68,7 +71,7 @@ levels:
       - class: gemini-fast
         thinking: xhigh
         tasks: [docs, readonly]
-        note: 大範圍讀檔、唯讀檢查與文件雜務預設用 Hydrogen xhigh（2026-11-25 定案）
+        note: 大範圍讀檔、唯讀檢查與文件雜務預設用 Hydrogen xhigh
       - class: gemini-pro
         thinking: xhigh
         note: 多檔／UI 與中級實作預設用 Neon xhigh；Hydrogen 不可用時也接 docs／readonly
@@ -87,37 +90,54 @@ levels:
   high:
     name: 高
     prework:
-      - {class: gemini-pro, thinking: xhigh, role: 前置苦工：讀程式、收資料、重現、列候選與證據，不下結論、不改檔；Opus 拿它的整理定案}
+      - {class: gemini-pro, thinking: xhigh, role: 前置苦工：讀程式、收資料、重現、列候選與證據，不下結論、不改檔；交由 Fable 5.2 或 Carbon 定案}
     route:
+      - class: claude-fable
+        thinking: high
+        when: 本週 Claude 用量未達 80%（未知視為未達，見 usage_signal），且帳號支援 claude-fable-5-2
+        note: 重要統整、設計決策與核心／高風險改動首選 Fable 5.2 high（與 Gemini 主線互補）
+        pending: >-
+          【待驗證】非維護者訂閱方案能否呼叫 claude-fable-5-2，以及 Fable 與 Opus 週額度是否共池；
+          不支援或達 80% 時由上往下自動改走下一順位
+      - class: gemini-carbon
+        thinking: high
+        note: 對等雙強主路由（Carbon high，與 Claude 主線互補；單一自動派工實例忙碌時優先派 Claude 實例免排隊）
       - class: antigravity-opus
         thinking: high
         when: 本週 Claude 用量 >= 80%（見 usage_signal），而且任務是 accounting、risk 或 orders
         tasks: [accounting, risk, orders]
-        note: 同帳號 Claude & GPT 桶的 Opus（2026-11-25 經 T3 實測通過），只用在這三類
-      - {class: claude-opus, thinking: high}
+        note: 同帳號 Claude & GPT 桶的 Opus 額度備援，只用在這三類
+      - class: claude-opus
+        thinking: high
+        when: Fable 5.2 不可用（方案不支援或額度受限）且無 Carbon／Antigravity 實例時的備援
+        note: Opus 5.5 high 退作日常 medium 多檔實作與 high 級額度備援
     second_opinion:
-      - {class: gemini-carbon, thinking: high, role: 反向跨家唯讀審查 Claude 的產出（審查者不比作者弱，Carbon 最高 high）}
-      - {class: gemini-pro, thinking: xhigh, role: Carbon 不可用時的跨家唯讀審查備援（Neon xhigh）}
+      - {class: gemini-carbon, thinking: high, role: 跨家唯讀審查 Claude（Fable／Opus）的產出（Carbon high，審查者不比作者弱）}
+      - {class: claude-fable, thinking: high, role: 跨家唯讀審查 Gemini（Carbon／Neon）的重要產出（Fable 5.2 high，避免降級用 Opus 審 Carbon）}
+      - {class: gemini-pro, thinking: xhigh, role: Carbon 不可用時審 Claude Opus 產出的備援（Neon xhigh）}
   higher:
     name: 更高
     prework:
-      - {class: gemini-pro, thinking: xhigh, role: 前置苦工：讀程式、重現錯誤、縮小範圍、列假設與證據，不改檔；Opus 拿它的整理定案}
+      - {class: gemini-pro, thinking: xhigh, role: 前置苦工：讀程式、重現錯誤、縮小範圍、列假設與證據，不改檔；交由主路由定案}
     route:
-      - {class: claude-opus, thinking: xhigh, note: 不預設 max；xhigh 仍失敗時依 escalation 升 Fable 5.2 high}
+      - {class: claude-opus, thinking: xhigh, note: 維持 Opus 5.5 xhigh 省 Fable 額度（不預設 max）；仍無法收斂或遇高風險架構／重要統整時升 Fable 5.2 high}
     second_opinion:
-      - {class: gemini-carbon, thinking: high, role: 反向跨家唯讀審查 Opus 的修法（Carbon high）}
+      - {class: gemini-carbon, thinking: high, role: 跨家唯讀審查 Claude Opus 的修法（Carbon high）}
+      - {class: claude-fable, thinking: high, role: 跨家唯讀審查 Gemini 的修法（Fable 5.2 high）}
   verify:
     name: 獨立驗收
     route:
-      - {class: claude-opus, thinking: xhigh, role: 高風險主驗收（Opus effort xhigh，不預設 max）}
+      - {class: claude-opus, thinking: xhigh, role: 高風險主驗收（維持 Opus 5.5 xhigh 省 Fable 額度；失敗或審 Gemini Carbon／Neon 重要產出時升 Fable 5.2 high）}
     second_opinion:
-      - {class: gemini-carbon, thinking: high, role: 反向跨家唯讀第二意見（作者是 Claude 時用 Carbon high；預設要跑）}
+      - {class: gemini-carbon, thinking: high, role: 跨家唯讀第二意見（作者是 Claude 時用 Carbon high）}
+      - {class: claude-fable, thinking: high, role: 跨家唯讀第二意見（作者是 Gemini Carbon／Neon 時用 Fable 5.2 high；日常中級才允許 Opus xhigh）}
   architecture:
     name: 重大架構盲審
     route:
       - {class: claude-fable, thinking: high, role: 兩階段防迎合盲審（Stage 1 零錨定獨立設計寫盤 → Stage 2 讀提案對決；強制隔離記憶注入；死結才 xhigh）}
     second_opinion:
-      - {class: gemini-carbon, thinking: high, role: 反向跨家架構盲審（作者或主審是 Claude 時用 Carbon high；強制隔離記憶注入）}
+      - {class: gemini-carbon, thinking: high, role: 跨家架構盲審（作者或主審是 Claude 時用 Carbon high；強制隔離記憶注入）}
+      - {class: claude-fable, thinking: high, role: 跨家架構盲審（作者或主審是 Gemini 時用 Fable 5.2 high；強制隔離記憶注入）}
 
 # 重大架構兩階段防迎合盲審協定（2026-11-25 定案）。
 blind_review:
@@ -131,13 +151,17 @@ blind_review:
     建立獨立 Scratch 對話並將證據內容透過任務訊息傳入（S1 實測 SessionStart 視為無記憶新專案；Read 通道於 Scratch 下之行為【待驗證】），
     或指定未安裝記憶 plugin 之乾淨實例。
 
-# 驗收不過時怎麼升級。每次升級都要記進紀錄的 escalations；同設定重跑記 retries。
+# 驗收不過時怎麼升級。每次升級都要記進紀錄的 escalations；同設定重跑記 retries。單調往上不循環。
 escalation:
   - {from: gemini-fast, to: gemini-pro, thinking: xhigh, why: Hydrogen xhigh 驗收不過，先升 Neon xhigh 重跑}
   - {from: gemini-pro, to: claude-opus, thinking: high, why: Neon xhigh 驗收不過，改由 Opus high 定案重跑}
   - {from: claude-sonnet, to: claude-opus, thinking: same, why: Sonnet 試行的品質保護：驗收不過就用 Opus、同一級 effort 重跑}
-  - {from: level, to: higher, after_failures: 2, why: 「驗收一直不過」定義為同一個任務驗收不過 2 次（升到 Opus xhigh）}
-  - {from: {class: claude-opus, thinking: xhigh}, to: {class: claude-fable, thinking: high}, why: Opus xhigh 仍無法收斂時升到 Fable 5.2 high（max 不預設，僅限使用者明確指定）}
+  - {from: medium, to: higher, after_failures: 2, why: 中級任務驗收不過 2 次升到 higher（Opus xhigh）；high 主路由已是 Fable／Carbon，不降回 Opus xhigh}
+  - {from: {class: claude-opus, thinking: high, levels: [high]}, to: {class: claude-fable, thinking: high}, why: high 級 Opus high 備援驗收不過時升到 Fable 5.2 high（中級 Opus high 不走這條，走失敗 2 次升 Opus xhigh）}
+  - {from: {class: claude-opus, thinking: xhigh}, to: {class: claude-fable, thinking: high}, why: Opus xhigh 仍無法收斂或遇高風險架構／重要統整時升到 Fable 5.2 high（max 不預設，僅限使用者明確指定）}
+  - {from: {class: gemini-carbon, thinking: high}, to: {class: claude-fable, thinking: high}, once: true, why: Carbon high 驗收不過時換家改由 Fable 5.2 high 定案（僅對調一次，不循環）}
+  - {from: {class: claude-fable, thinking: high}, to: {class: gemini-carbon, thinking: high}, once: true, when: 有 Gemini Carbon 實例且尚未跑過 Carbon, why: Fable 5.2 high 驗收不過時換家改由 Carbon high 定案（僅對調一次，不循環）}
+  - {from: {class: claude-fable, thinking: high}, to: stop, after_peer: true, why: Fable 5.2 high 與 Carbon high 皆無法收斂（或無跨家實例）時為升級終點，停下來回報【等你決定】（使用者明確指定才開 xhigh／max）}
 
 # 管道。
 channels:
@@ -146,7 +170,7 @@ channels:
   t3_cli:
     use: >-
       不在 T3 裡、這個 agent 還沒授權 T3 的 MCP 時，用 T3 Code 的本機 t3 thread CLI 開 T3 對話。
-      已經接上 T3 MCP 的，優先用 t3_thread_launch 管道（能自己結案）。使用者要指定 T3 上的帳號實例或模型（例如 antigravity_ryan 加 gemini-4-hydrogen-xhigh）、
+      已經接上 T3 MCP 的，優先用 t3_thread_launch 管道（能自己結案）。使用者要指定 T3 上的帳號實例或模型（例如 antigravity_main 加 gemini-4-hydrogen-xhigh）、
       想在 T3 側邊欄看到那條對話、要開在獨立 worktree，或要派給 T3 才有的帳號實例時用它。不要因為這裡沒有 delegate_task、
       t3_thread_launch 這類 MCP 工具就回答「沒辦法派給 T3」。
     how: >-
@@ -169,10 +193,10 @@ channels:
       和其他管道的分工：同供應商、不需要指定帳號、不用在 T3 看到的，用原生子代理（最省事、結果直接回主線）；
       派給 Antigravity 的模型照使用者偏好 visibility 選（見 visibility）：visible 依序用 delegate_task（主控在 T3 裡）、
       t3_thread_launch（T3 外、接了 T3 MCP）、t3_cli（沒接或 MCP 斷線）；headless 用 agy_cli。
-      要指定 T3 上的帳號實例（antigravity_ryan、claudeAgent_2…）一律走 T3 的三個管道（agy_cli 只有本機 agy 單一登入帳號）。
+      要指定 T3 上的帳號實例（例如 antigravity_main、claudeAgent_2…）一律走 T3 的三個管道（agy_cli 只有本機 agy 單一登入帳號）。
     note: >-
       2026-11-25 實測（t3 v0.1.12-nightly.20261125.5222）：t3 thread start . "Probe: reply with exact word OK only, do nothing else."
-      --provider antigravity_ryan --model gemini-pro-orchestrator-neon --wait --json 回傳 {"status":"completed","reply":"OK"}。
+      --provider <antigravity 實例> --model gemini-pro-orchestrator-neon --wait --json 回傳 {"status":"completed","reply":"OK"}。
   delegate_task:
     use: 在 T3 裡跨供應商（Gemini／Antigravity）、要獨立 worktree、要指定別的帳號實例（providerInstanceId）
     thinking: >-
@@ -239,7 +263,7 @@ visibility:
       channels:
         - {channel: agy_cli, when: 這台有 agy（Antigravity CLI），而且用的是 agy 登入的那個帳號}
       fallback: >-
-        要指定 agy 沒登入的帳號實例（例如 antigravity_ava、antigravity_stk608），或這台沒有 agy 時，改用 visible 的三個管道。
+        要指定 agy 沒登入的帳號實例（例如 antigravity_2、antigravity_work），或這台沒有 agy 時，改用 visible 的三個管道。
 
 # 派給 Antigravity 的回合怎麼收尾。所有管道都適用：agy_cli、t3_cli、t3_thread_launch，主控在 T3 裡用 delegate_task 也一樣。
 antigravity_turns:
@@ -263,8 +287,8 @@ antigravity_turns:
     不在就用 send（t3_thread_launch 的對話用 MCP，t3_cli 用 t3 thread send）請它接著做。Antigravity 主線出現這個橫幅時，
     同樣先看工作是否已完成，未完成再送「繼續」。
   main_thread: >-
-    T3 server 原始碼把 Antigravity 的 promptInactivityTimeout 寫死成 "15 minutes"（Claude 與 Codex 都沒有，也沒有設定可以改；下次 T3 升版時重查）。
-    因此長時間跑的主線優先用 Claude 實例；改用 Antigravity 跑主線時採分階段回報節奏避免單回合靜默超過 15 分鐘，遇到橫幅時先檢查交付與狀態，未完成再送「繼續」。
+    T3 server 原始碼把 Antigravity 的 promptInactivityTimeout 寫死成 "15 minutes"（Claude 與 Codex 皆無此限制，下次 T3 升版時重查）。
+    主線不限制供應商；Antigravity 主線遇大型任務時採背景子對話或分階段回報節奏，避開單回合 15 分鐘無輸出逾時，遇到橫幅時先檢查完成狀態與交付物再續跑。
   user_in_t3: 使用者自己在 T3 開的對話：看到回報檔已經出現、對話卻還顯示 working，直接按停止。
   pending:
     - 【待驗證】t3_thread_interrupt 能不能立刻收掉這種卡住的回合
@@ -278,7 +302,7 @@ usage_signal:
     Claude Code 狀態列的 JSON 輸入有 rate_limits.seven_day.used_percentage（官方文件 code.claude.com/docs/en/statusline，
     只有 Pro、Max、Ultra 訂閱，而且要該對話第一個回應之後才有），加上 T3 供應商快取 ~/.t3/caches/<實例>.json 的 usageLimits。
   pending: >-
-    2026-11-23 實測：claude_allow.py 已把 dispatch.py statusline --dir 接進 ~/.claude、~/.claude-kai、~/.claude-retis 三個目錄；
+    claude_allow.py 會把 dispatch.py statusline --dir 接進 ~/.claude 及所有已宣告的多帳號 CLAUDE_CONFIG_DIR（如 ~/.claude-work 等；2026-11-23 多帳號實測通過）；
     T3 裡跑 Claude 則由 account_pool.py 讀取 ~/.t3/caches/<實例>.json 的 usageLimits（不讀 auth 欄位）。查不到（unknown）時不要假設已達 80%。
 
 # Sonnet 試行的品質保護（凍結至 2026-11-29 到期檢討）。

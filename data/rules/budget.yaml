@@ -5,11 +5,11 @@ schema_version: 1
 updated_at: '2026-11-26'
 
 limits:
-  # Antigravity ~/.gemini/AGENTS.md 共用受管區塊上限（瘦身前 6,777 bytes；移出 mobile-web.md 後實測 5,200 bytes）
+  # Antigravity ~/.gemini/AGENTS.md 共用受管區塊上限（移出 mobile-web.md 並補雙向對等審查後實測 5,320 bytes）
   antigravity_shared_max_bytes: 5400
-  # Antigravity ~/.gemini/GEMINI.md 個人受管區塊上限（實測 ryan 8,606 bytes；平台硬上限 24,000 bytes）
-  antigravity_personal_max_bytes: 8800
-  # Codex ~/.codex/AGENTS.md 合併受管區塊上限（瘦身前 15,284 bytes；移出 mobile-web.md 後實測 13,707 bytes；平台硬上限 32,768 bytes）
-  codex_combined_max_bytes: 14000
+  # Antigravity ~/.gemini/GEMINI.md 個人受管區塊上限（個人層第二波瘦身：8,605 -> 7,545 bytes；平台硬上限 24,000 bytes）
+  antigravity_personal_max_bytes: 7800
+  # Codex ~/.codex/AGENTS.md 合併受管區塊上限（兩波瘦身：15,284 -> 13,707 -> 12,767 bytes；平台硬上限 32,768 bytes）
+  codex_combined_max_bytes: 13000
   # 所有未設 disable-model-invocation: true 的 engine/skills/*/SKILL.md 之 description 總 UTF-8 bytes（實測 7 個共 3,529 bytes）
   auto_skill_desc_max_bytes: 3800

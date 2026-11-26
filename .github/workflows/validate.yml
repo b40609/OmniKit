@@ -90,6 +90,8 @@ jobs:
       # 候選池與證據等級輔助檢查
       - run: uv run engine/scripts/pool.py --selftest
       - run: uv run engine/scripts/proof.py --selftest
+      # 單元測試（治理護欄、無帳本同步、個人面板等 pytest 測試集；不寫 .pytest_cache 以免污染 git status）
+      - run: uv run --with pytest python -m pytest tests -q -p no:cacheprovider
 
   # FR-34：同事用的是 Windows，上面「名冊」的每一個 uv run 都在 Windows 再跑一次（windows-ci.ps1 從這個檔案讀，
   # 加了新的檢查不用改兩個地方），另外跑 preflight.ps1 與 install.ps1 的 -SelfTest、install.ps1 -WhatIf，

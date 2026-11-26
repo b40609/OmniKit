@@ -350,14 +350,14 @@ uv run scripts/cockpit.py autostart --status  # 查詢／管理 Windows 登入�
 
 ```yaml
 instances:
-  claudeAgent:  {driver: claudeAgent, account: 我的 Claude, classes: [claude-opus, claude-sonnet]}
-  antigravity:  {driver: antigravity, account: 我的 Google, classes: [gemini-pro, antigravity-opus]}
+  claudeAgent:  {driver: claudeAgent, account: 我的 Claude, classes: [claude-fable, claude-opus, claude-sonnet]}
+  antigravity:  {driver: antigravity, account: 我的 Google, classes: [gemini-carbon, gemini-pro, gemini-fast, antigravity-opus]}
 ```
 ````
 
 寫完跑 `uv run engine/scripts/dispatch.py check` 檢查，再跑 `uv run engine/scripts/dispatch.py show` 看套上之後每一級會用什麼。`data/profiles/ryan/dispatch.md` 是完整的例子。
 
-**沒有 Gemini／Antigravity，只用 Claude。** 不用寫 `dispatch.md`。沒有實例的類別會自動跳過：中級退回 Claude Sonnet（effort medium），高級用 Opus（effort high），更高用 Opus（effort xhigh），驗收用 Opus（effort high），沒有第二意見；「本週用量 80% 改派 Antigravity」那條也不會用到。只有其他 Claude 帳號要給 `delegate_task` 指定時，才需要寫 `claudeAgent` 類的實例。
+**沒有 Gemini／Antigravity，只用 Claude。** 不用寫 `dispatch.md`。沒有實例的類別與跨家第二意見會自動跳過（不會出現同模型自己審自己）：中級讀檔／雜務用 Opus（effort medium）、日常多檔／UI 用 Opus（effort high，退路 Sonnet medium），高級重要統整與改動首選 Fable 5.2（effort high；方案不支援或達 80% 用量時退回 Opus high），更高與獨立驗收用 Opus（effort xhigh），重大架構用 Fable 5.2（effort high），沒有跨家第二意見；「本週用量 80% 改派 Antigravity」那條也不會用到。只有其他 Claude 帳號要給 `delegate_task` 指定時，才需要寫 `claudeAgent` 類的實例。
 
 **委派紀錄。** 子任務結果收回、驗收完、settle 之前，agent 用 `omnikit-dispatch` skill 記一行到 `~/.omnikit/dispatch/log.jsonl`：時間、專案名稱、任務類型、級別、管道、供應商實例、模型類別與模型、思考程度、是否一次通過、重試次數、升級次數、最後過關的類別、驗收結論、規則版本、profile。只存在這台，不進 repo、不上傳；專案只記資料夾名稱。目前是規則要求 agent 寫，不是 hook 自動寫：一次通過、驗收結論這些只有主對話知道。
 

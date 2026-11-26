@@ -13,7 +13,7 @@ thinking_preference: max_available
 
 # 2026-11-23 ryan 定案（D2）、2026-11-25 對齊兩桶結構：額度用完照接手順序（antigravity_ryan Gemini Models 桶 →
 # 同帳號 Claude & GPT 桶的 Opus → Claude 三個實例依 weekly-first 挑 → 停下來列全部 6 個手動帳號狀態與重置時間由我決定）。
-# 派給 Gemini 是為了跨家審查 Claude 的產出時，跳過換成 Claude 的兩步。細節 docs/proposals/2026-11-23-account-pool.md 第四節。
+# 派跨家審查時雙向跳過同供應商（審 Claude 產出跳過換成 Claude，審 Gemini 產出跳過換回 Gemini）。細節 docs/proposals/2026-11-23-account-pool.md 第四節。
 on_exhausted: prompt_manual_switch
 
 # 2026-11-23 ryan 定案（D7＋屏蔽 Argon）、2026-11-25 加入 Haiku 5.5：
@@ -34,10 +34,12 @@ instances:
     note: Neon、Hydrogen、Orchestrator 最高 xhigh；Carbon 與這裡的 Claude Opus 最高 high（2026-11-25 經 T3 實測 Orchestrator 與 Opus 皆通過；Argon 已屏蔽）
   # 以下 6 個是 1A 手動帳號（classes 留空，agent 不自動派、不自動輪換）：
   # 2026-11-25 T3 目錄實查：每個 Antigravity 實例皆列出 Neon、Hydrogen、Carbon，且獨立檔案式 token 儲存已生效。
-  # 併發原則（2026-11-25 對齊）：
+  # 併發與主線互補原則（2026-11-26 定案）：
   # - antigravity_ryan（2B 跨家自動派工）：維持一次一條低併發；
   # - ryan 本人手動開的 1A 帳號（kanny163 / km0529 / stk608 / stk824 / itri / ava）：一次集中啟用 1 隻帳號，
-  #   該帳號內可手動平行開 2 條對話跑不同專案，5 小時額度滿再換下一隻。
+  #   該帳號內可手動平行開 2 條對話跑不同專案，5 小時額度滿再換下一隻；
+  # - 當主線本身開在手動 1A 帳號（Carbon／Neon）時，重要統整與設計留在主線做，反向跨家審查與獨立改動優先派給 3 隻 Claude 實例
+  #   （Fable 5.2／Opus），不硬派回 antigravity_ryan 造成單帳號排隊塞車與撞額度。
   antigravity_kanny163: {driver: antigravity, account: kanny163, classes: []}
   antigravity_km0529:   {driver: antigravity, account: km0529,   classes: []}
   antigravity_stk608:   {driver: antigravity, account: stk608,   classes: []}
@@ -48,6 +50,6 @@ instances:
 
 # 備註：
 # - 派給 Claude 時照 run.py show 的實例推薦（weekly-first，距週重置 < 48h 優先燒完，在工作包邊界挑，同一條對話不中途換）；effort 照分派政策 levels 分工表。
-# - Codex（2026-11-21 更正、2026-11-25 實查）：訂閱已到期，T3 的 codex 實例目前停用；長期審查流程不依賴官方 Codex，改派 Carbon high / Opus xhigh 或走本機橋接。
-# - Antigravity 15 分鐘逾時：T3 server 把 Antigravity 的 promptInactivityTimeout 寫死成 "15 minutes"（下次 T3 升版時重查）；長主線優先用 Claude 實例，Antigravity 主線採分階段回報並於出現橫幅時先檢查工作是否已完成。
+# - Codex（2026-11-21 更正、2026-11-25 實查）：訂閱已到期，T3 的 codex 實例目前停用；長期審查流程不依賴官方 Codex，改派 Carbon high / Fable 5.2 high / Opus xhigh 或走本機橋接。
+# - Antigravity 15 分鐘逾時：不限制主線供應商；Antigravity（Carbon／Neon）主線遇大型任務採背景子對話或分階段回報避開 15 分鐘靜默逾時（下次 T3 升版時重查），遇橫幅先檢查完成狀態與交付物再續跑。
 ```

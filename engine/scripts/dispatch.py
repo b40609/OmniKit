@@ -193,12 +193,55 @@ def check(pol, mine=None):
         for k in ("class", "baseline"):
             if tr.get(k) and tr[k] not in classes:
                 errors.append(f"trials.{name}.{k} 的模型類別不存在：{tr[k]}")
+    esc_edges = {}
     for i, e in enumerate(pol.get("escalation") or []):
         for k in ("from", "to"):
-            v = e.get(k)
-            v = v.get("class") if isinstance(v, dict) else v
-            if v not in classes and v not in ("level", "higher") and v not in levels:
+            raw = e.get(k)
+            v = raw.get("class") if isinstance(raw, dict) else raw
+            allowed_special = ("level", "higher", "stop") if k == "to" else ("level", "higher")
+            if v not in classes and v not in allowed_special and v not in levels:
                 errors.append(f"escalation 第 {i + 1} 條的 {k} 不認得：{v}")
+            if isinstance(raw, dict) and "levels" in raw:
+                for lv_name in raw.get("levels") or []:
+                    if lv_name not in levels:
+                        errors.append(f"escalation 第 {i + 1} 條的 {k}.levels 不認得：{lv_name}")
+        if not e.get("once"):
+            f_raw, t_raw = e.get("from"), e.get("to")
+            fc = f_raw.get("class") if isinstance(f_raw, dict) else f_raw
+            tc = t_raw.get("class") if isinstance(t_raw, dict) else t_raw
+            f_th = f_raw.get("thinking") if isinstance(f_raw, dict) else None
+            t_th = (t_raw.get("thinking") if isinstance(t_raw, dict) else None) or e.get("thinking")
+            if fc in classes and tc in classes:
+                src_ths = [f_th] if f_th in THINKING else [th for th in THINKING if th not in (classes[fc].get("forbid_thinking") or []) and THINKING.index(th) <= THINKING.index(classes[fc].get("max_thinking", "max"))]
+                for sth in src_ths:
+                    dth = sth if t_th == "same" else (t_th if t_th in THINKING else classes[tc].get("default_thinking", "medium"))
+                    if (fc, sth) != (tc, dth):
+                        esc_edges.setdefault((fc, sth), set()).add((tc, dth))
+            elif fc in levels and tc in levels:
+                for r_opt in (levels[fc].get("route") or []):
+                    for t_opt in (levels[tc].get("route") or []):
+                        if r_opt.get("class") in classes and t_opt.get("class") in classes:
+                            u = (r_opt["class"], r_opt.get("thinking"))
+                            v_node = (t_opt["class"], t_opt.get("thinking"))
+                            if u != v_node:
+                                esc_edges.setdefault(u, set()).add(v_node)
+    visiting, visited = set(), set()
+
+    def _has_cycle(node):
+        if node in visiting:
+            return True
+        if node in visited:
+            return False
+        visiting.add(node)
+        for nxt in esc_edges.get(node, ()):
+            if _has_cycle(nxt):
+                return True
+        visiting.remove(node)
+        visited.add(node)
+        return False
+
+    if any(_has_cycle(n) for n in list(esc_edges)):
+        errors.append("escalation 升級鏈出現無 once 限制的循環")
     if mine is not None:
         for inst, spec in (mine.get("instances") or {}).items():
             spec = spec or {}
@@ -292,6 +335,9 @@ def resolved(pol, mine, agent="claude", judge=None, model_note=None, claude_orde
     judge（accounts.annotate 給的）：(實例, 模型) → (能不能自動派, 原因)；不能派的實例移到 blocked 並附原因。
     model_note：模型被淘汰過濾時回原因（整個選項跳過）。
     claude_order：依額度策略排好的 Claude 實例優先順序（工作包邊界挑）。"""
+    configured_drivers = {(spec or {}).get("driver") for spec in ((mine or {}).get("instances") or {}).values() if (spec or {}).get("driver")}
+    if AGENT_DRIVER.get(agent):
+        configured_drivers.add(AGENT_DRIVER[agent])
     out = {}
     for level, lv in pol["levels"].items():
         tasks = [t for t, v in pol["tasks"].items() if v["level"] == level]
@@ -300,24 +346,26 @@ def resolved(pol, mine, agent="claude", judge=None, model_note=None, claude_orde
                             ("second_opinion", lv.get("second_opinion") or [])):
             for o in items:
                 cls = pol["model_classes"][o["class"]]
-                inst, blocked = instances_for(pol, mine, o["class"], agent), []
-                if claude_order and cls["driver"] == "claudeAgent":
+                single_vendor_skip = kind == "second_opinion" and not (configured_drivers - {cls["driver"]})
+                inst, blocked = ([] if single_vendor_skip else instances_for(pol, mine, o["class"], agent)), []
+                if claude_order and cls["driver"] == "claudeAgent" and inst:
                     rank = {iid: idx for idx, iid in enumerate(claude_order)}
                     head = [i for i in inst if i == "native"]
                     rest = [i for i in inst if i != "native"]
                     rest.sort(key=lambda i: (rank.get(i, 999), inst.index(i)))
                     inst = head + rest
-                if judge:
+                if judge and inst:
                     verdicts = [(i, *judge(i, cls["model"])) for i in inst]
                     inst = [i for i, ok, _ in verdicts if ok]
                     blocked = [{"instance": i, "why": why} for i, ok, why in verdicts if not ok]
                 filtered = model_note(cls["model"]) if model_note else ""
                 th, th_why = effective_thinking(pol, o["class"], o["thinking"], level, kind, mine)
                 rows.append({"kind": kind, "class": o["class"], "model": cls["model"], "thinking": th,
-                             "policy_thinking": o["thinking"], "thinking_why": th_why,
-                             "thinking_name": "effort" if cls["driver"] == "claudeAgent" else "thought_level",
-                             "when": o.get("when"), "tasks": o.get("tasks"), "instances": [] if filtered else inst,
-                             "blocked": blocked, "filtered": filtered, "skip": bool(filtered) or not inst,
+                             "policy_thinking": o["thinking"], "thinking_name": "effort" if cls["driver"] == "claudeAgent" else "thought_level",
+                             "thinking_why": th_why, "when": o.get("when"), "tasks": o.get("tasks"),
+                             "instances": [] if filtered else inst, "blocked": blocked, "filtered": filtered,
+                             "single_vendor_skip": single_vendor_skip,
+                             "skip": bool(filtered) or single_vendor_skip or not inst,
                              "trial": o.get("trial"), "pending": o.get("pending"), "note": o.get("note"), "role": o.get("role")})
         out[level] = {"name": lv.get("name", level), "tasks": tasks, "options": rows}
     return out
@@ -579,10 +627,12 @@ def show_text(table, profile, has_personal, usage=None, pol=None, mine=None, acc
         for o in lv["options"]:
             head = {"prework": "前置", "second_opinion": "第二意見"}.get(o["kind"]) or f"{route.index(o) + 1}."
             inst = (f"已過濾，跳過（{o['filtered']}）" if o.get("filtered") else
+                    "單一供應商無跨家對象，跳過" if o.get("single_vendor_skip") else
                     ("沒有可自動派的實例，跳過" if o.get("blocked") else "沒有實例，跳過") if o["skip"] else
                     "實例：" + "、".join(o["instances"]))
             extra = (f"；條件：{o['when']}" if o["when"] else "") + (f"；只接：{'、'.join(o['tasks'])}" if o["tasks"] else "")
-            role = f"；{o['role']}" if o["role"] and o["kind"] != "route" else ""
+            detail = o.get("role") or o.get("note") or ""
+            role = f"；{detail}" if detail else ""
             th_note = f"（{o['thinking_why']}）" if o.get("thinking_why") else ""
             lines.append(f"  {head} {o['class']}（{o['model']}）{o['thinking_name']} {o['thinking']}{th_note}；{inst}{extra}{role}")
             for b in o.get("blocked") or []:
@@ -637,7 +687,7 @@ def stats_text(s):
 # - agy 終端機的 PATH 只有系統路徑（沒有使用者路徑），uv、gh 這類要給絕對路徑。
 AGY_GUARD = ("【硬性限制，優先於下面的任務說明】不 git commit、不 git push、不刪檔或清空資料夾、不改 git 設定、"
              "不寄信或發訊息、不安裝軟體、不改系統或安全設定；只改任務說明允許的檔案。做不到就停下來回報。\n\n")
-# 收尾規定（dispatch-policy.md 的 antigravity_turns.brief）：2026-11-18 antigravity_kai 在 T3 寫完回報後回合一直不結束，
+# 收尾規定（dispatch-policy.md 的 antigravity_turns.brief）：2026-11-18 Antigravity 實例在 T3 寫完回報後回合一直不結束，
 # 15 分鐘後被判失敗；同一次也因為在前景跑伺服器撞到工具逾時。完成標記固定寫在交付檔旁邊，主控才查得到。
 AGY_FINISH = ("【收尾規定，優先於下面的任務說明】1. 交付物先寫成檔案：任務說明有指定位置就寫在那裡，沒指定就寫進 {result}。"
               "2. 全部做完後，最後一個動作是建立完成標記檔 {done}（內容寫交付檔的路徑），寫完才送出最後回覆。"
@@ -982,14 +1032,18 @@ def selftest():
 
     bad = json.loads(json.dumps(pol))
     bad["levels"]["medium"]["route"][0]["thinking"] = "low"
-    bad["levels"]["high"]["route"][0]["thinking"] = "xhigh"
+    for opt in bad["levels"]["high"]["route"]:
+        if opt["class"] in ("gemini-carbon", "antigravity-opus"):
+            opt["thinking"] = "xhigh"
+            break
     bad["levels"]["higher"]["route"][0].pop("thinking")
     bad["tasks"]["docs"]["level"] = "nope"
+    bad["escalation"].append({"from": {"class": "claude-fable", "thinking": "high"}, "to": {"class": "claude-opus", "thinking": "xhigh"}, "why": "測試無 once 循環"})
     errs = check(bad, {"instances": {"x": {"driver": "antigravity", "classes": ["claude-opus", "nope"]}}})
-    ok("檢查抓得到：禁用的 low、超過上限、沒寫思考程度、不存在的級別、實例對錯供應商、不存在的類別",
+    ok("檢查抓得到：禁用的 low、超過上限、沒寫思考程度、不存在的級別、實例對錯供應商、不存在的類別、升級循環",
        any("禁用" in e for e in errs) and any("最高 high" in e for e in errs) and any("不要靠預設值" in e for e in errs)
        and any("tasks.docs" in e for e in errs) and any("要用 claudeAgent 的實例" in e for e in errs)
-       and any("類別不存在：nope" in e for e in errs))
+       and any("類別不存在：nope" in e for e in errs) and any("循環" in e for e in errs))
 
     t = resolved(pol, ryan, "claude")
     med = t["medium"]["options"]
@@ -1028,18 +1082,28 @@ def selftest():
        and fl["skip"] and fl["filtered"] == "測試：過濾"
        and "已過濾，跳過（測試：過濾）" in show_text(tj, "ryan", True) and "不派 claudeAgent_2：測試：停用" in show_text(tj, "ryan", True))
     ok("Claude 類別在 Claude 底下原生子代理排第一",
-       [o for o in t["high"]["options"] if o["class"] == "claude-opus"][0]["instances"][0] == "native")
-    ok("ryan：高級與更高級先派 Neon xhigh 做前置苦工、反向審查首選 Carbon high；獨立驗收 Opus xhigh；架構盲審 Fable 5.2 high 對 Carbon high",
-       all(t[lv]["options"][0]["kind"] == "prework" and t[lv]["options"][0]["class"] == "gemini-pro"
-           and any(o["kind"] == "second_opinion" and o["class"] == "gemini-carbon" and o["thinking"] == "high" for o in t[lv]["options"])
-           for lv in ("high", "higher"))
+       [o for o in t["high"]["options"] if o["class"] == "claude-fable"][0]["instances"][0] == "native"
+       and [o for o in t["high"]["options"] if o["class"] == "claude-opus"][0]["instances"][0] == "native")
+    high_routes = [o["class"] for o in t["high"]["options"] if o["kind"] == "route"]
+    ok("ryan：high 含 synthesis／major-change 且首選 Fable 5.2 high 與 Carbon high；verify／higher 維持 Opus xhigh；雙向對等跨家審查齊備",
+       "synthesis" in t["high"]["tasks"] and "major-change" in t["high"]["tasks"]
+       and high_routes[:2] == ["claude-fable", "gemini-carbon"]
+       and all(t[lv]["options"][0]["kind"] == "prework" and t[lv]["options"][0]["class"] == "gemini-pro" for lv in ("high", "higher"))
+       and all(
+           any(o["kind"] == "second_opinion" and o["class"] == "gemini-carbon" and o["thinking"] == "high" for o in t[lv]["options"])
+           and any(o["kind"] == "second_opinion" and o["class"] == "claude-fable" and o["thinking"] == "high" for o in t[lv]["options"])
+           for lv in ("high", "higher", "verify", "architecture")
+       )
+       and [o for o in t["higher"]["options"] if o["kind"] == "route"][0]["class"] == "claude-opus"
+       and [o for o in t["higher"]["options"] if o["kind"] == "route"][0]["thinking"] == "xhigh"
        and t["verify"]["options"][0]["class"] == "claude-opus" and t["verify"]["options"][0]["thinking"] == "xhigh"
-       and t["architecture"]["options"][0]["class"] == "claude-fable" and t["architecture"]["options"][0]["thinking"] == "high"
-       and t["architecture"]["options"][-1]["class"] == "gemini-carbon" and t["architecture"]["options"][-1]["thinking"] == "high")
+       and t["architecture"]["options"][0]["class"] == "claude-fable" and t["architecture"]["options"][0]["thinking"] == "high")
     bare = resolved(pol, None, "claude")
-    ok("沒有個人層（同事只有 Claude）：Gemini 與 Antigravity 選項全部跳過，Claude 原生選項可用",
+    ok("沒有個人層（同事只有 Claude）：Gemini 與 Antigravity 選項、以及所有跨家第二意見全部跳過（不自己審自己），Claude 原生主路由可用",
        all(o["skip"] for lv in bare.values() for o in lv["options"] if not o["class"].startswith("claude-"))
-       and any(o["class"] == "claude-sonnet" and o["thinking"] == "medium" and not o["skip"] for o in bare["medium"]["options"]))
+       and all(o["skip"] for lv in bare.values() for o in lv["options"] if o["kind"] == "second_opinion")
+       and any(o["class"] == "claude-sonnet" and o["thinking"] == "medium" and not o["skip"] for o in bare["medium"]["options"])
+       and "審 Gemini Carbon／Neon 重要產出時升 Fable 5.2 high" in show_text(t, "ryan", True))
 
     ok("agy：類別加思考程度寫進模型代號（Neon xhigh、Hydrogen xhigh、Carbon high、Antigravity 的 Opus high）",
        agy_model(pol, "gemini-pro", "xhigh") == "gemini-4-neon-xhigh"

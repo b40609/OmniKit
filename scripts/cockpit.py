@@ -280,7 +280,7 @@ def selftest() -> int:
                         "itemCount": 1250,
                         "updatedAt": collector.iso_utc(datetime.now(UTC)),
                         "model": "gemini-4-neon",
-                        "providerInstanceId": "antigravity_ryan",
+                        "providerInstanceId": "antigravity_main",
                         "link": "https://app.t3.codes/threads/env1/th-1",
                     }
                 ]

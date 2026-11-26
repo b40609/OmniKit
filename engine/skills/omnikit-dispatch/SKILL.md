@@ -25,7 +25,7 @@ uv run scripts/run.py show
   - `usage --refresh-agy`（或 `run.py usage --all --refresh-agy`）：看全部 Claude 設定目錄的狀態列快照，並用 `agy -p /usage --output-format json` 刷新本機 `agy` 帳號的各桶剩餘與重置時間（其餘 Antigravity 帳號看 T3 Usage → Limits）。
   - Claude 額度來源（2026-11-24 起）：狀態列快照、T3 Code 供應商快取 `~/.t3/caches/<實例 id>.json` 的 `usageLimits`（在 T3 裡跑 Claude 不會觸發狀態列，靠它；只讀額度數字，不讀 auth 欄位），都沒有時用 `uv run engine/scripts/account_pool.py set-claude-quota --instance <id> --weekly-used 72 --weekly-resets-at <ISO>`（或 `--weekday wed --hour-utc 21`）手動登記。三者取最新的。
   - 選號 `weekly-first`：距每週重置不到 48 小時、還沒用完的帳號最優先（快過期的額度先燒完，壓過 5 分鐘防震盪）；其次才照最快重置、剩餘額度與防震盪挑。
-  - `failover [--purpose cross_review_claude]`：依 `on_exhausted` 與即時狀態印出接手順序（跨家審查 Claude 產出時會跳過換回 Claude 的兩步）。
+  - `failover [--purpose cross_review_claude|cross_review_gemini]`：依 `on_exhausted` 與即時狀態印出接手順序（跨家審查時自動跳過換回與作者同一家的步驟）。
   - `select-claude [--persist]`：依策略（預設 `weekly-first`＋5 分鐘冷卻＋5 個百分點防震盪）在工作包邊界挑 Claude 實例。
   - `record-error`／`record-ok`／`pause`／`unpause`／`clear`／`alerts`：記錯誤或成功、手動暫停、清除狀態、檢視或發送通知（`validation_required`、`auth_expired`、`tos_banned` 也會由 `session_nudge.py` 在主線第一回合顯示一行提醒）。
 - 新帳號或新模型要探測時：用 T3 MCP 的 `orchestrator_capabilities`（`search` 帶實例 id）存成 JSON，跑 `uv run engine/scripts/accounts.py probe-plan --catalog <檔>` 照印出的步驟做（一個實例一條對話、輪流換模型、最後 settle），結果寫成 JSON 交給 `accounts.py probe-record --file <檔>`。
@@ -56,11 +56,11 @@ uv run scripts/run.py agy --class gemini-pro --thinking high --brief-file <任�
 - 腳本用略過權限模式跑（無頭模式不能核准指令），並在任務說明前面固定加硬性限制：不 commit、不 push、不刪檔、不對外發送、不安裝。所以要 commit 或 push 的，由主控自己做。
 - 腳本也固定加下一節的收尾規定。任務說明沒指定交付位置時，它寫進 `--result-file`（預設在暫存資料夾的 `omnikit-agy`）；輸出的 `result_file`、`done_marker` 說明交付檔與完成標記在不在。沒有標記只會出 `warnings`，不改 `ok`。
 - 結果一律由主控驗收（讀它改的檔、跑測試），不要只看它的回覆。
-- 記紀錄時 `--channel agy_cli --instance antigravity_ryan`。
+- 記紀錄時 `--channel agy_cli --instance <antigravity 實例>`。
 
 ## 派給 Antigravity 的回合怎麼收尾（所有管道）
 
-agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一樣。原因：2026-11-18 歷史事件中 `antigravity_kai`（已移除）在 T3 寫完回報後，回合一直不結束，15 分鐘後 T3 印「Antigravity sent nothing for 15 minutes」把對話標成 failed。上游 T3 把這個逾時寫死成 15 分鐘，也不會偵測回合完成。同一次還因為在前景跑伺服器撞到 600 秒工具逾時。證據與出處在 `dispatch-policy.md` 的 `antigravity_turns`。
+agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一樣。原因：2026-11-18 歷史事件中 Antigravity 實例在 T3 寫完回報後，回合一直不結束，15 分鐘後 T3 印「Antigravity sent nothing for 15 minutes」把對話標成 failed。上游 T3 把這個逾時寫死成 15 分鐘，也不會偵測回合完成。同一次還因為在前景跑伺服器撞到 600 秒工具逾時。證據與出處在 `dispatch-policy.md` 的 `antigravity_turns`。
 
 - **任務說明固定寫四件事**（agy_cli 由腳本自動加，其他管道由主控寫進說明）：
   1. 交付物先寫成檔案，路徑由你在說明裡指定。
@@ -76,7 +76,7 @@ agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一
 
 ## 不在 T3 裡也能開 T3 對話（T3 MCP 優先，t3_cli 是退路）
 
-主控是 Claude Code、Codex 或 Antigravity 時，也能開 T3 對話、指定 T3 上的帳號實例與模型（例如 `antigravity_ryan` 加 `gemini-4-hydrogen-xhigh`），讓那條對話出現在 T3 側邊欄。**不要回答「這裡沒有 T3 工具，沒辦法派」**。有兩條路：
+主控是 Claude Code、Codex 或 Antigravity 時，也能開 T3 對話、指定 T3 上的帳號實例與模型（例如 `antigravity_main` 加 `gemini-4-hydrogen-xhigh`），讓那條對話出現在 T3 側邊欄。**不要回答「這裡沒有 T3 工具，沒辦法派」**。有兩條路：
 
 1. **T3 MCP（`t3_thread_launch` 管道，優先）**：能設思考程度、能自己結案。工具清單裡有 `t3_thread_launch` 就用它；沒有就先跑 `omnikit-capabilities` 看這個 agent 登記、授權了沒。
 2. **`t3 thread` CLI（`t3_cli` 管道）**：這個 agent 還沒授權 T3 MCP 時用。不用登入，`t3 v0.1.12` 起支援 `--option id=value`，但目前沒有 settle 子指令。
@@ -125,7 +125,7 @@ uv run scripts/run.py log --task <任務類型> --class <模型類別> --thinkin
   [--channel native|agy_cli|t3_cli|delegate_task|t3_thread_launch] [--instance <實例>] [--retries N] [--escalations N] [--final-class <類別>] [--error <種類> | --error-text <原文>] [--resets-at <時間>] [--error-url <https://...>] [--control] [--note <一句話>]
 ```
 
-- `--task`：共用層 `tasks` 的 key（docs、ui-small、readonly、code-small、accounting、risk、orders、design-decision、hard-bug、acceptance-loop、verify、architecture）。級別會自動帶出來。
+- `--task`：共用層 `tasks` 的 key（docs、ui-small、readonly、code-small、synthesis、major-change、accounting、risk、orders、design-decision、hard-bug、acceptance-loop、verify、architecture）。級別會自動帶出來。
 - `--verdict`：驗收結論。`skipped` 是沒有驗收，不算進通過率。
 - `--error`／`--error-text`：錯誤分類（`rate_limit`、`quota_exhausted`、`auth_expired`、`validation_required`、`tos_banned`、`hard_forbidden`、`model_forbidden`、`timeout_15min`、`other`）。寫進 `log.jsonl` 並自動同步更新 `pool-state.json`（敏感 token 自動遮罩）；`verdict=pass` 且無錯時會自動清除該實例的暫時鎖定。
 - 一次通過：沒寫 `--first-pass` 時，結論是 pass 而且沒有重跑、沒有升級才算。
@@ -155,4 +155,4 @@ uv run scripts/run.py stats
 uv run scripts/run.py usage [--all] [--refresh-agy]
 ```
 
-不帶參數時讀目前 Claude Code 設定目錄的狀態列快照；加 `--all` 列出全部 Claude 設定目錄（如 `~/.claude`、`~/.claude-kai`、`~/.claude-retis`）與 Antigravity 帳號的額度與狀態，加 `--refresh-agy` 會呼叫 `agy -p /usage --output-format json` 刷新本機 `agy` 帳號的各桶額度。狀態列已由 `claude_allow.py` 自動串接到各 Claude 設定目錄（保留原本的狀態列）。
+不帶參數時讀目前 Claude Code 設定目錄的狀態列快照；加 `--all` 列出全部 Claude 設定目錄（如 `~/.claude`、`~/.claude-work` 等多帳號目錄）與 Antigravity 帳號的額度與狀態，加 `--refresh-agy` 會呼叫 `agy -p /usage --output-format json` 刷新本機 `agy` 帳號的各桶額度。狀態列已由 `claude_allow.py` 自動串接到各 Claude 設定目錄（保留原本的狀態列）。

@@ -609,7 +609,7 @@ def agy_cli_target(rows, mine=None):
     for r in rows:
         if r.get("driver") == "antigravity" and r.get("in_t3"):
             return r["id"]
-    return "antigravity_ryan"
+    return "antigravity"
 
 
 def refresh_agy_usage(state, instance, *, runner=None, now=None):
@@ -1085,13 +1085,14 @@ def _agy_bucket_status(acc, bucket_key, now_dt):
 
 def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=None):
     """計算額度用完的接手順序（提案第四節 D1/D2）。
-    purpose: 'general' 或 'cross_review_claude'（跨家審查 Claude 寫的東西時跳過換成 Claude 的兩步）。"""
+    purpose: 'general'、'cross_review_claude'（審 Claude 寫的東西時跳過換成 Claude）或 'cross_review_gemini'（審 Gemini 寫的東西時跳過換回 Gemini）。"""
     import accounts
     now_dt = utc_now(now)
     mode = (mine or {}).get("on_exhausted") or "prompt_manual_switch"
     if mode not in ON_EXHAUSTED_MODES:
         mode = "prompt_manual_switch"
-    cross_review = purpose == "cross_review_claude"
+    cross_review_claude = purpose == "cross_review_claude"
+    cross_review_gemini = purpose == "cross_review_gemini"
     steps = []
 
     auto_agy = [r for r in rows if r["driver"] == "antigravity" and r["auto"][0]]
@@ -1108,7 +1109,11 @@ def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=
         blk, why, _ = is_blocked(state_doc, iid, driver="antigravity", bucket="gemini", now=now_dt)
         bstat = _agy_bucket_status(acc, "gemini", now_dt)
         g_models = ["gemini-4-neon", "gemini-4-hydrogen", "gemini-4-carbon"]
-        if blk:
+        if cross_review_gemini:
+            steps.append({"step": 1, "stage": "antigravity_gemini", "instance": iid, "bucket": "gemini",
+                          "models": g_models, "status": "skipped",
+                          "why": "跨家審查 Gemini 寫的東西：跳過換回 Gemini，優先走 Claude 實例（Fable 5.2 high）"})
+        elif blk:
             steps.append({"step": 1, "stage": "antigravity_gemini", "instance": iid, "bucket": "gemini",
                           "models": g_models, "status": "skipped", "why": why})
         elif bstat and bstat["exhausted"]:
@@ -1120,7 +1125,7 @@ def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=
                           "why": f"預設自動派工帳號" + (f"（{bstat['text']}）" if bstat and bstat["text"] else "（未刷 agy /usage）")})
 
         # 2. 同帳號 Claude & GPT 桶（只用 Opus；Sonnet 同桶已被規則 2 過濾）
-        if cross_review:
+        if cross_review_claude:
             steps.append({"step": 2, "stage": "antigravity_3p", "instance": iid, "bucket": "3p",
                           "models": ["claude-opus-5-5"], "status": "skipped",
                           "why": "跨家審查 Claude 寫的東西：跳過換成 Claude，避免失去跨家審查意義"})
@@ -1140,7 +1145,7 @@ def failover_plan(pol, mine, rows, state_doc, quotas, *, purpose="general", now=
 
     # Step 3：三個 Claude 實例在工作包邊界依額度挑（D3）
     sel = select_claude_instance(rows, mine, quotas, state_doc, now=now_dt)
-    if cross_review:
+    if cross_review_claude:
         steps.append({"step": 3, "stage": "claude_pool", "instances": [], "status": "skipped",
                       "why": "跨家審查 Claude 寫的東西：跳過換成 Claude 實例，改走第 4 步或用同模型新對話審"})
     elif sel["chosen"]:
@@ -1432,7 +1437,7 @@ def main(argv=None):
     p.add_argument("--json", action="store_true")
 
     p = sub.add_parser("failover")
-    p.add_argument("--purpose", choices=["general", "cross_review_claude"], default="general")
+    p.add_argument("--purpose", choices=["general", "cross_review_claude", "cross_review_gemini"], default="general")
     p.add_argument("--json", action="store_true")
 
     p = sub.add_parser("select-claude")
@@ -1847,12 +1852,15 @@ def selftest():
                      resets_at=iso_utc(t0 + timedelta(hours=2)), now=t0)
         p_gen = failover_plan(pol, mine, rows, load_state(c_state), qs, purpose="general", now=t0)
         p_rev = failover_plan(pol, mine, rows, load_state(c_state), qs, purpose="cross_review_claude", now=t0)
-        ok("接手順序：兩桶 4 步，Gemini 冷卻後跳到同帳號 Opus；跨家審查跳過換 Claude 兩步；提示完整列出全部 6 個手動帳號",
+        p_rev_g = failover_plan(pol, mine, rows, {}, qs, purpose="cross_review_gemini", now=t0)
+        ok("接手順序：兩桶 4 步，Gemini 冷卻後跳到同帳號 Opus；雙向跨家審查各自跳過同供應商；提示完整列出全部 6 個手動帳號",
            len(p_gen["steps"]) == 4 and p_gen["steps"][0]["status"] == "skipped"
            and p_gen["active_step"]["stage"] == "antigravity_3p"
            and p_rev["steps"][1]["status"] == "skipped" and p_rev["steps"][2]["status"] == "skipped"
            and p_rev["active_step"]["stage"] == "prompt_manual_switch"
            and "跨家審查" in p_rev["steps"][1]["why"]
+           and p_rev_g["steps"][0]["status"] == "skipped" and "跨家審查 Gemini" in p_rev_g["steps"][0]["why"]
+           and p_rev_g["steps"][2]["status"] == "available"
            and all(k in p_gen["steps"][-1]["why"] for k in ("antigravity_kanny163", "antigravity_itri", "antigravity_ava")))
 
         # 通知模擬（desktop & webhook 不連網）

@@ -430,7 +430,11 @@ def check_repo_invariants(repo: Path) -> list[dict]:
         out.append(row("防呆規範", "", "MCP 無密鑰檢查", FAIL, str(e.code)))
 
     import validate
-    gov_errs = validate.check_patches(repo / "data") + validate.check_review_markers(repo / "data")
+    gov_errs = (
+        validate.check_patches(repo / "data")
+        + validate.check_review_markers(repo / "data")
+        + validate.check_baseline_eval_docs(repo / "data")
+    )
     b_errs, b_stats = validate.check_budget(repo / "data", skills_root if skills_root.is_dir() else None)
     all_b_errs = gov_errs + b_errs
     if all_b_errs or b_stats:

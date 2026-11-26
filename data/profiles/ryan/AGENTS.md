@@ -13,8 +13,8 @@ profile：ryan
 
 ## 查證與完成
 - 說「不確定」之前先上網搜尋；很有名的專案，查一下就能確認。
-- 說「做不到」「沒有工具」「要你手動做」「還不能」也算不確定，照安全底線的「說做不到之前」查完才說；語氣確定不是跳過的理由。這台同時裝了 Claude Code、Codex、Antigravity、T3 Code，新功能常比你的訓練資料新，先看 `omnikit-capabilities` 的清點與該工具最新的官方文件。（2026-11-18 起：好幾週回答「沒有 T3 工具、派不了」，其實本機 `t3` CLI 與 T3 的 MCP 都能用）
-- 提新功能或架構方案前，先查業界與開源做法，列出比較再建議。（過渡規則，RIA 上線後再決定是否保留）<!-- review_on: 2026-12-15 reason: 過渡規則，檢視是否由 omnikit-research 與 RIA 取代 -->
+- 說「做不到」「沒有工具」「要你手動做」「還不能」前，必照安全底線與 `omnikit-capabilities` 清點本機 CLI（Claude Code、Codex、Antigravity、`t3`）、MCP 與最新官方文件後才可主張。
+- 提新功能或架構方案前，先查業界與開源做法，列出比較再建議。<!-- review_on: 2026-12-15 reason: 檢視是否與 baseline 飽和調研合併成單句路由 -->
 - 沒被告知的限制（例如公司政策）就當作沒有，不要自己假設。
 - 第三方平台的規約、限制或 API 行為，沒有一手證據（官方頁面原文、實際 payload、原始碼、實測 log）就標「待驗證」，不要寫成既定事實。
 
@@ -41,10 +41,10 @@ profile：ryan
 
 ## 工作階段
 - 對話結構（2026-11-19 定案）：每個專案只留一條主線對話，開在對應專案資料夾內，主線不 settle；要換新對話時照交接做，新主線接手後舊的才 settle。工作包的完成條件寫在 `NOW.md`。驗收、切片、側邊研究開子對話，結果收進主線就 settle。
-- **子對話自動 Settle**：所有由主對話派發的子任務、獨立驗收、唯讀審查或代跑對話，在完成執行並輸出最終回報後，必須主動呼叫 `t3_thread_organize`（`action: 'settle'`）進行結案收合，避免側邊欄對話堆積；若是透過沒有 T3 工具的原生子代理執行，由父對話在收完結果後負責結案。用 `t3 thread` CLI（`t3_cli` 管道）開的 T3 對話，CLI 目前沒有 settle 子指令，對話本身也未必有 T3 工具：父對話收完結果後，有 `t3_thread_organize` 就自己 settle（帶 `action: "settle"`，回讀確認 `settled: true`）；沒有就先看能不能接 T3 的 MCP（`omnikit-capabilities` 會列出怎麼接，`claude mcp login t3` 要在終端機分頁跑、我核准一次，有效 30 天），還是不行才在回報裡列出對話 id 與標題，請我在 T3 結案。僅有失敗、遭遇阻擋或標記為【等你決定】需使用者介入的對話才保留 active。
-- 子任務分派（任務級別、管道、模型、思考程度、升級路徑、委派紀錄）照 OmniKit 共用層 `data/rules/dispatch.md`；我的帳號與供應商實例設定在 `data/profiles/ryan/dispatch.md`（移出常駐載入規則，派子任務前跑 `omnikit-dispatch` 的 `run.py show` 讀取）。
-- **Gemini 思考程度**（2026-11-18、2026-11-25 定案）：所有 Gemini 模型（Neon、Hydrogen、Carbon、Orchestrator 系列，以及之後新增的，不論哪個管道）的思考程度（`thought_level`）永遠是 `high` 或更高（Neon、Hydrogen、Orchestrator 開 `xhigh`，Carbon 最高 `high`）；不准 `low`、`medium`，也不准不寫靠預設值（`t3 thread start` 帶 `--option thought_level=xhigh` 或寫進模型代號如 `gemini-4-hydrogen-xhigh`）。直接呼叫 Gemini API（目前依 D1 不用 Vertex）時，程度同樣 `high` 以上，模型照分工表。
-- **Claude 子任務的 effort 與盲審分工**（2026-11-25 定案）：派出去的 Claude 子任務依分派政策 `levels` 設定 `effort`（讀檔／雜務 `Opus medium`、日常多檔／UI `Opus high`、高風險驗收與難題 `Opus xhigh`、重大架構兩階段防迎合盲審 `Fable 5.2 high` 死結才 `xhigh`；`max` 不預設，僅在我明確指定時用）。反向跨家審查 Claude 產出用 `Gemini 4 Carbon high`。盲審與工具評測子對話必須隔離跨對話記憶注入。主線對話本身的程度照我開對話時指定的，不受這條影響。
+- **子對話自動 Settle**：派出的子對話完成回報後必須主動呼叫 `t3_thread_organize`（`action: "settle"`）結案；子對話無 T3 工具或走 `t3_cli` 時由父對話負責 settle 並回讀確認 `settled: true`（確定無法接 T3 MCP 才列對話連結請我結案；接法見 `omnikit-dispatch`）。僅失敗、卡住或【等你決定】保留 active。
+- 子任務分派照 `data/rules/dispatch.md`，個人實例設定在 `data/profiles/ryan/dispatch.md`（不常駐載入，派前跑 `omnikit-dispatch` 的 `run.py show` 讀取）。
+- **Gemini 思考程度**：所有 Gemini 模型（Neon、Hydrogen、Carbon、Orchestrator 及後續新增，不論管道或 API）的 `thought_level` 一律 `high` 以上（Neon、Hydrogen、Orchestrator 開 `xhigh`，Carbon 最高 `high`）；嚴禁 `low`、`medium` 或不寫靠預設值。
+- **模型分工與雙向對等跨家審查**（2026-11-26 定案）：重要統整、設計決策與核心改動（`high`）用 `Fable 5.2 high` 或 `Carbon high`（主線在手動 1A 帳號時留主線做，審查與獨立改動派 Claude 實例免塞 `antigravity_ryan`）；獨立驗收（`verify`）與難題（`higher`）用 `Opus 5.5 xhigh`（失敗才升 Fable）；讀檔／雜務用 `Hydrogen xhigh` 或 `Opus medium`，日常多檔／UI 用 `Neon xhigh` 或 `Opus high`；重大架構兩階段盲審用 `Fable 5.2 high`（死結才 `xhigh`）並隔離跨對話記憶注入；`max` 僅在我明確指定時用。跨家審查雙向對等：Claude（Fable／Opus）產出 → `Gemini 4 Carbon high` 審；Gemini（Carbon／Neon）重要產出 → `Claude Fable 5.2 high` 審（日常中級才允許 `Opus xhigh`）。主線程度照我開對話時指定。
 - 狀態標籤：每次收尾的第一句用下列其中一個開頭（Claude 桌面版的 wrap_up recap 第一句會顯示在側邊欄；其他介面寫在最後一則回覆的第一句）：
   - 【完成待收尾】：交付的東西都已 commit 並 push（不能 push 的寫明只在這台），沒有等我的事；我看到就可以封存這段對話；子對話任務完成後應直接呼叫 settle 結案。
   - 【等你決定】：要我拍板或動手才能繼續。

@@ -106,6 +106,13 @@ def test_governance_status_and_tripwire_state_dir(tmp_path: Path):
         "id: d1\nname: D1\nslots: [s]\nstatus: default\ndecided_at: '2026-11-04'\nreason: r\nadded: '2026-11-04'\n",
         encoding="utf-8",
     )
+    (data / "tools" / "bad_doc.yaml").write_text(
+        "id: bad_doc\nname: B\nslots: [s]\nstatus: default\ndecided_at: '2026-11-26'\nreason: r\n"
+        "baseline_eval:\n  verified_at: '2026-11-26'\n  verified_model: m\n  verdict: essential_infra\n"
+        "  eval_doc: data/evals/missing.md\nadded: '2026-11-26'\n",
+        encoding="utf-8",
+    )
+    assert any("missing.md" in e for e in validate.check_baseline_eval_docs(data))
     gov_before = validate.governance_status(data, today="2026-11-27")
     assert gov_before["expired_trials"] == [] and gov_before["due_reviews"] == []
     assert gov_before["unverified_defaults"] == ["d1"]

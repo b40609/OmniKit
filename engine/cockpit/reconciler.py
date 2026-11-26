@@ -3,8 +3,8 @@
 設計原則：
 1. 遵守 visibility: visible：一律透過 `t3 thread start` 開在 T3 看得到的對話，使用者隨時可點進去看 prompt 與過程。
 2. 遵守 Google 帳號低並行建議：單一 FIFO worker 執行緒，一次只跑一條對帳對話，絕不併發轟炸。
-3. 遵守 Gemini 思考程度定案：固定使用 `--provider antigravity_ryan --model gemini-4-hydrogen --option thought_level=xhigh`
-   （可由參數覆寫，供測試或個人設定調整）。
+3. 遵守 Gemini 思考程度定案：預設選用個人設定的自動派工 Antigravity 實例搭配 `--model gemini-4-hydrogen --option thought_level=xhigh`
+   （可由參數或環境變數覆寫，供測試或個人設定調整）。
 4. 零盲讀千項長對話：先由本機 Python 精準擷取近期 Git commit、dirty 檔、最近對話的最後數則訊息與舊 NOW.md，
    透過 stdin 傳入，省時省額度、不遺失使用者已記下的「不滿意待改」條目。
 """
@@ -22,10 +22,33 @@ from typing import Any
 
 from . import collector
 
-DEFAULT_PROVIDER = "antigravity_ryan"
+DEFAULT_PROVIDER = ""
 DEFAULT_MODEL = "gemini-4-hydrogen"
 DEFAULT_OPTION = "thought_level=xhigh"
 RECONCILE_TIMEOUT_SEC = 300
+
+
+def _resolve_default_provider() -> str:
+    env_p = os.environ.get("OMNIKIT_RECONCILE_PROVIDER", "").strip()
+    if env_p:
+        return env_p
+    try:
+        import sys
+        scripts_dir = str(Path(__file__).resolve().parents[1] / "scripts")
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+        import dispatch
+        import profiles
+        import statedir
+        state = statedir.resolve()
+        pname = profiles.current(state, collector.REPO_ROOT)
+        mine = dispatch.load_personal(state, collector.REPO_ROOT / "data", pname) or {}
+        for iid, spec in (mine.get("instances") or {}).items():
+            if isinstance(spec, dict) and spec.get("driver") == "antigravity" and spec.get("classes"):
+                return str(iid)
+    except Exception:
+        pass
+    return "antigravity"
 
 
 def _collect_git_context(project_path: Path) -> str:
@@ -146,6 +169,7 @@ def run_t3_reconcile(
         raise RuntimeError("找不到本機 t3 CLI，無法自動派送對帳對話")
     if not project_path.is_dir():
         raise RuntimeError(f"本機找不到專案目錄：{project_path}")
+    effective_provider = provider or _resolve_default_provider()
 
     git_ctx = _collect_git_context(project_path)
     t3_ctx = _collect_recent_t3_context(project_path)
@@ -169,7 +193,7 @@ def run_t3_reconcile(
         "--title",
         f"[Cockpit 自動對帳] {project_name} NOW.md",
         "--provider",
-        provider,
+        effective_provider,
         "--model",
         model,
         "--option",

@@ -356,11 +356,36 @@ def check_review_markers(data: Path) -> list[str]:
     return errors
 
 
+def check_baseline_eval_docs(data: Path) -> list[str]:
+    """檢查工具卡的 baseline_eval.eval_doc 指向的評估文件真實存在（治理檢查，與執行期 check() 解耦以免臨時目錄缺 data/evals/ 誤殺）。"""
+    if not (data / "tools").is_dir():
+        return []
+    repo_base = data.parent if (data.parent / "engine").is_dir() else ROOT
+    errors = []
+    for p in sorted((data / "tools").glob("*.yaml")):
+        try:
+            doc = load_yaml(p)
+        except yaml.YAMLError:
+            continue
+        be = doc.get("baseline_eval") if isinstance(doc, dict) else None
+        edoc = be.get("eval_doc") if isinstance(be, dict) else None
+        if isinstance(edoc, str) and edoc.strip():
+            target_doc = (data / edoc.removeprefix("data/")) if edoc.startswith("data/") else (repo_base / edoc)
+            if not target_doc.is_file():
+                errors.append(f"{show(p)}: baseline_eval.eval_doc 指向不存在的檔案「{edoc}」")
+    return errors
+
+
 def check_governance(data: Path, skills_root: Path | None = None) -> list[str]:
-    """Commit 與 CI 治理檢查（patches.yaml、review_on 標記語法、常駐預算棘輪），與執行期 check() 解耦。"""
+    """Commit 與 CI 治理檢查（patches.yaml、review_on 標記語法、eval_doc 參照、常駐預算棘輪），與執行期 check() 解耦。"""
     if skills_root is None and data.resolve() == (ROOT / "data").resolve():
         skills_root = ROOT / "engine" / "skills"
-    return check_patches(data) + check_review_markers(data) + check_budget(data, skills_root)[0]
+    return (
+        check_patches(data)
+        + check_review_markers(data)
+        + check_baseline_eval_docs(data)
+        + check_budget(data, skills_root)[0]
+    )
 
 
 def check_budget(data: Path, skills_root: Path | None = None) -> tuple[list[str], dict]:
@@ -605,13 +630,6 @@ def check(data, profile=None, state=None, private=False):
             )
         if doc.get("replaces") and doc["replaces"] not in tools:
             errors.append(f"{show(path)}: replaces 指向不存在的工具「{doc['replaces']}」")
-        be = doc.get("baseline_eval")
-        if isinstance(be, dict) and be.get("eval_doc"):
-            edoc = be["eval_doc"]
-            repo_base = data.parent if (data.parent / "engine").is_dir() else ROOT
-            target_doc = (data / edoc.removeprefix("data/")) if edoc.startswith("data/") else (repo_base / edoc)
-            if not target_doc.is_file():
-                errors.append(f"{show(path)}: baseline_eval.eval_doc 指向不存在的檔案「{edoc}」")
     for slot, ids in sorted(defaults.items()):
         if len(ids) > 1:
             errors.append(f"槽位「{slot}」有 {len(ids)} 個預設：{'、'.join(ids)}；一個槽位只能留一個")
