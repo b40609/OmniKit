@@ -155,6 +155,30 @@ def check(pol, mine=None):
     if "channels" in pol and chans != set(CHANNELS):
         errors.append(f"channels 和 dispatch.py 的 CHANNELS 對不上：政策多了 {sorted(chans - set(CHANNELS))}，"
                       f"少了 {sorted(set(CHANNELS) - chans)}")
+    sob = pol.get("second_opinion_burn")
+    if sob is not None:
+        if not isinstance(sob, dict):
+            errors.append("second_opinion_burn 要是對照表")
+        else:
+            if not isinstance(sob.get("within_hours"), (int, float)) or not 0 < sob["within_hours"] <= 168:
+                errors.append(f"second_opinion_burn.within_hours 要是 1 到 168 的小時數：{sob.get('within_hours')}")
+            if not isinstance(sob.get("min_weekly_remaining_pct"), (int, float)) or not 0 <= sob["min_weekly_remaining_pct"] <= 100:
+                errors.append(f"second_opinion_burn.min_weekly_remaining_pct 要是 0 到 100：{sob.get('min_weekly_remaining_pct')}")
+            for a, rv in (sob.get("same_vendor") or {}).items():
+                rc = (rv or {}).get("class")
+                if a not in classes or rc not in classes:
+                    errors.append(f"second_opinion_burn.same_vendor.{a}：模型類別不存在（{a} → {rc}）")
+                    continue
+                if rc == a or classes[rc].get("model") == classes[a].get("model"):
+                    errors.append(f"second_opinion_burn.same_vendor.{a}：審查者跟作者同一個模型，同一個模型不能審自己")
+                if classes[rc].get("driver") != classes[a].get("driver"):
+                    errors.append(f"second_opinion_burn.same_vendor.{a}：改判要同一家，{rc} 是別家")
+                if (rv or {}).get("thinking") not in THINKING:
+                    errors.append(f"second_opinion_burn.same_vendor.{a}：thinking 要是 {THINKING} 之一")
+    for lv_name, lv in levels.items():
+        for o in (lv or {}).get("route") or []:
+            if o.get("usage_gate") not in (None, "below_threshold"):
+                errors.append(f"levels.{lv_name}.route：usage_gate 只能是 below_threshold：{o.get('usage_gate')}")
     for name, c in classes.items():
         for k in ("model", "driver", "default_thinking", "max_thinking"):
             if k not in c:
@@ -358,11 +382,30 @@ def effective_thinking(pol, cls_name, base_thinking, level, kind, mine=None):
     return base_thinking, ""
 
 
-def resolved(pol, mine, agent="claude", judge=None, model_note=None, claude_order=None):
+def verified_pairs(state):
+    """實測成功過的 (實例, 模型)：委派紀錄裡 verdict pass、沒有錯誤、沒有升級換類別的那幾行，加上能力矩陣 ok 的模型。
+    選配類別（例如 Fable）宣告在某個實例、卻沒有這裡的紀錄時，show 標「未實測」並排到已實測的後面。"""
+    import accounts
+    rows, _ = read_log(log_path(state))
+    out = set()
+    for r in rows:
+        if (r.get("verdict") == "pass" and not r.get("error_kind") and r.get("instance") and r.get("model")
+                and r.get("final_class") in (None, r.get("class"))):
+            out.add((r["instance"], r["model"]))
+    for iid, rec in (accounts.load_matrix(state) or {}).items():
+        for m, v in ((rec or {}).get("models") or {}).items():
+            if isinstance(v, dict) and v.get("ok"):
+                out.add((iid, m))
+    return out
+
+
+def resolved(pol, mine, agent="claude", judge=None, model_note=None, claude_order=None, verified=None, usage=None):
     """每一級的選項，加上可以用的實例；沒有實例的標 skip。
     judge（accounts.annotate 給的）：(實例, 模型) → (能不能自動派, 原因)；不能派的實例移到 blocked 並附原因。
     model_note：模型被淘汰過濾時回原因（整個選項跳過）。
-    claude_order：依額度策略排好的 Claude 實例優先順序（工作包邊界挑）。"""
+    claude_order：依額度策略排好的 Claude 實例優先順序（工作包邊界挑）。
+    verified：verified_pairs 的結果；給了就把選配類別沒實測過的實例標 unverified、排到後面。
+    usage：實例 → instance_usage 的結果；route 選項寫 usage_gate: below_threshold 的，已達門檻的實例移到 blocked。"""
     # 第二家：只算真的能派的實例（有 classes、不是只給手動）；登記了但只給手動的帳號不算有第二家
     configured_drivers = {(spec or {}).get("driver") for spec in ((mine or {}).get("instances") or {}).values()
                           if (spec or {}).get("driver") and (spec or {}).get("classes") and (spec or {}).get("usage_scope") != "manual_only"}
@@ -400,6 +443,15 @@ def resolved(pol, mine, agent="claude", judge=None, model_note=None, claude_orde
                     verdicts = [(i, *judge(i, cls["model"])) for i in inst]
                     inst = [i for i, ok, _ in verdicts if ok]
                     blocked = [{"instance": i, "why": why} for i, ok, why in verdicts if not ok]
+                if o.get("usage_gate") == "below_threshold" and usage and inst:
+                    over = [i for i in inst if (usage.get(i) or {}).get("over")]
+                    blocked += [{"instance": i, "why": f"本週用量 {usage[i]['pct']:.0f}% 已達門檻 {usage[i]['threshold']}%（usage_signal）"}
+                                for i in over]
+                    inst = [i for i in inst if i not in over]
+                unverified = []
+                if verified is not None and cls.get("opt_in") and inst:
+                    unverified = [i for i in inst if i != "native" and (i, cls["model"]) not in verified]
+                    inst = [i for i in inst if i not in unverified] + unverified
                 filtered = model_note(cls["model"]) if model_note else ""
                 th, th_why = effective_thinking(pol, o["class"], o["thinking"], level, kind, mine)
                 rows.append({"kind": kind, "class": o["class"], "model": cls["model"], "thinking": th,
@@ -407,11 +459,88 @@ def resolved(pol, mine, agent="claude", judge=None, model_note=None, claude_orde
                              "thinking_why": th_why, "when": o.get("when"), "tasks": o.get("tasks"),
                              "instances": [] if filtered else inst, "blocked": blocked, "filtered": filtered,
                              "single_vendor_skip": single_vendor_skip, "superseded": superseded,
-                             "opt_in_missing": opt_in_missing, "fallback_for": o.get("fallback_for"),
+                             "opt_in_missing": opt_in_missing, "fallback_for": o.get("fallback_for"), "unverified": unverified,
                              "skip": bool(filtered) or single_vendor_skip or bool(superseded) or not inst,
                              "trial": o.get("trial"), "pending": o.get("pending"), "note": o.get("note"), "role": o.get("role")})
         out[level] = {"name": lv.get("name", level), "tasks": tasks, "options": rows}
     return out
+
+
+VENDOR_NAMES = {"claudeAgent": "Claude", "antigravity": "Gemini（Antigravity）", "codex": "Codex"}
+
+
+def burn_decision(pol, mine, cands, agent="claude", judge=None, model_note=None, verified=None):
+    """第二意見看額度到期（政策 second_opinion_burn）：作者那一家有快到期的帳號、另一家沒有時，
+    審那一家產出的第二意見改用同一家、不同模型、不同帳號。cands 是 account_pool.burn_candidates 的結果。
+    回傳 {triggered, author_driver, reason, expiring, swaps: [{author_class, class, model, thinking, instances, unverified}]}。"""
+    cfg = pol.get("second_opinion_burn") or {}
+    if not cfg:
+        return {"triggered": False, "reason": "政策沒有 second_opinion_burn", "swaps": []}
+    hrs, pct = cfg.get("within_hours", 48), cfg.get("min_weekly_remaining_pct", 20)
+    configured = {(spec or {}).get("driver") for spec in ((mine or {}).get("instances") or {}).values()
+                  if (spec or {}).get("driver") and (spec or {}).get("classes") and (spec or {}).get("usage_scope") != "manual_only"}
+    if AGENT_DRIVER.get(agent):
+        configured.add(AGENT_DRIVER[agent])
+    expiring = {d: lst for d, lst in (cands or {}).items() if lst and d in configured}
+    base = {"triggered": False, "author_driver": None, "expiring": expiring, "swaps": []}
+    if not expiring:
+        return {**base, "reason": f"沒有可自動派的帳號距週重置 < {hrs} 小時且週剩 >= {pct}%，第二意見照原本的跨家審查"}
+    if len(expiring) > 1:
+        names = "、".join(VENDOR_NAMES.get(d, d) for d in expiring)
+        return {**base, "reason": f"{names} 都有快到期的額度，維持原本的跨家審查"}
+    drv, lst = next(iter(expiring.items()))
+    others = configured - {drv}
+    if not others:
+        return {**base, "author_driver": drv, "reason": "只有一家模型，本來就沒有跨家第二意見"}
+    burn_ids = [c["instance"] for c in lst]
+    swaps = []
+    for author_cls, rv in (cfg.get("same_vendor") or {}).items():
+        a = pol["model_classes"].get(author_cls) or {}
+        rc = (rv or {}).get("class")
+        rcls = pol["model_classes"].get(rc) or {}
+        if a.get("driver") != drv or rcls.get("driver") != drv or rc == author_cls:
+            continue
+        model = rcls["model"]
+        if model_note and model_note(model):
+            continue
+        inst = instances_for(pol, mine, rc, agent)
+        if judge:
+            inst = [i for i in inst if judge(i, model)[0]]
+        orig = list(inst)
+        inst.sort(key=lambda i: (0, burn_ids.index(i)) if i in burn_ids else (1, orig.index(i)))
+        unverified = ([i for i in inst if i != "native" and (i, model) not in verified]
+                      if verified is not None and rcls.get("opt_in") else [])
+        if unverified:
+            inst = [i for i in inst if i not in unverified] + unverified
+        if inst:
+            swaps.append({"author_class": author_cls, "class": rc, "model": model, "thinking": rv.get("thinking"),
+                          "thinking_name": "effort" if drv == "claudeAgent" else "thought_level",
+                          "instances": inst, "unverified": unverified})
+    vendor = VENDOR_NAMES.get(drv, drv)
+    other_names = "、".join(VENDOR_NAMES.get(d, d) for d in sorted(others))
+    why = "、".join(f"{c['instance']}（{c['why']}）" for c in lst)
+    reason = (f"{vendor} 有帳號額度快作廢（距週重置 < {hrs} 小時且週剩 >= {pct}%，或使用者指定要燒）：{why}；"
+              f"{other_names} 沒有快到期的額度")
+    if not swaps:
+        return {**base, "author_driver": drv,
+                "reason": reason + "；但同一家找不到能派的不同模型審查者，維持原本的跨家審查"}
+    return {**base, "triggered": True, "author_driver": drv, "swaps": swaps,
+            "reason": reason + f" → 審 {vendor} 產出的第二意見改用同一家、不同模型、不同帳號（快到期的帳號排前面）"}
+
+
+def burn_lines(burn):
+    """show 的「第二意見改判」段落。"""
+    if not burn:
+        return []
+    lines = ["\n第二意見改判（額度到期，政策 second_opinion_burn）：",
+             f"  {'改判' if burn['triggered'] else '不改判'}：{burn['reason']}"]
+    for sw in burn.get("swaps") or []:
+        unv = f"（未實測：{'、'.join(sw['unverified'])}）" if sw.get("unverified") else ""
+        lines.append(f"  作者 {sw['author_class']} → 審查 {sw['class']}（{sw['model']}）{sw['thinking_name']} {sw['thinking']}；"
+                     f"實例：{'、'.join(sw['instances'])}{unv}")
+    if burn["triggered"]:
+        lines.append("  審查者不能用作者那個帳號、也不能跟作者同一個模型；只剩作者那個帳號時維持原本的跨家第二意見。")
+    return lines
 
 
 # ---------- 委派紀錄 ----------
@@ -592,9 +721,31 @@ def capture(state, payload, now=None, target_dir=None):
     return snap
 
 
-def weekly_usage(state, threshold, now=None, which=None):
+def instance_usage(q, threshold):
+    """account_pool.claude_quotas 的一列 → weekly_usage 同形狀的結果（給「這次要派的實例」判門檻）。"""
+    if not q or q.get("weekly_used_pct") is None or q.get("over_threshold") is None:
+        return {"status": "unknown", "pct": None, "over": None, "threshold": threshold, "instance": (q or {}).get("instance"),
+                "source": (q or {}).get("source"), "why": (q or {}).get("why") or "沒有這個實例的額度快照"}
+    pct = float(q["weekly_used_pct"])
+    return {"status": q.get("status") or "ok", "pct": pct, "over": pct >= threshold, "threshold": threshold,
+            "instance": q.get("instance"), "source": q.get("source"), "resets_at": q.get("weekly_resets_at"),
+            "age_hours": q.get("age_hours"), "why": q.get("why")}
+
+
+def weekly_usage(state, threshold, now=None, which=None, instance=None, quotas=None):
     """本週 Claude 用量：{status: ok|stale|unknown, pct, over, resets_at, age_hours, why}。
-    unknown 時 over 是 None：不知道就不要假設已達門檻。"""
+    unknown 時 over 是 None：不知道就不要假設已達門檻。
+    給 instance 時對那個實例判定，來源跟 weekly-first 相同（account_pool.claude_quotas：狀態列快照、T3 快取、手動登記取最新）；
+    quotas 沒給就現算。沒給 instance 才是舊行為：只看這個行程的 CLAUDE_CONFIG_DIR 的狀態列快照。"""
+    if instance is not None:
+        if quotas is None:
+            import account_pool
+            import accounts
+            data, _, _, folder = context()
+            mine = personal(folder)
+            rows = accounts.registry(accounts.t3_instances(), mine, accounts.load_terms(data))
+            quotas = account_pool.claude_quotas(state, rows, mine, threshold)
+        return instance_usage(next((q for q in quotas if q.get("instance") == instance), None), threshold)
     now = now or time.time()
     path = usage_path(state)
     try:
@@ -616,6 +767,23 @@ def weekly_usage(state, threshold, now=None, which=None):
 
 
 # ---------- 輸出 ----------
+
+def quota_summary_text(quotas, threshold, native=None):
+    """show 第 2 行：每個 Claude 實例本週用量對門檻（跟 weekly-first 同一個來源），加上這段對話自己（native）的狀態列快照。"""
+    parts = []
+    for q in quotas or []:
+        u = instance_usage(q, threshold)
+        if u["over"] is None:
+            parts.append(f"{q['instance']} 未知")
+        else:
+            parts.append(f"{q['instance']} {u['pct']:.0f}%（{'已達' if u['over'] else '未達'}"
+                         + ("，舊資料" if u["status"] == "stale" else "") + "）")
+    if native and native.get("over") is not None:
+        parts.append(f"native {native['pct']:.0f}%（{'已達' if native['over'] else '未達'}）")
+    if not parts:
+        return usage_text(native) if native else f"本週 Claude 用量：沒有任何實例的快照。不要假設已達 {threshold}%。"
+    return f"本週 Claude 用量（門檻 {threshold}%，對這次要派的實例判定；未知不假設已達）：" + "、".join(parts)
+
 
 def usage_text(u):
     if u["status"] == "unknown":
@@ -653,7 +821,7 @@ def antigravity_lines(pol, mine=None):
     return lines
 
 
-def show_text(table, profile, has_personal, usage=None, pol=None, mine=None, accounts=None, pool_lines=None):
+def show_text(table, profile, has_personal, usage=None, pol=None, mine=None, accounts=None, pool_lines=None, burn=None):
     prefs = []
     if mine:
         if mine.get("thinking_preference"):
@@ -663,7 +831,9 @@ def show_text(table, profile, has_personal, usage=None, pol=None, mine=None, acc
     pref_str = f"；{'，'.join(prefs)}" if prefs else ""
     lines = [f"profile：{profile}；{'個人實例：有' if has_personal else '沒有個人分派設定，只用原生子代理'}{pref_str}"]
     if usage:
-        lines.append(usage_text(usage))
+        lines.append(usage if isinstance(usage, str) else usage_text(usage))
+    lines += burn_lines(burn)
+    burn_drv = (burn or {}).get("author_driver") if (burn or {}).get("triggered") else None
     for level, lv in table.items():
         lines.append(f"\n{lv['name']}（{level}）：{'、'.join(lv['tasks']) or '—'}")
         route = [o for o in lv["options"] if o["kind"] == "route"]
@@ -675,7 +845,12 @@ def show_text(table, profile, has_personal, usage=None, pol=None, mine=None, acc
                     f"選配，沒宣告，跳過（方案有 {o['model']} 的在 profile 的 dispatch.md 加 opt_in_classes: [{o['class']}]）"
                     if o.get("opt_in_missing") and o["skip"] and not o.get("blocked") else
                     ("沒有可自動派的實例，跳過" if o.get("blocked") else "沒有實例，跳過") if o["skip"] else
-                    "實例：" + "、".join(o["instances"]))
+                    "實例：" + "、".join(o["instances"])
+                    + (f"（未實測：{'、'.join(o['unverified'])}，派前小量探測；撞 model_forbidden 記 log --error 後自動退下一個）"
+                       if o.get("unverified") else ""))
+            if (burn_drv and o["kind"] == "second_opinion" and not o["skip"]
+                    and (pol or {}).get("model_classes", {}).get(o["class"], {}).get("driver") != burn_drv):
+                inst += f"；額度到期改判：審 {VENDOR_NAMES.get(burn_drv, burn_drv)} 產出時改用上方「第二意見改判」"
             extra = (f"；條件：{o['when']}" if o["when"] else "") + (f"；只接：{'、'.join(o['tasks'])}" if o["tasks"] else "")
             detail = o.get("role") or o.get("note") or ""
             role = f"；{detail}" if detail else ""
@@ -864,6 +1039,8 @@ def main(argv=None):
     p = sub.add_parser("show")
     p.add_argument("--agent", choices=list(AGENT_DRIVER), default="claude")
     p.add_argument("--json", action="store_true")
+    p.add_argument("--burn", action="append", default=[], metavar="實例",
+                   help="使用者明說要燒的實例（可重複）：當成快到期，第二意見照 second_opinion_burn 改判")
     sub.add_parser("check")
     p = sub.add_parser("log")
     p.add_argument("--task", required=True)
@@ -940,8 +1117,17 @@ def main(argv=None):
         c_sel = account_pool.select_claude_instance(rows, mine, c_quotas, pdoc)
         plan = account_pool.failover_plan(pol, mine, rows, pdoc, c_quotas)
         alerts = account_pool.pending_alerts(pdoc, rows)
-        table = resolved(pol, mine, args.agent, judge, model_note, claude_order=c_sel.get("ordered"))
-        u = weekly_usage(state, th)
+        u = weekly_usage(state, th)  # 這段對話自己（native）的狀態列快照
+        per_inst = {q["instance"]: instance_usage(q, th) for q in c_quotas}
+        if u.get("over") is not None:
+            per_inst["native"] = u
+        verified = verified_pairs(state)
+        table = resolved(pol, mine, args.agent, judge, model_note, claude_order=c_sel.get("ordered"),
+                         verified=verified, usage=per_inst)
+        sob = pol.get("second_opinion_burn") or {}
+        cands = account_pool.burn_candidates(rows, mine, c_quotas, pdoc, within_hours=sob.get("within_hours"),
+                                             min_remaining_pct=sob.get("min_weekly_remaining_pct", 20), forced=args.burn)
+        burn = burn_decision(pol, mine, cands, args.agent, judge, model_note, verified)
         plines = []
         if c_sel.get("chosen"):
             plines.append(f"  Claude 實例推薦（工作包邊界挑，同一條不中途換）：{c_sel['chosen']}（{c_sel['reason']}）")
@@ -950,13 +1136,15 @@ def main(argv=None):
         if alerts:
             plines.append("\n帳號警示：")
             plines += [f"  [{a['severity']}] {a['message']}" for a in alerts]
-        print(json.dumps({"usage": u, "claude_quotas": c_quotas, "claude_selection": c_sel,
+        print(json.dumps({"usage": u, "usage_by_instance": per_inst, "second_opinion_burn": burn,
+                          "claude_quotas": c_quotas, "claude_selection": c_sel,
                           "levels": table, "channels": pol.get("channels"), "accounts": rows,
                           "filtered_models": filtered, "model_hints": hints, "failover": plan,
                           "alerts": alerts, "visibility": visibility(pol, mine),
                           "thinking_preference": (mine or {}).get("thinking_preference"),
                           "on_exhausted": (mine or {}).get("on_exhausted")}, ensure_ascii=False, indent=2)
-              if args.json else show_text(table, name, mine is not None, u, pol, mine, account_lines(rows, filtered, hints), plines))
+              if args.json else show_text(table, name, mine is not None, quota_summary_text(c_quotas, th, u), pol, mine,
+                                          account_lines(rows, filtered, hints), plines, burn))
         return 0
     if args.cmd == "log":
         rec = make_record(pol, args, rules_version(data), name, project_name())

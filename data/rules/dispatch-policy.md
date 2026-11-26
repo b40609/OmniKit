@@ -101,7 +101,8 @@ levels:
     route:
       - class: claude-fable
         thinking: high
-        when: 本週 Claude 用量未達 80%（未知視為未達，見 usage_signal）
+        when: 這次要派的實例本週 Claude 用量未達 80%（未知視為未達，見 usage_signal）
+        usage_gate: below_threshold
         note: 重要統整、設計決策與核心／高風險改動首選 Fable 5.2 high（選配：個人層宣告了 claude-fable 才會出現）
         pending: >-
           【待驗證】Fable 與 Opus 的週額度是否共池；達 80% 時由上往下自動改走下一順位
@@ -310,8 +311,30 @@ antigravity_turns:
     - 【待驗證】agy CLI 的無頭模式（agy_cli）會不會有同樣的問題
 
 # 本週 Claude 用量（給 high 級的 80% 條件用）。
+# 第二意見看額度到期（2026-11-26 定案）：跨家審查固定換另一家，會在作者那一家的額度快作廢時，反而去花另一家還很久才重置的額度。
+# 兩個條件都成立才改判：
+#   1. 作者那一家有可自動派的帳號距週重置不到 within_hours、而且週剩 >= min_weekly_remaining_pct；
+#   2. 另一家（有可自動派實例的其他供應商）沒有符合同樣條件的帳號。
+# 改判後第二意見改用「同一家、不同模型、不同帳號」：照 same_vendor 的對照（作者類別 → 審查者類別與思考程度），
+# 快到期的帳號排前面；審查者不能用作者那個帳號，也不能跟作者同一個模型（同一個模型不審自己的原則不變）。
+# 對照裡找不到能派的審查者（例如沒有宣告選配類別、或只剩作者用的帳號）就維持原本的跨家第二意見。
+# 使用者明說要燒某些帳號時（run.py show --burn <實例>），把那些帳號當成條件 1 成立，同樣套用。
+# within_hours 對齊 weekly-first 的快過期門檻（account_pool.EXPIRING_SOON_SEC，測試會比對兩者一致）。
+# 個人層實例可寫 access_ends（訂閱到期時刻，ISO 8601）：額度作廢時刻取週重置與 access_ends 較早的，weekly-first 與條件 1 都照這個算；過了就不再自動派、不再推薦。
+second_opinion_burn:
+  within_hours: 48
+  min_weekly_remaining_pct: 20
+  same_vendor:
+    claude-fable:  {class: claude-opus,   thinking: xhigh}
+    claude-opus:   {class: claude-fable,  thinking: high}
+    claude-sonnet: {class: claude-opus,   thinking: xhigh}
+    gemini-pro:    {class: gemini-carbon, thinking: high}
+    gemini-fast:   {class: gemini-carbon, thinking: high}
+
 usage_signal:
   claude_weekly_threshold_pct: 80
+  # 門檻對「這次要派的實例」判定（2026-11-26 修正）：來源與 weekly-first 相同（account_pool.claude_quotas：狀態列快照、
+  # T3 供應商快取、手動登記取最新）；route 選項寫 usage_gate: below_threshold 的，已達門檻的實例移到不派並附原因。
   source: >-
     Claude Code 狀態列的 JSON 輸入有 rate_limits.seven_day.used_percentage（官方文件 code.claude.com/docs/en/statusline，
     只有 Pro、Max、Ultra 訂閱，而且要該對話第一個回應之後才有），加上 T3 供應商快取 ~/.t3/caches/<實例>.json 的 usageLimits。

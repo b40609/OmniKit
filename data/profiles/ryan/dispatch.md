@@ -21,10 +21,17 @@ on_exhausted: prompt_manual_switch
 exclude_models: [gemini-3.8-flash, gpt-oss-120b, gemini-4-argon, claude-haiku-5-5]
 
 instances:
-  # 2026-11-23 ryan 確認（D3）、2026-11-25 補 claude-fable：3 個 Claude 帳號都在 ryan 本人名下；開新子對話時依額度（weekly-first）在工作包邊界自動挑，同一條對話不中途換。
+  # 2026-11-23 ryan 確認（D3）：3 個 Claude 帳號都在 ryan 本人名下；開新子對話時依額度（weekly-first）在工作包邊界自動挑，同一條對話不中途換。
+  # claude-fable 只宣告在 claudeAgent（Ryan）：2026-11-25 曾替三個實例都補上 claude-fable，但沒實測。
+  # 實測依據：2026-11-26 14:19 UTC 派 Fable 5.2 到 claudeAgent_2（retis）五條全失敗，T3 回「Fable 5.2 requires usage credits.
+  # Switch to another model to continue.」，所以移除。claudeAgent_claude_kai（Kai）沒實測過；T3 目錄雖然列了 claude-fable-5-2，
+  # 但 retis 也有列、實際卻不能用，所以 Kai 在實測成功前不宣告。pool-state 兩者都記了 model_forbidden。
+  # Kai 的 access_ends：ryan 2026-11-27 原話「現在多一個Kai Claude帳號要消耗 因為我訂閱28號就到期了」。
+  # 確切到期時刻【待驗證】（沒有一手證據），先以 11-28 當天開始前（台北 00:00）為準、提早燒；
+  # 到期前 48 小時內 weekly-first 把它排第一、第二意見的燒額度改判也算它，過了就不再自動派、不再推薦。
   claudeAgent:            {driver: claudeAgent, account: Ryan,  owner: self, tos_ack: "2026-11-23 D3：本人名下，工作包邊界依額度挑", classes: [claude-opus, claude-sonnet, claude-fable]}
-  claudeAgent_2:          {driver: claudeAgent, account: retis, owner: self, tos_ack: "2026-11-23 D3：本人名下，工作包邊界依額度挑", classes: [claude-opus, claude-sonnet, claude-fable]}
-  claudeAgent_claude_kai: {driver: claudeAgent, account: Kai,   owner: self, tos_ack: "2026-11-23 D3：本人名下，工作包邊界依額度挑", classes: [claude-opus, claude-sonnet, claude-fable]}
+  claudeAgent_2:          {driver: claudeAgent, account: retis, owner: self, tos_ack: "2026-11-23 D3：本人名下，工作包邊界依額度挑", classes: [claude-opus, claude-sonnet]}
+  claudeAgent_claude_kai: {driver: claudeAgent, account: Kai,   owner: self, tos_ack: "2026-11-23 D3：本人名下，工作包邊界依額度挑", classes: [claude-opus, claude-sonnet], access_ends: "2026-11-28T00:00:00+08:00"}
   antigravity_ryan:
     driver: antigravity
     account: ryan

@@ -128,6 +128,24 @@ def terms_row(terms, driver, auth):
     return auth, row
 
 
+def access_end(row):
+    """profile 實例的 access_ends（訂閱或方案到期的時刻）→ 有時區的 datetime；沒寫或寫錯回 None。
+    沒寫時區的照這台的本地時區解讀。"""
+    v = (row or {}).get("access_ends")
+    if isinstance(v, datetime):
+        dt = v
+    elif isinstance(v, date):
+        dt = datetime(v.year, v.month, v.day)
+    elif isinstance(v, str):
+        try:
+            dt = datetime.fromisoformat(v.strip())
+        except ValueError:
+            return None
+    else:
+        return None
+    return dt if dt.tzinfo else dt.astimezone()
+
+
 def registry(t3, mine, terms):
     """T3 實例＋profile 登記 → 名冊。兩邊對不上的也列出來，附問題。"""
     reg = ((mine or {}).get("instances") or {})
@@ -145,7 +163,9 @@ def registry(t3, mine, terms):
              "account": spec.get("account"), "enabled": (live or {}).get("enabled", True) if live else None,
              "in_t3": (live is not None) if t3 is not None else None, "registered": iid in reg, "auth_mode": auth, "owner": spec.get("owner"),
              "usage_scope": scope, "classes": list(spec.get("classes") or []), "tos_ack": spec.get("tos_ack"),
-             "terms": term, "problems": []}
+             "access_ends": spec.get("access_ends"), "terms": term, "problems": []}
+        if spec.get("access_ends") is not None and access_end(spec) is None:
+            r["problems"].append(f"access_ends 要是 ISO 8601 時刻（例如 2026-11-28T00:00:00+08:00）：{spec.get('access_ends')}")
         if t3 is not None and live is None:
             r["problems"].append("T3 裡沒有這個實例（登記了但沒接上，或改名了）")
         if live is not None and iid not in reg:
@@ -159,10 +179,14 @@ def registry(t3, mine, terms):
     return rows
 
 
-def can_auto(row, what="auto_dispatch"):
-    """這個實例能不能讓 agent 自動用：回 (True/False, 原因)。what：auto_dispatch 或 auto_select。"""
+def can_auto(row, what="auto_dispatch", now=None):
+    """這個實例能不能讓 agent 自動用：回 (True/False, 原因)。what：auto_dispatch 或 auto_select。
+    profile 寫了 access_ends、而且已經過了，就不再自動派也不再推薦。"""
     if row["usage_scope"] == "manual_only":
         return False, "只給手動（manual_only）"
+    end = access_end(row)
+    if end is not None and end <= (now or datetime.now(timezone.utc)):
+        return False, f"訂閱已到期（access_ends {end.isoformat()}）"
     if row["in_t3"] is False and row["driver"] != "claudeAgent":
         return False, "T3 裡沒有這個實例"
     if row["enabled"] is False:

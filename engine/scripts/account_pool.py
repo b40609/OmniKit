@@ -966,6 +966,9 @@ def select_claude_instance(rows, mine, quotas, state_doc, *, strategy=None, now=
         if w_reset and w_reset <= now_dt:
             w_rem = None
         depleted = (h_rem is not None and h_rem <= 0) or (w_rem is not None and w_rem <= 0)
+        end = accounts.access_end(r)  # profile 的 access_ends：訂閱到期後額度整個作廢
+        if end is not None and end <= now_dt:
+            sel_ok, sel_why = False, f"訂閱已到期（access_ends {fmt_local(end)}）"
         eligible = sel_ok and not blk and not depleted
         if not sel_ok:
             why = sel_why
@@ -980,14 +983,18 @@ def select_claude_instance(rows, mine, quotas, state_doc, *, strategy=None, now=
             why = f"舊快照（{q.get('why')}）"
         else:
             why = "尚無額度快照（照 profile 順序）"
-        expiring = bool(eligible and w_reset and w_reset > now_dt
-                        and (w_reset - now_dt).total_seconds() < EXPIRING_SOON_SEC)
-        if expiring:
+        ends_first = end is not None and end > now_dt and (w_reset is None or w_reset <= now_dt or end < w_reset)
+        eff_reset = end if ends_first else w_reset  # 額度實際作廢的時刻：週重置與訂閱到期取早的
+        expiring = bool(eligible and eff_reset and eff_reset > now_dt
+                        and (eff_reset - now_dt).total_seconds() < EXPIRING_SOON_SEC)
+        if expiring and ends_first:
+            why = f"訂閱 {fmt_local(end)} 到期，剩 {fmt_remain(end, now_dt)}（< 48 小時，到期前先燒完）；" + why
+        elif expiring:
             why = f"距週重置剩 {fmt_remain(w_reset, now_dt)}（< 48 小時，快過期的額度先燒完）；" + why
         cands.append({
             "instance": iid, "account": r.get("account") or r.get("label") or iid,
             "eligible": eligible, "w_rem": w_rem, "h_rem": h_rem, "expiring_soon": expiring,
-            "w_reset_ts": w_reset.timestamp() if w_reset else None,
+            "w_reset_ts": eff_reset.timestamp() if eff_reset else None,
             "has_fresh": q.get("status") == "ok" and w_rem is not None,
             "order": order.get(iid, 999), "why": why,
         })
@@ -1052,6 +1059,77 @@ def select_claude_instance(rows, mine, quotas, state_doc, *, strategy=None, now=
         doc["sticky"]["claudeAgent"] = {"instance": chosen["instance"], "switched_at": iso_utc(now_dt), "reason": reason}
         save_state(persist_state, doc, now_dt)
     return {"chosen": chosen["instance"], "strategy": strat, "reason": reason, "ordered": ordered, "candidates": cands}
+
+
+# ---------- 第二意見看額度到期（dispatch-policy 的 second_opinion_burn） ----------
+
+def burn_candidates(rows, mine, quotas, state_doc, *, within_hours=None, min_remaining_pct=20.0,
+                    forced=(), now=None, home=None):
+    """每家（driver）值得先燒的帳號：距週重置不到 within_hours、週剩 >= min_remaining_pct、可自動派、沒被狀態檔擋住。
+    Claude 讀 claude_quotas（狀態列、T3 快取、手動登記，跟 weekly-first 同一個來源）；Antigravity 讀 effective_agy_quota 的各額度桶。
+    forced：使用者明說要燒的實例，不看門檻直接列入（仍要可自動派、沒被擋）。
+    回傳 {driver: [{instance, weekly_remaining_pct, weekly_resets_at, bucket, forced, why}]}。"""
+    import accounts
+    now_dt = utc_now(now)
+    window = (within_hours if within_hours is not None else EXPIRING_SOON_SEC / 3600) * 3600
+    forced = set(forced or ())
+    qmap = {q["instance"]: q for q in quotas or []}
+    classes = {iid: list((spec or {}).get("classes") or []) for iid, spec in (((mine or {}).get("instances")) or {}).items()}
+    out = {}
+
+    def consider(driver, iid, bucket, rem, rst, end=None):
+        is_forced = iid in forced
+        ends_first = end is not None and end > now_dt and (rst is None or rst <= now_dt or end < rst)
+        if ends_first:
+            rst = end  # 訂閱比週重置先到：額度在到期那一刻作廢
+        hit = (rem is not None and rem >= min_remaining_pct and rst is not None and rst > now_dt
+               and (rst - now_dt).total_seconds() < window)
+        if ends_first and rem is None and (rst - now_dt).total_seconds() < window:
+            hit = True  # 沒有額度快照，但訂閱快到期：照樣先燒
+        if not (hit or is_forced):
+            return
+        if rem is not None and rem <= 0:
+            return
+        if ends_first:
+            why = (f"週剩 {rem:.0f}%、" if rem is not None else "") + f"訂閱 {fmt_local(rst)} 到期（剩 {fmt_remain(rst, now_dt)}）"
+        elif rst is not None and rst > now_dt:
+            why = f"週剩 {rem:.0f}%、{fmt_remain(rst, now_dt)}後重置（{fmt_local(rst)}）" if rem is not None else f"{fmt_local(rst)} 重置"
+        else:
+            why = "沒有額度快照"
+        if is_forced:
+            why = "使用者指定要燒；" + why
+        out.setdefault(driver, []).append({"instance": iid, "weekly_remaining_pct": rem,
+                                           "weekly_resets_at": iso_utc(rst) if rst else None,
+                                           "bucket": bucket, "forced": is_forced, "why": why})
+
+    for r in rows or []:
+        iid, drv = r.get("id"), r.get("driver")
+        if drv not in ("claudeAgent", "antigravity") or not classes.get(iid):
+            continue
+        if not accounts.can_auto(r, "auto_dispatch")[0]:
+            continue
+        end = accounts.access_end(r)
+        if end is not None and end <= now_dt:
+            continue  # 訂閱已到期
+        if is_blocked(state_doc, iid, driver=drv, now=now_dt)[0]:
+            continue
+        if drv == "claudeAgent":
+            q = qmap.get(iid) or {}
+            fresh = q.get("status") == "ok"
+            consider(drv, iid, "claude", q.get("weekly_remaining_pct") if fresh else None,
+                     parse_ts(q.get("weekly_resets_at")) if fresh else None, end)
+        else:
+            acc = ((state_doc or {}).get("accounts") or {}).get(iid)
+            q = effective_agy_quota(acc, iid, home)
+            buckets = list(((q or {}).get("buckets") or {}).keys()) or [None]
+            for b in buckets:
+                st = _agy_bucket_status(q, b, now_dt) if b else None
+                ok = st and not st["stale"] and not st["weekly_reset_passed"]
+                consider(drv, iid, b, st["weekly_remaining_pct"] if ok else None,
+                         parse_ts(st["weekly_resets_at"]) if ok else None, end)
+    for lst in out.values():
+        lst.sort(key=lambda c: (parse_ts(c["weekly_resets_at"]).timestamp() if parse_ts(c["weekly_resets_at"]) else float("inf")))
+    return out
 
 
 # ---------- 額度用完接手順序（提案第四節 D1/D2） ----------
