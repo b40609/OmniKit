@@ -12,13 +12,15 @@
 - 這一回合寫了 `.done` 檔：從對話紀錄找這一回合的工具呼叫（Write／Edit 的 file_path，或 shell 指令裡的 `*.done`）。
 
 檢查什麼（設計〈改動 1〉第 1 到 5 條）：
-1. 沒有完工回執：找不到表頭含「驗證層級」與「證據位置」的表格。回覆裡沒有時，也看 `.done` 對應的交付檔
+1. 沒有完工回執：找不到表頭含「驗證層級」與「證據位置」的表格（程式碼區塊裡的不算，原樣貼出的範本佔位列也不算）。
+   表格的格子照 Markdown 切：反引號裡的 | 與跳脫的 \\| 不是分隔。回覆裡沒有時，也看 `.done` 對應的交付檔
    （`x.md.done` 看 `x.md`，`x.done` 看 `x.md`、`x.txt` 與 `.done` 本身），回執寫在交付檔裡也算。
 2. 回執沒有「沒驗的範圍：」這一行（沒有也要寫「無」）。
-3. 證據位置是檔案路徑的：檔案要存在，修改時間要在這段對話開始之後（對話開始時間取對話紀錄的第一筆時間）。
+3. 證據位置是檔案路徑的：檔案要存在，修改時間要在這段對話開始之後（對話開始時間取對話紀錄的第一筆時間；
+   那筆時間沒帶時區就不知道是本機時間還是 UTC，跳過這項不擋。三家本機紀錄實際都帶 Z）。
 4. 標了【完成待收尾】：cwd 的 git 有未提交（git status --porcelain）或未 push（@{u}..HEAD；沒設上游時看 HEAD
    在不在任何遠端分支裡）。不是 git repo、沒有遠端、git 出錯或逾時都跳過不擋。回覆寫明「只在這台」時不查未 push
-   （使用者規則對【完成待收尾】的定義：不能 push 的寫明只在這台）。
+   （使用者規則對【完成待收尾】的定義：不能 push 的寫明只在這台）；程式碼區塊、行內程式碼與否定句（不是只在這台）不算。
 5. 回執每一列都是「靜態」層級：不擋，只提示把標籤降為【等你決定】並寫明「只有靜態檢查」。
 
 模式（環境變數 OMNIKIT_DONE_CHECK）：
@@ -66,6 +68,8 @@ FENCE = re.compile(r"```[\s\S]*?(?:```|$)")
 SCOPE = re.compile(r"(?m)^[ \t>*\-]*(?:\*\*)?(?:沒驗的範圍|沒有驗的範圍|未驗證的範圍|未驗的範圍)(?:\*\*)?[ \t]*[:：]"
                    r"[ \t]*(?:\*\*)?[ \t]*(\S.*)?$")
 LOCAL_ONLY = re.compile(r"只在這台")
+NEGATIONS = ("不是", "並非", "不", "非", "沒有", "未必")  # 「不是只在這台」「不只在這台」不算宣告
+FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 STATIC = re.compile(r"靜態|static|lint|typecheck|型別檢查", re.IGNORECASE)
 NOT_STATIC = re.compile(r"單元|unit|整合|integration|實跑|觀察|端到端|e2e|截圖|人工|手動|manual", re.IGNORECASE)
 
@@ -73,7 +77,10 @@ PATH_EXT = re.compile(r"\.[A-Za-z][A-Za-z0-9]{1,7}$")
 LINE_SUFFIX = re.compile(r"(?::\d+(?:[-:]\d+)?|#L\d+(?:-L?\d+)?)$")
 NOT_PATHS = {"node.js", "vue.js", "next.js", "nuxt.js", "three.js", "chart.js", "d3.js", "express.js", "socket.io",
              "asp.net", "vite.js"}
-DONE_IN_CMD = re.compile(r"""(?:[A-Za-z]:)?[^\s"'`<>|;&()]+\.done(?![\w.\-])""")
+# shell 指令裡的 *.done：先找引號包住的（路徑可以有空白），其餘照沒有空白的一段找（done_in_cmd，線性時間）
+DONE_QUOTED = re.compile(r""""([^"\r\n]+\.done)"|'([^'\r\n]+\.done)'""")
+CMD_TOKEN = re.compile(r"""[^\s"'`<>|;&()]+""")
+DONE_END = re.compile(r"\.done(?![\w.\-])")
 WRITE_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
 SHELL_TOOLS = {"Bash", "PowerShell"}
 
@@ -119,13 +126,77 @@ def has_label(text: str) -> bool:
     return bool(LABEL_LINE.search(FENCE.sub("", text or "")))
 
 
+def strip_fences(text: str) -> str:
+    """拿掉 fenced code block（``` 或 ~~~，三個以上；沒關的到結尾為止），每行換成空行，行數不變。"""
+    out, fence = [], None
+    for line in (text or "").splitlines():
+        if fence is None:
+            m = FENCE_OPEN.match(line)
+            if m:
+                fence = m.group(1)
+            out.append("" if m else line)
+            continue
+        if re.match(rf"^ {{0,3}}{re.escape(fence[0])}{{{len(fence)},}}[ \t]*$", line):
+            fence = None
+        out.append("")
+    return "\n".join(out)
+
+
+def _code_mask(line: str) -> list:
+    """一行裡每個字元在不在行內程式碼裡。反引號要配到同樣長度的才算一段，配不到的照字面（線性時間）。"""
+    runs = [(m.start(), m.end()) for m in re.finditer(r"`+", line)]
+    nxt, last = [None] * len(runs), {}
+    for i in range(len(runs) - 1, -1, -1):
+        n = runs[i][1] - runs[i][0]
+        nxt[i], last[n] = last.get(n), i
+    mask = [False] * len(line)
+    i = 0
+    while i < len(runs):
+        j = nxt[i]
+        if j is None:
+            i += 1
+            continue
+        mask[runs[i][0]:runs[j][1]] = [True] * (runs[j][1] - runs[i][0])
+        i = j + 1
+    return mask
+
+
 def _cells(line: str) -> list:
-    return [c.strip() for c in line.strip().strip("|").split("|")]
+    """表格一列切成格子：反引號裡的 | 與跳脫的 \\| 不是分隔（GFM 的規則），不然欄位會右移、證據欄讀錯格。"""
+    s = line.strip().removeprefix("|")
+    if s.endswith("|") and not s.endswith("\\|"):
+        s = s[:-1]
+    code = _code_mask(s)
+    cells, cur, i = [], [], 0
+    while i < len(s):
+        if s[i] == "\\" and s[i + 1:i + 2] == "|":
+            cur.append("|")
+            i += 2
+            continue
+        if s[i] == "|" and not code[i]:
+            cells.append("".join(cur).strip())
+            cur = []
+        else:
+            cur.append(s[i])
+        i += 1
+    cells.append("".join(cur).strip())
+    return cells
+
+
+TEMPLATE_ROW = _cells(RECEIPT_FORMAT.splitlines()[3])  # 範本的佔位列：原樣貼出來不算一列
+SCOPE_PLACEHOLDER = SCOPE.search(RECEIPT_FORMAT).group(1).strip()  # 「…（沒有就寫「無」）」不算有寫
+
+
+def _scope_filled(value) -> bool:
+    v = (value or "").strip("*").strip()
+    return bool(v.strip("….。 ")) and v != SCOPE_PLACEHOLDER
 
 
 def parse_receipt(text: str) -> Receipt | None:
-    """找表頭含「層級」與「證據」的表格（程式碼區塊裡的也算）；沒有就回傳 None。"""
-    lines = (text or "").splitlines()
+    """找表頭含「層級」與「證據」的表格；沒有就回傳 None。
+    程式碼區塊裡的不算（貼出來的範本或例子不能自己通過），範本的佔位列也不算一列。"""
+    text = strip_fences(text)
+    lines = text.splitlines()
     rows, found = [], False
     i = 0
     while i < len(lines):
@@ -141,13 +212,15 @@ def parse_receipt(text: str) -> Receipt | None:
                 i += 1
                 if all(re.fullmatch(r":?-{2,}:?", c) or not c for c in cells):
                     continue  # |---|---| 分隔列
+                if cells == TEMPLATE_ROW:
+                    continue  # 範本的佔位列
                 cells += [""] * (max(level_i, ev_i) + 1 - len(cells))
                 rows.append(Row(cells[0], cells[level_i], cells[ev_i]))
             continue
         i += 1
     if not found:
         return None
-    return Receipt(rows, any(m.group(1) and m.group(1).strip("*").strip() for m in SCOPE.finditer(text)))
+    return Receipt(rows, any(_scope_filled(m.group(1)) for m in SCOPE.finditer(text)))
 
 
 def evidence_paths(cell: str) -> list:
@@ -218,6 +291,19 @@ def _git(cwd: str):
     return run
 
 
+def local_only(message: str) -> bool:
+    """回覆宣告了「只在這台」：程式碼區塊、行內程式碼與否定句（不是只在這台、並非只在這台、不只在這台）不算。"""
+    for line in strip_fences(message).splitlines():
+        if "只在這台" not in line:
+            continue
+        code = _code_mask(line)
+        for m in LOCAL_ONLY.finditer(line):
+            if code[m.start()] or line[max(0, m.start() - 4):m.start()].rstrip().endswith(NEGATIONS):
+                continue
+            return True
+    return False
+
+
 def git_problems(cwd: str, message: str = "", runner=None) -> list:
     run = runner or _git(cwd)
     rc, out = run(["rev-parse", "--is-inside-work-tree"])
@@ -229,7 +315,7 @@ def git_problems(cwd: str, message: str = "", runner=None) -> list:
     if changed:
         sample = "、".join(line[3:].strip() for line in changed[:3])
         problems.append(("git-dirty", f"cwd 的 git 有 {len(changed)} 個未提交的變更（git status --porcelain），例如 {sample}"))
-    if LOCAL_ONLY.search(message or ""):
+    if local_only(message):
         return problems
     rc, out = run(["rev-list", "--count", "@{u}..HEAD"])
     if rc == 0:
@@ -321,18 +407,27 @@ def reason_for(r: Result) -> str:
 
 # ---- 讀 hook 輸入 ----
 
-def _epoch(ts) -> float | None:
+def _parse_ts(ts):
     if not isinstance(ts, str) or not ts:
         return None
     try:
-        dt = datetime.fromisoformat(ts)
+        return datetime.fromisoformat(ts)
     except ValueError:
         return None
-    return (dt if dt.tzinfo else dt.replace(tzinfo=UTC)).timestamp()
+
+
+def _epoch(ts) -> float | None:
+    """ISO 8601 轉 epoch。沒帶時區的回傳 None：不知道是本機時間還是 UTC，不拿來判斷（硬套 UTC 在 UTC+8 會差 8 小時）。"""
+    dt = _parse_ts(ts)
+    if dt is None or dt.tzinfo is None or dt.utcoffset() is None:
+        return None
+    return dt.timestamp()
 
 
 def session_start(path: str | None) -> float | None:
-    """對話紀錄第一筆有時間的項目（Claude 的 timestamp、Codex 的 payload.timestamp、Antigravity 的 created_at）。"""
+    """對話紀錄第一筆有時間的項目（Claude 的 timestamp、Codex 的 payload.timestamp、Antigravity 的 created_at）。
+    那筆時間沒帶時區就回傳 None（跳過 evidence-stale），不往後找：後面的時間比對話開始晚，拿來比反而會誤擋。
+    三家本機紀錄實際都帶 Z（2026-11-28 查過：Claude、Codex 是 ...dd.dddZ，Antigravity 是 ...ddZ）。"""
     if not path or not Path(path).is_file():
         return None
     with open(path, encoding="utf-8", errors="replace") as f:
@@ -346,10 +441,26 @@ def session_start(path: str | None) -> float | None:
             if not isinstance(e, dict):
                 continue
             p = e.get("payload") if isinstance(e.get("payload"), dict) else {}
-            t = _epoch(e.get("timestamp")) or _epoch(p.get("timestamp")) or _epoch(e.get("created_at"))
-            if t:
-                return t
+            for raw in (e.get("timestamp"), p.get("timestamp"), e.get("created_at")):
+                if _parse_ts(raw) is not None:
+                    return _epoch(raw)
     return None
+
+
+def done_in_cmd(cmd: str) -> list:
+    """shell 指令裡寫到的 *.done 路徑，照出現順序。先找引號包住的（可以含空白，例如 "…/my reports/out.md.done"），
+    其餘照沒有空白的一段找、取那段裡最後一個 .done。都是線性時間：很長、沒有空白的指令也不會二次方回溯。"""
+    found, masked, pos = [], [], 0
+    for m in DONE_QUOTED.finditer(cmd):
+        found.append((m.start(), m.group(1) or m.group(2)))
+        masked += [cmd[pos:m.start()], " " * (m.end() - m.start())]
+        pos = m.end()
+    masked.append(cmd[pos:])
+    for m in CMD_TOKEN.finditer("".join(masked)):
+        ends = [d.end() for d in DONE_END.finditer(m.group()) if d.start() > 0]
+        if ends:
+            found.append((m.start(), m.group()[:ends[-1]]))
+    return [path for _, path in sorted(found)]
 
 
 def _tail_entries(path: str) -> list:
@@ -397,7 +508,7 @@ def done_paths_this_turn(path: str | None, subagent: bool = False) -> list:
             if e.get("type") == "response_item" and "call" in str(p.get("type") or "") and not str(p.get("type")).endswith("output"):
                 for v in (p.get("arguments"), p.get("input"), p.get("action")):
                     if v:
-                        paths += DONE_IN_CMD.findall(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False))
+                        paths += done_in_cmd(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False))
         return list(dict.fromkeys(paths))
     start = max((i + 1 for i, e in enumerate(entries) if _is_prompt(e, subagent)), default=0)
     for e in entries[start:]:
@@ -412,7 +523,7 @@ def done_paths_this_turn(path: str | None, subagent: bool = False) -> list:
                 if fp.endswith(".done"):
                     paths.append(fp)
             elif b.get("name") in SHELL_TOOLS:
-                paths += DONE_IN_CMD.findall(str(inp.get("command") or ""))
+                paths += done_in_cmd(str(inp.get("command") or ""))
     return list(dict.fromkeys(paths))
 
 
@@ -567,6 +678,18 @@ def selftest() -> int:
            not rules(check(RECEIPT_OK.replace("改好了。", "改好了，只在這台。"), cwd=tmp,
                            runner=lambda a: fake.get(tuple(a), (1, "")))))
         ok("git 逾時或出錯：跳過不擋", not rules(check(RECEIPT_OK, cwd=tmp, runner=lambda a: (1, ""))))
+        ok("否定句、程式碼裡的「只在這台」不算：照查未 push", all(
+            "git-unpushed" in rules(check(RECEIPT_OK.replace("改好了。", extra), cwd=tmp,
+                                          runner=lambda a: fake.get(tuple(a), (1, ""))))
+            for extra in ("改好了，不是只在這台。", "改好了。規則寫 `只在這台`。")))
+        ok("表格格子：反引號裡與跳脫的 | 不是分隔", _cells("| a | `x|y` | b \\| c |") == ["a", "`x|y`", "b | c"])
+        ok("程式碼區塊裡、原樣貼出的回執範本不能自己通過",
+           "no-receipt" in rules(check(f"{LABEL}\n```\n{RECEIPT_FORMAT}\n```\n", cwd=tmp))
+           and {"receipt-empty", "no-scope"} <= rules(check(f"{LABEL}\n{RECEIPT_FORMAT}\n", cwd=tmp)))
+        ok("含空白、引號包住的 .done 路徑整段抓", done_in_cmd("echo ok > \"a b/c.md.done\" && touch x.done")
+           == ["a b/c.md.done", "x.done"])
+        ok("沒帶時區的時間不拿來判斷對話開始", _epoch("2026-01-01T00:00:00") is None
+           and _epoch("2026-01-01T00:00:00Z") is not None)
         bad = {"hook_event_name": "Stop", "session_id": "s", "cwd": tmp,
                "last_assistant_message": "【完成待收尾】已驗證，errors=0"}
         ok("記錄模式：不擋，寫一筆 tripwire",
