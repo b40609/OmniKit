@@ -154,11 +154,15 @@ Add-Result "複製 repo 到測試資料夾（$($files.Count) 個檔案，最長�
 $StatusCopied = Get-Status
 
 # 從這裡開始，家目錄與 %LOCALAPPDATA% 都換成測試資料夾裡假的，碰不到這台的設定；結束時換回來。
-# uv 的快取指回原本的，免得重新下載
+# uv 的快取指回原本的，免得重新下載。
+# 指定設定目錄的變數也要清掉：在 Claude Code 對話裡跑時會繼承 CLAUDE_CONFIG_DIR，homes.py 照它找到真實的設定目錄，
+# 訪談步驟就把那裡的規則區塊與 skill 連結換成測試 profile（2026-11-27 在這台發生過，已用 sync.py sync 還原）
+$AgentDirVars = 'CLAUDE_CONFIG_DIR', 'CODEX_HOME', 'GEMINI_CLI_HOME', 'OMNIKIT_HOME', 'T3CODE_HOME'
 $savedEnv = @{}
-foreach ($k in 'TEMP', 'TMP', 'PYTHONIOENCODING', 'USERPROFILE', 'HOME', 'LOCALAPPDATA', 'UV_CACHE_DIR', 'OMNIKIT_STATE_DIR') {
+foreach ($k in @('TEMP', 'TMP', 'PYTHONIOENCODING', 'USERPROFILE', 'HOME', 'LOCALAPPDATA', 'UV_CACHE_DIR', 'OMNIKIT_STATE_DIR') + $AgentDirVars) {
   $savedEnv[$k] = [Environment]::GetEnvironmentVariable($k)
 }
+foreach ($k in $AgentDirVars) { [Environment]::SetEnvironmentVariable($k, $null) }
 $env:TEMP = $Temp
 $env:TMP = $Temp
 $env:PYTHONIOENCODING = 'cp950'
