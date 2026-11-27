@@ -2,12 +2,11 @@ id: unslop
 name: unslop（heydamir）
 slots:
 - frontend-design
-status: trial
+status: pending
 url: https://github.com/heydamir/unslop
 sources:
 - 自我迭代訊號
-decided_at: '2026-11-14'
-trial_until: '2026-11-28'
-reason: 工具介面照三輪實測的規則判定：LinePort 那一輪灰階版面三組難分，配色使用者把它跟原版並列第一；OmniKit 看板那一輪使用者認為它長期使用最實用。現任 frontend-design 三輪都沒被選上，維持預設到試用結束。
+decided_at: '2026-11-27'
+reason: 2026-11-27 試用到期消融健檢未通過（T1 雙評審綜合 7.00、手機 6.50，反低於裸模型 7.63／手機 7.75），使用者拍板不轉正退回 pending，工具介面槽位改試用 impeccable 至 2026-12-11（見 data/evals/2026-11-27-trial-expiry.md）。
 notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:3c5fcdbfe765）。支援 Claude Code、Codex、Antigravity。實測：CatOS 依方向打磨時三組最後（2026-11-13-frontend-design-F1.md）；OmniKit 看板使用者排第二、評為最實用（F1b）；LinePort 控制台使用者評細節最完整、配色第一，但那一輪灰階網址給錯，使用者看到的是彩色版（F1c）。Gemini 評審三輪都沒把它排第一，跟使用者不一致。授權 CC-BY-4.0。
 added: '2026-11-13'

@@ -2,12 +2,11 @@ id: taste-skill
 name: taste-skill（leonxlnx）
 slots:
 - web-pages
-status: trial
+status: pending
 url: https://github.com/leonxlnx/taste-skill
 sources:
 - 自我迭代訊號
-decided_at: '2026-11-14'
-trial_until: '2026-11-28'
-reason: 三輪工具介面實測的盲選裡兩輪勝出、一輪居中，但做出來偏向形象頁，用在功能導向的介面上會犧牲效率；依使用者的分工改放網頁槽位試用。網頁本身沒有實測過，是依它的說明與實測裡的風格推論。
+decided_at: '2026-11-27'
+reason: 2026-11-27 試用到期網頁消融健檢大敗（T2 雙評審綜合 5.75 vs 裸模型 8.13，差 -2.38；英文檢查規則與 320 KB 字型上限與中文頁嚴重水土不服），使用者拍板不轉正退回 pending 並停用本機 plugin，網頁槽位改用裸模型（見 data/evals/2026-11-27-trial-expiry.md）。
 notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:f20d9b5a7ee8）。實測：CatOS 依方向打磨，使用者在三組裡選它（2026-11-13-frontend-design-F1.md）；OmniKit 看板，使用者評最漂亮、像業界高質感網頁，但做成每段一整屏的行銷頁（F1b）；LinePort 控制台，灰階評「好看有質感」、配色居中，Gemini 質感與實用都排第一（F1c）。說明寫明以公司官網、形象頁為主，需要 Node 22 以上與 Chrome。MIT。2026-11-19 網頁第 2 層（WP1，OmniKeep 產品頁，Ryan 盲選）：跟 Huashu、不裝 skill 灰階與彩色都平手，第一屏 Ryan 選它；整頁排版 Ryan 較喜歡不裝 skill 的版本。試用照舊到 2026-11-28，見 data/evals/2026-11-19-web-pages-WP1.md。
 added: '2026-11-13'

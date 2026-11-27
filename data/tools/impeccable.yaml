@@ -3,7 +3,10 @@ name: impeccable
 kind: skill
 slots:
 - frontend-design
-status: pending
+status: trial
+decided_at: '2026-11-27'
+trial_until: '2026-12-11'
+reason: 2026-11-27 試用到期雙盲評測勝出 unslop（綜合 8.00 vs 7.00、+1.00，手機 7.50，Fable 評審首選；Apache-2.0，第 0 層掃描誤判已核清），使用者拍板改試用兩週至 2026-12-11（見 data/evals/2026-11-27-trial-expiry.md）。
 url: https://github.com/pbakaus/impeccable
 works_with:
 - claude

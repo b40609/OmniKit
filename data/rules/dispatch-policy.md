@@ -92,7 +92,7 @@ levels:
         note: 日常多檔／UI 實作的 Claude 選項（Opus effort high），或沒有 Gemini 實例時使用
       - class: claude-sonnet
         thinking: medium
-        note: 退路：Sonnet 試行（凍結至 2026-11-29 到期檢討；沒有 Gemini 實例或省 Opus 額度時可選） # <!-- review_on: 2026-11-29 reason: Sonnet 試行與凍結期結束檢討 -->
+        note: 退路：Sonnet 低優先退路（2026-11-27 拍板結案保留；沒有 Gemini 實例或省 Opus 額度時可選）
         trial: sonnet-trial
   high:
     name: 高
@@ -342,7 +342,7 @@ usage_signal:
     claude_allow.py 會把 dispatch.py statusline --dir 接進 ~/.claude 及所有已宣告的多帳號 CLAUDE_CONFIG_DIR（如 ~/.claude-work 等；2026-11-23 多帳號實測通過）；
     T3 裡跑 Claude 則由 account_pool.py 讀取 ~/.t3/caches/<實例>.json 的 usageLimits（不讀 auth 欄位）。查不到（unknown）時不要假設已達 80%。
 
-# Sonnet 試行的品質保護（凍結至 2026-11-29 到期檢討）。
+# Sonnet 低優先退路品質保護（2026-11-27 拍板結案保留，原 16 筆 medium 一次通過率 75.0% 未達退回門檻）。
 trials:
   sonnet-trial:
     class: claude-sonnet
@@ -354,7 +354,7 @@ trials:
     action: Sonnet 比 Opus 低 10 個百分點以上，就把 levels.medium 的 claude-sonnet 換回 claude-opus（同一級 effort）
     how: omnikit-dispatch skill 的 dispatch.py stats（repo 裡是 uv run engine/scripts/dispatch.py stats）
     note: >-
-      凍結期間（到 2026-11-29）control_every 維持 0，到期時併新分工表一起決定 Sonnet 是否保留在中級退路。
+      2026-11-27 拍板 3A：到期直接結案並保留為 medium 第 5 順位低優先退路，維持統計門檻監控。
     control_every: 0
 
 # 委派紀錄：每次委派結束時一行 JSONL，存在本機，不進 repo。
