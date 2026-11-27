@@ -567,8 +567,8 @@ def project_name(cwd=None):
     cwd = Path(cwd or os.getcwd())
     try:
         r = subprocess.run(
-            ["git", "-C", str(cwd), "rev-parse", "--git-common-dir"],
-            capture_output=True, text=True, timeout=10,
+            ["git", "-C", str(cwd), "-c", "core.quotepath=false", "rev-parse", "--git-common-dir"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
         )
         if r.returncode == 0 and r.stdout.strip():
             raw = Path(r.stdout.strip())
@@ -580,7 +580,10 @@ def project_name(cwd=None):
     except (OSError, subprocess.TimeoutExpired):
         pass
     try:
-        r = subprocess.run(["git", "-C", str(cwd), "rev-parse", "--show-toplevel"], capture_output=True, text=True, timeout=10)
+        r = subprocess.run(
+            ["git", "-C", str(cwd), "-c", "core.quotepath=false", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
+        )
         if r.returncode == 0 and r.stdout.strip():
             return Path(r.stdout.strip()).name
     except (OSError, subprocess.TimeoutExpired):
@@ -1568,18 +1571,20 @@ def selftest():
         ok("舊版把 yaml 放在 dispatch.md 的還讀得到", policy(rules.parent) == {"c": 3})
 
         # KIT-X-06：worktree 裡用 --git-common-dir 仍回到主 repo 名；日期／hash／skill 目錄名觸發提醒
-        main_repo = Path(tmp) / "SampleProj"
-        wt_dir = Path(tmp) / "2026-11-23-sample-145f3fe3"
+        # 名稱壓短（P／w）並加 core.longpaths=true，避免 Windows CI 超長暫存路徑下 git worktree 撞內部 $GIT_DIR 上限
+        main_repo = Path(tmp) / "P"
+        wt_dir = Path(tmp) / "w"
         main_repo.mkdir()
         git_env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@e",
                    "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@e"}
-        subprocess.run(["git", "-C", str(main_repo), "init", "-q"], check=True, env=git_env)
+        subprocess.run(["git", "-C", str(main_repo), "-c", "core.longpaths=true", "init", "-q"], check=True, env=git_env)
+        subprocess.run(["git", "-C", str(main_repo), "config", "core.longpaths", "true"], check=True, env=git_env)
         (main_repo / "a.txt").write_text("x\n", encoding="utf-8")
-        subprocess.run(["git", "-C", str(main_repo), "add", "a.txt"], check=True, env=git_env)
-        subprocess.run(["git", "-C", str(main_repo), "commit", "-q", "-m", "init"], check=True, env=git_env)
-        subprocess.run(["git", "-C", str(main_repo), "worktree", "add", "-q", "-b", "wt-test", str(wt_dir)], check=True, env=git_env)
+        subprocess.run(["git", "-C", str(main_repo), "-c", "core.longpaths=true", "add", "a.txt"], check=True, env=git_env)
+        subprocess.run(["git", "-C", str(main_repo), "-c", "core.longpaths=true", "commit", "-q", "-m", "init"], check=True, env=git_env)
+        subprocess.run(["git", "-C", str(main_repo), "-c", "core.longpaths=true", "worktree", "add", "-q", "-b", "wt", str(wt_dir)], check=True, env=git_env)
         ok("project_name 在 git worktree 內取回主 repo 名，不被 worktree 目錄名污染",
-           project_name(main_repo) == "SampleProj" and project_name(wt_dir) == "SampleProj")
+           project_name(main_repo) == "P" and project_name(wt_dir) == "P")
         ok("looks_like_noise_project 偵測日期、hash 與 skill 子目錄名，正常專案名不誤判",
            looks_like_noise_project("2026-11-23-lineport-145f3fe3")
            and looks_like_noise_project("2026-11-24-claude-mem-f7ebcde3")
