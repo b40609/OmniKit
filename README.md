@@ -68,7 +68,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 
 ### 安全底線與護欄
 
-刪檔、`git push -f`、對外發送、付款之前先問你；金鑰不讀、不印、不寫死。規則之外，Claude Code 與 Antigravity 還有確定性的 hook：讀 `.env`、用 `--no-verify` 跳過檢查、一次塞進一堆 lint ignore，都會被擋下並說明原因（Codex 目前只接提醒類 hook，靠規則約束）。
+刪檔、`git push -f`、對外發送、付款之前先問你；金鑰不讀、不印、不寫死。規則之外，Claude Code 與 Antigravity 還有確定性的 hook，用來**擋常見捷徑，不是沙箱**：直接讀 `.env` 或常見憑證檔、用 `--no-verify` 跳過檢查、一次塞進一堆 lint ignore 時會擋下並說明原因；真正的安全界線仍靠權限模式與 OS 層沙箱（Codex 目前只接提醒類 hook，靠規則約束）。
 
 </td>
 <td width="50%" valign="top">

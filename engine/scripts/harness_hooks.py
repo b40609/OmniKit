@@ -33,6 +33,7 @@ stop_hook_active，第二次放行）；PreToolUse 放行回傳官方必填的 {
 用法：uv run engine/scripts/harness_hooks.py             從 stdin 讀 hook 輸入（hook 用）
       uv run engine/scripts/harness_hooks.py --selftest
 """
+import fnmatch
 import hashlib
 import json
 import os
@@ -83,6 +84,16 @@ def record_tripwire(rule: str, session_id: str, agy: bool = False, env=None) -> 
 
 QUOTED = re.compile(r"\"(?:\\.|[^\"\\])*\"|'[^']*'")
 SEGMENT_SPLIT = re.compile(r"&&|\|\||;|\||\n|`|\$\(")
+ENV_ASSIGN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=\S*")
+# 包在別的指令後面的 git：time、nice、nohup、exec、PowerShell 的 &、cmd /c、括號與大括號
+WRAPPERS = {"env", "command", "sudo", "time", "nice", "nohup", "exec", "&", "call", "start"}
+# 外殼把整串指令放在引號裡交給下一層：bash -c '…'、sh -c "…"、pwsh -Command "…"、cmd /c "…"
+NESTED = re.compile(r"(?i)(?:^|[\s(&;|])(?:(?:ba|z|da|k)?sh|cmd(?:\.exe)?|pwsh(?:\.exe)?|powershell(?:\.exe)?)"
+                    r"(?:\s+-{1,2}\w+)*?\s+(?:-c|/c|/k|-command|-c(?:ommand)?)\s+(\"(?:\\.|[^\"\\])*\"|'[^']*')")
+# 在同一串指令裡先設好跳過變數：export HUSKY=0、$env:HUSKY="0"、set SKIP=ruff、GIT_CONFIG_KEY_0=core.hooksPath
+SKIP_VAR = re.compile(r"(?i)(?:\bexport\s+|\$env:|\bset\s+)(HUSKY|SKIP|PREK_SKIP|PRE_COMMIT_ALLOW_NO_CONFIG)\s*=\s*[\"']?([^\s\"';]*)")
+GIT_CONFIG_ENV = re.compile(r"(?i)\bGIT_CONFIG_(?:KEY_\d+|PARAMETERS)\s*=\s*[\"']?[^\"'\s]*core\.hookspath")
+OWN_HOOK_DIRS = (".githooks", ".husky")  # repo 自己的 hook 目錄（install.ps1 設的就是 .githooks），不算繞過
 
 
 def _strip_quotes(cmd: str) -> str:
@@ -92,15 +103,18 @@ def _strip_quotes(cmd: str) -> str:
 def _git_segments(cmd: str):
     """拆成一段一段的指令，回傳 (環境變數前綴, git 之後的 token) ；不是 git 的段落略過。"""
     for seg in SEGMENT_SPLIT.split(_strip_quotes(cmd)):
-        toks = seg.split()
+        toks = seg.replace("(", " ").replace(")", " ").replace("{", " ").replace("}", " ").split()
         env = []
-        while toks and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=\S*", toks[0]):
-            env.append(toks.pop(0))
-        if toks and toks[0] in ("env", "command", "sudo"):
-            toks = toks[1:]
-            while toks and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=\S*", toks[0]):
+        while toks:
+            if ENV_ASSIGN.fullmatch(toks[0]):
                 env.append(toks.pop(0))
-        if toks and re.fullmatch(r"(?:.*[/\\])?git(?:\.exe)?", toks[0]):
+            elif toks[0].lower() in WRAPPERS:
+                toks.pop(0)
+            elif re.fullmatch(r"(?i)cmd(?:\.exe)?", toks[0]) and len(toks) > 1 and toks[1].lower() in ("/c", "/k"):
+                toks = toks[2:]
+            else:
+                break
+        if toks and re.fullmatch(r"(?:.*[/\\])?git(?:\.exe)?", toks[0], re.IGNORECASE):
             yield env, toks[1:]
 
 
@@ -122,15 +136,44 @@ def _subcommand(args):
     return None, [], glob
 
 
-def bypass_reason(cmd: str):
+def _is_no_verify(tok: str) -> bool:
+    """git 接受沒有歧義的長參數縮寫：--no-veri 起跳就只剩 --no-verify（--no-ver 還會撞到 --no-verbose）。"""
+    return len(tok) >= len("--no-veri") and "--no-verify".startswith(tok)
+
+
+def bypass_reason(cmd: str, _depth: int = 0):
     """git 指令有繞過 hook 的寫法就回傳原因，沒有就 None。"""
-    for env, args in _git_segments(cmd or ""):
+    cmd = cmd or ""
+    if _depth < 3:
+        for m in NESTED.finditer(cmd):
+            inner = m.group(1)[1:-1]
+            why = bypass_reason(inner.replace('\\"', '"'), _depth + 1)
+            if why:
+                return why
+    if GIT_CONFIG_ENV.search(cmd):
+        return "用 GIT_CONFIG_KEY_n／GIT_CONFIG_PARAMETERS 換掉 core.hooksPath 會跳過 pre-commit 門禁"
+    segments = list(_git_segments(cmd))
+    commits = any(_subcommand(args)[0] in ("commit", "push", "merge", "am", "rebase", "cherry-pick") for _, args in segments)
+    if commits:
+        for m in SKIP_VAR.finditer(cmd):
+            k, v = m.group(1).upper(), m.group(2)
+            if (k == "HUSKY" and v == "0") or (k != "HUSKY" and v):
+                return f"先設 {k}={v} 再 commit 會讓 git hook／pre-commit 跳過檢查"
+    for env, args in segments:
         sub, rest, glob = _subcommand(args)
         if any(re.match(r"core\.hookspath=", g, re.IGNORECASE) for g in glob) or any("hookspath" in g.lower() for g in glob):
             return "用 -c core.hooksPath 換掉 hook 目錄會跳過 pre-commit 門禁"
+        if sub == "config":
+            low = [a.lower() for a in rest]
+            if "core.hookspath" in low and not set(low) & {"--get", "--get-all", "--list", "-l", "--unset", "--unset-all", "--show-origin"}:
+                i = low.index("core.hookspath")
+                val = rest[i + 1].strip("\"'") if i + 1 < len(rest) else None
+                if val is not None and val.rstrip("/\\") not in OWN_HOOK_DIRS:
+                    return f"git config core.hooksPath {val} 會把 hook 目錄換掉、跳過 pre-commit 門禁"
+            continue
         if sub not in ("commit", "push", "merge", "am", "rebase", "cherry-pick"):
             continue
-        if "--no-verify" in rest:
+        if any(_is_no_verify(t) for t in rest):
             return f"git {sub} --no-verify 會跳過 pre-commit／pre-push 門禁"
         if sub == "commit":
             for t in rest:
@@ -152,19 +195,42 @@ def bypass_reason(cmd: str):
 SAMPLE = re.compile(r"(?i)(?:^|[._-])(?:example|sample|template|dist|tmpl|defaults?|schema)(?:[._-]|$)")
 SECRET_NAME = re.compile(
     r"(?i)^(?:[\w.-]*\.env(?:\.[\w-]+)*|[\w.-]+\.pem|[\w.-]+\.key|[\w.-]*\.secret(?:\.[\w-]+)*|[\w.-]*secrets?\.(?:json|ya?ml|toml)"
-    r"|cookies?[\w.-]*\.txt|id_(?:rsa|ed25519|ecdsa|dsa)|[\w.-]+\.p12|[\w.-]+\.pfx|\.netrc|\.pgpass|credentials(?:\.json)?)$")
+    r"|cookies?[\w.-]*\.txt|id_(?:rsa|ed25519|ecdsa|dsa)|[\w.-]+\.p12|[\w.-]+\.pfx|\.netrc|\.pgpass|credentials(?:\.json)?"
+    r"|\.credentials\.json|auth\.json|(?:oauth[-_]?)?tokens?\.json|\.npmrc|\.pypirc|service[-_]account[\w.-]*\.json)$")
+# 依位置判斷的機密：T3 的帳號快取（OmniKit 自己的 account_pool 要讀它取 usageLimits，見 OWN_READERS）
+SECRET_DIR = re.compile(r"(?i)(?:^|[/\\])\.t3[/\\]caches[/\\][^/\\]+\.json$")
+# 這些 OmniKit 程式自己會讀 ~/.t3/caches，跑它們不算 agent 把快取讀進對話
+OWN_READERS = re.compile(r"(?i)(?:^|[/\\\s])account_pool\.py\b")
+# glob 展開前的樣式（cat .env*、cat .en[v]）：拿來對這些常見機密檔名比對
+GLOB_PROBES = (".env", ".env.local", ".env.production", "id_rsa", "server.pem", "server.key", ".npmrc", ".netrc")
 READ_VERBS = {"cat", "type", "get-content", "gc", "head", "tail", "less", "more", "bat", "batcat", "sed", "awk", "grep",
               "rg", "egrep", "fgrep", "findstr", "select-string", "sls", "nl", "od", "xxd", "hexdump", "strings", "base64",
               "openssl", "jq", "yq", "python", "python3", "py", "node", "iconv", "tac", "cut", "sort", "uniq", "diff",
               "scp", "curl", "wget", "source", "export", "dotenv"}
+# 不靠指令名、直接在程式碼裡讀檔：[IO.File]::ReadAllText、open(…)、readFileSync、read_text
+READ_API = re.compile(r"(?i)ReadAll(?:Text|Lines|Bytes)|OpenText|OpenRead|\bopen\(|readFileSync|read_text|read_bytes|Get-Content")
 CODE_EXT = re.compile(r"(?i)\.(?:py|pyi|js|mjs|cjs|ts|tsx|jsx|vue|svelte|go|rs|java|cs|rb|php|md|mdx|html|css|scss|sh|ps1)$")
+INNER_LITERAL = re.compile(r"[\"']([^\"']+)[\"']")
 
 
 def is_secret_path(path: str) -> bool:
-    name = re.split(r"[/\\]", str(path or "").strip().strip("\"'"))[-1]
-    if not name or not SECRET_NAME.match(name) or CODE_EXT.search(name):
+    raw = str(path or "").strip().strip("\"'")
+    if SECRET_DIR.search(raw):
+        return True
+    name = re.split(r"[/\\]", raw)[-1]
+    if not name or CODE_EXT.search(name):
+        return False
+    if any(c in name for c in "*?["):
+        literal = re.sub(r"\[[^\]]*\]|[*?]", "", name)
+        return len(literal) >= 2 and any(fnmatch.fnmatchcase(p.lower(), name.lower()) for p in GLOB_PROBES)
+    if not SECRET_NAME.match(name):
         return False
     return not SAMPLE.search(name)
+
+
+def _secret_in_token(t: str) -> bool:
+    return (is_secret_path(t) or any(is_secret_path(x) for x in re.split(r"[<>=(),]", t))
+            or any(is_secret_path(x) for x in INNER_LITERAL.findall(t)))
 
 
 def secret_read_reason(tool: str, inp: dict):
@@ -173,12 +239,14 @@ def secret_read_reason(tool: str, inp: dict):
         if is_secret_path(p):
             return f"不把機密檔 {Path(p).name} 讀進對話（安全底線：不讀取、不印出金鑰）"
     if tool == "Grep":
-        p = inp.get("path") or ""
-        if p and is_secret_path(p):
-            return f"不搜尋機密檔 {Path(p).name} 的內容進對話"
+        for key in ("path", "glob"):
+            p = inp.get(key) or ""
+            if p and is_secret_path(p):
+                return f"不搜尋機密檔 {Path(p).name} 的內容進對話"
     if tool in ("Bash", "PowerShell"):
         cmd = inp.get("command") or ""
         for seg in SEGMENT_SPLIT.split(cmd):
+            own_reader = bool(OWN_READERS.search(seg))
             try:
                 toks = shlex.split(seg, posix=(tool != "PowerShell"))
             except ValueError:
@@ -188,8 +256,11 @@ def secret_read_reason(tool: str, inp: dict):
                 continue
             verbs = {re.split(r"[/\\]", t)[-1].lower().removesuffix(".exe") for t in toks}
             redirect_in = "<" in seg
-            hits = [t for t in toks if is_secret_path(t) or any(is_secret_path(x) for x in re.split(r"[<>=]", t))]
-            if hits and (verbs & READ_VERBS or redirect_in):
+            api_read = bool(READ_API.search(seg))
+            hits = [t for t in toks if _secret_in_token(t)]
+            if own_reader:
+                hits = [t for t in hits if not SECRET_DIR.search(t.strip("\"'"))]
+            if hits and (verbs & READ_VERBS or redirect_in or api_read):
                 return f"不用 shell 把機密檔 {Path(hits[0].strip('<>')).name} 的內容讀進對話；要用的話請程式從環境變數讀"
     return None
 
@@ -509,6 +580,48 @@ def selftest() -> int:
        all(denied(pre(t, **i)) for t, i in sec_block))
     wrong = [i for t, i in sec_allow if denied(pre(t, **i))]
     ok(f"機密檔不誤擋：.env.example 等範例檔、只看存不存在、一般檔案放行（誤擋 {wrong}）", not wrong)
+
+    # KIT-A-05：2026-11-26 交叉審查實測放行的 18 個繞過樣本，之後不准退步。黑名單擋不完，這只是擋常見捷徑，不是沙箱。
+    bypass_samples = [
+        ("Bash", {"command": "git commit --no-veri -m x"}),
+        ("Bash", {"command": "bash -c 'git commit --no-verify -m x'"}),
+        ("Bash", {"command": "git config core.hooksPath /dev/null && git commit -m x"}),
+        ("Bash", {"command": "export HUSKY=0; git commit -m x"}),
+        ("Bash", {"command": "cmd /c git commit --no-verify -m x"}),
+        ("Bash", {"command": "(git commit --no-verify -m x)"}),
+        ("Bash", {"command": "time git commit --no-verify -m x"}),
+        ("PowerShell", {"command": "& git commit --no-verify -m x"}),
+        ("Bash", {"command": "cat .env*"}),
+        ("Bash", {"command": "cat .en[v]"}),
+        ("Bash", {"command": "python -c \"print(open('.env').read())\""}),
+        ("PowerShell", {"command": "[IO.File]::ReadAllText('.env')"}),
+        ("Grep", {"pattern": "KEY", "glob": ".env"}),
+        ("Read", {"file_path": "C:/Users/u/.claude/.credentials.json"}),
+        ("Read", {"file_path": "C:/Users/u/.codex/auth.json"}),
+        ("Read", {"file_path": "C:/Users/u/.t3/caches/antigravity_x.json"}),
+        ("Read", {"file_path": "/a/token.json"}),
+        ("Read", {"file_path": "C:/Users/u/.npmrc"}),
+    ]
+    missed = [i for t, i in bypass_samples if not denied(pre(t, **i))]
+    ok(f"繞過樣本（KIT-A-05 的 {len(bypass_samples)} 個）全擋（漏擋 {missed}）", not missed)
+    extra_block = [("Bash", {"command": "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x"}),
+                   ("Bash", {"command": "pwsh -NoProfile -Command \"git commit --no-verify -m x\""}),
+                   ("PowerShell", {"command": "$env:HUSKY='0'; git commit -m x"}),
+                   ("Read", {"file_path": "/a/service-account-prod.json"}),
+                   ("Bash", {"command": "uv run engine/scripts/account_pool.py status && cat ~/.t3/caches/antigravity_x.json"})]
+    missed = [i for t, i in extra_block if not denied(pre(t, **i))]
+    ok(f"同類寫法：GIT_CONFIG_KEY、pwsh -Command、$env:HUSKY、service-account、串接 account_pool 後讀 T3 快取也擋（漏擋 {missed}）", not missed)
+    extra_allow = [("Bash", {"command": "git config core.hooksPath .githooks"}),
+                   ("Bash", {"command": "git config --get core.hooksPath"}),
+                   ("Bash", {"command": "git commit --no-edit"}), ("Bash", {"command": "git push --verbose origin main"}),
+                   ("Bash", {"command": "bash -c 'git status'"}), ("Bash", {"command": "export HUSKY=0"}),
+                   ("Bash", {"command": "ls .env*"}), ("Bash", {"command": "grep -n TODO *"}), ("Bash", {"command": "cat *.md"}),
+                   ("Grep", {"pattern": "x", "glob": "*.py"}), ("Read", {"file_path": "/a/package.json"}),
+                   ("Read", {"file_path": "/a/tokenizer_config.json"}),
+                   ("Bash", {"command": "uv run engine/scripts/account_pool.py status"}),
+                   ("Bash", {"command": "uv run python engine/scripts/account_pool.py usage --cache ~/.t3/caches/antigravity_x.json"})]
+    wrong = [i for t, i in extra_allow if denied(pre(t, **i))]
+    ok(f"新規則不誤擋：設回 .githooks、--get、--no-edit、--verbose、只 export、ls、account_pool 讀 T3 快取（誤擋 {wrong}）", not wrong)
 
     relax_old = "[tool.ruff.lint]\nselect = [\"F\", \"E\"]\n"
     relax_new = relax_old + "ignore = [\"F401\", \"E501\", \"F841\", \"E722\"]\nper-file-ignores = {\"*\" = [\"ALL\"]}\n"

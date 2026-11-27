@@ -43,6 +43,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -325,13 +326,95 @@ def _empty_account():
     }
 
 
+LOCK_TIMEOUT_SEC = 10.0   # 等狀態檔鎖最多幾秒
+LOCK_STALE_SEC = 60.0     # 鎖檔超過這麼久沒放開，當作持有者已經死掉
+READ_RETRY_DELAYS = (0.05, 0.1, 0.25, 0.5, 1.0)  # Windows 別的行程正在 os.replace 時讀檔會 PermissionError
+_LOCK_GUARD = threading.Lock()
+_LOCK_REENTRY = {}  # (鎖檔絕對路徑, thread_ident) -> 同一執行緒重入深度
+
+
+class _StateLock:
+    """零相依的跨行程／跨執行緒鎖（同執行緒可重入）：用 O_CREAT|O_EXCL 建 pool-state.lock，拿不到就等；持有者當掉留下的舊鎖 60 秒後接手。"""
+
+    def __init__(self, path):
+        self.path = Path(path)
+        self._key = None
+
+    def __enter__(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        key = (str(self.path.resolve()), threading.get_ident())
+        with _LOCK_GUARD:
+            depth = _LOCK_REENTRY.get(key, 0)
+            if depth > 0:
+                _LOCK_REENTRY[key] = depth + 1
+                self._key = key
+                return self
+        deadline = time.monotonic() + LOCK_TIMEOUT_SEC
+        while True:
+            try:
+                fd = os.open(str(self.path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                os.write(fd, str(os.getpid()).encode())
+                os.close(fd)
+                with _LOCK_GUARD:
+                    _LOCK_REENTRY[key] = 1
+                self._key = key
+                return self
+            except FileExistsError:
+                try:
+                    if time.time() - self.path.stat().st_mtime > LOCK_STALE_SEC:
+                        self.path.unlink()
+                        continue
+                except OSError:
+                    pass
+            except PermissionError:
+                pass  # Windows：鎖檔正被刪除中
+            if time.monotonic() > deadline:
+                raise TimeoutError(f"等 {self.path.name} 超過 {LOCK_TIMEOUT_SEC:g} 秒：別的行程一直佔著帳號池狀態檔")
+            time.sleep(0.05)
+
+    def __exit__(self, *exc):
+        key = self._key
+        self._key = None
+        if key is None:
+            return False
+        release = False
+        with _LOCK_GUARD:
+            depth = _LOCK_REENTRY.get(key, 0)
+            if depth > 1:
+                _LOCK_REENTRY[key] = depth - 1
+            else:
+                _LOCK_REENTRY.pop(key, None)
+                release = True
+        if release:
+            try:
+                self.path.unlink()
+            except OSError:
+                pass
+        return False
+
+
+def state_lock(state):
+    return _StateLock(state_path(state).with_name("pool-state.lock"))
+
+
 def load_state(state):
+    """讀狀態檔。Windows 上別的行程正在 os.replace 時會 PermissionError：重試；重試完還是讀不到，
+    回傳空狀態但標 _unreadable，save_state 看到就不寫，不會把停權與冷卻標記用空狀態蓋掉（KIT-A-03）。"""
     path = state_path(state)
-    try:
-        doc = json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(doc, dict):
+    doc = None
+    for delay in (*READ_RETRY_DELAYS, None):
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            break
+        except PermissionError:
+            if delay is None:
+                return {**_empty_state(), "_unreadable": True}
+            time.sleep(delay)
+        except FileNotFoundError:
             return _empty_state()
-    except (OSError, ValueError):
+        except (OSError, ValueError):
+            return _empty_state()  # 壞檔（不是鎖住）：照舊從空狀態重建，不然會永遠存不進去
+    if not isinstance(doc, dict):
         return _empty_state()
     out = _empty_state()
     out.update({k: doc[k] for k in ("schema_version", "updated_at", "accounts", "sticky", "alerts_sent") if k in doc})
@@ -345,12 +428,31 @@ def load_state(state):
 
 
 def save_state(state, doc, now=None):
+    """整份寫回。持鎖、暫存檔名帶 pid 與隨機後綴（兩個行程不會寫同一個 .tmp）；load 時讀不到的空狀態不寫。"""
+    if doc.get("_unreadable"):
+        return doc
     path = state_path(state)
     path.parent.mkdir(parents=True, exist_ok=True)
     doc = {**doc, "schema_version": 1, "updated_at": iso_utc(now)}
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    os.replace(tmp, path)
+    raw = json.dumps(doc, ensure_ascii=False, indent=2) + "\n"
+    with state_lock(state):
+        tmp = path.with_name(f"pool-state.{os.getpid()}.{os.urandom(4).hex()}.tmp")
+        try:
+            tmp.write_text(raw, encoding="utf-8")
+            for delay in (*READ_RETRY_DELAYS, None):
+                try:
+                    os.replace(tmp, path)
+                    break
+                except PermissionError:
+                    if delay is None:
+                        raise
+                    time.sleep(delay)
+        finally:
+            if tmp.exists():
+                try:
+                    tmp.unlink()
+                except OSError:
+                    pass
     return doc
 
 
@@ -373,143 +475,149 @@ def record_error(state, instance, kind, *, driver=None, model=None, bucket=None,
         raise ValueError(f"不認得的錯誤種類：{kind}，可選：{'、'.join(ERROR_KINDS)}")
     now_dt = utc_now(now)
     ts = iso_utc(now_dt)
-    doc = load_state(state)
-    acc = _acct(doc, instance)
     clean_reason = sanitize(reason)
     clean_url = safe_https_url(url)
 
     if kind == "rate_limit":
-        return doc, f"{instance}：短暫速率限制（rate_limit），原帳號稍等重試，不寫入封鎖"
+        return load_state(state), f"{instance}：短暫速率限制（rate_limit），原帳號稍等重試，不寫入封鎖"
     if kind == "timeout_15min":
-        return doc, f"{instance}：Antigravity 15 分鐘無活動逾時，先檢查交付檔與 .done，不封鎖帳號"
+        return load_state(state), f"{instance}：Antigravity 15 分鐘無活動逾時，先檢查交付檔與 .done，不封鎖帳號"
     if kind == "other":
-        return doc, f"{instance}：一般錯誤（other），不封鎖帳號"
+        return load_state(state), f"{instance}：一般錯誤（other），不封鎖帳號"
+    if kind == "model_forbidden" and not norm_model(model):
+        raise ValueError("model_forbidden 要帶 --model（只停用該帳號的該模型）")
 
-    if kind == "quota_exhausted":
-        b = bucket or bucket_of(driver, model)
-        prev = acc["cooldowns"].get(b) or {}
-        streak = int(prev.get("streak", 0)) + 1 if prev.get("kind") == "quota_exhausted" else 1
-        until_dt = parse_ts(resets_at)
-        if until_dt is None or until_dt <= now_dt:
-            wait = min(BACKOFF_MAX_SEC, BACKOFF_BASE_SEC * (2 ** (streak - 1)))
-            until_dt = now_dt + timedelta(seconds=wait)
-            source = f"指數退避 {wait} 秒（第 {streak} 次）"
-        else:
-            source = f"重置時間 {fmt_local(until_dt)}"
-        acc["cooldowns"][b] = {
-            "kind": "quota_exhausted", "since": ts, "until": iso_utc(until_dt),
-            "streak": streak, "reason": clean_reason or source,
-        }
-        doc = save_state(state, doc, now_dt)
-        return doc, f"{instance}（{BUCKET_NAMES.get(b, b)}）：額度冷卻到 {fmt_local(until_dt)}（{source}）"
+    with state_lock(state):
+        doc = load_state(state)
+        acc = _acct(doc, instance)
 
-    if kind == "auth_expired":
-        acc["auth_expired"] = {"since": ts, "reason": clean_reason or "登入過期（401）"}
-        doc = save_state(state, doc, now_dt)
-        return doc, f"{instance}：已標記登入過期（auth_expired），移出可用池"
+        if kind == "quota_exhausted":
+            b = bucket or bucket_of(driver, model)
+            prev = acc["cooldowns"].get(b) or {}
+            streak = int(prev.get("streak", 0)) + 1 if prev.get("kind") == "quota_exhausted" else 1
+            until_dt = parse_ts(resets_at)
+            if until_dt is None or until_dt <= now_dt:
+                wait = min(BACKOFF_MAX_SEC, BACKOFF_BASE_SEC * (2 ** (streak - 1)))
+                until_dt = now_dt + timedelta(seconds=wait)
+                source = f"指數退避 {wait} 秒（第 {streak} 次）"
+            else:
+                source = f"重置時間 {fmt_local(until_dt)}"
+            acc["cooldowns"][b] = {
+                "kind": "quota_exhausted", "since": ts, "until": iso_utc(until_dt),
+                "streak": streak, "reason": clean_reason or source,
+            }
+            doc = save_state(state, doc, now_dt)
+            return doc, f"{instance}（{BUCKET_NAMES.get(b, b)}）：額度冷卻到 {fmt_local(until_dt)}（{source}）"
 
-    if kind == "validation_required":
-        entry = {"since": ts, "reason": clean_reason or "需要本人驗證（403）"}
-        if clean_url:
-            entry["url"] = clean_url
-        if parse_ts(resets_at):
-            entry["until"] = iso_utc(parse_ts(resets_at))
-        acc["validation_required"] = entry
-        doc = save_state(state, doc, now_dt)
-        return doc, f"{instance}：已標記需要本人驗證（validation_required）" + (f"：{clean_url}" if clean_url else "")
+        if kind == "auth_expired":
+            acc["auth_expired"] = {"since": ts, "reason": clean_reason or "登入過期（401）"}
+            doc = save_state(state, doc, now_dt)
+            return doc, f"{instance}：已標記登入過期（auth_expired），移出可用池"
 
-    if kind == "tos_banned":
-        entry = {"since": ts, "reason": clean_reason or "403 TOS_VIOLATION"}
-        if clean_url:
-            entry["url"] = clean_url
-        acc["tos_banned"] = entry
-        doc = save_state(state, doc, now_dt)
-        return doc, f"{instance}：已永久標記停權（tos_banned），不會被額度查詢 200 沖刷"
+        if kind == "validation_required":
+            entry = {"since": ts, "reason": clean_reason or "需要本人驗證（403）"}
+            if clean_url:
+                entry["url"] = clean_url
+            if parse_ts(resets_at):
+                entry["until"] = iso_utc(parse_ts(resets_at))
+            acc["validation_required"] = entry
+            doc = save_state(state, doc, now_dt)
+            return doc, f"{instance}：已標記需要本人驗證（validation_required）" + (f"：{clean_url}" if clean_url else "")
 
-    if kind == "hard_forbidden":
-        acc["hard_forbidden"] = {"since": ts, "reason": clean_reason or "403 地區或出口不支援"}
-        doc = save_state(state, doc, now_dt)
-        return doc, f"{instance}：已標記地區或出口不支援（hard_forbidden）"
+        if kind == "tos_banned":
+            entry = {"since": ts, "reason": clean_reason or "403 TOS_VIOLATION"}
+            if clean_url:
+                entry["url"] = clean_url
+            acc["tos_banned"] = entry
+            doc = save_state(state, doc, now_dt)
+            return doc, f"{instance}：已永久標記停權（tos_banned），不會被額度查詢 200 沖刷"
 
-    if kind == "model_forbidden":
-        m = norm_model(model)
-        if not m:
-            raise ValueError("model_forbidden 要帶 --model（只停用該帳號的該模型）")
-        acc["forbidden_models"][m] = {"since": ts, "reason": clean_reason or "403 模型無權限"}
-        doc = save_state(state, doc, now_dt)
-        return doc, f"{instance}：只停用模型 {m}（model_forbidden），同帳號其他模型照常可用"
+        if kind == "hard_forbidden":
+            acc["hard_forbidden"] = {"since": ts, "reason": clean_reason or "403 地區或出口不支援"}
+            doc = save_state(state, doc, now_dt)
+            return doc, f"{instance}：已標記地區或出口不支援（hard_forbidden）"
 
-    return doc, ""
+        if kind == "model_forbidden":
+            m = norm_model(model)
+            acc["forbidden_models"][m] = {"since": ts, "reason": clean_reason or "403 模型無權限"}
+            doc = save_state(state, doc, now_dt)
+            return doc, f"{instance}：只停用模型 {m}（model_forbidden），同帳號其他模型照常可用"
+
+        return doc, ""
 
 
 def record_ok(state, instance, *, driver=None, model=None, bucket=None, now=None):
     """資料面真正對話成功：清除暫時性鎖定（auth_expired、validation_required、對應冷卻與模型 403）。
     絕不清除 paused 與 tos_banned（這兩個必須由使用者明確解除）。"""
     now_dt = utc_now(now)
-    doc = load_state(state)
-    if instance not in doc["accounts"]:
-        return doc, f"{instance}：原本沒有異常紀錄"
-    acc = _acct(doc, instance)
-    cleared = []
-    for k in ("auth_expired", "validation_required"):
-        if acc.get(k):
-            acc[k] = None
-            cleared.append(k)
-    b = bucket or (bucket_of(driver, model) if (driver or model) else None)
-    if b and b in acc["cooldowns"]:
-        acc["cooldowns"].pop(b, None)
-        cleared.append(f"cooldown:{b}")
-    m = norm_model(model)
-    if m and m in acc["forbidden_models"]:
-        acc["forbidden_models"].pop(m, None)
-        cleared.append(f"model:{m}")
-    if cleared:
-        doc = save_state(state, doc, now_dt)
-        return doc, f"{instance}：資料面成功，已清除 {'、'.join(cleared)}"
-    return doc, f"{instance}：沒有可清除的暫時鎖定"
+    with state_lock(state):
+        doc = load_state(state)
+        if instance not in doc["accounts"]:
+            return doc, f"{instance}：原本沒有異常紀錄"
+        acc = _acct(doc, instance)
+        cleared = []
+        for k in ("auth_expired", "validation_required"):
+            if acc.get(k):
+                acc[k] = None
+                cleared.append(k)
+        b = bucket or (bucket_of(driver, model) if (driver or model) else None)
+        if b and b in acc["cooldowns"]:
+            acc["cooldowns"].pop(b, None)
+            cleared.append(f"cooldown:{b}")
+        m = norm_model(model)
+        if m and m in acc["forbidden_models"]:
+            acc["forbidden_models"].pop(m, None)
+            cleared.append(f"model:{m}")
+        if cleared:
+            doc = save_state(state, doc, now_dt)
+            return doc, f"{instance}：資料面成功，已清除 {'、'.join(cleared)}"
+        return doc, f"{instance}：沒有可清除的暫時鎖定"
 
 
 def set_paused(state, instance, paused=True, reason="", now=None):
-    doc = load_state(state)
-    acc = _acct(doc, instance)
-    acc["paused"] = bool(paused)
-    acc["paused_reason"] = sanitize(reason) if paused and reason else None
-    doc = save_state(state, doc, now)
-    return doc, f"{instance}：{'已手動暫停' if paused else '已恢復啟用'}"
+    with state_lock(state):
+        doc = load_state(state)
+        acc = _acct(doc, instance)
+        acc["paused"] = bool(paused)
+        acc["paused_reason"] = sanitize(reason) if paused and reason else None
+        doc = save_state(state, doc, now)
+        return doc, f"{instance}：{'已手動暫停' if paused else '已恢復啟用'}"
 
 
 def clear_state(state, instance, *, dimension=None, force=False, now=None):
     """清除單一維度或全部狀態；tos_banned 必須 force=True 才清。"""
-    doc = load_state(state)
-    if instance not in doc["accounts"]:
-        return doc, f"{instance}：沒有狀態紀錄"
-    acc = _acct(doc, instance)
     dims = [dimension] if dimension else list(DIMENSIONS)
-    cleared, kept = [], []
     for d in dims:
         if d not in DIMENSIONS:
             raise ValueError(f"不認得的維度：{d}，可選：{'、'.join(DIMENSIONS)}")
-        if d == "tos_banned" and acc.get("tos_banned") and not force:
-            kept.append("tos_banned（要加 --force 才清除）")
-            continue
-        if d == "paused":
-            if acc.get("paused"):
-                acc["paused"], acc["paused_reason"] = False, None
-                cleared.append("paused")
-        elif d in ("forbidden_models", "cooldowns"):
-            if acc.get(d):
-                acc[d] = {}
-                cleared.append(d)
-        else:
-            if acc.get(d):
-                acc[d] = None
-                cleared.append(d)
-    if cleared:
-        doc = save_state(state, doc, now)
-    msg = f"{instance}：已清除 {'、'.join(cleared) or '無'}"
-    if kept:
-        msg += f"；保留 {'、'.join(kept)}"
-    return doc, msg
+    with state_lock(state):
+        doc = load_state(state)
+        if instance not in doc["accounts"]:
+            return doc, f"{instance}：沒有狀態紀錄"
+        acc = _acct(doc, instance)
+        cleared, kept = [], []
+        for d in dims:
+            if d == "tos_banned" and acc.get("tos_banned") and not force:
+                kept.append("tos_banned（要加 --force 才清除）")
+                continue
+            if d == "paused":
+                if acc.get("paused"):
+                    acc["paused"], acc["paused_reason"] = False, None
+                    cleared.append("paused")
+            elif d in ("forbidden_models", "cooldowns"):
+                if acc.get(d):
+                    acc[d] = {}
+                    cleared.append(d)
+            else:
+                if acc.get(d):
+                    acc[d] = None
+                    cleared.append(d)
+        if cleared:
+            doc = save_state(state, doc, now)
+        msg = f"{instance}：已清除 {'、'.join(cleared) or '無'}"
+        if kept:
+            msg += f"；保留 {'、'.join(kept)}"
+        return doc, msg
 
 
 def is_blocked(doc, instance, *, driver=None, model=None, bucket=None, now=None):
@@ -616,24 +724,31 @@ def refresh_agy_usage(state, instance, *, runner=None, now=None):
     """安全跑一次 `agy -p /usage --output-format json` 並更新 pool-state.json 的 quota。
     - 必帶 AGY_CLI_DISABLE_AUTO_UPDATE=true（小寫）與假 BROWSER 防彈窗。
     - 成功只更新 quota，絕不清除 tos_banned／hard_forbidden／validation_required／auth_expired／paused。
-    - 失敗保留舊的 buckets 並標 stale: true，絕不歸零或寫成 100%。"""
+    - 失敗保留舊的 buckets 並標 stale: true，絕不歸零或寫成 100%。
+    - 先跑 agy（最長 20 秒）拿到結果，才讀狀態檔、只改這個帳號的 quota 再存（KIT-A-03：不然這 20 秒內
+      別的行程寫的 tos_banned、cooldowns、paused 會被開頭讀到的舊狀態沖掉）。"""
     now_dt = utc_now(now)
     ts = iso_utc(now_dt)
-    doc = load_state(state)
-    acc = _acct(doc, instance)
-    prev_q = acc.get("quota") if isinstance(acc.get("quota"), dict) else {}
+
+    def _store(build):
+        with state_lock(state):
+            doc = load_state(state)
+            acc = _acct(doc, instance)
+            prev_q = acc.get("quota") if isinstance(acc.get("quota"), dict) else {}
+            acc["quota"] = build(prev_q)
+            save_state(state, doc, now_dt)
+            return acc["quota"]
 
     def _fail(msg):
-        acc["quota"] = {
+        q = _store(lambda prev_q: {
             "source": "agy_usage",
             "fetched_at": prev_q.get("fetched_at"),
             "checked_at": ts,
             "stale": True,
             "error": sanitize(msg),
             "buckets": prev_q.get("buckets") or {},
-        }
-        save_state(state, doc, now_dt)
-        return {"ok": False, "instance": instance, "error": acc["quota"]["error"], "quota": acc["quota"]}
+        })
+        return {"ok": False, "instance": instance, "error": q["error"], "quota": q}
 
     if runner is None:
         exe = shutil.which("agy")
@@ -656,7 +771,7 @@ def refresh_agy_usage(state, instance, *, runner=None, now=None):
     if not parsed["ok"]:
         return _fail(parsed["error"])
 
-    acc["quota"] = {
+    q = _store(lambda prev_q: {
         "source": "agy_usage",
         "fetched_at": ts,
         "checked_at": ts,
@@ -664,9 +779,8 @@ def refresh_agy_usage(state, instance, *, runner=None, now=None):
         "error": None,
         "buckets": parsed["buckets"],
         "note": "來自本機 agy CLI（agy -p /usage 不含帳號身分，僅代表 agy 登入帳號）",
-    }
-    save_state(state, doc, now_dt)
-    return {"ok": True, "instance": instance, "error": None, "quota": acc["quota"]}
+    })
+    return {"ok": True, "instance": instance, "error": None, "quota": q}
 
 
 # ---------- Claude 多設定目錄額度快照 ----------
@@ -808,12 +922,13 @@ def set_claude_quota(state, instance, *, weekly_used=None, weekly_resets_at=None
                      five_hour_used=None, five_hour_resets_at=None, clear=False, now=None):
     """登記（或清除）一個 Claude 實例的剩餘額度與重置日，寫進 pool-state.json。不碰任何 token。"""
     now_dt = utc_now(now)
-    doc = load_state(state)
-    acc = _acct(doc, instance)
     if clear:
-        acc.pop("claude_quota", None)
-        save_state(state, doc, now_dt)
-        return doc, f"已清除 {instance} 的手動額度登記"
+        with state_lock(state):
+            doc = load_state(state)
+            acc = _acct(doc, instance)
+            acc.pop("claude_quota", None)
+            save_state(state, doc, now_dt)
+            return doc, f"已清除 {instance} 的手動額度登記"
     for name, val in (("weekly_used", weekly_used), ("five_hour_used", five_hour_used)):
         if val is not None and not (0 <= float(val) <= 100):
             raise ValueError(f"{name} 要在 0 到 100 之間")
@@ -821,28 +936,35 @@ def set_claude_quota(state, instance, *, weekly_used=None, weekly_resets_at=None
         raise ValueError(f"weekday 要是 {'、'.join(WEEKDAYS)} 其中之一")
     if hour_utc is not None and not (0 <= int(hour_utc) <= 23):
         raise ValueError("hour_utc 要在 0 到 23 之間")
-    mq = dict(acc.get("claude_quota") or {})
-    if weekly_used is not None:
-        mq["weekly_used_pct"] = round(float(weekly_used), 1)
+    rst = None
     if weekly_resets_at is not None:
         rst = parse_ts(weekly_resets_at)
         if not rst:
             raise ValueError("weekly_resets_at 讀不懂（要 ISO8601 或 unix timestamp）")
-        mq["weekly_resets_at"] = iso_utc(rst)
-    if weekday is not None:
-        mq["weekly_reset_weekday"] = weekday
-        mq["weekly_reset_hour_utc"] = int(hour_utc or 0)
-    if five_hour_used is not None:
-        mq["five_hour_used_pct"] = round(float(five_hour_used), 1)
+    f_rst = None
     if five_hour_resets_at is not None:
         f_rst = parse_ts(five_hour_resets_at)
         if not f_rst:
             raise ValueError("five_hour_resets_at 讀不懂")
-        mq["five_hour_resets_at"] = iso_utc(f_rst)
-    mq["recorded_at"] = iso_utc(now_dt)
-    acc["claude_quota"] = mq
-    save_state(state, doc, now_dt)
-    return doc, f"已登記 {instance} 的額度：{json.dumps(mq, ensure_ascii=False)}"
+    with state_lock(state):
+        doc = load_state(state)
+        acc = _acct(doc, instance)
+        mq = dict(acc.get("claude_quota") or {})
+        if weekly_used is not None:
+            mq["weekly_used_pct"] = round(float(weekly_used), 1)
+        if rst is not None:
+            mq["weekly_resets_at"] = iso_utc(rst)
+        if weekday is not None:
+            mq["weekly_reset_weekday"] = weekday
+            mq["weekly_reset_hour_utc"] = int(hour_utc or 0)
+        if five_hour_used is not None:
+            mq["five_hour_used_pct"] = round(float(five_hour_used), 1)
+        if f_rst is not None:
+            mq["five_hour_resets_at"] = iso_utc(f_rst)
+        mq["recorded_at"] = iso_utc(now_dt)
+        acc["claude_quota"] = mq
+        save_state(state, doc, now_dt)
+        return doc, f"已登記 {instance} 的額度：{json.dumps(mq, ensure_ascii=False)}"
 
 
 def _pick_snapshot(cands, now_ts):
@@ -1055,9 +1177,10 @@ def select_claude_instance(rows, mine, quotas, state_doc, *, strategy=None, now=
 
     ordered = [chosen["instance"]] + [c["instance"] for c in ranked if c["instance"] != chosen["instance"]]
     if persist_state is not None and chosen["instance"] != sticky.get("instance"):
-        doc = load_state(persist_state)
-        doc["sticky"]["claudeAgent"] = {"instance": chosen["instance"], "switched_at": iso_utc(now_dt), "reason": reason}
-        save_state(persist_state, doc, now_dt)
+        with state_lock(persist_state):
+            doc = load_state(persist_state)
+            doc["sticky"]["claudeAgent"] = {"instance": chosen["instance"], "switched_at": iso_utc(now_dt), "reason": reason}
+            save_state(persist_state, doc, now_dt)
     return {"chosen": chosen["instance"], "strategy": strat, "reason": reason, "ordered": ordered, "candidates": cands}
 
 
@@ -1374,25 +1497,27 @@ def due_alert(state, now=None, env=None):
     if not state_path(state).is_file():
         return None
     now_dt = utc_now(now)
-    doc = load_state(state)
-    high = [a for a in pending_alerts(doc, now=now_dt) if a["kind"] in ("validation_required", "auth_expired", "tos_banned")]
-    if not high:
-        return None
-    sent = doc.setdefault("alerts_sent", {})
     fresh = []
-    for a in high:
-        key = f"{a['instance']}:{a['kind']}:{a.get('since') or ''}"
-        prev = parse_ts(sent.get(key))
-        if prev and (now_dt - prev).total_seconds() < ALERT_REPEAT_HOURS * 3600:
-            continue
-        sent[key] = iso_utc(now_dt)
-        fresh.append(a["message"])
-    if not fresh:
-        return None
     try:
-        save_state(state, doc, now_dt)
-    except OSError:
-        pass
+        with state_lock(state):
+            doc = load_state(state)
+            high = [a for a in pending_alerts(doc, now=now_dt) if a["kind"] in ("validation_required", "auth_expired", "tos_banned")]
+            if not high:
+                return None
+            sent = doc.setdefault("alerts_sent", {})
+            for a in high:
+                key = f"{a['instance']}:{a['kind']}:{a.get('since') or ''}"
+                prev = parse_ts(sent.get(key))
+                if prev and (now_dt - prev).total_seconds() < ALERT_REPEAT_HOURS * 3600:
+                    continue
+                sent[key] = iso_utc(now_dt)
+                fresh.append(a["message"])
+            if not fresh:
+                return None
+            save_state(state, doc, now_dt)
+    except (OSError, TimeoutError):
+        if not fresh:
+            return None
     return "帳號警示：" + "；".join(fresh[:3]) + "（看細節：uv run engine/scripts/account_pool.py status）"
 
 
@@ -1851,6 +1976,55 @@ def selftest():
         q_after = load_state(st)["accounts"]["ag_ban"]["quota"]
         ok("agy /usage 查詢失敗時保留舊快照並標 stale: true，不當成 0% 或 100%",
            not res_fail["ok"] and q_after["stale"] is True and q_after["buckets"]["gemini"]["five_hour_remaining_pct"] == 80.0)
+
+        # KIT-A-03：agy 跑的 20 秒內別的行程寫進的停權標記，refresh 存檔時不能沖掉
+        def racing_runner():
+            record_error(st, "ag_race", "tos_banned", url="https://support.google.com/appeal", now=t0)
+            return sample_agy
+        refresh_agy_usage(st, "ag_race", runner=racing_runner, now=t0)
+        race_acc = load_state(st)["accounts"]["ag_race"]
+        ok("refresh_agy_usage 先跑 agy 再讀檔：期間別的行程寫的 tos_banned 不被沖掉，額度也有更新",
+           race_acc["tos_banned"] is not None and race_acc["quota"]["stale"] is False)
+        # 讀檔遇到 PermissionError：重試，讀不到就標 _unreadable，save_state 不拿空狀態蓋檔
+        before_bytes = state_path(st).read_bytes()
+        real_read_text = Path.read_text
+        calls = {"n": 0}
+
+        def locked_read(self, *a, **k):
+            if self.name == "pool-state.json":
+                calls["n"] += 1
+                raise PermissionError(13, "模擬別的行程正在 os.replace", None, 32)
+            return real_read_text(self, *a, **k)
+        global READ_RETRY_DELAYS
+        saved_delays, READ_RETRY_DELAYS = READ_RETRY_DELAYS, (0, 0)
+        Path.read_text = locked_read
+        try:
+            doc_locked = load_state(st)
+            save_state(st, doc_locked, t0)
+        finally:
+            Path.read_text = real_read_text
+            READ_RETRY_DELAYS = saved_delays
+        ok("load_state 遇到 PermissionError 會重試；讀不到時不回乾淨空狀態，save_state 也不會用空狀態蓋掉停權與冷卻",
+           calls["n"] == 3 and doc_locked.get("_unreadable") is True and state_path(st).read_bytes() == before_bytes)
+        # 多個寫入者同時存檔：暫存檔名不撞、鎖檔會放開、結果是完整 JSON 且 6 個寫入者的帳號全數保留（無遺失更新）
+        errs = []
+
+        def writer(i):
+            try:
+                for _ in range(15):
+                    set_paused(st, f"ag_w{i}", True, "並行測試", now=t0)
+            except Exception as e:  # noqa: BLE001
+                errs.append(repr(e))
+        ths = [threading.Thread(target=writer, args=(i,)) for i in range(6)]
+        for th in ths:
+            th.start()
+        for th in ths:
+            th.join()
+        leftovers = [p.name for p in state_path(st).parent.iterdir() if p.suffix in (".tmp", ".lock")]
+        final_doc = json.loads(state_path(st).read_text(encoding="utf-8"))
+        saved_writers = {f"ag_w{i}" for i in range(6)} <= set((final_doc.get("accounts") or {}).keys())
+        ok(f"6 個寫入者同時存檔：沒有例外、沒有殘留暫存檔或鎖檔、6 個帳號全數保留無遺失更新（例外 {errs[:2]}，殘留 {leftovers}）",
+           not errs and not leftovers and isinstance(final_doc, dict) and saved_writers)
         record_ok(st, "ag_ban", driver="antigravity", model="gemini-4-neon", now=t0)
         clear_state(st, "ag_ban", dimension="tos_banned", force=False, now=t0)
         ok("record_ok 與沒帶 --force 的 clear 都不會清掉 tos_banned；加 --force 才清",
