@@ -9,11 +9,11 @@ description: 用簡短訪談建立或重新設定使用者自己的 OmniKit prof
 
 原則：
 
-- 問題最多 6 題，選擇題為主。掃描查得到的不問，只請使用者確認。
-- 你只負責問問題、把答案寫成 JSON；規則檔與情境檔一律由 `setup.py` 產生，不要自己寫或改 profile 資料夾裡的檔案，也不要在 repo 的 `data/profiles/` 建檔。
+- **優先推薦本機網頁控制面板（最直覺、免打字）**：先用 2 行告訴使用者可以隨時開啟本機控制面板（執行 `uv run scripts/cockpit.py open` 或說 `/ok 面板`），在瀏覽器一頁勾選目標套餐、全部 9 項習慣與精選工作台工具，按一鍵套用即可完成！若使用者想直接在目前對話裡完成設定，或環境無法開瀏覽器，就照下面精簡訪談幫他做完。
+- 對話訪談最多 5 題，選擇題為主。掃描查得到的不問，只請使用者確認。
+- 你只負責問問題、把答案寫成 JSON；規則檔與情境檔一律由 `setup.py`（背後同步更新 `~/.omnikit/kit.yaml` 單一事實來源）產生，不要自己寫或改 profile 資料夾裡的檔案，也不要在 repo 的 `data/profiles/` 建檔。
 - 寫入之前一定先給使用者看預覽，取得同意。
 - 不讀、不印金鑰；掃描結果只有名稱與版本。
-- 從哪裡進來都一樣照這份做：使用者說要設定、開新對話時 OmniKit 規則的「第一次使用」要你主動破冰，或你剛幫使用者跑完 `install.ps1`（這段對話還沒載入 OmniKit 規則也沒關係，不用叫使用者開新對話，直接接著訪談）。從破冰或安裝進來時，開場 2 行講完就進第 1 步，不要先問「要不要設定」。
 
 ## 1. 掃描
 
@@ -39,16 +39,15 @@ Claude Code 用 AskUserQuestion（一次最多 4 題）；Codex 一次列出編�
 | # | 問題 | 選項 → 答案欄位 |
 |---|---|---|
 | 1 | 你用 agent 做哪幾種工作？（可複選） | 掃描結果 `omnikit.domains` 的每個領域，講 `name` 與 `summary` → `domains`（填領域的 `id`） |
-| 2 | 最想改善哪件事？（最多 2 項） | 回覆太長 `too-long`、常改太多超出要求 `scope-creep`、改完沒驗證就說好了 `no-verification`、不確定時亂猜 `guesses` → `pains`；選「其他」說都還好就是 `[]` |
+| 2 | 最希望 AI 遵守哪些習慣？（自由複選，不限數量！） | 防假完工真機實測 `anti-fake-done`（預設推薦）、改完附上真實測試輸出 `no-verification`（預設推薦）、不確定先查證不瞎猜 `guesses`（預設推薦）、只改需求範圍不亂動其他地方 `scope-creep`、能自動做的別丟回手動 `manual-steps`、修改前確認不改壞舊功能 `breaks-existing`、回覆太長要精簡 `too-long`、全程維持指定語言 `english-drift`、跨多檔先列步驟對焦 `no-plan` → `pains` |
 | 3 | 回覆的語言與詳略？ | 繁中精簡、繁中詳細、English concise、English detailed → `language`（`zh-TW`／`en`）與 `verbosity`（`concise`／`detailed`） |
 | 4 | agent 可以自己做到哪？ | 每步先問 `cautious`：改檔案、執行指令前先列計畫等你同意；專案內直接做 `balanced`（建議）：下載安裝、改專案以外的才先問；大多放手 `hands-off`：下載安裝也直接做，只有安全底線列的才問 → `autonomy` |
 
-第二輪：
+第二輪（選填）：
 
 | # | 問題 | 答案欄位 |
 |---|---|---|
-| 5 | 要不要用 OmniKit 持續評估新工具？（貼 GitHub 連結，它會拿你的專案情境幫你比較；選「先不要」就不裝評估工具的 skill，之後重新訪談可以改） | 要 → `evaluate_tools: true`；先不要 → `false` |
-| 6 | 用一句話介紹你的主要工作與技術。第 5 題選「要」的話，再給主要專案名稱；有前端的話，也給前端專案名稱。 | `background`、`projects.main`、`projects.frontend`（自由回答） |
+| 5 | 要不要用 OmniKit 評估外部新工具？（選「先不要」就不裝 `omnikit-eval`；選「要」再請他給主要專案名稱作評估考題） | 要 → `evaluate_tools: true` + `projects.main`；先不要（一般使用者預設） → `evaluate_tools: false` |
 
 補充：
 

@@ -61,6 +61,13 @@ $ComposedRules = Join-Path $StateDir 'rules'
 $CurrentClone = Join-Path $StateDir 'current'
 $ClaudeMarketplace = Join-Path $StateDir 'claude-marketplace'
 $ProfileFile = Join-Path $StateDir 'profile.json'
+$KitFile = Join-Path $StateDir 'kit.yaml'
+$AppliedStateDir = Join-Path $StateDir 'state'
+$LocksDir = Join-Path $StateDir 'locks'
+$CockpitDir = Join-Path $StateDir 'cockpit'
+$CockpitPy = Join-Path $Repo 'scripts\cockpit.py'
+$PanelShortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\OmniKit 控制面板.lnk'
+$AutostartShortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\OmniKit Cockpit 自動啟動.lnk'
 # edition.py 記的：這台是哪一版，以及免問核准的同意
 $EditionFile = Join-Path $StateDir 'edition.json'
 $ConsentFile = Join-Path $StateDir 'consent.json'
@@ -158,8 +165,11 @@ if ($codexHasBlock) {
 if ($hasAgents) { $plan += '移除 OmniKit 的 skills 與 MCP server（Claude Code、Codex、Antigravity；不是 OmniKit 的、你改過的不碰）' }
 if ($geminiHasBlock) { $plan += '拿掉 ~/.gemini/GEMINI.md 的 OmniKit 區塊（原地改寫，硬連結不會斷）' }
 if ($legacySkillshare) { $plan += '拿掉舊版 skillshare 設定裡 OmniKit 的部分' }
-if ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile) -or $hasEditionState) {
-  $plan += "刪除接好的規則、profile 選擇、版本與免問核准的同意紀錄（$StateDir）"
+if ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile) -or (Test-Path $KitFile) -or (Test-Path $CockpitDir) -or $hasEditionState) {
+  $plan += "停止本機控制面板並刪除接好的規則、工作台狀態檔（kit.yaml）、profile 選擇、版本與同意紀錄（$StateDir）"
+}
+if ((Test-Path -LiteralPath $PanelShortcut) -or (Test-Path -LiteralPath $AutostartShortcut) -or $record['shortcuts']) {
+  $plan += '移除開始功能表與登入自啟的控制面板捷徑'
 }
 if ($record['claude_allow']) { $plan += "從 ~/.claude/settings.json 拿掉權限規則：$($record['claude_allow'] -join ', ')" }
 if ($record['claude_hooks']) { $plan += '從 ~/.claude/settings.json 拿掉 OmniKit 的 hook（開新對話提醒、說做不到查證、設定目錄檢查）' }
@@ -255,8 +265,20 @@ function Disconnect-Agents {
 }
 
 # 要在 Remove-CodexRules 之後：它拿接好的規則比對 ~/.codex/AGENTS.md 有沒有被改過
+function Stop-CockpitAndShortcuts {
+  $uv = Get-Uv
+  if ($uv -and (Test-Path -LiteralPath $CockpitPy)) {
+    try { [void](Invoke-UvRun $uv @('run', '--quiet', $CockpitPy, '--state-dir', $StateDir, 'stop') -Capture) } catch { }
+  }
+  foreach ($lnk in @($PanelShortcut, $AutostartShortcut) + @($record['shortcuts'] | Where-Object { $_ })) {
+    if ($lnk -and (Test-Path -LiteralPath $lnk)) {
+      Remove-Item -Force -LiteralPath $lnk -ErrorAction SilentlyContinue
+    }
+  }
+}
+
 function Remove-ProfileState {
-  if (-not ((Test-Path $ComposedRules) -or (Test-Path $CurrentClone) -or (Test-Path $ClaudeMarketplace) -or (Test-Path $ProfileFile) -or $hasEditionState)) { return }
+  if (-not ((Test-Path $ComposedRules) -or (Test-Path $CurrentClone) -or (Test-Path $ClaudeMarketplace) -or (Test-Path $ProfileFile) -or (Test-Path $KitFile) -or (Test-Path $AppliedStateDir) -or (Test-Path $CockpitDir) -or $hasEditionState)) { return }
   if (Test-Path -LiteralPath $CurrentClone) {
     $item = Get-Item -LiteralPath $CurrentClone -Force
     if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
@@ -265,9 +287,9 @@ function Remove-ProfileState {
       Remove-Item -Recurse -Force -LiteralPath $CurrentClone -ErrorAction SilentlyContinue
     }
   }
-  Remove-Item -Recurse -Force $ComposedRules, $ClaudeMarketplace -ErrorAction SilentlyContinue
-  Remove-Item -Force $ProfileFile, $EditionFile, $ConsentFile -ErrorAction SilentlyContinue
-  Write-Host '已刪除接好的規則、乾淨參照副本、profile 選擇、版本與免問核准的同意紀錄'
+  Remove-Item -Recurse -Force $ComposedRules, $ClaudeMarketplace, $AppliedStateDir, $LocksDir, $CockpitDir -ErrorAction SilentlyContinue
+  Remove-Item -Force $ProfileFile, $KitFile, $EditionFile, $ConsentFile -ErrorAction SilentlyContinue
+  Write-Host '已刪除接好的規則、乾淨參照副本、工作台設定檔、profile 選擇、版本與免問核准的同意紀錄'
 }
 
 function Remove-ClaudePermissions {
@@ -346,6 +368,7 @@ function Remove-RecordedPaths {
   }
 }
 
+Stop-CockpitAndShortcuts
 Remove-ClaudeRules
 Remove-CodexRules
 Disconnect-Agents

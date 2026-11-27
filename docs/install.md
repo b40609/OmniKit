@@ -36,9 +36,9 @@
 
    這樣裝的是同事版：不設 git hook，預設鎖定穩定發行 tag（維護者推 `main` 不會影響你）；讓 agent 免問就能用某個工具之前，會先問你。見[維護者版與同事版](#維護者版與同事版)。
 
-3. **確認接上了。** 開一個新的 Claude Code 或 Codex session，問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的一樣，就表示規則生效了。skill 與 MCP 怎麼檢查，見[使用指南的確認接上了](usage.md#確認接上了)。
+3. **在本機控制面板一鍵完成個人化與精選工作台。** 安裝完成後會自動啟動本機控制面板（預設 `http://127.0.0.1:3780/`，無頭或遠端環境可加 `-NoBrowser` / `-NoLaunch`）：在網頁勾選目標套餐、AI 工作習慣（全部 9 項自由複選）與精選工具，按「一鍵套用」即可同步到這台所有已安裝的 Agent，並自動初始化免 GitHub 帳號的本機 `NOW.md` 狀態板。
 
-4. **建立自己的 profile。** 開新的 session 隨便打一句，agent 會主動帶你設定（也可以直接說「幫我設定 OmniKit」），回答最多 6 題，看過預覽才寫入，見[建立自己的 profile](usage.md#建立自己的-profile)。profile 存在 `~/.omnikit/profiles/<名稱>/`，不在 repo 裡，不會被 commit 或上傳。
+4. **確認接上了。** 在控制面板切到「Agent 與額度」分頁查看健康檢查（Doctor），或開一個新的對話問「OmniKit 規則版本與 profile 是什麼？」確認規則已生效。細節見[使用指南](usage.md#確認接上了)。
 
 之後要更新到新發行版：`git fetch --tags`，先跑 `install.ps1 -Tag <新版本> -WhatIf` 預覽，確認後跑 `install.ps1 -Tag <新版本>` 套用（不帶 `-Tag` 時若尚未停在 tag 上會自動鎖定最新 `v*` tag）。`git fetch` 本身不會改任何設定。
 
@@ -103,9 +103,9 @@
 
 目前收錄哪些，看[槽位看板](https://b40609.github.io/OmniKit/)的「安裝預設的 plugin」。
 
-### 預設 plugin 要另外裝
+### 控制面板一鍵啟停精選套件
 
-`install.ps1` 不會把 OmniKit 加成 marketplace，也不會安裝看板上的預設 plugin。想用的話，照上面的指令裝。用自己的 fork 時：
+完整安裝 OmniKit 時，`install.ps1` 會預先初始化免金鑰精選工具（寫入 `~/.omnikit/kit.yaml` 並從本機鎖定版本目錄 `~/.omnikit/current` 掛載對應 plugin），之後隨時可在**本機控制面板 → 工作台**分頁一鍵開啟或停用任何工具。若你只想單獨從遠端裝某一個 plugin 而不裝整套 OmniKit，可照上方表格指令手動安裝；用自己的 fork 時：
 
 - 把指令裡的 `b40609/OmniKit` 換成你的 fork。
 - `@` 後面的 marketplace 名稱換成你 `data/omnikit.yaml` 的 `marketplace`，例如 `omnikit-<你的帳號小寫>`。
@@ -115,8 +115,8 @@
 
 | 位置 | 做什麼 |
 |---|---|
-| `%LOCALAPPDATA%\Programs\` | 安裝固定版本的 uv、gh，以及維護者版才裝的 gitleaks；比對 SHA256，不改 PATH。這台已經有 uv、gh 就沿用 |
-| `data/omnikit.yaml` | fork 出來的 repo，改成你的 `repo`、`owner`、`marketplace`，`profile` 改回 `default`，並重新產生 marketplace 清單 |
+| `%LOCALAPPDATA%\Programs\` | 安裝固定版本的 uv、gh 與 gitleaks；比對 SHA256，不改 PATH。這台已經有就沿用 |
+| `data/omnikit.yaml` | 僅維護者版（`-Edition maintainer`）且為 fork 時，改成你的 `repo`、`owner`、`marketplace`，`profile` 改回 `default`；同事版不改此檔以免髒工作樹影響升級 |
 | `~/.claude/CLAUDE.md` | 在開頭加一段受管區塊，import `data/rules/baseline.md` 與你選的 profile 的 `AGENTS.md`（訪談產生的在 `~/.omnikit/profiles`，其他在 `data/profiles`）；路徑有空白時用 `\ ` 跳脫，不然 Claude Code 讀到空白就斷掉。其他內容不動 |
 | `~/.codex/AGENTS.md` | 在開頭加一段受管區塊，放底線與 profile 接在一起的內容；原本的規則留在區塊外，照常生效，也先備份成 `AGENTS.md.pre-omnikit`。舊版整份換掉的，同步時換成只有區塊（規則內容一樣）；區塊被拿掉的話，同步時不加回去 |
 | `~/.gemini/AGENTS.md`、`~/.gemini/GEMINI.md` | Antigravity 的規則：拆成 `AGENTS.md`（共用層）與 `GEMINI.md`（個人層）兩份受管區塊，強制檢查單檔 <= 24,000 bytes 避免靜默截斷；原本的內容留在區塊外，先備份成 `.pre-omnikit`。原地改寫，避免硬連結斷裂 |
@@ -142,8 +142,8 @@
 |---|---|---|
 | 版本來源 | 追蹤開發分支，透過分支＋PR＋CI 綠燈合進 `main` | 預設鎖定穩定發行 tag（`v*`），不受維護者推 `main` 影響；升級用 `git fetch --tags`＋`install.ps1 -Tag <版本>` |
 | git hook | commit 前掃金鑰、驗證名冊；commit 或 pull 後自動同步。在 git worktree（例如 `.claude/worktrees/` 底下）裡只掃金鑰、驗證名冊，不同步，合進 main 後由主 checkout 同步 | 不設。pull 或 fetch 不會改任何設定；要套用更新，先跑 `install.ps1 -WhatIf` 預覽，再跑 `install.ps1` |
-| 免問核准 | 照 `data/harness/claude-allow.txt` 與 `data/mcp/servers.yaml` 寫入，那是維護者自己同意的 | 每個工具先問你，同意了才寫入（預設否）。之後可以改：`uv run engine/scripts/sync.py approvals` 查看，`--grant <名稱>` 同意、`--revoke <名稱>` 撤回 |
-| gitleaks | 裝，給 pre-commit 用 | 不裝 |
+| 免問核准 | 照 `data/harness/claude-allow.txt` 與 `data/mcp/servers.yaml` 寫入，那是維護者自己同意的 | 每個工具先問你，同意了才寫入（預設否）。`chrome_devtools` 隨控制面板工作台開關自動同步，完整權限清單可執行 `uv run engine/scripts/sync.py approvals` 管理 |
+| gitleaks | 裝，給金鑰防護與 pre-commit 用 | 一併安裝，供 L1 金鑰外洩防護使用 |
 
 看這台是哪一版：`uv run engine/scripts/edition.py`。
 

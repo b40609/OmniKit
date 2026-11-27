@@ -159,7 +159,7 @@ $StatusCopied = Get-Status
 # 訪談步驟就把那裡的規則區塊與 skill 連結換成測試 profile（2026-11-27 在這台發生過，已用 sync.py sync 還原）
 $AgentDirVars = 'CLAUDE_CONFIG_DIR', 'CODEX_HOME', 'GEMINI_CLI_HOME', 'OMNIKIT_HOME', 'T3CODE_HOME'
 $savedEnv = @{}
-foreach ($k in @('TEMP', 'TMP', 'PYTHONIOENCODING', 'USERPROFILE', 'HOME', 'LOCALAPPDATA', 'UV_CACHE_DIR', 'OMNIKIT_STATE_DIR') + $AgentDirVars) {
+foreach ($k in @('TEMP', 'TMP', 'PYTHONIOENCODING', 'USERPROFILE', 'HOME', 'LOCALAPPDATA', 'UV_CACHE_DIR', 'OMNIKIT_STATE_DIR', 'OMNIKIT_NO_LAUNCH', 'OMNIKIT_NO_BROWSER') + $AgentDirVars) {
   $savedEnv[$k] = [Environment]::GetEnvironmentVariable($k)
 }
 foreach ($k in $AgentDirVars) { [Environment]::SetEnvironmentVariable($k, $null) }
@@ -171,6 +171,8 @@ $env:USERPROFILE = $FakeHome
 $env:HOME = $FakeHome
 $env:LOCALAPPDATA = $FakeLocal
 $env:OMNIKIT_STATE_DIR = $null
+$env:OMNIKIT_NO_LAUNCH = '1'
+$env:OMNIKIT_NO_BROWSER = '1'
 try {
 
 # ---- 1. validate.yml「名冊」job 的每一個 uv run ----
@@ -233,8 +235,13 @@ Add-Result 'install.ps1 -WhatIf：列出舊版存在 repo 裡、要搬的 profil
 Add-Result 'install.ps1 -WhatIf：照 repo 外 profile 的答案預覽 skills' ($r.Output.Contains('不裝 omnikit-eval'))
 Add-Result 'install.ps1 -WhatIf：列出要合併的舊狀態位置（含封裝轉存的副本）' ($r.Output.Contains("狀態檔改放 $FakeState") -and
   $r.Output.Contains($pkgCopy) -and $r.Output.Contains((Join-Path $FakeLocal 'omnikit')))
-Add-Result 'install.ps1 -WhatIf：什麼都沒寫' ((Get-Content -LiteralPath (Join-Path $FakeHome '.claude\CLAUDE.md') -Raw -Encoding UTF8) -eq "# 我自己的規則`n" -and
-  -not (Test-Path (Join-Path $FakeState 'agents.json')) -and (Test-Path $legacy) -and (Test-Path $pkgCopy))
+Add-Result 'install.ps1 -WhatIf：什麼都沒寫（含零副作用：未產生 kit.yaml、status/.git 或 server.json）' (
+  (Get-Content -LiteralPath (Join-Path $FakeHome '.claude\CLAUDE.md') -Raw -Encoding UTF8) -eq "# 我自己的規則`n" -and
+  -not (Test-Path (Join-Path $FakeState 'agents.json')) -and
+  -not (Test-Path (Join-Path $FakeState 'kit.yaml')) -and
+  -not (Test-Path (Join-Path $FakeState 'status\.git')) -and
+  -not (Test-Path (Join-Path $FakeState 'cockpit\server.json')) -and
+  (Test-Path $legacy) -and (Test-Path $pkgCopy))
 
 # ---- 4. FR-38：搬舊版的 profile、跑一次訪談，git status 都跟開始時一樣 ----
 

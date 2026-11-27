@@ -1064,6 +1064,13 @@ def claude_quotas(state, rows, mine=None, threshold=80, home=None, t3_raw=None, 
 
 # ---------- Claude 多帳號選擇器（weekly-first＋黏著＋防震盪） ----------
 
+def _can_auto_compat(accounts_mod, row, what, now_dt):
+    try:
+        return accounts_mod.can_auto(row, what, now=now_dt)
+    except TypeError:
+        return accounts_mod.can_auto(row, what)
+
+
 def select_claude_instance(rows, mine, quotas, state_doc, *, strategy=None, now=None, persist_state=None):
     """依策略從允許自動挑（auto_select）且沒被狀態檔擋住的 Claude 實例挑出推薦順序。
     只在工作包邊界挑，同一條對話不中途換。"""
@@ -1076,7 +1083,7 @@ def select_claude_instance(rows, mine, quotas, state_doc, *, strategy=None, now=
         if r.get("driver") != "claudeAgent":
             continue
         iid = r["id"]
-        sel_ok, sel_why = accounts.can_auto(r, "auto_select")
+        sel_ok, sel_why = _can_auto_compat(accounts, r, "auto_select", now_dt)
         blk, blk_why, blk_code = is_blocked(state_doc, iid, driver="claudeAgent", now=now_dt)
         q = qmap.get(iid) or {}
         w_rem = q.get("weekly_remaining_pct") if q.get("status") in ("ok", "stale") else None
@@ -1229,7 +1236,7 @@ def burn_candidates(rows, mine, quotas, state_doc, *, within_hours=None, min_rem
         iid, drv = r.get("id"), r.get("driver")
         if drv not in ("claudeAgent", "antigravity") or not classes.get(iid):
             continue
-        if not accounts.can_auto(r, "auto_dispatch")[0]:
+        if not _can_auto_compat(accounts, r, "auto_dispatch", now_dt)[0]:
             continue
         end = accounts.access_end(r)
         if end is not None and end <= now_dt:
@@ -2076,7 +2083,7 @@ def selftest():
             "antigravity_m5": {"driver": "antigravity", "label": "m5", "enabled": True, "auth_mode": None},
             "antigravity_m6": {"driver": "antigravity", "label": "m6", "enabled": True, "auth_mode": None},
         }
-        rows = accounts.registry(t3_meta, mine, accounts.load_terms(profiles.DATA))
+        rows = accounts.registry(t3_meta, mine, accounts.load_terms(profiles.DATA), now=t0)
         c_state = st / "cstate"
         ufile = claude_usage_path(c_state)
         ufile.parent.mkdir(parents=True)

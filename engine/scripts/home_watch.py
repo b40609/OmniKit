@@ -128,7 +128,7 @@ def _resolve_repo_root(state: Path) -> Path:
 def start_sync(state: Path, popen=subprocess.Popen):
     uv = os.environ.get("UV") or shutil.which("uv") or str(Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "uv" / "uv.exe")
     repo_root = _resolve_repo_root(state)
-    cmd = [uv, "run", "--quiet", str(repo_root / "engine" / "scripts" / "sync.py"), "sync"]
+    cmd = [uv, "run", "--quiet", str(repo_root / "engine" / "scripts" / "sync.py"), "sync", "--background"]
     state.mkdir(parents=True, exist_ok=True)
     log_path = state / "home_watch.log"
     with log_path.open("ab") as hdr:
@@ -213,9 +213,9 @@ def selftest():
         state.mkdir(parents=True)
         (state / "config.json").write_text(json.dumps({"agents": ["claude-code"]}), encoding="utf-8")
         msg = check(state, h, {}, 1000, fake)
-        ok("有尚未接上的 .claude-new：背景跑 sync.py sync，已接上的 .claude-kai 不重報",
+        ok("有尚未接上的 .claude-new：背景跑 sync.py sync --background，已接上的 .claude-kai 不重報",
            msg is not None and ".claude-new" in msg and ".claude-kai" not in msg.split("，已在")[0]
-           and len(calls) == 1 and calls[0][-2:] == [str(ROOT / "engine" / "scripts" / "sync.py"), "sync"])
+           and len(calls) == 1 and calls[0][-3:] == [str(ROOT / "engine" / "scripts" / "sync.py"), "sync", "--background"])
         ok("同一組 6 小時內不重跑", check(state, h, {}, 1000 + 3600, fake) is None and len(calls) == 1)
         (h / ".claude-new" / "CLAUDE.md").write_text(f"{profiles.BEGIN}\n@x\n{profiles.END}\n", encoding="utf-8")
         ok("補齊受管區塊後不再觸發", check(state, h, {}, 99999, fake) is None)
@@ -266,7 +266,7 @@ def selftest():
         msg = check(state, h, {}, 2000, lambda cmd, **kw: calls.append(cmd))
         ok("改了個人規則沒同步：Codex 與 Antigravity 個人副本標成過期，背景跑 sync.py sync（共用副本沒變不報）",
            stale == [str(codex), str(h / ".gemini" / "GEMINI.md")]
-           and msg is not None and "已在背景重新接上" in msg and len(calls) == 1 and calls[0][-1] == "sync")
+           and msg is not None and "已在背景重新接上" in msg and len(calls) == 1 and calls[0][-2:] == ["sync", "--background"])
         ok("同一版規則 6 小時內不重跑", check(state, h, {}, 2000 + 60, lambda cmd, **kw: calls.append(cmd)) is None and len(calls) == 1)
         (data / "profiles" / "default" / "AGENTS.md").write_text("# default\n第三版\n", encoding="utf-8")
         ok("規則又改了一次：不受 6 小時限制，再觸發一次",
@@ -305,7 +305,7 @@ def selftest():
         (state / profiles.ONBOARDING_STATE).write_text('{"snoozed_until": "2000-01-01"}', encoding="utf-8")
         calls = []
         msg = check(state, h, {}, 5000, lambda cmd, **kw: calls.append(cmd))
-        ok("破冰：暫緩到期，開場背景重新接上", msg is not None and len(calls) == 1 and calls[0][-1] == "sync")
+        ok("破冰：暫緩到期，開場背景重新接上", msg is not None and len(calls) == 1 and calls[0][-2:] == ["sync", "--background"])
         md.write_text("# 只有自己的規則\n", encoding="utf-8")
         ok("破冰：沒有受管區塊的不算過期", rules_drift(state, h, {}) == [])
     print("home_watch selftest", "FAIL" if fails else "OK")

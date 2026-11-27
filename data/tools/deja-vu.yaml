@@ -8,6 +8,7 @@ url: https://github.com/vshulcz/deja-vu
 works_with:
 - claude
 - codex
+- antigravity
 decided_at: '2026-11-27'
 trial_until: '2026-12-11'
 reason: 2026-11-27 第 1–2 層隔離評測（v0.25.1，commit c6763b7）與跨家複審（0 P0／2 P1／4 P2，有條件支持）確認零 LLM 呼叫、零第三方相依、跨 agent 接手（M1）實測成立；採純按需 CLI 模式試用兩週至 2026-12-11，加嚴跨專案與首次索引護欄，不裝 hooks、不掛 user scope MCP。

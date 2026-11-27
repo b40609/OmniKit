@@ -146,7 +146,7 @@ def access_end(row):
     return dt if dt.tzinfo else dt.astimezone()
 
 
-def registry(t3, mine, terms):
+def registry(t3, mine, terms, now=None):
     """T3 實例＋profile 登記 → 名冊。兩邊對不上的也列出來，附問題。"""
     reg = ((mine or {}).get("instances") or {})
     ids = list(t3 or {}) + [i for i in reg if i not in (t3 or {})]
@@ -174,7 +174,7 @@ def registry(t3, mine, terms):
             r["problems"].append("T3 裡停用")
         if scope not in SCOPES:
             r["problems"].append(f"usage_scope 要是 {list(SCOPES)} 之一：{scope}")
-        r["auto"] = can_auto(r, "auto_dispatch")
+        r["auto"] = can_auto(r, "auto_dispatch", now=now)
         rows.append(r)
     return rows
 

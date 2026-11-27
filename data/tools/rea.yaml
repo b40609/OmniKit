@@ -8,6 +8,7 @@ url: https://github.com/morluto/rea
 works_with:
 - claude
 - codex
+- antigravity
 decided_at: '2026-11-04'
 reason: 訪談：有感。
 plugin:

@@ -1,7 +1,7 @@
 """完工宣稱 Stop 閘（engine/scripts/done_check.py）的 pytest。
 
-重現測試對應設計〈改動 1〉：沒附回執要被判定、只有靜態列要降級、有未 push 的 commit 要擋（開了擋下模式時）；
-另外驗證預設只記錄不擋、stop_hook_active 放行、hook 自己出錯一律放行。fixture 全部是泛化句子。
+重現測試對應設計〈改動 1〉與防假完工閘門 G4：沒附回執要被判定、只有靜態列要降級、有未 push 的 commit 要擋；
+預設模式為 block（強制攔截），設 OMNIKIT_DONE_CHECK=log 時只記錄不擋、stop_hook_active 放行、hook 自己出錯一律放行。fixture 全部是泛化句子。
 """
 from __future__ import annotations
 
@@ -129,8 +129,13 @@ def test_unpushed_commit_blocks_in_block_mode(pushed_repo):
 # ---- 模式與放行 ----
 
 def test_log_mode_records_but_does_not_block(tmp_path, state):
-    assert dc.handle(stop(NO_RECEIPT, cwd=str(tmp_path)), env={}) is None
-    rows = hits(state)
+    assert dc.handle(stop(NO_RECEIPT, cwd=str(tmp_path)), env={})["decision"] == "block"
+    state_log = tmp_path / "state-log"
+    assert dc.handle(
+        stop(NO_RECEIPT, cwd=str(tmp_path)),
+        env={"OMNIKIT_DONE_CHECK": "log", "OMNIKIT_STATE_DIR": str(state_log)},
+    ) is None
+    rows = hits(state_log)
     assert rows and {r["hook"] for r in rows} == {"done_check"}
     assert "no-receipt" in {r["rule"] for r in rows} and {r["mode"] for r in rows} == {"log"}
     assert set(rows[0]) >= {"ts", "hook", "rule", "agent"}
@@ -298,8 +303,9 @@ def test_antigravity_stop_payload(tmp_path):
             "terminationReason": "NO_TOOL_CALL", "continuationActive": False}
     out = dc.handle(data, env=BLOCK)
     assert out["decision"] == "continue" and "完工回執" in out["reason"]
+    assert dc.handle(data, env={})["decision"] == "continue"
     assert dc.handle({**data, "continuationActive": True}, env=BLOCK) == {}
-    assert dc.handle(data, env={}) == {}
+    assert dc.handle(data, env={"OMNIKIT_DONE_CHECK": "log"}) == {}
 
 
 def test_selftest_passes():

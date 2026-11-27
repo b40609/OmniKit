@@ -11,17 +11,18 @@
 
 ## 裝好之後會有什麼
 
-安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了六個核心 skill（`omnikit-setup`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-research`、`omnikit-capabilities`、`omnikit-eval`，搭配唯一的 `/ok` 簡短總入口；訪談選了不評估新工具的沒有 `omnikit-eval`）、一個按需讀取的前端底線 skill（`omnikit-mobile-web`）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
+安裝完成後會自動開啟**本機網頁控制面板**（`http://127.0.0.1:3780/`，包含首頁開箱精靈、專案 `NOW.md` 狀態板、精選工作台商店、Agent 健康檢查與額度、偏好設定五個分頁），同時為你電腦上的 Agent 接上安全底線與防假完工護欄、七個核心 skill（`omnikit-setup`、`omnikit-verify`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-research`、`omnikit-capabilities`、`omnikit-eval`，搭配唯一的 `/ok` 簡短總入口）、按需讀取的行動端前端底線 skill（`omnikit-mobile-web`），以及免金鑰精選工作台套件。**已經開著的對話不會重讀規則，新開的對話立即生效。**
 
-**第一次開新對話會主動帶你設定**：還沒建立自己的 profile 時，開新對話隨便打一句（例如「嗨」），agent 會先打招呼、直接開始 1 分鐘的設定訪談；第一句是具體工作的話，它先做完，最後提一句可以設定。設定完會給一段新手導覽（背後已經在做的事、現在就能試的 3 句話）。說「先不要」會暫緩 7 天，期間開新對話不再主動提，到期自動恢復；說「不要再提醒」會改用預設 profile，之後不再問。三家都有（寫在規則裡，不靠 hook；暫緩到期後，Claude Code 開新對話時會在背景把它接回來，只用 Codex 或 Antigravity 的電腦要等下次更新或同步）。讓 agent 幫你安裝的話，它裝完會在同一段對話直接接著訪談，不用另外開對話。
+- **最省事的設定方式**：直接在瀏覽器的控制面板首頁勾選目標套餐、AI 工作習慣（全部 9 項自由複選，預設開啟防假完工）與精選套件，按「一鍵套用」即可寫入單一事實來源 `~/.omnikit/kit.yaml` 並同步到所有已安裝的 Agent。若還沒有任何專案，也能在面板裡一鍵建立第一個專案與 3 句破冰提示詞，完全免建 GitHub 帳號即可使用本機 `NOW.md` 狀態板。
+- **對話內指令**：關閉面板後，隨時可在對話輸入 `/ok 面板`（或執行 `uv run scripts/cockpit.py open`）重新打開；功能做完準備收尾前，輸入 `/ok 驗收` 執行防假完工真機與真瀏覽器檢查。
 
-設定完開新的 session 試試看：
+設定完開新的對話試試看：
 
 ```text
+/ok 面板
+/ok 驗收
 OmniKit 規則版本與 profile 是什麼？
-幫我設定 OmniKit
-/ok
-幫我評估 https://github.com/<owner>/<repo>
+交接
 用瀏覽器打開 http://localhost:3000，看 console 有沒有錯誤
 ```
 
@@ -94,13 +95,15 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 不想記完整 skill 名稱時，直接打唯一總入口 `/ok`（Claude Code、Antigravity）或 `$ok`（Codex），後面可以直接講白話，或留空列出 1 到 5 號主選單：
 
-| 指令（Claude／Antigravity；Codex 改用 `$`） | 對應 skill |
+| 指令（Claude／Antigravity；Codex 改用 `$`） | 對應功能／skill |
 |---|---|
 | `/ok` | 列出主選單，回編號執行 |
-| `/ok 交接`（或 `/ok handoff`） | `omnikit-handoff`（交接、接手與更新 `NOW.md`） |
-| `/ok 調研`（或 `/ok research`） | `omnikit-research`（飽和式調研） |
+| `/ok 面板`（或 `/ok panel`） | 按需啟動並開啟本機網頁控制面板（`scripts/cockpit.py open`） |
+| `/ok 驗收`（或 `/ok verify`） | `omnikit-verify`（防假完工：掃描假綠燈與斷頭引用，真開服務與瀏覽器確認 0 錯誤） |
+| `/ok 交接`（或 `/ok handoff`） | `omnikit-handoff`（交接、接手與更新本機／遠端 `NOW.md`） |
+| `/ok 調研`（或 `/ok research`） | `omnikit-research`（多管道飽和式調研） |
 | `/ok 分派`（或 `/ok dispatch`） | `omnikit-dispatch`（子任務分派與委派紀錄） |
-| `/ok 設定`（或 `/ok setup`） | `omnikit-setup`（訪談建立個人 profile） |
+| `/ok 設定`（或 `/ok setup`） | `omnikit-setup`（開啟控制面板或對話建立個人 profile） |
 | `/ok 評估`（或 `/ok eval`） | `omnikit-eval`（評估新工具；選不評估時不裝） |
 | `/ok <白話需求>` | 依語意對應最接近的一項，拿不準列主選單並提示 `/plan`、`/grill-me` |
 
@@ -129,16 +132,16 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 ## 常見問題
 
 <details>
-<summary><b>裝好了，卻看不出有什麼不同？</b></summary>
+<summary><b>裝好了，要去哪裡調整設定或開關工具？</b></summary>
 
-安裝改的是規則、skill 與 MCP，畫面上不會多出東西，而且要開新的 session 才生效。照[確認接上了](#確認接上了)檢查一遍。預設 plugin 不會自動安裝，見[預設 plugin 要另外裝](install.md#預設-plugin-要另外裝)。
+隨時在對話輸入 `/ok 面板`，或在終端機執行 `uv run scripts/cockpit.py open` 打開本機控制面板，就能在網頁上檢視專案進度、一鍵啟停精選工具、調整習慣與防假完工攔截強度。修改後開新的對話即生效。
 
 </details>
 
 <details>
 <summary><b>不想用某個預設工具怎麼辦？</b></summary>
 
-把那張卡（`data/tools/<id>.yaml`）的 `status` 改掉並 commit，marketplace 與看板會跟著更新。已經裝好的 plugin 要自己移除。
+打開本機控制面板切到「工作台」分頁，把該工具卡片右上角的開關關掉即可（或執行 `uv run engine/scripts/kit.py toggle <工具代號> --tier disabled`），會自動對這台電腦的設定目錄停用。
 
 </details>
 

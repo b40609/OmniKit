@@ -535,7 +535,15 @@ def apply(data, state, paths=None, wanted=None, agents=None, take_over=False, sk
     paths = paths or RULES
     name, fallback = resolve(data, state, wanted)
     if wanted:
-        write(state / "profile.json", json.dumps({"profile": name}, ensure_ascii=False) + "\n")
+        try:
+            import kit as kit_mod
+
+            if (state / "kit.yaml").is_file() or wanted != DEFAULT:
+                kit_mod.sync_profile_choice(state, name)
+            else:
+                write(state / "profile.json", json.dumps({"profile": name}, ensure_ascii=False) + "\n")
+        except ImportError:
+            write(state / "profile.json", json.dumps({"profile": name}, ensure_ascii=False) + "\n")
     agents = agents if agents is not None else connected(state, paths, skillshare_config)
     content = compose(data, state, name)
     # 給 uninstall.ps1 比對 ~/.codex/AGENTS.md 是不是 OmniKit 的副本

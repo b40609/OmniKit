@@ -9,6 +9,7 @@ url: https://github.com/ChromeDevTools/chrome-devtools-mcp
 works_with:
 - claude
 - codex
+- antigravity
 decided_at: '2026-11-25'
 reason: U1 實測兩端都拿 4 分，Codex 非互動模式只要對它開自動核准即可保留沙箱；試用期間於三家環境與桌面 WebApp 除錯穩定運作（已強制關閉統計與 CrUX 外傳），試用期滿轉為預設。
 sources:

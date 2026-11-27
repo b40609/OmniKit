@@ -67,7 +67,12 @@ TEXT = {
             "too-long": "能用一句話講完就不要用一段；細節等我問再補。",
             "scope-creep": "只改需求相關的地方；看到其他想改的，列出來問我，不要順手改。",
             "no-verification": "改完要實際執行驗證（測試、建置或執行），附上實際輸出才能說完成。",
+            "anti-fake-done": "防假完工：改程式或畫面後必須真實啟動服務或用瀏覽器檢查（0 錯誤），禁止只跑假資料單測或加 skip 跳過失敗測試就宣稱完工。",
             "guesses": "不確定的事先查（讀程式碼、查文件、上網），查不到就說不確定，不要猜。",
+            "english-drift": "全程維持指定語言，不要無故夾雜英文段落或簡體字詞。",
+            "breaks-existing": "修改前先確認既有測試與呼叫端，確保原本正常的功能不被改壞。",
+            "manual-steps": "能用指令、腳本或工具自動完成的步驟就自己做完，不要丟回給我手動操作。",
+            "no-plan": "遇到需求模糊或跨多檔的大改動，先列簡短步驟對焦再動手。",
         },
         "bg_h": "## 背景",
         "bg": "我的主要工作：{background}",
@@ -120,8 +125,14 @@ TEXT = {
             "scope-creep": "Change only what the request needs; list anything else you want to change and ask me instead.",
             "no-verification": "After a change, actually run a check (tests, build or the program) and show the real "
                                "output before saying it is done.",
+            "anti-fake-done": "Never declare victory on mock-only tests or skipped assertions; start the real app or "
+                              "verify in a real browser with zero console/network errors before reporting completion.",
             "guesses": "When unsure, check first (read the code, the docs, or search the web); if you still can't "
                        "confirm, say so instead of guessing.",
+            "english-drift": "Stay strictly in the chosen language throughout the conversation and notes.",
+            "breaks-existing": "Check existing callers and tests before editing so working behavior stays intact.",
+            "manual-steps": "Automate steps with scripts or tools whenever possible instead of handing manual chores back to me.",
+            "no-plan": "For ambiguous or multi-file changes, outline a brief plan to align before editing.",
         },
         "bg_h": "## Background",
         "bg": "My main work: {background}",
@@ -182,6 +193,18 @@ def normalize(answers):
     return a
 
 
+HABIT_PAIN_ORDER = (
+    "scope-creep",
+    "no-verification",
+    "anti-fake-done",
+    "guesses",
+    "english-drift",
+    "breaks-existing",
+    "manual-steps",
+    "no-plan",
+)
+
+
 def render_rules(a, today):
     t = TEXT[a["language"]]
     out = [t["title"].format(name=a["name"]), "", t["profile"].format(name=a["name"]), "",
@@ -197,7 +220,7 @@ def render_rules(a, today):
         comm.append(t["pains"]["too-long"])
     section(t["comm_h"], [*comm, t["cite"]])
     habits = [t["work"][w] for w in WORK_ORDER if w in a.get("work", [])]
-    habits += [t["pains"][p] for p in ("scope-creep", "no-verification", "guesses") if p in a["pains"]]
+    habits += [t["pains"][p] for p in HABIT_PAIN_ORDER if p in a["pains"]]
     section(t["work_h"], habits)
     if a.get("background"):
         section(t["bg_h"], [t["bg"].format(background=a["background"])])
@@ -460,7 +483,7 @@ def selftest():
         bad = {
             "名稱不能是 default": dict(name="default"),
             "授權程度不在選項裡": dict(autonomy="yolo"),
-            "最想改善的事最多兩項": dict(pains=["too-long", "scope-creep", "guesses"]),
+            "不存在的習慣代號": dict(pains=["not-a-valid-pain"]),
             "要評估工具就要有專案名稱": dict(projects=None),
             "回覆詳細跟回覆太長矛盾": dict(verbosity="detailed", pains=["too-long"]),
             "專案名稱不能有 < >": dict(projects={"main": "<你的專案>"}),
@@ -472,6 +495,16 @@ def selftest():
             name = changes.pop("name", "carol")
             code, out = quiet(answers_file(name, **changes), data, write=True)
             check(f"答案有問題：{label}", code == 1 and "答案有問題" in out and not (state / "profiles" / "carol").exists())
+
+        # 自由複選全部痛點與工作習慣（移除舊版限 2 項，且確認滿載規則仍在 Codex 32 KiB 與 Antigravity 24,000B 上限內）
+        all_pains = ["too-long", *HABIT_PAIN_ORDER]
+        code, _ = quiet(answers_file("max-habits", pains=all_pains, work=list(WORK_ORDER)), data, write=True)
+        max_rules = (state / "profiles" / "max-habits" / "AGENTS.md").read_text(encoding="utf-8")
+        combined_b = len(profiles.content_block(profiles.compose(data, state, "max-habits")).encode("utf-8"))
+        personal_b = len(profiles.content_block(profiles.compose_personal(data, state, "max-habits")).encode("utf-8"))
+        check("習慣自由複選無上限（8 項全勾）成功寫入，且滿載規則遠低於三家硬上限",
+              code == 0 and "自動完成" in max_rules and combined_b < profiles.CODEX_MAX_FILE_BYTES
+              and personal_b < profiles.AGY_MAX_FILE_BYTES)
 
         code, out = quiet(answers_file("dave", language="en", pains=["guesses"]), data, write=True)
         rules = (state / "profiles" / "dave" / "AGENTS.md").read_text(encoding="utf-8")

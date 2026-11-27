@@ -8,6 +8,7 @@ url: https://github.com/gitleaks/gitleaks
 works_with:
 - claude
 - codex
+- antigravity
 decided_at: '2026-11-24'
 reason: 'Windows 11 本機實測（2026-11-24）：gitleaks 8.30.1 跑 `gitleaks git --pre-commit --staged` 227ms、零誤報穩定通過；繼任的 betterleaks 1.10.1 同一指令撞寫死的 Unix 路徑（fatal: error reading /dev/null）直接崩潰。Windows 現階段預設主力用 gitleaks v8.30.1。'
 sources:

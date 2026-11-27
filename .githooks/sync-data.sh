@@ -65,9 +65,9 @@ mcp=0
 printf '%s\n' "$changed" | grep -qE '^(engine/skills/|data/profiles/|engine/scripts/(sync|profiles|homes|t3_acp|acp_shim)\.py$)' && skills=1
 printf '%s\n' "$changed" | grep -qE '^(data/(mcp|harness)/|engine/scripts/(sync|homes|t3_acp|acp_shim|claude_allow|codex_hooks|session_nudge|claim_check|done_check|t3_watch|home_watch|harness_hooks)\.py$)' && mcp=1
 if [ $skills = 1 ] && [ $mcp = 1 ]; then
-  run "skills、hooks 與 MCP 同步" engine/scripts/sync.py sync
+  run "skills、hooks 與 MCP 同步" engine/scripts/sync.py sync --background
 elif [ $skills = 1 ]; then
-  run "skills 同步" engine/scripts/sync.py sync --skills
+  run "skills 同步" engine/scripts/sync.py sync --skills --background
 elif [ $mcp = 1 ]; then
-  run "hooks、權限與 MCP 同步" engine/scripts/sync.py sync --mcp
+  run "hooks、權限與 MCP 同步" engine/scripts/sync.py sync --mcp --background
 fi

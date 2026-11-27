@@ -9,6 +9,7 @@ url: https://github.com/bmad-code-org/BMAD-METHOD
 works_with:
 - claude
 - codex
+- antigravity
 decided_at: '2026-11-04'
 reason: 第一輪既定的預設；RIA 的評估結果出來之前不變。
 sources:
