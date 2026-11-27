@@ -21,7 +21,8 @@
 3. T3 專屬健康檢查（~/.t3 存在時必跑）：
    - 列舉到 0 個 Antigravity 實例直接報錯（不沉默）；
    - 每個實例的 config/skills 是指向 ~/.gemini/config/skills 的 junction；
-   - 比對每個實例的 AGENTS.md、GEMINI.md、config/skills.json 與 ~/.gemini 本尊位元組是否一致（不同標記「T3 同步已卡住」）；
+   - 比對每個實例的 AGENTS.md、GEMINI.md、config/skills.json 與 ~/.gemini 本尊位元組是否一致：不同但等於 T3 的
+     .t3-rule-copies.json 記錄判 WARN（下次啟動會刷新，sync 也會代刷）；也不等於記錄判 FAIL「T3 同步已卡住」；
    - 每個實例的 config/plugins/omnikit/hooks.json 已就位。
 4. SKILL.md 與 MCP 規範檢查：目錄名 == name、有 description、無 UTF-8 BOM、無穿出 skills 根目錄的相對路徑；
    servers.yaml 的 env 不得寫死密鑰值；同步器與 doctor 原始碼零遞迴刪除。
@@ -52,8 +53,8 @@ import homes
 import profiles
 import sync
 
-OK, FAIL, UNKNOWN = "ok", "fail", "unknown"
-MARK = {OK: "✓", FAIL: "✗", UNKNOWN: "？"}
+OK, WARN, FAIL, UNKNOWN = "ok", "warn", "fail", "unknown"
+MARK = {OK: "✓", WARN: "！", FAIL: "✗", UNKNOWN: "？"}
 CODEX_SCRIPTS = (claude_allow.NUDGE, claude_allow.CLAIM, claude_allow.T3W)
 REL_LINK_RE = re.compile(r"\]\(([^)]+)\)")
 QUOTED_EXE_RE = re.compile(r'^(?:call\s+)?"([^"]+)"')
@@ -317,13 +318,16 @@ def check_t3_health(home: Path, agents: list[str]) -> list[dict]:
             ok_j = sync.is_link(slink) and sync.same_path(sync.link_target(slink), canonical_gem / "config" / "skills")
             out.append(row("T3 健康", lbl, "config/skills junction", OK if ok_j else FAIL,
                            "指向 ~/.gemini/config/skills" if ok_j else "非連結或指錯（該實例將靜默失去全域 skills）"))
-        stuck = []
-        for rel in ("AGENTS.md", "GEMINI.md", "config/skills.json"):
-            src_f, dst_f = canonical_gem / rel, pdir / rel
-            if src_f.is_file() and dst_f.is_file() and src_f.read_bytes() != dst_f.read_bytes():
-                stuck.append(rel)
-        out.append(row("T3 健康", lbl, "規則與 skills.json 副本", OK,
-                       f"注意：T3 同步已卡住（{', '.join(stuck)} 與 ~/.gemini 不同，下次重啟 T3 不會自動更新）" if stuck else "與 ~/.gemini 本尊一致（或待下次啟動刷新）"))
+        pending, stuck = sync.t3_rule_copy_state(pdir, canonical_gem)
+        if stuck:
+            out.append(row("T3 健康", lbl, "規則與 skills.json 副本", FAIL,
+                           f"T3 同步已卡住：{', '.join(stuck)} 與 ~/.gemini 不同、也不等於 T3 的記錄，T3 不會再自動更新"
+                           f"（確認不要後刪掉該檔，下次啟動 T3 會重建）"))
+        elif pending:
+            out.append(row("T3 健康", lbl, "規則與 skills.json 副本", WARN,
+                           f"{', '.join(pending)} 還是舊版（T3 下次啟動會刷新；現在要更新就跑 sync.py sync）"))
+        else:
+            out.append(row("T3 健康", lbl, "規則與 skills.json 副本", OK, "與 ~/.gemini 本尊一致"))
         hp = pdir / "config" / "plugins" / "omnikit" / "hooks.json"
         out.append(row("T3 健康", lbl, "plugins/omnikit", OK if hp.is_file() else FAIL,
                        "護欄與 MCP 薄 plugin 已就位" if hp.is_file() else "缺少薄 plugin：跑 sync.py sync"))
@@ -544,8 +548,9 @@ def collect(env: sync.Env, lists: bool = True, pre: bool = False, run=subprocess
 
 
 def report(rows: list[dict]) -> list[str]:
-    counts = {s: sum(1 for r in rows if r["status"] == s) for s in (OK, FAIL, UNKNOWN)}
-    lines = [f"# OmniKit doctor：通過 {counts[OK]}、失敗 {counts[FAIL]}、未知 {counts[UNKNOWN]}（未知不算通過）", ""]
+    counts = {s: sum(1 for r in rows if r["status"] == s) for s in (OK, WARN, FAIL, UNKNOWN)}
+    lines = [f"# OmniKit doctor：通過 {counts[OK]}、警告 {counts[WARN]}、失敗 {counts[FAIL]}、未知 {counts[UNKNOWN]}"
+             f"（警告與未知都不算通過）", ""]
     for r in rows:
         who = f"{r['agent']}／" if r["agent"] else ""
         lines.append(f"{MARK[r['status']]} {r['area']}：{who}{r['item']}" + (f"（{r['detail']}）" if r["detail"] else ""))
@@ -632,11 +637,32 @@ def selftest() -> int:
               any(r["item"] == sync.PLUGIN_ID and r["status"] == FAIL for r in rows_disabled))
         plugin_enabled[0] = True
 
-        # 模擬 T3 副本被手改導致「T3 同步已卡住」
+        # T3 實例的規則副本（KIT-B-04、KIT-X-02：驗狀態，不只驗訊息文字）。T3 每次啟動實例時，只有副本等於
+        # 它上次記在 .t3-rule-copies.json 的內容才會刷新；不等於就當作實例自己改過，之後永遠不再更新
+        def t3_row(rows):
+            return next(r for r in rows if r["area"] == "T3 健康" and r["item"] == "規則與 skills.json 副本")
+
+        gem_agents = (home / ".gemini" / "AGENTS.md").read_text(encoding="utf-8")
+        (inst_d / "AGENTS.md").write_bytes("舊版規則\n".encode("utf-8"))
+        (inst_d / ".t3-rule-copies.json").write_text(json.dumps({"AGENTS.md": "舊版規則\n"}), encoding="utf-8")
+        r_pending = t3_row(collect(env, lists=False, environ={}))
+        check("T3 副本是舊版但 T3 認得（等於記錄）：判 WARN（下次啟動會刷新），不是通過",
+              r_pending["status"] == WARN and "AGENTS.md" in r_pending["detail"])
+        check("摘要行把警告數出來", any(line.startswith("# OmniKit doctor：") and "警告 1" in line
+                                       for line in report([r_pending])))
+        sync.refresh_t3_rule_copies(home)
+        check("sync 照 T3 的規則刷新認得的舊副本並更新記錄，doctor 回到通過",
+              (inst_d / "AGENTS.md").read_text(encoding="utf-8") == gem_agents
+              and json.loads((inst_d / ".t3-rule-copies.json").read_text(encoding="utf-8"))["AGENTS.md"] == gem_agents
+              and t3_row(collect(env, lists=False, environ={}))["status"] == OK)
         (inst_d / "AGENTS.md").write_text("手改過\n", encoding="utf-8")
         rows_stuck = collect(env, lists=False, environ={})
-        check("T3 實例規則副本與 ~/.gemini 不同時標出『T3 同步已卡住』",
-              any("T3 同步已卡住" in r["detail"] for r in rows_stuck))
+        check("T3 副本被改過（不等於記錄）：判 FAIL，T3 不會再自動更新",
+              t3_row(rows_stuck)["status"] == FAIL and "T3 同步已卡住" in t3_row(rows_stuck)["detail"])
+        sync.refresh_t3_rule_copies(home)
+        check("sync 不覆蓋被改過的副本（由使用者決定）", (inst_d / "AGENTS.md").read_text(encoding="utf-8") == "手改過\n")
+        (inst_d / "AGENTS.md").unlink()
+        (inst_d / ".t3-rule-copies.json").unlink()
 
         # 模擬刪除 Codex skill junction 與塞回墓碑權限 -> doctor 抓出 FAIL
         sync.remove_dir_link(home / ".codex" / "skills" / "omnikit-alpha")
@@ -655,7 +681,7 @@ def selftest() -> int:
         (local / "Packages" / "Claude_x" / "LocalCache" / "Local" / "omnikit").mkdir(parents=True)
         (local / "Packages" / "Claude_x" / "LocalCache" / "Local" / "omnikit" / "install-record.json").write_text("{}", encoding="utf-8")
         first = collect(empty, lists=False, environ={"LOCALAPPDATA": str(local)})
-        check("舊位置有未合併狀態時提示合併", "sync.py sync" in first[0]["detail"])
+        check("舊位置有未合併狀態時判 FAIL 並提示合併", first[0]["status"] == FAIL and "sync.py sync" in first[0]["detail"])
 
         # 預算棘輪測試：寫入過低的 budget.yaml 時 doctor 必須判 FAIL
         (repo / "data" / "rules" / "budget.yaml").write_text(

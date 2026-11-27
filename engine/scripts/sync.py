@@ -1004,6 +1004,66 @@ def sync_antigravity_plugins(env: Env, target_root: Path, servers: dict[str, dic
     return diffs
 
 
+T3_RULE_COPIES = ("AGENTS.md", "GEMINI.md", "config/skills.json")
+T3_RULE_RECORD = ".t3-rule-copies.json"
+
+
+def t3_rule_copy_state(pdir: Path, canonical: Path) -> tuple[list[str], list[str]]:
+    """比對 T3 實例的規則副本。回傳 (pending, stuck)：
+    pending＝副本與 ~/.gemini 不同、但等於 T3 在 .t3-rule-copies.json 的記錄（T3 下次啟動會刷新，sync 也能代刷）；
+    stuck＝副本與 ~/.gemini 不同、也不等於記錄（T3 視為實例自己改過，之後不會再自動更新）。"""
+    try:
+        record = read_json_nobom(pdir / T3_RULE_RECORD)
+    except (OSError, ValueError):
+        record = {}
+    pending, stuck = [], []
+    for rel in T3_RULE_COPIES:
+        src_f, dst_f = canonical / rel, pdir / rel
+        if not (src_f.is_file() and dst_f.is_file()):
+            continue
+        dst_b = dst_f.read_bytes()
+        if src_f.read_bytes() == dst_b:
+            continue
+        rec = record.get(rel) if isinstance(record, dict) else None
+        (pending if isinstance(rec, str) and rec.encode("utf-8") == dst_b else stuck).append(rel)
+    return pending, stuck
+
+
+def refresh_t3_rule_copies(home: Path, check_only: bool = False) -> list[str]:
+    """照 T3 自己的規則代刷實例副本：只刷「等於 T3 記錄」的舊副本並同步更新記錄；被改過的副本不碰，回報給使用者決定。"""
+    t3_profiles, t3_err = homes.t3_antigravity_profiles(home)
+    if t3_err:
+        return [f"T3 實例列舉失敗，略過規則副本刷新：{t3_err}"]
+    canonical = home / ".gemini"
+    out = []
+    for f in t3_profiles:
+        pdir = f.path
+        if not pdir.is_dir():
+            continue
+        pending, stuck = t3_rule_copy_state(pdir, canonical)
+        if stuck:
+            out.append(f"T3（{f.instance}）的 {', '.join(stuck)} 被改過，T3 與 sync 都不會覆蓋：確認不要後刪掉該檔，下次啟動 T3 會重建")
+        if not pending:
+            continue
+        out.append(f"{'待刷新' if check_only else '已刷新'} T3（{f.instance}）規則副本：{', '.join(pending)}")
+        if check_only:
+            continue
+        try:
+            record = read_json_nobom(pdir / T3_RULE_RECORD)
+        except (OSError, ValueError):
+            record = {}
+        for rel in pending:
+            raw = (canonical / rel).read_bytes()
+            tmp = (pdir / rel).with_name((pdir / rel).name + ".omnikit-tmp")
+            retry(tmp.write_bytes, raw)
+            retry(os.replace, tmp, pdir / rel)
+            record[rel] = raw.decode("utf-8")
+        rec_tmp = pdir / (T3_RULE_RECORD + ".omnikit-tmp")
+        retry(rec_tmp.write_bytes, json.dumps(record, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+        retry(os.replace, rec_tmp, pdir / T3_RULE_RECORD)
+    return out
+
+
 def run_sync(env: Env, *, profile: str | None = None, agents_override: list[str] | None = None,
              take_over: bool = False, do_rules: bool = True, do_skills: bool = True,
              do_mcp: bool = True, do_user_plugins: bool = True, dev: bool | None = None,
@@ -1071,6 +1131,9 @@ def run_sync(env: Env, *, profile: str | None = None, agents_override: list[str]
             diffs.extend(sync_antigravity_plugins(env, target_root, servers, check_only=check_only))
     elif do_user_plugins and "claude-code" in agents:
         diffs.extend(sync_user_claude_plugins(env, claude_dirs, check_only=check_only))
+
+    if "antigravity" in agents and (env.home / ".t3").is_dir():
+        diffs.extend(refresh_t3_rule_copies(env.home, check_only=check_only))
 
     if check_only:
         return (1 if diffs else 0), (diffs or ["無帳本對帳通過：所有設定皆與 manifest 一致。"])
