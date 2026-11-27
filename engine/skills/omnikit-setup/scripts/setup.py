@@ -10,6 +10,7 @@
 用法（路徑相對於這個 skill 的資料夾）：
   uv run scripts/setup.py scan
   uv run scripts/setup.py migrate [--yes]     舊版存在 repo 裡的 profile 搬到 repo 外（--yes：使用者已經同意）
+  uv run scripts/setup.py skip                不設定、用預設：選定 default，之後開新對話不再主動帶設定
   uv run scripts/setup.py profile --answers <答案.json> [--write] [--apply] [--force]
   uv run scripts/setup.py module --draft <草稿.json> [--write] [--force]    名冊沒有的領域：寫成這台的私有模組
   uv run scripts/setup.py module --list
@@ -21,7 +22,7 @@ import os
 import sys
 from pathlib import Path
 
-USAGE = ("用法：uv run scripts/setup.py scan | migrate [--yes] | "
+USAGE = ("用法：uv run scripts/setup.py scan | migrate [--yes] | skip | "
          "profile --answers <答案.json> [--write] [--apply] [--force] | "
          "module --draft <草稿.json> [--write] [--force] | module --list | "
          "pool recommend [--json] | pool render --answers <答案.json> [--write] [--force]")
@@ -75,6 +76,9 @@ def main():
     if command == "migrate":
         import profiles
         return profiles.main(["--migrate", *rest])
+    if command == "skip":
+        import profiles
+        return profiles.main(["--set", profiles.DEFAULT])
     if command == "pool":
         import pool_setup
         return pool_setup.main(rest)

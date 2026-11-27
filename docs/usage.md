@@ -13,7 +13,9 @@
 
 安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了六個核心 skill（`omnikit-setup`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-research`、`omnikit-capabilities`、`omnikit-eval`，搭配唯一的 `/ok` 簡短總入口；訪談選了不評估新工具的沒有 `omnikit-eval`）、一個按需讀取的前端底線 skill（`omnikit-mobile-web`）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
 
-開新的 session 試試看：
+**第一次開新對話會主動帶你設定**：還沒建立自己的 profile 時，開新對話隨便打一句（例如「嗨」），agent 會先打招呼、直接開始 1 分鐘的設定訪談；第一句是具體工作的話，它先做完，最後提一句可以設定。設定完會給一段新手導覽（背後已經在做的事、現在就能試的 3 句話）。說「先不要」這段對話就不再提；說「不要再提醒」會改用預設 profile，之後不再問。三家都有（寫在規則裡，不靠 hook）。讓 agent 幫你安裝的話，它裝完會在同一段對話直接接著訪談，不用另外開對話。
+
+設定完開新的 session 試試看：
 
 ```text
 OmniKit 規則版本與 profile 是什麼？
@@ -55,12 +57,12 @@ OmniKit 規則版本與 profile 是什麼？
 
 ## 建立自己的 profile
 
-在新的 session 說「幫我設定 OmniKit」。`omnikit-setup` 會：
+還沒選過 profile 的電腦，開新對話時 agent 會主動開始；之後想重新設定，在新的 session 說「幫我設定 OmniKit」。`omnikit-setup` 會：
 
 1. **掃描**：列出這台裝了哪些 agent、目前的規則、skills 與 MCP（只看名稱與版本，不讀金鑰）；另外依你現在的專案資料夾裡的檔名（只看檔名），預選第 1 題的領域。
 2. **訪談**：最多 6 題，大多是選擇題：做哪幾種工作（領域，可複選）、最想改善的習慣、回覆的語言與詳略、agent 可以自己做到哪、要不要評估新工具、主要專案。
 3. **預覽**：先給你看產生的規則，同意才寫入。
-4. **建立並套用**：寫進 repo 外的 `~/.omnikit/profiles/<名稱>/`，接上這台接好的 agent，開新 session 生效。
+4. **建立並套用**：寫進 repo 外的 `~/.omnikit/profiles/<名稱>/`，接上這台接好的 agent，開新 session 生效；接著給一段新手導覽（背後已經在做的事、依你的答案挑的 3 句可以馬上試的話）。
 
 | 你選的 | 規則裡寫成 |
 |---|---|
