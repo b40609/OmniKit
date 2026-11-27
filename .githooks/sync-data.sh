@@ -6,7 +6,7 @@
 #   engine/skills/：同步 skills（Claude 用連結，內容改動本來就會反映；Codex 與 Antigravity 用複製品，要重新複製）
 #   data/profiles/：也同步 skills（訪談答案決定裝哪些，例如不評估工具就不裝 omnikit-eval）
 #   sync.py、homes.py、t3_acp.py、acp_shim.py：skills、hooks 與 MCP 都重新同步（新找到的設定目錄也一起接上）
-#   data/harness/、claude_allow.py、codex_hooks.py、session_nudge.py、claim_check.py、t3_watch.py、home_watch.py、harness_hooks.py：
+#   data/harness/、claude_allow.py、codex_hooks.py、session_nudge.py、claim_check.py、done_check.py、t3_watch.py、home_watch.py、harness_hooks.py：
 #     透過 sync.py sync --mcp 依各目錄薄 plugin 實際狀態更新快取版本、權限清單、狀態列與備案 hooks（不會無條件誤刪備案 hooks）
 # 只有維護者版會自動同步。同事版不設 git hook；萬一還是跑到這裡，也只提醒、不改任何設定（edition.py）
 # linked worktree（例如 .claude/worktrees/ 底下）也不同步：worktree 共用主 repo 的 core.hooksPath，
@@ -63,7 +63,7 @@ fi
 skills=0
 mcp=0
 printf '%s\n' "$changed" | grep -qE '^(engine/skills/|data/profiles/|engine/scripts/(sync|profiles|homes|t3_acp|acp_shim)\.py$)' && skills=1
-printf '%s\n' "$changed" | grep -qE '^(data/(mcp|harness)/|engine/scripts/(sync|homes|t3_acp|acp_shim|claude_allow|codex_hooks|session_nudge|claim_check|t3_watch|home_watch|harness_hooks)\.py$)' && mcp=1
+printf '%s\n' "$changed" | grep -qE '^(data/(mcp|harness)/|engine/scripts/(sync|homes|t3_acp|acp_shim|claude_allow|codex_hooks|session_nudge|claim_check|done_check|t3_watch|home_watch|harness_hooks)\.py$)' && mcp=1
 if [ $skills = 1 ] && [ $mcp = 1 ]; then
   run "skills、hooks 與 MCP 同步" engine/scripts/sync.py sync
 elif [ $skills = 1 ]; then

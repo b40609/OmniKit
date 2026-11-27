@@ -41,8 +41,8 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 5. 免問核准與護欄 hooks：Claude Code 的權限規則（data/harness/claude-allow.txt 現行＋墓碑清單，只增不刪使用者自訂規則）
    與 Codex 的 default_tools_approval_mode。維護者版照 data 寫入；同事版每個工具先問，本人同意了才寫入（預設否）。
    護欄與提醒 hooks（確定性護欄 harness_hooks.py、開新對話提醒 session_nudge.py、說做不到查證 claim_check.py、
-   設定目錄檢查 home_watch.py、T3 MCP 斷線防護 t3_watch.py）：Claude 經由薄 plugin 掛載並寫入 statusLine；
-   Codex 寫進 config.toml（需在 /hooks 信任才會執行）；Antigravity 經由薄 plugin hooks.json 掛載確定性護欄。
+   完工宣稱檢查 done_check.py（預設只記錄）、設定目錄檢查 home_watch.py、T3 MCP 斷線防護 t3_watch.py）：Claude 經由薄 plugin 掛載並寫入 statusLine；
+   Codex 寫進 config.toml（需在 /hooks 信任才會執行）；Antigravity 經由薄 plugin hooks.json 掛載確定性護欄與完工宣稱檢查。
 6. git hook，只有維護者版：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、skills、MCP 或權限規則時，
    自動同步。同事版不設 git hook，pull 不會改任何設定；要套用更新就重跑 install.ps1（先用 -WhatIf 預覽）。
 7. 檢查 OmniKit repo 的 git 身分，只有維護者版。

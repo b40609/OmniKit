@@ -914,8 +914,10 @@ def write_agy_thin_plugin(plugin_dir: Path, target_root: Path, servers: dict[str
     diffs = []
     uv = Path(os.environ.get("UV") or shutil.which("uv") or "uv").as_posix()
     harness = (target_root / "engine" / "scripts" / "harness_hooks.py").as_posix()
+    done = (target_root / "engine" / "scripts" / "done_check.py").as_posix()
     prefix = "call " if os.name == "nt" else ""
     hcmd = f'{prefix}"{uv}" run --quiet --script "{harness}"'
+    dcmd = f'{prefix}"{uv}" run --quiet --script "{done}"'
     files = {
         "plugin.json": {"name": "omnikit", "version": PLUGIN_BASE_VERSION},
         "hooks.json": {
@@ -925,7 +927,11 @@ def write_agy_thin_plugin(plugin_dir: Path, target_root: Path, servers: dict[str
                 "PostToolUse": [{"matcher": "write_file|edit_file",
                                  "hooks": [{"type": "command", "command": hcmd, "timeout": 20}]}],
                 "Stop": [{"type": "command", "command": hcmd, "timeout": 30}],
-            }
+            },
+            # 完工宣稱檢查：Stop 輸入沒有最後一則回覆，done_check.py 從 transcriptPath 找（見該檔說明）
+            "omnikit-done-check": {
+                "Stop": [{"type": "command", "command": dcmd, "timeout": 15}],
+            },
         },
         "mcp_config.json": {
             "mcpServers": {
