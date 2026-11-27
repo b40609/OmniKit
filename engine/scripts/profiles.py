@@ -50,7 +50,7 @@ import stat
 import subprocess
 import sys
 import tempfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import homes  # 同一個資料夾：這台每個 agent 在用的設定目錄
@@ -189,6 +189,8 @@ PROFILE_RULES = ("AGENTS.md",)  # 個人層常駐載入的規則；dispatch.md �
 # 2026-11-27：同事實測「裝好了然後呢，什麼都沒發生」。還沒選 profile 時多接一份 default/onboarding.md，
 # 讓三家（不靠 hook：Codex 的 hook 要先信任、Antigravity 不吃 SessionStart）開新對話的第一則回覆主動破冰並接設定訪談
 ONBOARDING = "onboarding.md"
+ONBOARDING_STATE = "onboarding.json"  # 狀態資料夾裡：使用者說「先不要」的暫緩到期日
+SNOOZE_DAYS = 7
 AGY_MAX_FILE_BYTES = 24_000     # agy-customizations/docs/rules.md:31 單檔超過 24,000 bytes 會在行界靜默截斷
 AGY_MAX_TOTAL_TOKENS = 20_000   # agy-customizations/docs/rules.md:34 全域與 always-on 合計超過 20,000 tokens 會降級為路徑指標
 CODEX_MAX_FILE_BYTES = 32 * 1024
@@ -222,10 +224,33 @@ def shared_rules_files(data):
     return [data / "rules" / f for f in SHARED_RULES if f not in OPTIONAL_RULES or (data / "rules" / f).is_file()]
 
 
-def onboarding_active(state, name):
-    """還沒選過 profile、用的是預設 default：開新對話要主動破冰並帶使用者做設定訪談。
-    選定任何 profile（含 --set default「不設定、用預設」）就關掉。state 是 None（預算棘輪量最大值）時當成開著。"""
-    return name == DEFAULT and (state is None or chosen(state) is None)
+def snoozed_until(state):
+    """使用者說「先不要」時記下的暫緩到期日（YYYY-MM-DD）；沒有或壞掉回 None。"""
+    try:
+        until = json.loads(text(state / ONBOARDING_STATE)).get("snoozed_until")
+    except (OSError, ValueError, AttributeError):
+        return None
+    return until if isinstance(until, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", until) else None
+
+
+def snooze(state, days=SNOOZE_DAYS, today=None):
+    """暫緩開場破冰 days 天，回傳到期日。只記日期；規則要重新接上（apply）才會拿掉，到期後 apply 或
+    home_watch 的規則過期偵測會把它接回來。"""
+    until = ((today or datetime.now()).date() + timedelta(days=days)).isoformat()
+    write(state / ONBOARDING_STATE, json.dumps({"snoozed_until": until}, ensure_ascii=False) + "\n")
+    return until
+
+
+def onboarding_active(state, name, today=None):
+    """還沒選過 profile、用的是預設 default，也沒在暫緩期間：開新對話要主動破冰並帶使用者做設定訪談。
+    選定任何 profile（含 --set default「不要再提醒」）就關掉；「先不要」暫緩 SNOOZE_DAYS 天（業界的反模式是每次開對話都問）。
+    state 是 None（預算棘輪量最大值）時當成開著。"""
+    if name != DEFAULT:
+        return False
+    if state is None:
+        return True
+    until = snoozed_until(state)
+    return chosen(state) is None and not (until and (today or datetime.now()).date().isoformat() < until)
 
 
 def personal_rules_files(data, state, name):
@@ -740,6 +765,22 @@ def selftest():
               import_line(data / "profiles" / "default" / ONBOARDING) in md
               and codex.index("保守") < codex.index("主動破冰") < codex.index(END)
               and "主動破冰" in gemini and "主動破冰" not in agy_shared)
+        day0 = datetime(2026, 11, 27)
+        check("先不要：暫緩 7 天，記到期日，期間不破冰、到期當天恢復",
+              snooze(state, today=day0) == "2026-12-04" and snoozed_until(state) == "2026-12-04"
+              and not onboarding_active(state, DEFAULT, today=datetime(2026, 12, 3))
+              and onboarding_active(state, DEFAULT, today=datetime(2026, 12, 4)))
+        snooze(state)
+        run(agents=all3)
+        check("暫緩中重新接上：三家都拿掉破冰",
+              ONBOARDING not in text(paths["claude-code"]) and all("主動破冰" not in text(p) for p in paths.values()))
+        write(state / ONBOARDING_STATE, '{"snoozed_until": "2000-01-01"}\n')
+        run(agents=all3)
+        check("暫緩過期再接上：三家都加回破冰", ONBOARDING in text(paths["claude-code"])
+              and all("主動破冰" in text(p) for p in (paths["codex"], paths["antigravity"])))
+        write(state / ONBOARDING_STATE, "壞掉的檔\n")
+        check("暫緩檔壞掉：當成沒暫緩", snoozed_until(state) is None and onboarding_active(state, DEFAULT))
+        (state / ONBOARDING_STATE).unlink()
 
         before = {k: p.read_bytes() for k, p in paths.items()}
         before_agy_shared = paths["antigravity"].with_name("AGENTS.md").read_bytes()
