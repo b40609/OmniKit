@@ -59,10 +59,12 @@ def test_offline_test_overwrites_gitignored_data_file(tmp_path):
     assert "daily_snapshot.json" in r.stdout          # 訊號：允許清單外的檔案雜湊變了
     assert "修改" in r.stdout
     assert "沒有允許清單外的變動" not in r.stdout
-    # 對照：同一個變動，git status 看不到（這正是兩份審查都說「沒改檔」的原因）
-    if shutil.which("git"):
-        subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
-        st = subprocess.run(["git", "-C", str(repo), "status", "--porcelain", "--untracked-files=all"],
+    # 對照：同一個變動，git status 看不到（這正是兩份審查都說「沒改檔」的原因）。
+    # CI 的暫存路徑刻意很長、含空白與中文，git 要 core.longpaths；git 建不了 repo 時只略過這段對照，fs_guard 的斷言照樣算
+    git = ["git", "-c", "core.longpaths=true"]
+    if shutil.which("git") and subprocess.run([*git, "init", "-q", str(repo)], capture_output=True,
+                                              check=False).returncode == 0:
+        st = subprocess.run([*git, "-C", str(repo), "status", "--porcelain", "--untracked-files=all"],
                             capture_output=True, text=True, check=True)
         assert "daily_snapshot.json" not in st.stdout
 
