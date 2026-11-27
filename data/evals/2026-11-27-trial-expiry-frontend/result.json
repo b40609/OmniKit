@@ -1,0 +1,40 @@
+{
+  "slot": "frontend-design",
+  "verdict": "Update",
+  "winner": "huashu-design",
+  "scores": [
+    {
+      "id": "huashu-design",
+      "score": 8.25,
+      "notes": "n=1（封存標籤 D）；Carbon 8.50、Fable 8.00、手機 7.00；勝 unslop +1.25、勝裸模型 +0.63（雜訊門檻內）；收尾跨環境至 Antigravity"
+    },
+    {
+      "id": "impeccable",
+      "score": 8.0,
+      "notes": "n=1（封存標籤 A）；Carbon 8.00、Fable 8.00（首選推薦）、手機 7.50；勝 unslop +1.00、勝裸模型 +0.38（雜訊門檻內）；收尾跨環境至 Antigravity"
+    },
+    {
+      "id": "none",
+      "score": 7.63,
+      "notes": "n=2（封存標籤 E/F）；Carbon 7.75（首選推薦 E）、Fable 7.50、手機 7.75 最高；勝 unslop +0.63"
+    },
+    {
+      "id": "unslop",
+      "score": 7.0,
+      "notes": "n=2（封存標籤 B/C）；Carbon 7.00、Fable 7.00、手機 6.50 最低；未通過裸模型消融健檢，建議不轉正、退回 pending"
+    },
+    {
+      "id": "baseline",
+      "score": 3.5,
+      "notes": "AI 原始錨點版本（Carbon 3.50、Fable 3.50、手機 3.00）"
+    }
+  ],
+  "eval_doc": "data/evals/2026-11-27-trial-expiry.md",
+  "decided_by": "user",
+  "unverified": [
+    "品味題尚未經使用者親自灰階與彩色盲選，最終去留待使用者拍板",
+    "huashu-design 與 impeccable 僅各跑 1 次（n=1），且收尾階段因 5 小時配額切換至 Antigravity 環境",
+    "挑戰者相對裸模型差距（+0.63、+0.38）均在 1.0 分雜訊門檻內，也可採減法選項暫不指定設計 skill",
+    "僅以 Chromium Headless 驗證，未做 WebKit（iOS Safari）實機巡檢"
+  ]
+}

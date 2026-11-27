@@ -1,0 +1,24 @@
+{
+  "slot": "web-pages",
+  "verdict": "Retire",
+  "winner": "none",
+  "scores": [
+    {
+      "id": "none",
+      "score": 8.13,
+      "notes": "n=2（封存標籤 A/C）；Carbon 8.50（首選 C）、Fable 7.75（首選 A）、質感 7.75、內容 8.50、手機 7.75；領先 taste-skill +2.38"
+    },
+    {
+      "id": "taste-skill",
+      "score": 5.75,
+      "notes": "n=2（封存標籤 B/D）；Carbon 5.50、Fable 6.00、質感 5.25、內容 6.25、手機 5.25；英文規則對繁體中文誤報需豁免、320 KB 字型門檻與空白反白段嚴重拖累，建議不轉正、退回 pending 並停用 plugin"
+    }
+  ],
+  "eval_doc": "data/evals/2026-11-27-trial-expiry.md",
+  "decided_by": "user",
+  "unverified": [
+    "品味題尚未經使用者親自灰階與彩色盲選，最終去留待使用者拍板",
+    "t2-taste-1 後半段因 5 小時配額切換至 Antigravity 測完 5 視口後撞額度，未寫出 site/NOTES.md（靜態頁完整且過檢）",
+    "僅以 Chromium Headless 驗證，未做 WebKit（iOS Safari）實機巡檢"
+  ]
+}
