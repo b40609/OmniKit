@@ -313,3 +313,181 @@ def test_selftest_passes():
     r = subprocess.run([sys.executable, str(SCRIPT), "--selftest"], capture_output=True, text=True,
                        encoding="utf-8", errors="replace", env=ENV, timeout=120, check=False)
     assert r.returncode == 0, r.stdout + r.stderr
+
+
+# ---- 審查修正 D10-R-01：非標準 JSON 常數、溢位成無限大的數字 ----
+
+def write_raw(tmp_path, text, filename="raw.json"):
+    f = tmp_path / filename
+    f.write_text(text, encoding="utf-8")
+    return f
+
+
+def old_heartbeat_text(field, literal, **fields):
+    """停在 2016 年的心跳，把某個數字欄位換成原樣的 JSON 字面值（Infinity、NaN、1e400 這類 json.dumps 寫不出來的）。"""
+    doc = heartbeat(last_attempt_ts="2016-01-01T00:00:00+00:00", last_success_ts="2016-01-01T00:00:00+00:00", **fields)
+    doc[field] = "__RAW__"
+    return json.dumps(doc).replace('"__RAW__"', literal)
+
+
+@pytest.mark.parametrize("field", ["expected_period_s", "grace_s"])
+@pytest.mark.parametrize("literal", ["Infinity", "1e400"])
+def test_infinite_period_or_grace_is_down(tmp_path, field, literal):
+    """D10-R-01：json.loads 預設接受 Infinity，1e400 也會溢位成 inf；週期或寬限是無限大，停在 2016 年的心跳就永遠 FRESH。"""
+    r = run(write_raw(tmp_path, old_heartbeat_text(field, literal)))
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert verdict_lines(r.stdout)[0].startswith("DOWN")
+    assert "全部 FRESH" not in r.stdout
+
+
+@pytest.mark.parametrize("literal", ["Infinity", "1e400"])
+def test_infinite_max_data_age_is_down(tmp_path, literal):
+    """D10-R-01：資料日期上限是無限大，資料停在 2016 年也不會 STALE。"""
+    doc = heartbeat(progress={"data_date": "2016-01-01"}, max_data_age_days="__RAW__")
+    r = run(write_raw(tmp_path, json.dumps(doc).replace('"__RAW__"', literal)))
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert verdict_lines(r.stdout)[0].startswith("DOWN")
+
+
+@pytest.mark.parametrize("literal", ["NaN", "Infinity", "-Infinity"])
+def test_non_standard_json_constant_anywhere_is_down(tmp_path, literal):
+    """D10-R-01：Infinity、NaN 不是標準 JSON（RFC 8259），出現在哪個欄位都一樣判 DOWN，不只數字欄位。"""
+    doc = heartbeat(x_ratio="__RAW__", progress={"items_out": 3, "x_rate": 1.5})
+    r = run(write_raw(tmp_path, json.dumps(doc).replace('"__RAW__"', literal)))
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert verdict_lines(r.stdout)[0].startswith("DOWN")
+    assert "JSON" in r.stdout
+
+
+@pytest.mark.parametrize("args", [["--max-data-age-days", "inf"], ["--max-data-age-days", "nan"],
+                                  ["--pid-start-tolerance-s", "inf"], ["--pid-start-tolerance-s", "nan"]])
+def test_non_finite_cli_numbers_are_usage_errors(tmp_path, args):
+    """順手：讀的一方用命令列傳 inf、nan，資料日期上限與啟動時間容許差也會失效；當用法錯誤，不檢查。"""
+    f = write(tmp_path, progress={"data_date": "2016-01-01"})
+    r = run(f, *args)
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert "全部 FRESH" not in r.stdout
+
+
+def test_deeply_nested_json_is_down_not_a_crash(tmp_path):
+    """順手：巢狀太深的 JSON 讓 json.loads 丟 RecursionError；要判 DOWN，不能讓檢查器整支當掉。"""
+    r = run(write_raw(tmp_path, "[" * 100_000 + "]" * 100_000))
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert verdict_lines(r.stdout)[0].startswith("DOWN")
+    assert "Traceback" not in r.stderr
+
+
+# ---- 審查修正 D10-R-02：pid 超出 32 位元不能被截斷 ----
+
+def test_pid_above_32_bits_is_not_truncated_to_a_live_process(tmp_path, live_process):
+    """D10-R-02：Windows 的 OpenProcess 收 32 位元 DWORD，2**32 + 存活 pid 會被截斷成那個存活行程，啟動時間對得上就判 FRESH。"""
+    sys.path.insert(0, str(SCRIPT.parent))
+    import stale_check
+
+    pid, _ = live_process()
+    state, started, _ = stale_check.process_info(pid)
+    assert state == "alive" and started is not None
+    now = datetime.now(UTC)
+    f = write(tmp_path, pid=2**32 + pid, pid_start_ts=started.isoformat(), last_attempt_ts=iso(now),
+              last_success_ts=iso(now))
+    r = run(f, now=None)
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert verdict_lines(r.stdout)[0].startswith("DOWN")
+
+
+@pytest.mark.parametrize("pid", [0, -1, 2**32, 2**32 + 4, 2**64 + 4])
+def test_out_of_range_pid_is_dead(pid):
+    """D10-R-02：pid <= 0 或大於 0xFFFFFFFF 一律判 dead，不交給系統呼叫去截斷（pid 4 在 Windows 是 System 行程）。"""
+    sys.path.insert(0, str(SCRIPT.parent))
+    import stale_check
+
+    assert stale_check.process_info(pid)[0] == "dead"
+
+
+@pytest.mark.parametrize("pid", [0, -1, 2**32])
+def test_out_of_range_pid_in_heartbeat_is_down(tmp_path, pid):
+    f = write(tmp_path, pid=pid)
+    r = run(f)
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert verdict_lines(r.stdout)[0].startswith("DOWN")
+
+
+# ---- 審查修正 D10-R-03：--started-after 缺 pid、巢狀狀態字、規格檔不分大小寫 ----
+
+def test_started_after_without_pid_is_down_unless_skip_pid(tmp_path):
+    """D10-R-03 之 1：--started-after 只看到 pid_start_ts、沒有 pid，就沒向系統查證行程真的在部署後重啟過。"""
+    f = write(tmp_path, pid_start_ts=iso(NOW - timedelta(minutes=5)))
+    r = run(f, "--started-after", iso(NOW - timedelta(minutes=10)))
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert verdict_lines(r.stdout)[0].startswith("DOWN")
+    assert "pid" in r.stdout
+    # 狀態檔來自別台機器、明確加 --skip-pid：照舊只註明沒查證
+    r = run(f, "--started-after", iso(NOW - timedelta(minutes=10)), "--skip-pid")
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+@pytest.mark.parametrize("fields", [
+    {"x_meta": {"status": "running"}},
+    {"x_meta": {"note": "OK"}},
+    {"x_meta": {"inner": {"X_Health": 1}}},
+    {"x_tags": ["healthy"]},
+    {"x_runs": [{"phase": "succeeded"}]},
+    {"progress": {"items_out": 3, "x_detail": {"state": "up"}}},
+    {"progress": {"items_out": 3, "X_Status": 1}},
+])
+def test_nested_status_words_are_rejected(tmp_path, fields):
+    """D10-R-03 之 2：狀態字藏在巢狀物件、陣列或混合大小寫的 x_ 欄位裡也算。"""
+    r = run(write(tmp_path, **fields))
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert verdict_lines(r.stdout)[0].startswith("DOWN")
+    assert "狀態字" in r.stdout
+
+
+def test_nested_facts_without_status_words_stay_fresh(tmp_path):
+    r = run(write(tmp_path, x_meta={"host": "demo-host", "counts": [1, 2], "inner": {"rows": 3}},
+                  progress={"items_out": 3, "x_detail": {"rows": 5}}))
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+@pytest.mark.parametrize("fields", [
+    {"x_Status": 1}, {"x_RUNNING": 1}, {"x_oK": True}, {"progress": {"sTaTuS": 1}}, {"progress": {"x_ok": 1}},
+    {"x_note": "rUnNiNg"}, {"x_note": " ok "}, {"progress": {"phase": "Succeeded "}},
+    {"x_meta": {"status": 1}}, {"x_meta": {"inner": {"note": "healthy"}}}, {"x_tags": ["Green"]},
+])
+def test_schema_rejects_status_words_in_any_case_or_nesting(fields):
+    """D10-R-03 之 3：規格檔的 propertyNames 要不分大小寫（x_Status、x_RUNNING），巢狀也一樣，跟檢查器一致。"""
+    jsonschema = pytest.importorskip("jsonschema")
+    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+    v = jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker())
+    assert list(v.iter_errors(heartbeat(**fields))), fields
+
+
+def test_schema_still_accepts_plain_extension_facts():
+    jsonschema = pytest.importorskip("jsonschema")
+    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+    v = jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker())
+    doc = heartbeat(x_note="deployed by ci", x_meta={"host": "demo-host", "counts": [1, 2], "inner": {"rows": 3}},
+                    progress={"items_out": 3, "x_rows": 5})
+    assert not list(v.iter_errors(doc))
+
+
+def test_schema_case_insensitive_patterns_match_checker_lists():
+    """規格檔不分大小寫的比對式，跟檢查器的 STATUS_KEYS、STATUS_WORDS 是同一份清單。"""
+    import re
+
+    sys.path.insert(0, str(SCRIPT.parent))
+    import stale_check
+
+    defs = json.loads(SCHEMA.read_text(encoding="utf-8"))["$defs"]
+    key_re = re.compile(defs["statusKeyName"]["pattern"])
+    word_re = re.compile(defs["statusWordValue"]["pattern"])
+    for w in stale_check.STATUS_KEYS:
+        for variant in (w, w.upper(), w.title(), w[:1] + w[1:].upper(), f"x_{w}", f"X_{w.upper()}"):
+            assert key_re.search(variant), variant
+    for w in stale_check.STATUS_WORDS:
+        for variant in (w, w.upper(), w.title(), f" {w} ", w[:1].upper() + w[1:]):
+            assert word_re.search(variant), variant
+    for fact in ("items_out", "x_note", "statuses", "x_stateful", "upload", "pid"):
+        assert not key_re.search(fact), fact
+    for fact in ("okay", "not running", "readyz", "2026-11-27", "demo-host"):
+        assert not word_re.search(fact), fact

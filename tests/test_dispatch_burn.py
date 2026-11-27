@@ -305,3 +305,24 @@ def test_access_ended_is_no_longer_recommended_or_dispatched(tmp_path):
     ok, why = accounts.can_auto(rs[1], "auto_dispatch", now=T0)
     assert not ok and "訂閱已到期" in why
     assert accounts.can_auto(rs[1], "auto_dispatch", now=T0 - timedelta(hours=1))[0]
+
+
+def test_access_ends_is_judged_at_the_given_now_not_the_wall_clock(tmp_path):
+    """access_ends 在傳入的 now 之後、但早於真實時鐘（T0 + 9 小時 = 2026-11-27 00:00Z，已經過了）：
+    挑帳號與第二意見都要照傳入的 now 判斷，不能被真實時鐘判成已到期。這裡不 monkeypatch can_auto。"""
+    home = tmp_path / "home"
+    write_claude_cache(home, "c_a", 55, T0 + timedelta(hours=30))
+    write_claude_cache(home, "c_k", 4, T0 + timedelta(days=5))
+    qs = claude_q(tmp_path, ["c_a", "c_k"], home)
+    end = T0 + timedelta(hours=9)
+    assert end < datetime.now(UTC)  # 前提：真實時鐘已經過了 access_ends
+    rs = _sel_rows({"c_a": None, "c_k": ap.iso_utc(end)})
+    mine = {"instances": {"c_a": {"driver": "claudeAgent", "classes": ["claude-opus"]},
+                          "c_k": {"driver": "claudeAgent", "classes": ["claude-opus"]}}}
+    sel = ap.select_claude_instance(rs, mine, qs, ap._empty_state(), now=T0)
+    assert sel["chosen"] == "c_k" and sel["ordered"] == ["c_k", "c_a"]
+    cands = ap.burn_candidates(rs, mine, qs, ap._empty_state(), now=T0, home=home)
+    assert [c["instance"] for c in cands["claudeAgent"]] == ["c_k", "c_a"]
+    # 到了傳入的 now 已過 access_ends，才不推薦
+    sel_late = ap.select_claude_instance(rs, mine, qs, ap._empty_state(), now=end + timedelta(minutes=1))
+    assert "c_k" not in sel_late["ordered"]
