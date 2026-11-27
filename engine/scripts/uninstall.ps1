@@ -274,7 +274,7 @@ function Remove-ClaudePermissions {
   if (-not ($record['claude_allow'] -or $record['claude_hooks'] -or $record['claude_statusline'] -or $record['claude_extra'])) { return }
   $uv = Get-Uv
   if (-not $uv) {
-    Write-Warning "找不到 uv，請自己從 ~/.claude/settings.json 拿掉：$($record['claude_allow'] -join ', ')、hooks.Stop 裡的 session_nudge.py、claim_check.py 與 hooks.SessionStart 裡的 home_watch.py"
+    Write-Warning "找不到 uv，請自己從 ~/.claude/settings.json 拿掉：$($record['claude_allow'] -join ', ')、hooks.Stop 裡的 session_nudge.py、claim_check.py、done_check.py、hooks.SubagentStop 裡的 done_check.py 與 hooks.SessionStart 裡的 home_watch.py"
     return
   }
   $r = Invoke-UvRun $uv @('run', '--quiet', (Join-Path $Repo 'engine\scripts\claude_allow.py'), '--uninstall')
@@ -285,7 +285,7 @@ function Remove-CodexHook {
   if (-not $record['codex_hooks']) { return }
   $uv = Get-Uv
   if (-not $uv) {
-    Write-Warning '找不到 uv，請自己從 ~/.codex/config.toml 拿掉 OmniKit 加的 [[hooks.Stop]]（session_nudge.py、claim_check.py）'
+    Write-Warning '找不到 uv，請自己從 ~/.codex/config.toml 拿掉 OmniKit 加的 [[hooks.Stop]]（session_nudge.py、claim_check.py、done_check.py）'
     return
   }
   $r = Invoke-UvRun $uv @('run', '--quiet', (Join-Path $Repo 'engine\scripts\codex_hooks.py'), '--uninstall')

@@ -36,12 +36,14 @@ WATCH = "home_watch.py"
 CLAIM = "claim_check.py"
 T3W = "t3_watch.py"
 HARNESS = "harness_hooks.py"
+DONE = "done_check.py"
 HOOKS = (("Stop", NUDGE, 10), ("SessionStart", WATCH, 15), ("Stop", CLAIM, 10), ("SessionStart", T3W, 30),
-         ("PreToolUse", HARNESS, 10), ("PostToolUse", HARNESS, 20), ("Stop", HARNESS, 30))
+         ("PreToolUse", HARNESS, 10), ("PostToolUse", HARNESS, 20), ("Stop", HARNESS, 30),
+         ("Stop", DONE, 15), ("SubagentStop", DONE, 15))
 MATCHERS = {("PreToolUse", HARNESS): "Bash|PowerShell|Read|Grep|Edit|Write|MultiEdit",
             ("PostToolUse", HARNESS): "Edit|Write|MultiEdit"}
 HOOK_NAMES = {NUDGE: "開新對話提醒", WATCH: "設定目錄檢查", CLAIM: "說做不到查證", T3W: "T3 MCP 斷線防護",
-              HARNESS: "確定性護欄"}
+              HARNESS: "確定性護欄", DONE: "完工宣稱檢查"}
 SCRIPTS = list(dict.fromkeys(script for _, script, _ in HOOKS))
 STATUSLINE_SCRIPT = "dispatch.py"
 GRANT = "uv run engine/scripts/sync.py approvals --grant <名稱>"
@@ -348,7 +350,7 @@ def apply(settings_path: Path, record_path: Path | None, state: Path, repo: Path
             if use_plug:
                 changed.append(f"已清理 settings.json 舊版重複 hook（改由薄 plugin 提供）{where}")
             else:
-                changed.append(f"已註冊 OmniKit 的 hook（Stop 開新對話提醒與說做不到查證、SessionStart 設定目錄檢查與 T3 MCP 斷線防護、PreToolUse／PostToolUse／Stop 確定性護欄）{where}")
+                changed.append(f"已註冊 OmniKit 的 hook（Stop 開新對話提醒與說做不到查證、SessionStart 設定目錄檢查與 T3 MCP 斷線防護、PreToolUse／PostToolUse／Stop 確定性護欄、Stop／SubagentStop 完工宣稱檢查）{where}")
         if statuslined:
             changed.append(f"已接上 OmniKit 狀態列額度快照（dispatch.py statusline）{where}")
     if "claude_extra" in record:

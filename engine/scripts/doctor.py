@@ -55,7 +55,7 @@ import sync
 
 OK, WARN, FAIL, UNKNOWN = "ok", "warn", "fail", "unknown"
 MARK = {OK: "✓", WARN: "！", FAIL: "✗", UNKNOWN: "？"}
-CODEX_SCRIPTS = (claude_allow.NUDGE, claude_allow.CLAIM, claude_allow.T3W)
+CODEX_SCRIPTS = (claude_allow.NUDGE, claude_allow.CLAIM, claude_allow.T3W, claude_allow.DONE)
 REL_LINK_RE = re.compile(r"\]\(([^)]+)\)")
 QUOTED_EXE_RE = re.compile(r'^(?:call\s+)?"([^"]+)"')
 
@@ -272,7 +272,7 @@ def check_permissions_and_hooks(env: sync.Env, agents: list[str], claude_dirs: l
             txt = toml_p.read_text(encoding="utf-8", errors="replace") if toml_p.is_file() else ""
             missing_h = [claude_allow.HOOK_NAMES[s] for s in CODEX_SCRIPTS if not re.search(r"(?m)^command\s*=.*" + re.escape(s), txt)]
             out.append(row("hook", lbl, "config.toml Stop hooks", OK if not missing_h else FAIL,
-                           "3 支 Stop hook 皆已登記（需於 /hooks 信任）" if not missing_h else f"缺少 {'、'.join(missing_h)}"))
+                           f"{len(CODEX_SCRIPTS)} 支 hook 皆已登記（需於 /hooks 信任）" if not missing_h else f"缺少 {'、'.join(missing_h)}"))
             try:
                 tdoc = tomllib.loads(txt) if txt.strip() else {}
                 mcps = tdoc.get("mcp_servers") or {}

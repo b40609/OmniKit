@@ -13,7 +13,9 @@
 
 安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了六個核心 skill（`omnikit-setup`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-research`、`omnikit-capabilities`、`omnikit-eval`，搭配唯一的 `/ok` 簡短總入口；訪談選了不評估新工具的沒有 `omnikit-eval`）、一個按需讀取的前端底線 skill（`omnikit-mobile-web`）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
 
-開新的 session 試試看：
+**第一次開新對話會主動帶你設定**：還沒建立自己的 profile 時，開新對話隨便打一句（例如「嗨」），agent 會先打招呼、直接開始 1 分鐘的設定訪談；第一句是具體工作的話，它先做完，最後提一句可以設定。設定完會給一段新手導覽（背後已經在做的事、現在就能試的 3 句話）。說「先不要」這段對話就不再提；說「不要再提醒」會改用預設 profile，之後不再問。三家都有（寫在規則裡，不靠 hook）。讓 agent 幫你安裝的話，它裝完會在同一段對話直接接著訪談，不用另外開對話。
+
+設定完開新的 session 試試看：
 
 ```text
 OmniKit 規則版本與 profile 是什麼？
@@ -50,17 +52,17 @@ OmniKit 規則版本與 profile 是什麼？
 | `omnikit-capabilities` skill | agent 要說「做不到」「沒有工具」「請你手動做」之前，先清點這台能用的 CLI（標出 Git Bash 找不到、只有 PowerShell 找得到的，例如只有 `t3.cmd` 的 T3）、各 agent 登記的 MCP server、本機 MCP 端點（開著沒、要不要登入、哪個 agent 還沒接），列出最省事的做法，再對照 `--help` 與最新官方文件。只看檔案、PATH 與本機連線，不印金鑰。安全底線的「說做不到之前」要求先照這個 skill 查完 | 三邊要說做不到、或使用者問「你能不能…」「有沒有辦法派給…」時觸發；要手動叫，Claude Code 輸入 `/omnikit-capabilities`，Codex 輸入 `$omnikit-capabilities`。也能直接跑 `uv run engine/scripts/capabilities.py` |
 | `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡；「每週彙整」是維護者評估工具用的 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval` 或 `/ok 評估`，Codex 輸入 `$omnikit-eval` 或 `$ok 評估`。三邊皆透過無複製參照指向 `~/.omnikit/current/engine/skills`（維護者版 commit 時由 git hook 自動更新，同事版重跑 `install.ps1`） |
 | `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 由薄 plugin 掛載並可加進免問清單，Codex 設成自動核准（同事版皆需本人同意），Antigravity 由薄 plugin 掛載並照它自己的權限設定 |
-| 護欄與提醒 hooks | 包含確定性護欄（`harness_hooks.py`，擋常見繞過捷徑與敏感檔讀取，不是沙箱）、開新對話提醒（`session_nudge.py`，含每日最多一則用法小提示）、說做不到查證（`claim_check.py`，未附查證擋回一次；設 `OMNIKIT_CLAIM_CHECK=off` 可暫關）、設定目錄檢查（`home_watch.py`）與 T3 MCP 斷線防護（`t3_watch.py`） | Claude Code 透過本地薄 plugin `omnikit@omnikit-local` 掛載（所有 Claude 設定目錄皆接）；Codex 只接開新對話提醒、說做不到查證與 T3 MCP 斷線防護，寫進 `config.toml`（需在 `/hooks` 信任才會跑），確定性護欄目前沒有接 Codex；Antigravity 於薄 plugin `config/plugins/omnikit/hooks.json` 掛載確定性護欄 |
+| 護欄與提醒 hooks | 包含確定性護欄（`harness_hooks.py`，擋常見繞過捷徑與敏感檔讀取，不是沙箱）、開新對話提醒（`session_nudge.py`，含每日最多一則用法小提示）、說做不到查證（`claim_check.py`，未附查證擋回一次；設 `OMNIKIT_CLAIM_CHECK=off` 可暫關）、完工宣稱檢查（`done_check.py`，【完成待收尾】或寫 `.done` 時檢查完工回執、證據檔與 git 是否已 push；預設只記錄到 `tripwire-hits.jsonl`，設 `OMNIKIT_DONE_CHECK=block` 才擋、`off` 關掉）、設定目錄檢查（`home_watch.py`）與 T3 MCP 斷線防護（`t3_watch.py`） | Claude Code 透過本地薄 plugin `omnikit@omnikit-local` 掛載（所有 Claude 設定目錄皆接）；Codex 只接開新對話提醒、說做不到查證、完工宣稱檢查與 T3 MCP 斷線防護，寫進 `config.toml`（需在 `/hooks` 信任才會跑），確定性護欄目前沒有接 Codex；Antigravity 於薄 plugin `config/plugins/omnikit/hooks.json` 掛載確定性護欄與完工宣稱檢查 |
 | git hooks（只有維護者版） | 只作用在 OmniKit repo：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、MCP、權限時自動同步。同事版不設 | 跟 agent 無關 |
 
 ## 建立自己的 profile
 
-在新的 session 說「幫我設定 OmniKit」。`omnikit-setup` 會：
+還沒選過 profile 的電腦，開新對話時 agent 會主動開始；之後想重新設定，在新的 session 說「幫我設定 OmniKit」。`omnikit-setup` 會：
 
 1. **掃描**：列出這台裝了哪些 agent、目前的規則、skills 與 MCP（只看名稱與版本，不讀金鑰）；另外依你現在的專案資料夾裡的檔名（只看檔名），預選第 1 題的領域。
 2. **訪談**：最多 6 題，大多是選擇題：做哪幾種工作（領域，可複選）、最想改善的習慣、回覆的語言與詳略、agent 可以自己做到哪、要不要評估新工具、主要專案。
 3. **預覽**：先給你看產生的規則，同意才寫入。
-4. **建立並套用**：寫進 repo 外的 `~/.omnikit/profiles/<名稱>/`，接上這台接好的 agent，開新 session 生效。
+4. **建立並套用**：寫進 repo 外的 `~/.omnikit/profiles/<名稱>/`，接上這台接好的 agent，開新 session 生效；接著給一段新手導覽（背後已經在做的事、依你的答案挑的 3 句可以馬上試的話）。
 
 | 你選的 | 規則裡寫成 |
 |---|---|

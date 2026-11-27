@@ -14,7 +14,9 @@
 
 **需要：** Windows 11、[Git](https://git-scm.com/download/win)、[Node.js LTS](https://nodejs.org/)（MCP 用）、Claude Code、Codex、Antigravity 至少一個（裝了的都會接上）。不需要 GitHub 帳號，也不用開 Actions 或 Pages。
 
-可以直接在 Claude Code 或 Codex 說「幫我安裝 OmniKit：https://github.com/b40609/OmniKit」，agent 會照下面的步驟做；也可以自己在 PowerShell 跑。
+可以直接在 Claude Code、Codex 或 Antigravity 說「幫我安裝 OmniKit：https://github.com/b40609/OmniKit」，agent 會照下面的步驟做；也可以自己在 PowerShell 跑。
+
+> **給幫忙安裝的 agent：** 第 2 步裝完、`install.ps1` 印出「下一步」之後，不用叫使用者開新對話：直接讀 `engine/skills/omnikit-setup/SKILL.md`，在同一段對話接著跟使用者做設定訪談，做完給新手導覽。
 
 1. **Clone。** 放在之後不會搬動的淺層路徑（如 `$env:USERPROFILE\OmniKit`，避免 Windows 預設長路徑上限）：規則與 skills 會連到這個資料夾。建議直接指定最新穩定發行 tag（第一個 tag 由維護者建立；若直接 clone 預設分支，`install.ps1` 在同事版偵測到 `v*` 發行 tag 時也會自動切過去）：
 
@@ -36,7 +38,7 @@
 
 3. **確認接上了。** 開一個新的 Claude Code 或 Codex session，問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的一樣，就表示規則生效了。skill 與 MCP 怎麼檢查，見[使用指南的確認接上了](usage.md#確認接上了)。
 
-4. **建立自己的 profile。** 在新的 session 說「幫我設定 OmniKit」，回答最多 6 題，看過預覽才寫入，見[建立自己的 profile](usage.md#建立自己的-profile)。profile 存在 `~/.omnikit/profiles/<名稱>/`，不在 repo 裡，不會被 commit 或上傳。
+4. **建立自己的 profile。** 開新的 session 隨便打一句，agent 會主動帶你設定（也可以直接說「幫我設定 OmniKit」），回答最多 6 題，看過預覽才寫入，見[建立自己的 profile](usage.md#建立自己的-profile)。profile 存在 `~/.omnikit/profiles/<名稱>/`，不在 repo 裡，不會被 commit 或上傳。
 
 之後要更新到新發行版：`git fetch --tags`，先跑 `install.ps1 -Tag <新版本> -WhatIf` 預覽，確認後跑 `install.ps1 -Tag <新版本>` 套用（不帶 `-Tag` 時若尚未停在 tag 上會自動鎖定最新 `v*` tag）。`git fetch` 本身不會改任何設定。
 
