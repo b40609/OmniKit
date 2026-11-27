@@ -76,6 +76,8 @@ jobs:
       - run: uv run engine/scripts/now_tick.py --selftest
       # 副作用量測（D10 改動 3）：指令前後各做一次 SHA-256 快照，允許清單外有變動就 exit 非 0，被包住的指令失敗照傳出結束碼
       - run: uv run engine/scripts/fs_guard.py --selftest
+      # 由讀取方判定的心跳（D10 改動 2）：FRESH／STALE／DOWN、讀不到或時鐘錯亂一律 DOWN、全部 FRESH 才 exit 0、pid 與啟動時間向系統查證
+      - run: uv run engine/scripts/stale_check.py --selftest
       # 無帳本同步器（規則、skills junction、Claude 薄 plugin、Codex MCP CLI、Antigravity 薄 plugin、零遞迴刪除）自我測試
       - run: uv run engine/scripts/sync.py --selftest
       # 找出每個 agent 在用的設定目錄（多帳號、T3 Code 的實例、CLAUDE_CONFIG_DIR…），以及開新對話時接上新出現的
