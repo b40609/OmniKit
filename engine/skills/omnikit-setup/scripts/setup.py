@@ -10,7 +10,8 @@
 用法（路徑相對於這個 skill 的資料夾）：
   uv run scripts/setup.py scan
   uv run scripts/setup.py migrate [--yes]     舊版存在 repo 裡的 profile 搬到 repo 外（--yes：使用者已經同意）
-  uv run scripts/setup.py skip                不設定、用預設：選定 default，之後開新對話不再主動帶設定
+  uv run scripts/setup.py snooze              先不要：7 天內開新對話不主動帶設定（到期自動恢復）
+  uv run scripts/setup.py skip                不要再提醒：選定 default，之後開新對話不再主動帶設定
   uv run scripts/setup.py profile --answers <答案.json> [--write] [--apply] [--force]
   uv run scripts/setup.py module --draft <草稿.json> [--write] [--force]    名冊沒有的領域：寫成這台的私有模組
   uv run scripts/setup.py module --list
@@ -22,7 +23,7 @@ import os
 import sys
 from pathlib import Path
 
-USAGE = ("用法：uv run scripts/setup.py scan | migrate [--yes] | skip | "
+USAGE = ("用法：uv run scripts/setup.py scan | migrate [--yes] | snooze | skip | "
          "profile --answers <答案.json> [--write] [--apply] [--force] | "
          "module --draft <草稿.json> [--write] [--force] | module --list | "
          "pool recommend [--json] | pool render --answers <答案.json> [--write] [--force]")
@@ -76,6 +77,12 @@ def main():
     if command == "migrate":
         import profiles
         return profiles.main(["--migrate", *rest])
+    if command == "snooze":
+        import profiles
+        until = profiles.snooze(profiles.STATE)
+        code = profiles.main([])
+        print(f"已暫緩到 {until}：這段期間開新對話不會主動帶設定；想設定隨時說「幫我設定 OmniKit」")
+        return code
     if command == "skip":
         import profiles
         return profiles.main(["--set", profiles.DEFAULT])

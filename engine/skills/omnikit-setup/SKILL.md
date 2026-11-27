@@ -125,15 +125,26 @@ uv run scripts/setup.py profile --answers <answers_file> --write --apply
 - 輸出提到某個 agent 的規則「沒有覆蓋」或「沒有加回去」：那是使用者自己改過的檔案，這次沒動；要接上就在 repo 根目錄重跑 `install.ps1`。
 - 使用者問 profile 存在哪、怎麼手動改：存在這台的 `profiles_dir`（`~/.omnikit/profiles/<名稱>/`），在 repo 外，不會被 commit 或上傳；直接改那裡的 `AGENTS.md`，再在 repo 根目錄跑 `uv run engine/scripts/profiles.py` 重新接上（Claude Code 直接讀這份；Codex 與 Antigravity 讀的是接在一起的副本）；換別的 profile 跑 `uv run engine/scripts/profiles.py --set <名稱>`。三家指令對照看 `docs/cli-features.md`；新電腦該裝什麼看 `docs/starter.md`。
 
-## 不設定、用預設
+## 先不要、不要再提醒
 
-使用者說不要再提醒、就用預設的時候做（只說「先不要」不用做，這段對話不再提就好）：
+開場破冰或訪談途中使用者不想設定時做。不要每次開對話都問（業界最常被抱怨的做法），所以兩種都要記下來：
 
-```
-uv run scripts/setup.py skip
-```
+- **先不要、之後再說**：
 
-這會選定 `default`（下載、安裝前會先問），開新對話就不會再主動帶設定。回報：「好，之後想照你的習慣設定，說『幫我設定 OmniKit』就好。」
+  ```
+  uv run scripts/setup.py snooze
+  ```
+
+  暫緩 7 天，這段期間開新對話不主動帶設定，到期自動恢復。回報：「好，這週先不提；之後想設定說『幫我設定 OmniKit』就好，不想再被問就回『不要再提醒』。」
+- **不要再提醒、就用預設**：
+
+  ```
+  uv run scripts/setup.py skip
+  ```
+
+  選定 `default`（下載、安裝前會先問），之後開新對話不再主動帶設定。回報：「好，之後想照你的習慣設定，說『幫我設定 OmniKit』就好。」
+
+兩個都會重新接上規則，開新對話才生效；這段對話照樣不再提。
 
 ## 4b. 套用之後：三項設定
 

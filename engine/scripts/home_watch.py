@@ -67,17 +67,27 @@ def _same(a: str, b: str) -> bool:
 
 
 def rules_drift(state: Path, home: Path, environ=None, data: Path | None = None) -> list[str]:
-    """Codex 與 Antigravity 拿的是組好的規則副本（Claude Code 用 @import，改了就生效）。個人 profile 不進 repo 之後
-    （2026-11-27），改個人規則不會再經過 commit 的 git hook 同步，所以開新對話時比對一次：副本跟現在組出來的不同，
+    """Codex 與 Antigravity 拿的是組好的規則副本（Claude Code 用 @import，改了就生效；只比對要不要接 onboarding.md）。
+    個人 profile 不進 repo 之後（2026-11-27），改個人規則不會再經過 commit 的 git hook 同步，所以開新對話時比對一次：副本跟現在組出來的不同，
     回傳過期的（位置, 應有內容的摘要）。沒接上、找不到 profile 或讀不到都當作沒有過期（不擋開場）。"""
     agents = _active_agents(state)
-    if not any(a in agents for a in ("codex", "antigravity")):
+    if not any(a in agents for a in ("claude-code", "codex", "antigravity")):
         return []
     data = data or (_resolve_repo_root(state) / "data")
     try:
         name, _ = profiles.resolve(data, state)
     except SystemExit:
         return []
+    stale = []
+    if "claude-code" in agents:
+        # Claude 用 @import，規則內容改了自己就生效；只有「要不要接 onboarding.md」會讓區塊本身過期
+        # （「先不要」的暫緩到期，2026-11-27）。只看主設定目錄，背景 sync 會把其他設定目錄一起接好
+        md = home / ".claude" / "CLAUDE.md"
+        found = profiles.BLOCK.search(profiles.text(md)) if md.is_file() else None
+        base = profiles.folder(data, state, name)
+        want = bool(base) and profiles.onboarding_active(state, name) and (base / profiles.ONBOARDING).is_file()
+        if found and (profiles.ONBOARDING in found.group(0)) != want:
+            stale.append((str(md), hashlib.sha256(f"onboarding:{want}".encode()).hexdigest()[:12]))
     targets = []
     if "codex" in agents:
         want = profiles.content_block(profiles.compose(data, state, name))
@@ -87,7 +97,6 @@ def rules_drift(state: Path, home: Path, environ=None, data: Path | None = None)
         gem = home / ".gemini"
         targets += [(gem / "AGENTS.md", profiles.content_block(profiles.compose_shared(data))),
                     (gem / "GEMINI.md", profiles.content_block(profiles.compose_personal(data, state, name)))]
-    stale = []
     for path, want in targets:
         found = profiles.BLOCK.search(profiles.text(path)) if path.is_file() else None
         if found and not _same(found.group(0), want):  # 沒有受管區塊的是「沒接上」，交給 pending 與 doctor
@@ -266,6 +275,39 @@ def selftest():
         ok("同步之後不再觸發", check(state, h, {}, 99999, lambda cmd, **kw: calls.append(cmd)) is None and len(calls) == 2)
         codex.write_text("# 只有自己的規則，沒有受管區塊\n", encoding="utf-8")
         ok("沒有受管區塊的不算過期（那是沒接上，交給 doctor）", str(codex) not in [p for p, _ in rules_drift(state, h, {})])
+
+    # 開場破冰（onboarding.md）：Claude 用 @import，只有「要不要接」會讓區塊過期；「先不要」暫緩到期時開場背景接回來
+    with tempfile.TemporaryDirectory() as t:
+        h, state, repo = Path(t) / "home", Path(t) / "state", Path(t) / "repo"
+        data = repo / "data"
+        (repo / "engine" / "scripts").mkdir(parents=True)
+        (repo / "engine" / "scripts" / "sync.py").write_text("", encoding="utf-8")
+        (data / "rules").mkdir(parents=True)
+        (data / "rules" / "baseline.md").write_text("# 安全底線\n", encoding="utf-8")
+        (data / "profiles" / "default").mkdir(parents=True)
+        (data / "profiles" / "default" / "AGENTS.md").write_text("# default\n", encoding="utf-8")
+        (data / "profiles" / "default" / profiles.ONBOARDING).write_text("## 第一次使用\n", encoding="utf-8")
+        state.mkdir(parents=True)
+        (state / "config.json").write_text(json.dumps({"agents": ["claude-code"], "repo": str(repo)}), encoding="utf-8")
+        md = h / ".claude" / "CLAUDE.md"
+        md.parent.mkdir(parents=True)
+
+        def deploy_claude():
+            md.write_text(profiles.claude_block(data, state, "default") + "\n# 我自己的\n", encoding="utf-8")
+
+        deploy_claude()
+        ok("破冰：Claude 區塊跟現在該不該接一致，不觸發", rules_drift(state, h, {}) == [])
+        profiles.snooze(state)
+        ok("破冰：說了先不要但區塊還接著（還沒重新接上），標成過期", [p for p, _ in rules_drift(state, h, {})] == [str(md)])
+        deploy_claude()
+        ok("破冰：暫緩中重新接上之後不再觸發", profiles.ONBOARDING not in md.read_text(encoding="utf-8")
+           and rules_drift(state, h, {}) == [])
+        (state / profiles.ONBOARDING_STATE).write_text('{"snoozed_until": "2000-01-01"}', encoding="utf-8")
+        calls = []
+        msg = check(state, h, {}, 5000, lambda cmd, **kw: calls.append(cmd))
+        ok("破冰：暫緩到期，開場背景重新接上", msg is not None and len(calls) == 1 and calls[0][-1] == "sync")
+        md.write_text("# 只有自己的規則\n", encoding="utf-8")
+        ok("破冰：沒有受管區塊的不算過期", rules_drift(state, h, {}) == [])
     print("home_watch selftest", "FAIL" if fails else "OK")
     return 1 if fails else 0
 
