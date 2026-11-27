@@ -170,7 +170,7 @@ CatOS 的視覺方向已經確定：黑金配色、緊湊密度、圖示導航�
 
 | 檔案 | 內容 |
 |---|---|
-| `x.patch`、`y.patch` | 兩組對 CatOS 前端的改動，以 CatOS commit `9fef976` 為基準 |
+| `x.patch`、`y.patch` | 兩組對 CatOS 前端的改動，以 CatOS commit `9fef976` 為基準（2026-11-27 起移出公開 repo：私有專案的原始碼只留在維護者本機與私人備份，結論以本報告為準） |
 | `mock-server.mjs` | 第二輪的假後端 |
 | `run.mjs` | 建置並啟動三個版本 |
 | `design-direction.md` | 兩組實測時拿到的方向文件 |

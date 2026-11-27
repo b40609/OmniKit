@@ -265,7 +265,7 @@ def test_reconcile_queue_single_and_batch_api(short_tmp: Path):
             "## 完工路徑\n還有 1 步，完成 3 步（下坡）\n\n## 目前結論\n- 自動對帳完成\n\n## 下一步\n- 【agent 可直接做】發布\n",
             encoding="utf-8",
         )
-        return {"thread_id": "th-rec-1", "thread_url": "https://omnikeep.tailb1f9ce.ts.net:2388/threads/e1/th-rec-1", "message": "ok"}
+        return {"thread_id": "th-rec-1", "thread_url": "https://t3.example.ts.net:2388/threads/e1/th-rec-1", "message": "ok"}
 
     app = server.CockpitApp(
         state_dir=state,

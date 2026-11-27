@@ -8,3 +8,30 @@ _site/
 __pycache__/
 .pytest_cache/
 .venv/
+
+# 個人 profile 不進公開 repo（2026-11-27）：repo 只追蹤 default；維護者自己的 profile 留在本機原位
+# （CLAUDE.md 用絕對路徑 import），備份在私人狀態 repo
+data/profiles/*
+!data/profiles/default/
+
+# 評測的程式 patch 可能是私有專案的原始碼，只留在本機（評測結論留在報告與 result.json）
+data/evals/**/*.patch
+
+# 機密檔：.env、金鑰、憑證與 token 檔一律不進版本控制
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+credentials*.json
+service-account*.json
+token.json
+*-token.json
+*_token.json
+.npmrc
+.pypirc
+.netrc

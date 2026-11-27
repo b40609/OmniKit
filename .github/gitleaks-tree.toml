@@ -1,0 +1,41 @@
+# 公開 repo 的「個人與私有字串」規則（2026-11-27，KIT-A-02、KIT-X-03）
+#
+# 只掃目前版本（gitleaks dir），不掃歷史：歷史裡已經有的不在這裡處理（要不要改寫歷史由維護者決定）。
+# 金鑰外洩的歷史掃描照舊用 gitleaks 預設規則（validate.yml 的「金鑰外洩」job）。
+# 不要把這個檔改名成 .gitleaks.toml：那樣歷史掃描與 pre-commit 會自動套用它，歷史一定紅。
+#
+# 私有字串（雇主、私有專案代號、帳號名）不能寫在這裡（這個檔本身是公開的），
+# 放在 repo secret OMNIKIT_PRIVATE_DENYLIST 與維護者本機的 ~/.omnikit/private-denylist.txt，
+# 由 engine/scripts/privacy_rules.py 在執行時接到這份規則後面。
+
+title = "OmniKit 個人與私有字串"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "omnikit-tailnet-hostname"
+description = "Tailscale MagicDNS 主機名：文件與測試改用 <你的機器>.<tailnet>.ts.net 或 *.example.ts.net"
+regex = '''(?i)\b[a-z0-9][a-z0-9-]*\.[a-z0-9-]+\.ts\.net\b'''
+keywords = ["ts.net"]
+
+[[rules.allowlists]]
+regexTarget = "match"
+regexes = ['''(?i)\.example\.ts\.net$''']
+
+[[rules]]
+id = "omnikit-personal-profile"
+description = "個人 profile 不進公開 repo：repo 只追蹤 data/profiles/default，其他放 ~/.omnikit/profiles 或留在本機不追蹤"
+path = '''(^|/)data/profiles/[^/]+/'''
+
+[[rules.allowlists]]
+paths = ['''(^|/)data/profiles/default/''']
+
+[[rules]]
+id = "omnikit-eval-patch"
+description = "評測的程式 patch 可能是私有專案的原始碼，不進公開 repo；結論留在報告與 result.json"
+path = '''(^|/)data/evals/.+\.patch$'''
+
+[allowlist]
+description = "git 自己的資料夾（本機掃描時才會有）"
+paths = ['''(^|/)\.git/''']

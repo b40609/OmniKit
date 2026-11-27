@@ -491,7 +491,7 @@ v6.12 用 npm 安裝器，已凍結只修 bug；v7 改用 `npx skills add` 或 p
    - 已裝：已裝的另列「已經有了」，不重複推（setup-claude `SKILL.md:37-41`）。
    - `native`：不用裝，寫進規則就好，例如「改完先跑 /review」（`positioning.md:92`）。
 3. **同一槽位有多個候選時**：先看在使用者情境的實測分數或 Δ，再看決定日期較新的，最後才看外部訊號（skills.sh 安裝數、Snyk 與 Socket 掃描、依 eval 數量打折後的 Tessl 分數）。
-4. **團隊名冊優先於個人預設**（setup-claude 的「組織 plugin 一律排第一」：`SKILL.md:39`）。之後若有 ITRI 團隊共用的名冊，就排在通用預設前面。
+4. **團隊名冊優先於個人預設**（setup-claude 的「組織 plugin 一律排第一」：`SKILL.md:39`）。之後若有公司團隊共用的名冊，就排在通用預設前面。
 5. **數量上限**：第一次最多裝 5 個需要安裝的工具，並顯示合計的 context 成本。依據有兩個：Goose 建議同時啟用 5 個以下 extension；OmniKit 自己的實測，skill 清單從 49,335 字元降到 15,877 字元，token 少約 27%（`positioning.md:64-67`）。
 6. **腳本輸出 JSON**：每項附 `reason`（取自卡片）、`evidence`（評估檔路徑）、`why_selected`（由哪題答案或哪個專案訊號選上）。理由的格式可以借 ECC consult.js 的「matched x」（`consult.js:257-287`）。
 

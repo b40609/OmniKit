@@ -62,6 +62,8 @@ AGENT_DRIVER = {"claude": "claudeAgent", "codex": "codex", "antigravity": "antig
 FENCE = re.compile(r"```ya?ml\s*\n(.*?)\n```", re.S)
 VERSION = re.compile(r"規則版本：\s*(\S+)")
 STALE_HOURS = 12  # 快照超過這麼久，用量可能偏低（週用量只會往上加）
+# 自我測試用的假個人層（2026-11-27）：個人 profile 不進公開 repo，自測與 tests/ 改讀這份，實例名與帳號名都是假的
+SAMPLE_PROFILE = Path(__file__).resolve().parent / "testdata" / "profile-sample"
 
 
 # ---------- 讀政策 ----------
@@ -1217,8 +1219,8 @@ def selftest():
         return False
 
     pol = policy(profiles.DATA)
-    ryan = personal(profiles.DATA / "profiles" / "ryan")
-    ok("repo 裡的共用層與 ryan 的個人層通過檢查", check(pol, ryan) == [])
+    sample = personal(SAMPLE_PROFILE)
+    ok("repo 裡的共用層與假的樣本個人層（testdata/profile-sample）通過檢查", check(pol, sample) == [])
     with tempfile.TemporaryDirectory() as tmp:
         dup = Path(tmp) / "d.md"
         dup.write_text("```yaml\na:\n  note: 1\n  note: 2\n```\n", encoding="utf-8")
@@ -1236,15 +1238,15 @@ def selftest():
     ok("t3_thread_launch 管道寫明 T3 外怎麼接 MCP、思考程度用 modelSelection.options、settle 後回讀 settled",
        "claude mcp login t3" in mcp.get("how", "") and "modelSelection.options" in mcp.get("thinking", "")
        and "settled" in mcp.get("settle", ""))
-    shown = show_text(resolved(pol, ryan, "claude"), "ryan", True, None, pol, ryan)
+    shown = show_text(resolved(pol, sample, "claude"), "sample", True, None, pol, sample)
     ok("show 的輸出列出每個管道，包含 t3_cli", all(f"  {c}：" in shown for c in CHANNELS))
-    vr = visibility(pol, ryan)
-    ok("ryan 的 visibility 是 visible（profile 設定）：show 依序印 delegate_task、t3_thread_launch、t3_cli 與退路",
+    vr = visibility(pol, sample)
+    ok("sample 的 visibility 是 visible（profile 設定）：show 依序印 delegate_task、t3_thread_launch、t3_cli 與退路",
        vr["mode"] == "visible" and vr["source"] == "profile"
        and [c["channel"] for c in vr["channels"]] == ["delegate_task", "t3_thread_launch", "t3_cli"]
        and "偏好 visible（profile 的 dispatch.md）" in shown and "1. delegate_task：" in shown and "退路：" in shown)
     vh = visibility(pol, {"instances": {}, "visibility": "headless"})
-    hs = show_text(resolved(pol, ryan, "claude"), "x", True, None, pol, {"visibility": "headless"})
+    hs = show_text(resolved(pol, sample, "claude"), "x", True, None, pol, {"visibility": "headless"})
     ok("visibility: headless 的使用者：管道是 agy_cli，show 印偏好 headless",
        [c["channel"] for c in vh["channels"]] == ["agy_cli"] and "偏好 headless" in hs and "1. agy_cli：" in hs)
     vd = visibility(pol, {"instances": {}})
@@ -1279,47 +1281,47 @@ def selftest():
        and any("tasks.docs" in e for e in errs) and any("要用 claudeAgent 的實例" in e for e in errs)
        and any("類別不存在：nope" in e for e in errs) and any("循環" in e for e in errs))
 
-    t = resolved(pol, ryan, "claude")
+    t = resolved(pol, sample, "claude")
     med = t["medium"]["options"]
     # 2026-11-25 定案：讀檔／雜務（docs、readonly）用 Hydrogen xhigh 或 Opus medium；多檔／UI 用 Neon xhigh 或 Opus high；Sonnet 留作試行退路
-    ok("ryan：中級 docs/readonly 首選 Hydrogen xhigh，多檔／UI 首選 Neon xhigh，選項名稱為 thought_level；Claude 維持政策 effort 不被 max_available 拉到 max",
+    ok("sample：中級 docs/readonly 首選 Hydrogen xhigh，多檔／UI 首選 Neon xhigh，選項名稱為 thought_level；Claude 維持政策 effort 不被 max_available 拉到 max",
        med[0]["class"] == "gemini-fast" and med[0]["model"] == "gemini-4-hydrogen"
-       and med[0]["thinking"] == "xhigh" and med[0]["instances"] == ["antigravity_ryan"]
+       and med[0]["thinking"] == "xhigh" and med[0]["instances"] == ["antigravity_main"]
        and med[0]["thinking_name"] == "thought_level" and med[0]["tasks"] == ["docs", "readonly"]
        and med[1]["class"] == "gemini-pro" and med[1]["model"] == "gemini-4-neon"
        and med[1]["thinking"] == "xhigh" and med[1]["thinking_name"] == "thought_level"
        and any(o["class"] == "claude-opus" and o["thinking"] == "medium" and o["tasks"] == ["docs", "readonly"] for o in med)
        and any(o["class"] == "claude-opus" and o["thinking"] == "high" and o["tasks"] == ["ui-small", "code-small"] for o in med)
        and med[-1]["class"] == "claude-sonnet")
-    ov_t = resolved(pol, {**ryan, "effort_overrides": {"claude-opus": "medium"}}, "claude")
+    ov_t = resolved(pol, {**sample, "effort_overrides": {"claude-opus": "medium"}}, "claude")
     ok("個人層 effort_overrides 可覆寫特定類別／級別的思考程度，不合法覆寫會被 check 擋下",
        [o for o in ov_t["verify"]["options"] if o["class"] == "claude-opus"][0]["thinking"] == "medium"
        and [o for o in ov_t["verify"]["options"] if o["class"] == "claude-opus"][0]["thinking_why"] == "effort_overrides: claude-opus"
        and any("effort_overrides" in e for e in check(pol, {"effort_overrides": {"gemini-pro": "low"}})))
-    econ = resolved(pol, {**ryan, "thinking_preference": "economy"}, "claude")
+    econ = resolved(pol, {**sample, "thinking_preference": "economy"}, "claude")
     ok("thinking_preference: economy 降一般任務一檔（Neon/Hydrogen xhigh→high、Sonnet medium→low），但絕不把 Gemini 降到禁用的 medium／low",
        [o for o in econ["medium"]["options"] if o["class"] == "gemini-pro"][0]["thinking"] == "high"
        and [o for o in econ["medium"]["options"] if o["class"] == "gemini-fast"][0]["thinking"] == "high"
        and [o for o in econ["medium"]["options"] if o["class"] == "claude-sonnet"][0]["thinking"] == "low")
     ok("個人層 thinking_preference、on_exhausted、account_strategy、notify 寫錯會報錯",
        len(check(pol, {"thinking_preference": "ultra", "on_exhausted": "spin", "account_strategy": "rng", "notify": "sms"})) == 4)
-    ord_t = resolved(pol, ryan, "claude", claude_order=["claudeAgent_2", "claudeAgent_claude_kai", "claudeAgent"])
+    ord_t = resolved(pol, sample, "claude", claude_order=["claudeAgent_2", "claudeAgent_claude_b", "claudeAgent"])
     ok("claude_order 依額度策略排實例順序，native 仍排第一",
        [o for o in ord_t["high"]["options"] if o["class"] == "claude-opus"][0]["instances"]
-       == ["native", "claudeAgent_2", "claudeAgent_claude_kai", "claudeAgent"])
-    tj = resolved(pol, ryan, "claude", lambda i, m: (i != "claudeAgent_2", "測試：停用"),
+       == ["native", "claudeAgent_2", "claudeAgent_claude_b", "claudeAgent"])
+    tj = resolved(pol, sample, "claude", lambda i, m: (i != "claudeAgent_2", "測試：停用"),
                   lambda m: "測試：過濾" if m == "gemini-4-hydrogen" else "")
     son = [o for o in tj["medium"]["options"] if o["class"] == "claude-sonnet"][0]
     fl = [o for o in tj["medium"]["options"] if o["class"] == "gemini-fast"][0]
     ok("judge 不能派的實例移到 blocked 附原因；被過濾的模型整個選項跳過",
        "claudeAgent_2" not in son["instances"] and son["blocked"] == [{"instance": "claudeAgent_2", "why": "測試：停用"}]
        and fl["skip"] and fl["filtered"] == "測試：過濾"
-       and "已過濾，跳過（測試：過濾）" in show_text(tj, "ryan", True) and "不派 claudeAgent_2：測試：停用" in show_text(tj, "ryan", True))
+       and "已過濾，跳過（測試：過濾）" in show_text(tj, "sample", True) and "不派 claudeAgent_2：測試：停用" in show_text(tj, "sample", True))
     ok("Claude 類別在 Claude 底下原生子代理排第一",
        [o for o in t["high"]["options"] if o["class"] == "claude-fable"][0]["instances"][0] == "native"
        and [o for o in t["high"]["options"] if o["class"] == "claude-opus"][0]["instances"][0] == "native")
     high_routes = [o["class"] for o in t["high"]["options"] if o["kind"] == "route"]
-    ok("ryan：high 含 synthesis／major-change 且首選 Fable 5.2 high 與 Carbon high；verify／higher 維持 Opus xhigh；雙向對等跨家審查齊備",
+    ok("sample：high 含 synthesis／major-change 且首選 Fable 5.2 high 與 Carbon high；verify／higher 維持 Opus xhigh；雙向對等跨家審查齊備",
        "synthesis" in t["high"]["tasks"] and "major-change" in t["high"]["tasks"]
        and high_routes[:2] == ["claude-fable", "gemini-carbon"]
        and all(t[lv]["options"][0]["kind"] == "prework" and t[lv]["options"][0]["class"] == "gemini-pro" for lv in ("high", "higher"))
@@ -1337,7 +1339,7 @@ def selftest():
        all(o["skip"] for lv in bare.values() for o in lv["options"] if not o["class"].startswith("claude-"))
        and all(o["skip"] for lv in bare.values() for o in lv["options"] if o["kind"] == "second_opinion")
        and any(o["class"] == "claude-sonnet" and o["thinking"] == "medium" and not o["skip"] for o in bare["medium"]["options"])
-       and "有 Fable 才升 Fable 5.2 high" in show_text(t, "ryan", True))
+       and "有 Fable 才升 Fable 5.2 high" in show_text(t, "sample", True))
 
     def pick(table, lv, cls, kind="route", nth=0):
         return [o for o in table[lv]["options"] if o["class"] == cls and o["kind"] == kind][nth]
@@ -1350,11 +1352,11 @@ def selftest():
        and pick(bare, "architecture", "claude-opus")["thinking"] == "xhigh"
        and all(any(not o["skip"] and o["kind"] == "route" for o in lv["options"]) for lv in bare.values())
        and "選配，沒宣告，跳過" in bare_show and "opt_in_classes: [claude-fable]" in bare_show)
-    ok("ryan 的實例宣告了 claude-fable：Fable 照用，標 fallback_for 的 Opus 備援自動跳過",
+    ok("sample 的實例宣告了 claude-fable：Fable 照用，標 fallback_for 的 Opus 備援自動跳過",
        pick(t, "architecture", "claude-fable")["instances"][0] == "native"
        and pick(t, "architecture", "claude-opus")["superseded"] == "claude-fable"
        and pick(t, "architecture", "claude-opus")["skip"]
-       and "已有 claude-fable，不用這個備援" in show_text(t, "ryan", True))
+       and "已有 claude-fable，不用這個備援" in show_text(t, "sample", True))
     opt = resolved(pol, {"opt_in_classes": ["claude-fable"]}, "claude")
     ok("只寫 opt_in_classes: [claude-fable]（沒有任何 T3 實例）也能啟用 Fable 的原生子代理",
        pick(opt, "high", "claude-fable")["instances"] == ["native"] and pick(opt, "architecture", "claude-opus")["skip"])
@@ -1365,7 +1367,7 @@ def selftest():
        and pick(gt, "verify", "claude-opus", "second_opinion")["instances"] == ["native"]
        and pick(gt, "verify", "claude-opus", "second_opinion")["thinking"] == "xhigh"
        and pick(gt, "verify", "gemini-carbon", "second_opinion")["instances"] == ["ag"])
-    gone = resolved(pol, ryan, "claude", None, lambda m: "測試：淘汰" if m == pol["model_classes"]["claude-fable"]["model"] else "")
+    gone = resolved(pol, sample, "claude", None, lambda m: "測試：淘汰" if m == pol["model_classes"]["claude-fable"]["model"] else "")
     ok("宣告了 Fable 但它被淘汰過濾：Opus 備援不跳過，architecture 仍派得出去",
        pick(gone, "architecture", "claude-fable")["skip"]
        and not pick(gone, "architecture", "claude-opus")["skip"] and pick(gone, "architecture", "claude-opus")["superseded"] is None)
@@ -1428,7 +1430,7 @@ def selftest():
        all(k in turns.get("verify", "") for k in ("t3_thread_wait", "60 秒", "t3_thread_interrupt", "settle", "t3 thread show"))
        and "完成標記" in turns.get("failed_15min", "") and "重派" in turns.get("failed_15min", "")
        and sum("待驗證" in p for p in turns.get("pending") or []) == 3)
-    shown_turns = show_text(resolved(pol, ryan, "claude"), "ryan", True, None, pol)
+    shown_turns = show_text(resolved(pol, sample, "claude"), "sample", True, None, pol)
     ok("show 的輸出印出派給 Antigravity 的四件事與驗收方式",
        all(b in shown_turns for b in turns.get("brief") or ["?"]) and "t3_thread_interrupt" in shown_turns)
     no_turns = json.loads(json.dumps(pol))
@@ -1450,23 +1452,23 @@ def selftest():
     base = dict(task="docs", cls="claude-sonnet", thinking="medium", verdict="pass", first_pass=None, retries=0, escalations=0,
                 final_class=None, channel="native", instance=None, level=None, project=None, control=False, note=None)
     now = datetime(2026, 11, 14, 12, 0, tzinfo=timezone.utc)
-    rec = make_record(pol, ns(**base), "2026-11-14-1", "ryan", "OmniKit", now)
+    rec = make_record(pol, ns(**base), "2026-11-14-1", "sample", "OmniKit", now)
     need = ["ts", "project", "task", "level", "instance", "model", "thinking", "first_pass", "retries", "escalations", "verdict", "rules_version"]
     ok("紀錄有必填欄位；級別從任務類型推；沒寫 first-pass 時，一次就過才算",
        all(k in rec for k in need) and rec["level"] == "medium" and rec["first_pass"] is True
        and rec["model"] == "claude-sonnet-5-5" and rec["instance"] == "native")
     t3rec = make_record(pol, ns(**{**base, "cls": "gemini-fast", "thinking": "xhigh", "channel": "t3_cli",
-                                   "instance": "antigravity_ryan"}), "v", "ryan", "p", now)
+                                   "instance": "antigravity_main"}), "v", "sample", "p", now)
     p_log = argparse.ArgumentParser(exit_on_error=False)
     p_log.add_argument("--channel", choices=CHANNELS)
-    ok("log 收 t3_cli 管道，實例照寫（antigravity_ryan）",
-       t3rec["channel"] == "t3_cli" and t3rec["instance"] == "antigravity_ryan"
+    ok("log 收 t3_cli 管道，實例照寫（antigravity_main）",
+       t3rec["channel"] == "t3_cli" and t3rec["instance"] == "antigravity_main"
        and p_log.parse_args(["--channel", "t3_cli"]).channel == "t3_cli")
-    esc = make_record(pol, ns(**{**base, "verdict": "pass", "escalations": 1, "final_class": "claude-opus"}), "v", "ryan", "p", now)
+    esc = make_record(pol, ns(**{**base, "verdict": "pass", "escalations": 1, "final_class": "claude-opus"}), "v", "sample", "p", now)
     ok("Sonnet 驗收不過、改 Opus 重跑：記成一行，class 是一開始派的 Sonnet，first_pass 是 false",
        esc["class"] == "claude-sonnet" and esc["final_class"] == "claude-opus" and esc["first_pass"] is False)
     erec = make_record(pol, ns(**{**base, "verdict": "fail", "error": None,
-                                  "error_text": "HTTP 429 weekly quota exhausted Bearer tok-secret-999999"}), "v", "ryan", "p", now)
+                                  "error_text": "HTTP 429 weekly quota exhausted Bearer tok-secret-999999"}), "v", "sample", "p", now)
     ok("log --error-text 自動分類錯誤並寫進 error_kind，note 遮罩 token",
        erec["error_kind"] == "quota_exhausted" and "tok-secret" not in (erec["note"] or "") and "[REDACTED]" in (erec["note"] or ""))
     ok("不合政策的不寫：任務類型、類別、思考程度（含超過類別上限）、結論寫錯，或有升級卻沒寫最後的類別",

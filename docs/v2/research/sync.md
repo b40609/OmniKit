@@ -465,7 +465,7 @@
 - **做法**：
   - validate.py 加一項檢查：profile 不能拿掉或改寫底線的條目。
   - 權限（claude-allow）、MCP 與 hooks 採「預設拒絕、deny 勝出」。
-  - 以後真的需要團隊層（例如 itri）時，借 Agent OS 的 `inherits_from` 鏈：基底在前、偵測循環、顯示每項來自哪一層；但底線那一層的條目鎖定，不能被覆蓋。
+  - 以後真的需要團隊層（例如公司團隊）時，借 Agent OS 的 `inherits_from` 鏈：基底在前、偵測循環、顯示每項來自哪一層；但底線那一層的條目鎖定，不能被覆蓋。
 - **證據**：APM policy/inheritance.py:1-8、34-43 與 security/executables.py:183-202、368-375 @ 2920043；Agent OS common-functions.sh:120-178、project-install.sh:220-250 @ e892e61。
 - **反例**：rulesync 的 inputRoots 由後面的勝出（rules-processor.ts:1479-1490 @ d088ccc）；rulebook-ai 同名時先到先贏，而且不警告（core.py:83-101、535-537 @ 7bc8531）。這兩種都擋不住「放寬底線」。
 - **OmniKit 現況**：只有 data/rules/baseline.md 的文字約定（「可以更嚴，不能放寬」）；compose 只是把兩份接在一起（OmniKit profiles.py:145-149）。

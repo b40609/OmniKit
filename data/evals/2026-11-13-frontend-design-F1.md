@@ -36,7 +36,7 @@
 
 ## 結果
 
-原始資料在 `2026-11-13-frontend-design-F1/`：三組的 diff（`*.patch`）與執行紀錄（`*.json`）、四張 1440×900 截圖（`screenshots/`）、封存的對照表與評審（`mapping.sealed`、`judge.sealed`）、評審提示（`judge-prompt.md`）、執行腳本（`run.py`）。
+原始資料在 `2026-11-13-frontend-design-F1/`：三組的 diff（`*.patch`，2026-11-27 起移出公開 repo：私有專案的原始碼只留在維護者本機與私人備份）與執行紀錄（`*.json`）、四張 1440×900 截圖（`screenshots/`）、封存的對照表與評審（`mapping.sealed`、`judge.sealed`）、評審提示（`judge-prompt.md`）、執行腳本（`run.py`）。
 
 ### 硬性條件：三組都通過
 

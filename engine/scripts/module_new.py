@@ -273,9 +273,11 @@ def selftest():
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         data, state = tmp / "data", tmp / "state"
-        for rel in ("omnikit.yaml", "rules/baseline.md", "profiles/default/AGENTS.md", "profiles/ryan/AGENTS.md"):
+        for rel in ("omnikit.yaml", "rules/baseline.md", "profiles/default/AGENTS.md"):
             (data / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(DATA / rel, data / rel)
+        # 維護者手寫的 profile：用假的內容（個人 profile 不進公開 repo，CI 沒有真的那份）
+        write(data / "profiles" / "ryan" / "AGENTS.md", "# 個人規則：ryan（測試用）\n")
         (data / "tools").mkdir()
         write(data / "modules" / "domain" / "dev.yaml", "id: dev\nkind: domain\nname: 軟體開發\nsummary: 寫程式\nrequires: [docs]\n"
               "slots:\n  - id: dev-review\n    name: 審查\n    focus: watch\n    scenarios:\n      - {id: GA1, text: 情境}\n")

@@ -5,10 +5,22 @@ if [ ! -x "$gitleaks" ]; then
   echo "OmniKit：找不到 gitleaks，先執行 engine/scripts/install.ps1" >&2
   exit 1
 fi
-"$gitleaks" git --pre-commit --staged --redact --no-banner --log-level warn . || {
-  echo "OmniKit：gitleaks 發現疑似金鑰，已擋下 commit" >&2
+# 金鑰之外也擋個人與私有字串（tailnet 主機名、個人 profile、評測 patch，加上 ~/.omnikit/private-denylist.txt 的私有清單）：
+# 規則見 .github/gitleaks-tree.toml 與 engine/scripts/privacy_rules.py。產生設定失敗就退回 gitleaks 預設規則，不放行金鑰
+uv=$(command -v uv || echo "$LOCALAPPDATA/Programs/uv/uv.exe")
+cfg=$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/omnikit-privacy-$$.toml")
+if "$uv" run --quiet engine/scripts/privacy_rules.py config --out "$cfg" 2>/dev/null; then
+  set -- --config "$cfg"
+else
+  echo "OmniKit：產生個人與私有字串規則失敗，這次只檢查金鑰" >&2
+  set --
+fi
+"$gitleaks" git --pre-commit --staged --redact --verbose --no-banner --log-level warn "$@" . || {
+  rm -f "$cfg"
+  echo "OmniKit：gitleaks 發現疑似金鑰或個人、私有字串，已擋下 commit（看上面的 RuleID；omnikit-* 是個人與私有字串）" >&2
   exit 1
 }
+rm -f "$cfg"
 
 # 2. 名冊、schema 或產生器有變動才處理：驗證名冊，不通過就擋下 commit；
 #    通過後重新產生 marketplace 清單，一起放進這次 commit

@@ -330,13 +330,13 @@ def selftest() -> int:
             st_set, _ = _http_json(
                 f"{base}/api/settings",
                 method="PATCH",
-                payload={"t3_base_url": "https://omnikeep.tailb1f9ce.ts.net:2388"},
+                payload={"t3_base_url": "https://t3.example.ts.net:2388"},
             )
             st_o2, body_o2 = _http_json(f"{base}/api/overview")
             alpha2 = next(p for p in body_o2["projects"] if p["id"] == "Alpha")
             check(
                 "設定 T3 Tailscale URL 後正確改寫深連結",
-                st_set == 200 and st_o2 == 200 and alpha2["primary_t3_url"] == "https://omnikeep.tailb1f9ce.ts.net:2388/threads/env1/th-1",
+                st_set == 200 and st_o2 == 200 and alpha2["primary_t3_url"] == "https://t3.example.ts.net:2388/threads/env1/th-1",
             )
 
             # 路徑穿越防禦

@@ -298,7 +298,12 @@ def check_patches(data: Path) -> list[str]:
         rel_f = item.get("file")
         if isinstance(rel_f, str) and rel_f.strip():
             target_f = (data / rel_f.removeprefix("data/")) if rel_f.startswith("data/") else (repo_base / rel_f)
-            if not target_f.is_file():
+            # 個人 profile 不進公開 repo（2026-11-27）：指向個人層、而這份 checkout 沒有那個 profile 時（CI、同事的 clone）
+            # 跳過；這台有那個 profile 就照樣檢查
+            parts = rel_f.split("/")
+            personal = len(parts) >= 4 and parts[:2] == ["data", "profiles"] and parts[2] != "default"
+            absent_personal = personal and not (data / "profiles" / parts[2]).is_dir()
+            if not absent_personal and not target_f.is_file():
                 errors.append(f"{show(path)}: patches/{pid or i}: 指向不存在的檔案「{rel_f}」")
         hk = item.get("has_hook")
         if hk is not None and (not isinstance(hk, str) or not (repo_base / hk).is_file()):

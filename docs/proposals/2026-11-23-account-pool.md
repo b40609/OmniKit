@@ -19,7 +19,7 @@
 
 | # | 問題 | 現況 | 狀態 |
 |---|---|---|---|
-| 1 | 第 5 個帳號 | 實例 `antigravity_itri`，6 個模型都能用 | 完成 |
+| 1 | 第 5 個帳號 | 實例 `antigravity_m5`，6 個模型都能用 | 完成 |
 | 2 | 額度用完怎麼辦 | 帳號池五層機制（第三節）＋接手順序（第四節），D1 到 D3 已定 | 第一、二階段實作 |
 | 3 | Neon Extra、Plan B 何時做 | Neon Extra 就是 xhigh，伺服器端生效；Ryan 暫定 `max_available`（已寫進 profile），其他使用者可選四種模式（第八節）；Plan B 今天解凍 | 實作中 |
 | 4 | 舊資料夾 | 11 個、約 1.9 GB 已刪，剩 6 個現役實例 | 完成 |
@@ -29,8 +29,8 @@
 
 ## 二、2026-11-23 實測
 
-- 6 個 Antigravity 帳號（`ryan`、`kanny163`、`km0529`、`stk608`、`stk824`、`itri`）× 6 個模型（Neon、Argon、Hydrogen、Orchestrator (Neon)、Orchestrator (Argon)、3.8 Flash）：36/36 能用，每條都讀到規則版本 2026-11-21-1。回覆 4 到 43 秒。11-22 的 403 本人驗證沒再出現。
-- itri 改用「一條對話輪流換模型」（`t3_thread_configure` 換模型再送訊息）：一條對話測完 6 個模型；ACP log 確認伺服器端真的切到 `Gemini 4 Neon (XHigh)`、`Gemini 4 Hydrogen (XHigh)`。
+- 6 個 Antigravity 帳號（`ryan`、`m1`、`m2`、`m3`、`m4`、`m5`）× 6 個模型（Neon、Argon、Hydrogen、Orchestrator (Neon)、Orchestrator (Argon)、3.8 Flash）：36/36 能用，每條都讀到規則版本 2026-11-21-1。回覆 4 到 43 秒。11-22 的 403 本人驗證沒再出現。
+- m5 改用「一條對話輪流換模型」（`t3_thread_configure` 換模型再送訊息）：一條對話測完 6 個模型；ACP log 確認伺服器端真的切到 `Gemini 4 Neon (XHigh)`、`Gemini 4 Hydrogen (XHigh)`。
 - Orchestrator (Neon)、(Argon) 伺服器端只有一個型號，選 xhigh 型號不變：T3 列出的思考程度對 Orchestrator 可能沒作用（待驗證）。
 - 6 個帳號的 `mcp_config.json` 都是空的：Gemini 帳號沒接任何 MCP server。
 
@@ -65,9 +65,9 @@
   1. `antigravity_ryan` 的 `Gemini Models` 桶（Neon、Hydrogen、Carbon、Orchestrator (Neon)）。
   2. 同一個帳號的「Claude & GPT」桶：Claude Opus 5.5（最高 high）。同桶的 Sonnet 5.5 因 Antigravity 沒有角色使用且被同桶 Opus 壓過，已由模型淘汰過濾規則 2 過濾（同帳號無 Opus 才退到 Sonnet）。仍是 2B 這一個帳號，不算輪換。
   3. Claude 實例（`claudeAgent`、`claudeAgent_2`、`claudeAgent_claude_kai`），在工作包邊界依額度挑（D3）。
-  4. `prompt_manual_switch`：停下來列出全部 6 個手動帳號（`stk608`、`km0529`、`stk824`、`kanny163`、`itri`、`ava`）的狀態與重置時間，建議換哪個，等 Ryan 決定。
+  4. `prompt_manual_switch`：停下來列出全部 6 個手動帳號（`m3`、`m2`、`m4`、`m1`、`m5`、`m6`）的狀態與重置時間，建議換哪個，等 Ryan 決定。
   - 例外：派給 Gemini 的理由是「跨家審查 Claude 寫的東西」時，跳過第 2、3 步（換成 Claude 就失去跨家的意義），直接到第 4 步，或改用同模型新對話審。
-- 你自己開的對話（`prompt_manual_switch`）：顯示「ryan 剩 3%、7 小時後重置；建議下一條改用 km0529（剩 80%）」。換帳號接續靠交接檔，因為每個帳號的 Antigravity 對話記憶是分開的。
+- 你自己開的對話（`prompt_manual_switch`）：顯示「ryan 剩 3%、7 小時後重置；建議下一條改用 m2（剩 80%）」。換帳號接續靠交接檔，因為每個帳號的 Antigravity 對話記憶是分開的。
 - 額度資料來源：
   - Claude：Claude Code 狀態列本來就有 5 小時與 7 天用量；`claude_allow.py` 已自動串接到全部三個設定目錄（`~/.claude`、`~/.claude-kai`、`~/.claude-retis`，各自帶 `--dir` 並用 `--then` 保留既有狀態列）。
   - Antigravity：2026-11-23 實測 `agy 1.5.14` 執行 `agy -p /usage --output-format json`（帶 `AGY_CLI_DISABLE_AUTO_UPDATE=true`）可直接回傳本機 `agy` 帳號三個桶的 `remaining_fraction` 與 `reset_time`（0 token 消耗、不讀 token），但 `agy -p` 沒有 `--gemini-dir` 參數、也不吃 `GEMINI_HOME`，無法查其餘 5 個 T3 實例；其餘實例在 T3 上游討論 #15137 開放前，顯示 OmniKit 自己記到的 429／重置時間，其餘請對照 T3 的 Usage → Limits。
@@ -82,7 +82,7 @@
 
 ## 六、舊資料夾（Ryan 11-23 回「刪」，已刪）
 
-11 個、約 1.9 GB：ava、kai、內建預設實例 `antigravity`、舊 id `antigravity_1` 到 `5`、3 個 11-20 的暫時實例。刪前確認不是現役實例、沒有程序在用；`skills` 連結先拆再刪，共用 `~/.gemini/config/skills` 完好。剩 6 個現役實例。
+11 個、約 1.9 GB：m6、kai、內建預設實例 `antigravity`、舊 id `antigravity_1` 到 `5`、3 個 11-20 的暫時實例。刪前確認不是現役實例、沒有程序在用；`skills` 連結先拆再刪，共用 `~/.gemini/config/skills` 完好。剩 6 個現役實例。
 
 ## 七、多模型分工
 

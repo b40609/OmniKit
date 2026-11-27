@@ -358,10 +358,12 @@ def selftest():
         tmp = Path(tmp)
         data, state = tmp / "data", tmp / "state"
         shutil.copytree(DATA / "modules", data / "modules")
-        for rel in ("omnikit.yaml", "rules/baseline.md", "profiles/default/AGENTS.md",
-                    "profiles/ryan/AGENTS.md"):
+        for rel in ("omnikit.yaml", "rules/baseline.md", "profiles/default/AGENTS.md"):
             (data / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(DATA / rel, data / rel)
+        # 維護者手寫、commit 在 repo 裡的 profile：用假的內容（個人 profile 不進公開 repo，CI 沒有真的那份）
+        (data / "profiles" / "ryan").mkdir(parents=True, exist_ok=True)
+        (data / "profiles" / "ryan" / "AGENTS.md").write_text("# 個人規則：ryan（測試用）\n", encoding="utf-8")
         (data / "tools").mkdir()
         # 槽位的答案會指到工具卡（例如瀏覽器在 Codex 建議裝的那張）：一起複製，不然名冊驗證不會過
         for slot in validate.template_slots(DATA):

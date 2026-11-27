@@ -15,7 +15,8 @@ import dispatch
 T0 = datetime(2026, 11, 26, 15, 0, tzinfo=UTC)
 FABLE = "claude-fable-5-2"
 POL = dispatch.policy(ROOT / "data")
-RYAN = dispatch.personal(ROOT / "data" / "profiles" / "ryan")
+# 假的樣本個人層（實例名、帳號名都是假的）；個人 profile 不進公開 repo（2026-11-27）
+SAMPLE = dispatch.personal(dispatch.SAMPLE_PROFILE)
 
 # 測試用的假實例名（共用層邏輯不依賴真實帳號名）
 MINE = {"instances": {
@@ -62,15 +63,15 @@ def claude_q(tmp_path, ids, home):
 
 # ---------- 第 1 項：profile 修正 ----------
 
-def test_ryan_profile_fable_only_on_native_and_claudeagent():
-    t = dispatch.resolved(POL, RYAN, "claude")
+def test_sample_profile_fable_only_on_native_and_claudeagent():
+    t = dispatch.resolved(POL, SAMPLE, "claude")
     assert pick(t, "high", "claude-fable")["instances"] == ["native", "claudeAgent"]
     assert pick(t, "architecture", "claude-fable")["instances"] == ["native", "claudeAgent"]
     assert pick(t, "high", "claude-fable", "second_opinion")["instances"] == ["native", "claudeAgent"]
     for lv in t.values():
         for o in lv["options"]:
             if o["class"] == "claude-fable":
-                assert "claudeAgent_2" not in o["instances"] and "claudeAgent_claude_kai" not in o["instances"]
+                assert "claudeAgent_2" not in o["instances"] and "claudeAgent_claude_b" not in o["instances"]
 
 
 # ---------- 第 2 項：未實測標示與 model_forbidden 退下一個 ----------
@@ -149,7 +150,7 @@ def test_t3_cache_only_85_percent_is_over_threshold(tmp_path, auto_ok):
 
 def test_within_hours_matches_weekly_first():
     assert POL["second_opinion_burn"]["within_hours"] * 3600 == ap.EXPIRING_SOON_SEC
-    assert dispatch.check(POL, RYAN) == []
+    assert dispatch.check(POL, SAMPLE) == []
 
 
 def test_shared_layer_burn_rule_has_no_personal_instance_names():
@@ -252,12 +253,12 @@ def _sel_rows(ends):
     return rs
 
 
-def test_ryan_profile_declares_kai_access_ends_before_nov_28():
+def test_sample_profile_access_ends_is_parsed_per_instance():
     import accounts
-    spec = RYAN["instances"]["claudeAgent_claude_kai"]
+    spec = SAMPLE["instances"]["claudeAgent_claude_b"]
     end = accounts.access_end(spec)
     assert end == datetime(2026, 11, 27, 16, 0, tzinfo=UTC)  # 台北 11-28 00:00
-    assert accounts.access_end(RYAN["instances"]["claudeAgent"]) is None
+    assert accounts.access_end(SAMPLE["instances"]["claudeAgent"]) is None
 
 
 def test_access_end_parsing():

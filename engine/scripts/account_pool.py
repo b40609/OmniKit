@@ -1881,26 +1881,26 @@ def selftest():
         import dispatch
         import profiles
         home = st / "home"
-        for d in (".claude", ".claude-retis", ".claude-kai"):
+        for d in (".claude", ".claude-alt", ".claude-b"):
             (home / d).mkdir(parents=True)
         t3_raw = {
             "claudeAgent": {"driver": "claudeAgent"},
-            "claudeAgent_2": {"driver": "claudeAgent", "config": {"homePath": "~/.claude-retis"}},
-            "claudeAgent_claude_kai": {"driver": "claudeAgent", "config": {"homePath": "~/.claude-kai"}},
+            "claudeAgent_2": {"driver": "claudeAgent", "config": {"homePath": "~/.claude-alt"}},
+            "claudeAgent_claude_b": {"driver": "claudeAgent", "config": {"homePath": "~/.claude-b"}},
         }
         pol = dispatch.policy(profiles.DATA)
-        mine = dispatch.personal(profiles.DATA / "profiles" / "ryan")
+        mine = dispatch.personal(dispatch.SAMPLE_PROFILE)
         t3_meta = {
-            "claudeAgent": {"driver": "claudeAgent", "label": "Ryan", "enabled": True, "auth_mode": None},
-            "claudeAgent_2": {"driver": "claudeAgent", "label": "retis", "enabled": True, "auth_mode": None},
-            "claudeAgent_claude_kai": {"driver": "claudeAgent", "label": "Kai", "enabled": True, "auth_mode": None},
-            "antigravity_ryan": {"driver": "antigravity", "label": "ryan", "enabled": True, "auth_mode": None},
-            "antigravity_km0529": {"driver": "antigravity", "label": "km0529", "enabled": True, "auth_mode": None},
-            "antigravity_stk608": {"driver": "antigravity", "label": "stk608", "enabled": True, "auth_mode": None},
-            "antigravity_stk824": {"driver": "antigravity", "label": "stk824", "enabled": True, "auth_mode": None},
-            "antigravity_kanny163": {"driver": "antigravity", "label": "kanny163", "enabled": True, "auth_mode": None},
-            "antigravity_itri": {"driver": "antigravity", "label": "itri", "enabled": True, "auth_mode": None},
-            "antigravity_ava": {"driver": "antigravity", "label": "ava", "enabled": True, "auth_mode": None},
+            "claudeAgent": {"driver": "claudeAgent", "label": "Owner", "enabled": True, "auth_mode": None},
+            "claudeAgent_2": {"driver": "claudeAgent", "label": "Alt", "enabled": True, "auth_mode": None},
+            "claudeAgent_claude_b": {"driver": "claudeAgent", "label": "Burn", "enabled": True, "auth_mode": None},
+            "antigravity_main": {"driver": "antigravity", "label": "main", "enabled": True, "auth_mode": None},
+            "antigravity_m2": {"driver": "antigravity", "label": "m2", "enabled": True, "auth_mode": None},
+            "antigravity_m3": {"driver": "antigravity", "label": "m3", "enabled": True, "auth_mode": None},
+            "antigravity_m4": {"driver": "antigravity", "label": "m4", "enabled": True, "auth_mode": None},
+            "antigravity_m1": {"driver": "antigravity", "label": "m1", "enabled": True, "auth_mode": None},
+            "antigravity_m5": {"driver": "antigravity", "label": "m5", "enabled": True, "auth_mode": None},
+            "antigravity_m6": {"driver": "antigravity", "label": "m6", "enabled": True, "auth_mode": None},
         }
         rows = accounts.registry(t3_meta, mine, accounts.load_terms(profiles.DATA))
         c_state = st / "cstate"
@@ -1912,12 +1912,12 @@ def selftest():
                 "five_hour": {"used_percentage": 20, "resets_at": int((t0 + timedelta(hours=2)).timestamp())},
                 "seven_day": {"used_percentage": 40, "resets_at": int((t0 + timedelta(days=3)).timestamp())},
             },
-            str((home / ".claude-retis").resolve()): {
+            str((home / ".claude-alt").resolve()): {
                 "recorded_at": int(t0.timestamp()) - 100,
                 "five_hour": {"used_percentage": 10, "resets_at": int((t0 + timedelta(hours=2)).timestamp())},
                 "seven_day": {"used_percentage": 50, "resets_at": int((t0 + timedelta(days=1)).timestamp())},
             },
-            str((home / ".claude-kai").resolve()): {
+            str((home / ".claude-b").resolve()): {
                 "recorded_at": int(t0.timestamp()) - 100,
                 "five_hour": {"used_percentage": 100, "resets_at": int((t0 + timedelta(hours=1)).timestamp())},
                 "seven_day": {"used_percentage": 10, "resets_at": int((t0 + timedelta(hours=5)).timestamp())},
@@ -1925,9 +1925,9 @@ def selftest():
         }), encoding="utf-8")
         qs = claude_quotas(c_state, rows, mine, 80, home=home, t3_raw=t3_raw, now=t0)
         sel1 = select_claude_instance(rows, mine, qs, load_state(c_state), strategy="weekly-first", now=t0, persist_state=c_state)
-        ok("Claude 多目錄快照與 weekly-first：排除 5h 見底的 Kai、挑最快週重置的 retis",
+        ok("Claude 多目錄快照與 weekly-first：排除 5h 見底的 Burn、挑最快週重置的 Alt",
            len(qs) == 3 and all(q["status"] == "ok" for q in qs) and sel1["chosen"] == "claudeAgent_2")
-        # 5 分鐘內防震盪：即使切換策略為 least-used（Ryan 剩 60% 領先 retis 剩 50%），5 分鐘內不跳
+        # 5 分鐘內防震盪：即使切換策略為 least-used（Owner 剩 60% 領先 Alt 剩 50%），5 分鐘內不跳
         sel_cd = select_claude_instance(rows, mine, qs, load_state(c_state), strategy="least-used",
                                         now=t0 + timedelta(minutes=2))
         sel_after = select_claude_instance(rows, mine, qs, load_state(c_state), strategy="least-used",
@@ -1945,30 +1945,30 @@ def selftest():
                     {"id": "seven_day", "usedPercent": used, "resetsAt": iso_utc(reset_dt)}]}}), encoding="utf-8")
         t3c("claudeAgent", 10, t0 + timedelta(days=5))
         t3c("claudeAgent_2", 20, t0 + timedelta(days=5, hours=2))
-        t3c("claudeAgent_claude_kai", 70, t0 + timedelta(hours=24))
+        t3c("claudeAgent_claude_b", 70, t0 + timedelta(hours=24))
         e_state = st / "estate"
         qs_t3 = claude_quotas(e_state, rows, mine, 80, home=home, t3_raw=t3_raw, now=t0)
-        snap_kai = t3_usage_snapshot("claudeAgent_claude_kai", home)
+        snap_b = t3_usage_snapshot("claudeAgent_claude_b", home)
         ok("T3 快取補位：沒有狀態列快照時讀 ~/.t3/caches 的 usageLimits，來源標 t3_cache，絕不帶出 auth 欄位",
            all(q["status"] == "ok" and q["source"] == "t3_cache" for q in qs_t3)
-           and "auth" not in snap_kai and "example.test" not in json.dumps(qs_t3)
+           and "auth" not in snap_b and "example.test" not in json.dumps(qs_t3)
            and t3_usage_snapshot("../evil", home) is None)
         sel_exp = select_claude_instance(rows, mine, qs_t3, load_state(e_state), strategy="weekly-first", now=t0)
-        ok("快重置優先：Kai 距重置 24 小時（剩 30%）vs 其他剩 5 天（剩 80% 以上）時必選 Kai",
-           sel_exp["chosen"] == "claudeAgent_claude_kai" and "48 小時" in sel_exp["reason"])
-        # 黏著在 Ryan、剛切 1 分鐘（冷卻中）也要切到快過期的 Kai
+        ok("快重置優先：Burn 距重置 24 小時（剩 30%）vs 其他剩 5 天（剩 80% 以上）時必選 Burn",
+           sel_exp["chosen"] == "claudeAgent_claude_b" and "48 小時" in sel_exp["reason"])
+        # 黏著在 Owner、剛切 1 分鐘（冷卻中）也要切到快過期的 Burn
         doc_e = load_state(e_state)
         doc_e["sticky"]["claudeAgent"] = {"instance": "claudeAgent", "switched_at": iso_utc(t0 - timedelta(minutes=1))}
         save_state(e_state, doc_e, t0)
         sel_exp2 = select_claude_instance(rows, mine, qs_t3, load_state(e_state), strategy="weekly-first", now=t0)
-        ok("快重置優先壓過 5 分鐘防震盪與遲滯", sel_exp2["chosen"] == "claudeAgent_claude_kai")
-        # Kai 已見底（週 100%）就不燒，回到一般 weekly-first
-        t3c("claudeAgent_claude_kai", 100, t0 + timedelta(hours=24))
+        ok("快重置優先壓過 5 分鐘防震盪與遲滯", sel_exp2["chosen"] == "claudeAgent_claude_b")
+        # Burn 已見底（週 100%）就不燒，回到一般 weekly-first
+        t3c("claudeAgent_claude_b", 100, t0 + timedelta(hours=24))
         qs_dep = claude_quotas(e_state, rows, mine, 80, home=home, t3_raw=t3_raw, now=t0)
         sel_dep = select_claude_instance(rows, mine, qs_dep, _empty_state(), strategy="weekly-first", now=t0)
-        ok("快重置優先只對未耗盡的帳號：Kai 週 100% 時改挑其他", sel_dep["chosen"] == "claudeAgent")
+        ok("快重置優先只對未耗盡的帳號：Burn 週 100% 時改挑其他", sel_dep["chosen"] == "claudeAgent")
         # 超過 48 小時不算快過期
-        t3c("claudeAgent_claude_kai", 70, t0 + timedelta(hours=49))
+        t3c("claudeAgent_claude_b", 70, t0 + timedelta(hours=49))
         qs_49 = claude_quotas(e_state, rows, mine, 80, home=home, t3_raw=t3_raw, now=t0)
         ok("距重置 49 小時不算快過期", not any(c["expiring_soon"] for c in
            select_claude_instance(rows, mine, qs_49, _empty_state(), strategy="weekly-first", now=t0)["candidates"]))
@@ -1995,14 +1995,14 @@ def selftest():
            and _pick_snapshot([None, man], t0.timestamp()) is man)
 
         # 接手順序（兩桶 4 步）：Gemini 冷卻後直接接手到同帳號 Opus（3p 桶）；跨家審查跳過第 2、3 步；手動清單完整列出全部 6 個手動帳號不截斷
-        record_error(c_state, "antigravity_ryan", "quota_exhausted", driver="antigravity", model="gemini-4-neon",
+        record_error(c_state, "antigravity_main", "quota_exhausted", driver="antigravity", model="gemini-4-neon",
                      resets_at=iso_utc(t0 + timedelta(hours=2)), now=t0)
         p_gen = failover_plan(pol, mine, rows, load_state(c_state), qs, purpose="general", now=t0, home=home)
         p_rev = failover_plan(pol, mine, rows, load_state(c_state), qs, purpose="cross_review_claude", now=t0, home=home)
         p_rev_g = failover_plan(pol, mine, rows, {}, qs, purpose="cross_review_gemini", now=t0, home=home)
 
         # Antigravity 多帳號額度讀 T3 快取：agy CLI 只看得到一個帳號，T3 每個帳號都有
-        (home / ".t3" / "caches" / "antigravity_km0529.json").write_text(json.dumps({
+        (home / ".t3" / "caches" / "antigravity_m2.json").write_text(json.dumps({
             "auth": {"email": "should-never-be-read@example.test"},
             "usageLimits": {"checkedAt": iso_utc(t0 - timedelta(minutes=10)), "windows": [
                 {"id": "gemini-5h", "usedPercent": 30, "resetsAt": iso_utc(t0 + timedelta(hours=2))},
@@ -2011,7 +2011,7 @@ def selftest():
                 {"id": "3p-weekly", "usedPercent": 25, "resetsAt": iso_utc(t0 - timedelta(hours=1))},
                 {"id": "claude-quota", "kind": "other", "usedPercent": 50}]}}), encoding="utf-8")
         v_t3 = quota_view_data(c_state, pol, mine, rows, home=home, now=t0)
-        km = next(a for a in v_t3["antigravity"] if a["instance"] == "antigravity_km0529")
+        km = next(a for a in v_t3["antigravity"] if a["instance"] == "antigravity_m2")
         g_km, p_km = km["buckets"].get("gemini") or {}, km["buckets"].get("3p") or {}
         ok("Antigravity 多帳號讀 T3 快取：每個帳號各自有數字、週見底算 exhausted、過了重置時間標已重置、不帶出 auth",
            km["quota_source"] == "t3_cache" and g_km.get("five_hour_remaining_pct") == 70.0
@@ -2020,11 +2020,11 @@ def selftest():
            and "example.test" not in json.dumps(v_t3, ensure_ascii=False)
            and t3_agy_quota("../evil", home) is None)
         # agy /usage 比 T3 快取新時用 agy 的
-        newer = {"accounts": {"antigravity_km0529": {"quota": {"source": "agy_usage", "fetched_at": iso_utc(t0), "stale": False,
+        newer = {"accounts": {"antigravity_m2": {"quota": {"source": "agy_usage", "fetched_at": iso_utc(t0), "stale": False,
                  "buckets": {"gemini": {"weekly_remaining_pct": 55.0}}}}}}
         ok("兩個來源取查詢時間較新的那份",
-           effective_agy_quota(newer["accounts"]["antigravity_km0529"], "antigravity_km0529", home)["source"] == "agy_usage"
-           and effective_agy_quota({}, "antigravity_km0529", home)["source"] == "t3_cache")
+           effective_agy_quota(newer["accounts"]["antigravity_m2"], "antigravity_m2", home)["source"] == "agy_usage"
+           and effective_agy_quota({}, "antigravity_m2", home)["source"] == "t3_cache")
         ok("接手順序：兩桶 4 步，Gemini 冷卻後跳到同帳號 Opus；雙向跨家審查各自跳過同供應商；提示完整列出全部 6 個手動帳號",
            len(p_gen["steps"]) == 4 and p_gen["steps"][0]["status"] == "skipped"
            and p_gen["active_step"]["stage"] == "antigravity_3p"
@@ -2033,7 +2033,7 @@ def selftest():
            and "跨家審查" in p_rev["steps"][1]["why"]
            and p_rev_g["steps"][0]["status"] == "skipped" and "跨家審查 Gemini" in p_rev_g["steps"][0]["why"]
            and p_rev_g["steps"][2]["status"] == "available"
-           and all(k in p_gen["steps"][-1]["why"] for k in ("antigravity_kanny163", "antigravity_itri", "antigravity_ava")))
+           and all(k in p_gen["steps"][-1]["why"] for k in ("antigravity_m1", "antigravity_m5", "antigravity_m6")))
 
         # 通知模擬（desktop & webhook 不連網）
         sent_d = send_notification([{"message": "測試"}], "desktop", runner=lambda s: "OmniKit" in s)
