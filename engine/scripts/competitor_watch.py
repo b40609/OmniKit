@@ -17,10 +17,10 @@
 
 安全與反雜訊原則：
 - 對 OmniKeep 資料庫採 SQLite URI `?mode=ro` 與 `PRAGMA query_only = ON`，絕不寫入。
-- 預設只看手動收錄（`origin='manual'`）；加星（`is_starred=1`）或備註含 `#競品`/`#watch`
-  走必查快車道；非工程生活／投資／新聞雜訊自動濾除。
-- 每次檢視包嚴格截斷最多 N 項深挖標的（預設 3 項），並附五選一強制處置與改判條件模板，
-  禁止產出無限膨脹的 pending 清單。
+- 預設只掃手動收錄（`origin='manual'`）並排除 agent 寫回的 `source_type='insight'`，防自我迎合迴圈。
+- 僅備註含明確競品標記（`#競品`、`#watch`、`重造輪子`）走必查快車道（跳過分類過濾）；
+  單純加星（+25）或一般備註（+10）只做加權、仍受雜訊過濾，避免生活／美食／投資文章擠掉工程名額。
+- 每次檢視包依首個 GitHub repo 去重並嚴格截斷最多 N 項深挖標的（預設 3 項），附五選一強制處置與改判條件模板。
 """
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -45,8 +45,10 @@ DEFAULT_OMNIKEEP_DB_CANDIDATES = (
 )
 DEFAULT_STATUS_DIR = Path.home() / ".omnikit" / "status"
 
+# 左邊界排除子網域（docs.github.com / gist.github.com / api.github.com）；
+# 右邊界以 lookahead 容許中文全形標點、半形逗號、反引號、方括號與句尾。
 GITHUB_REPO_RE = re.compile(
-    r"(?:https?://)?github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?(?:[/?#)\s\"'<>]|$)",
+    r"(?<![\w.-])(?:https?://)?(?:www\.)?github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?(?=[^A-Za-z0-9_.-]|$)",
     re.IGNORECASE,
 )
 BARE_REPO_RE = re.compile(r"^([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)$")
@@ -55,33 +57,38 @@ NON_REPO_OWNERS = frozenset({
     "sponsors", "features", "pricing", "about", "login", "signup", "blog",
     "collections", "events", "issues", "pulls", "notifications", "new",
     "enterprise", "customer-stories", "readme", "security", "solutions",
+    "user-attachments", "apps", "advisories", "users", "codespaces", "copilot",
+    "site", "contact",
 })
 
-FAST_TRACK_MARKERS = ("#競品", "#watch", "競品", "對比", "比較", "重造輪子", "取代")
+# 快車道僅認明確競品標記，避免 Telegram 順手備註（「下次去」「看一下」）繞過雜訊過濾。
+FAST_TRACK_MARKERS = ("#競品", "#watch", "重造輪子")
 NOISE_CATEGORY_KEYWORDS = (
     "投資", "財經", "股票", "股市", "理財", "生活", "美食", "旅遊", "娛樂",
     "影視", "新聞", "時事", "健康", "運動", "穿搭", "房地產", "政治", "八卦",
     "finance", "lifestyle", "travel", "food", "news",
 )
 
-# 內建核心專案領域關鍵詞（補充 NOW.md 標題與摘要，純用來提高專案配對召回率）
+# 內建核心專案領域關鍵詞（避開英文常見泛詞如 brand / line）
 PROJECT_DOMAIN_HINTS: dict[str, tuple[str, ...]] = {
     "omnikit": (
-        "skill", "skills", "mcp", "claude", "codex", "antigravity", "agent",
-        "openspec", "router", "spec", "hook", "harness", "scanner", "security",
-        "eval", "dispatch", "prompt", "subagent", "cli", "plugin", "workflow",
-        "obsidian-skills", "skillspector",
+        "skill", "skills", "mcp", "claude code", "codex", "antigravity",
+        "openspec", "skill router", "harness", "skill-scanner", "mcp-scanner",
+        "dispatch", "subagent", "plugin", "obsidian-skills", "skillspector",
     ),
     "omnikeep": (
         "second brain", "第二大腦", "obsidian", "vault", "mcpvault", "bookmark",
         "rss", "radar", "rag", "fts5", "sqlite-vec", "qmd", "rerank", "reranker",
         "embedding", "llm gateway", "freellmapi", "omniroute", "free llm",
-        "telegram", "line bot", "knowledge", "markdown", "collector", "read-later",
+        "telegram bot", "line bot", "read-later",
     ),
-    "catos": ("catos", "quant", "trading", "backtest", "okx", "strategy", "alpha"),
-    "t3-deskcat": ("deskcat", "desktop pet", "tauri", "webview", "sprite", "pixel"),
-    "lineport": ("line", "webhook", "lineport", "messaging"),
+    "catos": ("catos", "quant", "trading", "backtest", "okx", "alpha"),
+    "t3-deskcat": ("deskcat", "desktop pet", "tauri", "webview", "sprite"),
+    "lineport": ("lineport", "line webhook", "line bot", "line messaging"),
 }
+
+# 英文單字與日常用語高度重疊的專案名，不把裸專案名本身當自動配對詞
+GENERIC_PROJECT_NAMES = frozenset({"brand", "line", "docs", "test", "app", "web", "tools"})
 
 FIVE_DISPOSITIONS = (
     ("adopt_or_integrate", "直接導入或改接現有方案（免重造輪子）"),
@@ -208,10 +215,13 @@ def load_project_profiles(status_dir: Path) -> list[dict[str, Any]]:
         path_line = next((ln for ln in lines[:12] if "專案路徑" in ln), "")
         conclusions = [ln for ln in lines if ln.startswith(("1.", "2.", "3.", "- [ ]"))][:4]
         hints = list(PROJECT_DOMAIN_HINTS.get(child.name.lower(), ()))
-        # 從專案名與標題補齊額外關鍵詞
-        keywords = {child.name.lower(), *(h.lower() for h in hints)}
-        for token in re.findall(r"[A-Za-z][A-Za-z0-9_-]{2,}", heading):
-            keywords.add(token.lower())
+        keywords = {h.lower() for h in hints}
+        if child.name.lower() not in GENERIC_PROJECT_NAMES:
+            keywords.add(child.name.lower())
+        for token in re.findall(r"[A-Za-z][A-Za-z0-9_-]{3,}", heading):
+            low_tok = token.lower()
+            if low_tok not in GENERIC_PROJECT_NAMES:
+                keywords.add(low_tok)
         profiles.append({
             "name": child.name,
             "heading": heading,
@@ -252,9 +262,8 @@ def _open_readonly_db(db_path: Path) -> sqlite3.Connection:
 
 
 def fetch_recent_items(db_path: Path, days: int, include_radar: bool = False) -> list[dict[str, Any]]:
-    """唯讀查詢 OmniKeep 近 N 天收錄與關聯 citations。"""
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=max(1, days))).strftime("%Y-%m-%d %H:%M:%S")
-    cutoff_iso = (datetime.now(timezone.utc) - timedelta(days=max(1, days))).strftime("%Y-%m-%dT%H:%M:%S")
+    """唯讀查詢 OmniKeep 近 N 天手動收錄（排除 radar 與 agent 寫回的 insight）。"""
+    day_window = f"-{max(1, int(days))} days"
     conn = _open_readonly_db(db_path)
     try:
         cols = {row["name"] for row in conn.execute("PRAGMA table_info(items)").fetchall()}
@@ -267,15 +276,18 @@ def fetch_recent_items(db_path: Path, days: int, include_radar: bool = False) ->
         if "id" not in select_cols or "created_at" not in select_cols:
             raise ValueError("omnikeep.db 的 items 資料表缺少必要欄位（id / created_at）")
 
-        where = ["(created_at >= ? OR created_at >= ?)"]
-        params: list[Any] = [cutoff, cutoff_iso]
+        # 使用 julianday 同時精準處理 'YYYY-MM-DD HH:MM:SS' 與 ISO 'YYYY-MM-DDTHH:MM:SS+00:00'
+        where = ["julianday(created_at) >= julianday('now', ?)"]
+        params: list[Any] = [day_window]
         if not include_radar and "origin" in cols:
             where.append("(origin = 'manual' OR origin IS NULL OR origin = '')")
+        # 排除 agent 透過 writeback_insight 寫回的報告，避免自我迎合迴圈
+        if "source_type" in cols:
+            where.append("(source_type IS NULL OR source_type != 'insight')")
 
-        sql = f"SELECT {', '.join(select_cols)} FROM items WHERE {' AND '.join(where)} ORDER BY created_at DESC LIMIT 300"
+        sql = f"SELECT {', '.join(select_cols)} FROM items WHERE {' AND '.join(where)} ORDER BY julianday(created_at) DESC LIMIT 300"
         rows = [dict(r) for r in conn.execute(sql, params).fetchall()]
 
-        # 載入 item_citations（若資料表存在）
         tables = {r["name"] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
         citations_by_parent: dict[str, list[dict[str, str]]] = {}
         if "item_citations" in tables and rows:
@@ -312,8 +324,8 @@ def fetch_recent_items(db_path: Path, days: int, include_radar: bool = False) ->
 
 
 def _is_fast_track(item: dict[str, Any]) -> tuple[bool, list[str]]:
-    """明確帶 #競品/#watch 或手動備註的項目走必查快車道（不受分類濾除）。
-    單純加星（is_starred=1）另於評分加權，避免順手加星的生活／投資文章擠掉工程競品名額。
+    """僅備註含明確競品標記（#競品 / #watch / 重造輪子）才進必查快車道。
+    一般備註與單純加星只於評分加權，不跳過分類雜訊過濾。
     """
     reasons: list[str] = []
     note = (item.get("user_note") or "").strip()
@@ -323,8 +335,6 @@ def _is_fast_track(item: dict[str, Any]) -> tuple[bool, list[str]]:
             if mk.lower() in low_note:
                 reasons.append(f"備註含 {mk}")
                 break
-        else:
-            reasons.append("含使用者備註")
     return bool(reasons), reasons
 
 
@@ -352,6 +362,7 @@ def verify_github_repo(repo: str, runner=None) -> dict[str, Any]:
                 text=True,
                 encoding="utf-8",
                 errors="replace",
+                stdin=subprocess.DEVNULL,
                 timeout=20,
             )
         except FileNotFoundError:
@@ -359,7 +370,8 @@ def verify_github_repo(repo: str, runner=None) -> dict[str, Any]:
         except Exception as exc:
             return None, str(exc)
         if proc.returncode != 0:
-            err = (proc.stderr or proc.stdout or f"exit {proc.returncode}").strip().splitlines()[0]
+            lines = (proc.stderr or proc.stdout or "").strip().splitlines()
+            err = lines[0] if lines else f"exit {proc.returncode}"
             return None, err
         try:
             return json.loads(proc.stdout), ""
@@ -445,6 +457,9 @@ def build_scan_packet(
         if fast_track:
             score += 60
             score_reasons.append(f"快車道(+60: {', '.join(ft_reasons)})")
+        elif (item.get("user_note") or "").strip():
+            score += 10
+            score_reasons.append("含一般備註(+10)")
         if item.get("is_starred"):
             score += 25
             score_reasons.append("已加星(+25)")
@@ -453,7 +468,7 @@ def build_scan_packet(
             score_reasons.append(f"含 GitHub repo(+20: {len(repos)} 個)")
         if proj_hits:
             total_kw = sum(len(kws) for _, kws in proj_hits)
-            pts = min(32, total_kw * 8)
+            pts = 4 if total_kw == 1 else min(32, total_kw * 8)
             score += pts
             score_reasons.append(
                 f"命中活躍專案(+{pts}: {', '.join(p for p, _ in proj_hits[:3])})"
@@ -468,7 +483,7 @@ def build_scan_packet(
                 "id": item.get("id"),
                 "title": item.get("title_l1") or "(無標題)",
                 "category": item.get("category_name") or "",
-                "reason": "未命中活躍專案關鍵詞且無 GitHub repo（無備註／非快車道）",
+                "reason": "未命中活躍專案關鍵詞且無 GitHub repo（非快車道）",
             })
             continue
 
@@ -493,9 +508,19 @@ def build_scan_packet(
     # 嚴格依分數由高到低，同分時快車道優先、再按時間新到舊
     candidates.sort(key=lambda c: (c["score"], int(c["fast_track"]), c["created_at"]), reverse=True)
 
+    # 挑選深挖名單時以首個正規化 GitHub repo 去重，避免同一個 repo 的貼文與專案卡佔走兩個名額
     deep_limit = max(1, min(max_deep, 5))
-    deep_candidates = candidates[:deep_limit]
-    overflow = candidates[deep_limit:]
+    deep_candidates: list[dict[str, Any]] = []
+    overflow: list[dict[str, Any]] = []
+    seen_primary_repos: set[str] = set()
+    for cand in candidates:
+        primary_repo = cand["repos"][0].lower() if cand["repos"] else ""
+        if len(deep_candidates) < deep_limit and (not primary_repo or primary_repo not in seen_primary_repos):
+            deep_candidates.append(cand)
+            if primary_repo:
+                seen_primary_repos.add(primary_repo)
+        else:
+            overflow.append(cand)
 
     gh_facts: dict[str, dict[str, Any]] = {}
     if verify_gh:
@@ -556,7 +581,10 @@ def build_target_packet(
     roster_hit = roster["by_repo"].get(repo.lower()) if repo else None
     if not roster_hit:
         slug = (repo.split("/")[-1] if repo else raw_target).lower()
-        roster_hit = roster["by_id"].get(slug)
+        cand_hit = roster["by_id"].get(slug)
+        # 只有名冊條目本身未填 url 時才用 slug 兜底比對，避免不同 owner 同名誤判
+        if cand_hit and not cand_hit.get("url"):
+            roster_hit = cand_hit
 
     blob_parts = [raw_target, repo or "", note]
     if isinstance(gh_info, dict) and gh_info.get("ok"):
@@ -694,7 +722,7 @@ def render_markdown(packet: dict[str, Any]) -> str:
 
 
 def run_selftest() -> int:
-    """完全離線的自我驗證，確保過濾、快車道、repo 萃取、名冊查重與 target 模式皆正確。"""
+    """完全離線的自我驗證，確保過濾、快車道、repo 萃取、insight 排除、去重與 target 模式皆正確。"""
     with tempfile.TemporaryDirectory(prefix="omnikit-scope-c-selftest-") as td:
         tmp = Path(td)
         db_path = tmp / "omnikeep.db"
@@ -711,22 +739,22 @@ def run_selftest() -> int:
                 target_name TEXT, target_canonical_url TEXT, mention_context TEXT
             );
         """)
-        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
         rows = [
             ("i1", "https://threads.net/post/1", "web", "AI工具", "OpenSpec Skill Router",
-             "自然語言自動路由 Skills", '["Claude","Skills"]', 1, 0, "manual", "#競品 對比 OmniKit", "none", now_str, ""),
+             "自然語言自動路由 Skills", '["Claude","Skills"]', 1, 0, "manual", "#競品 OmniKit", "none", now_iso, ""),
             ("i2", "https://github.com/bitbonsai/mcpvault", "web", "知識管理", "MCPVault Obsidian",
-             "Obsidian Vault MCP 讀寫工具", '["Obsidian","MCP"]', 0, 0, "manual", "", "none", now_str, ""),
-            ("i3", "https://example.com/stock", "web", "投資理財", "台股除權息清單",
-             "存股新聞整理", '["投資"]', 0, 0, "manual", "", "none", now_str, ""),
+             "Obsidian Vault MCP 讀寫工具", '["Obsidian","MCP"]', 0, 0, "manual", "", "none", now_iso, ""),
+            ("i3", "https://example.com/food", "web", "美食", "台北拉麵清單",
+             "週末吃拉麵推薦", '["生活"]', 0, 0, "manual", "下次去", "none", now_iso, ""),
             ("i4", "https://github.com/acme/radar-item", "web", "AI工具", "雷達自動抓的",
-             "不該被手動模式撈出", '["Agent"]', 0, 0, "radar", "", "none", now_str, ""),
+             "不該被手動模式撈出", '["Agent"]', 0, 0, "radar", "", "none", now_iso, ""),
             ("i5", "https://github.com/acme/old-rejected", "web", "AI工具", "曾被拒絕的代理",
-             "以前拒絕過的 mcp skill 套件", '["MCP"]', 0, 0, "manual", "", "none", now_str, ""),
+             "以前拒絕過的 mcp skill 套件", '["MCP"]', 0, 0, "manual", "", "none", now_iso, ""),
             ("i6", "https://github.com/tobi/qmd", "web", "搜尋", "QMD Hybrid Reranker",
-             "Markdown 本地語意檢索與 Reranker", '["RAG","QMD"]', 1, 0, "manual", "", "none", now_str, ""),
-            ("i7", "https://github.com/TashAhmed/FreeLLMAPI", "web", "AI基礎設施", "FreeLLMAPI Gateway",
-             "免費 LLM API 閘道自動輪換", '["LLM","Gateway"]', 0, 0, "manual", "", "none", now_str, ""),
+             "Markdown 本地語意檢索與 Reranker", '["RAG","QMD"]', 1, 0, "manual", "", "none", now_iso, ""),
+            ("i7", "omnikeep://insight/ins_1", "insight", "Insight", "Agent 自己回寫的結論",
+             "不該再進漏斗形成自我迎合", '["AgentInsight"]', 1, 0, "manual", "", "none", now_iso, ""),
         ]
         conn.executemany("INSERT INTO items VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
         conn.execute(
@@ -750,7 +778,7 @@ def run_selftest() -> int:
         (status_dir / "OmniKeep" / "NOW.md").write_text("# OmniKeep：現在\n- 專案路徑：/tmp/OmniKeep\n", encoding="utf-8")
 
         items = fetch_recent_items(db_path, days=7, include_radar=False)
-        assert len(items) == 6 and all(i["id"] != "i4" for i in items), "radar 項目不應出現在預設手動掃描"
+        assert {i["id"] for i in items} == {"i1", "i2", "i3", "i5", "i6"}, "radar 與 insight 不應出現在預設手動掃描"
 
         roster = load_roster_tools(data_dir)
         projects = load_project_profiles(status_dir)
@@ -758,15 +786,9 @@ def run_selftest() -> int:
         pkt = build_scan_packet(items, roster, projects, days=7, max_deep=3, verify_gh=True, gh_verifier=fake_gh)
 
         assert pkt["counts"]["deep_candidates"] == 3, "應嚴格截斷最多 3 項"
-        assert pkt["counts"]["filtered_out"] == 1 and pkt["filtered_out"][0]["id"] == "i3", "投資雜訊應被濾除"
-        assert pkt["deep_candidates"][0]["id"] in ("i1", "i6"), "快車道加星項目應排最前"
-        i1 = next(c for c in pkt["deep_candidates"] + pkt["overflow_candidates"] if c["id"] == "i1")
-        assert "Fission-AI/OpenSpec" in i1["repos"], "應從 item_citations 萃取 GitHub repo"
-        i5 = next(c for c in pkt["deep_candidates"] + pkt["overflow_candidates"] if c["id"] == "i5")
-        assert i5["roster_matches"] and i5["roster_matches"][0]["status"] == "rejected", "應命中名冊曾拒絕紀錄"
-
-        md = render_markdown(pkt)
-        assert "adopt_or_integrate" in md and "dismiss_with_evidence" in md
+        assert [f["id"] for f in pkt["filtered_out"]] == ["i3"], "美食加一般備註仍應被濾除"
+        assert pkt["deep_candidates"][0]["id"] == "i1", "明確 #競品 快車道應排第一"
+        assert "Fission-AI/OpenSpec" in pkt["deep_candidates"][0]["repos"]
 
         t_pkt = build_target_packet(
             "https://github.com/acme/old-rejected",
@@ -781,7 +803,7 @@ def run_selftest() -> int:
         assert t_pkt["roster_match"]["status"] == "rejected"
         assert "Windows 閃退" in render_markdown(t_pkt)
 
-    print("SELFTEST PASS: competitor_watch.py（降噪漏斗、快車道、名冊查重、Top 3 截斷、target 模式）全部通過。")
+    print("SELFTEST PASS: competitor_watch.py（降噪漏斗、快車道、insight 排除、repo 萃取、Top 3 去重、target 模式）全部通過。")
     return 0
 
 
@@ -830,7 +852,11 @@ def main(argv: list[str] | None = None) -> int:
         if db_path is None:
             print("錯誤：找不到 omnikeep.db，請以 --db 或環境變數 OMNIKEEP_DB 指定路徑。", file=sys.stderr)
             return 1
-        items = fetch_recent_items(db_path, days=args.days, include_radar=args.include_radar)
+        try:
+            items = fetch_recent_items(db_path, days=args.days, include_radar=args.include_radar)
+        except sqlite3.OperationalError as exc:
+            print(f"錯誤：無法唯讀開啟資料庫 {db_path}（{exc}）；若為 WAL 模式且服務已停止，請確認有目錄讀取權限或先啟動服務。", file=sys.stderr)
+            return 1
         packet = build_scan_packet(
             items,
             roster,

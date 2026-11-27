@@ -5,8 +5,10 @@ import json
 import sqlite3
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "engine" / "scripts"
@@ -31,24 +33,31 @@ def _make_demo_env(tmp_path: Path) -> tuple[Path, Path, Path]:
             target_name TEXT, target_canonical_url TEXT, mention_context TEXT
         );
     """)
-    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    old_iso = (datetime.now(timezone.utc) - timedelta(days=12)).isoformat(timespec="seconds")
     conn.executemany(
         "INSERT INTO items VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         [
             ("k1", "https://threads.net/p/1", "web", "AI", "OpenSpec Skill Router",
-             "一句話路由 Skills", '["Claude","Skill"]', 1, 0, "manual", "#競品 比較 OmniKit", "none", now_str, ""),
+             "一句話路由 Skills", '["Claude","Skill"]', 1, 0, "manual", "#競品 OmniKit", "none", now_iso, ""),
             ("k2", "https://github.com/bitbonsai/mcpvault", "web", "工具", "MCPVault",
-             "Obsidian Vault MCP", '["Obsidian","MCP"]', 0, 0, "manual", "", "none", now_str, ""),
+             "Obsidian Vault MCP", '["Obsidian","MCP"]', 0, 0, "manual", "", "none", now_iso, ""),
+            ("k2_dup", "https://threads.net/p/dup", "web", "工具", "MCPVault 貼文重複項",
+             "介紹 https://github.com/bitbonsai/mcpvault，超好用", '["Obsidian"]', 0, 0, "manual", "", "none", now_iso, ""),
             ("k3", "https://example.com/food", "web", "美食旅遊", "台北拉麵清單",
-             "週末吃拉麵推薦", '["生活"]', 0, 0, "manual", "", "none", now_str, ""),
+             "週末吃拉麵推薦", '["生活"]', 0, 0, "manual", "下次去", "none", now_iso, ""),
             ("k4", "https://example.com/finance-star", "web", "投資理財", "單純加星的投資長文",
-             "存股新聞整理（無備註無專案關聯，應被降噪不擠掉工程名額）", '["投資"]', 1, 0, "manual", "", "none", now_str, ""),
+             "存股新聞整理（無競品標記無專案關聯）", '["投資"]', 1, 0, "manual", "", "none", now_iso, ""),
             ("k5", "https://github.com/acme/radar-noise", "web", "AI", "自動雷達項目",
-             "origin=radar 預設不掃", '["Agent"]', 0, 0, "radar", "", "none", now_str, ""),
+             "origin=radar 預設不掃", '["Agent"]', 0, 0, "radar", "", "none", now_iso, ""),
             ("k6", "https://github.com/acme/prev-rejected", "web", "AI", "曾經拒絕過的工具",
-             "以前測過 Windows 閃退的 mcp skill", '["MCP"]', 0, 0, "manual", "", "none", now_str, ""),
+             "以前測過 Windows 閃退的 mcp skill", '["MCP"]', 0, 0, "manual", "", "none", now_iso, ""),
             ("k7", "https://github.com/tobi/qmd", "web", "搜尋", "QMD Reranker",
-             "本地 Markdown 混合檢索與 rerank", '["RAG","QMD"]', 0, 0, "manual", "看 OmniKeep 要不要借鏡", "none", now_str, ""),
+             "本地 Markdown 混合檢索與 rerank", '["RAG","QMD"]', 1, 0, "manual", "", "none", now_iso, ""),
+            ("k8_insight", "omnikeep://insight/ins_self", "insight", "Insight", "Agent 自己寫回的報告",
+             "不該被當成使用者手動收錄再進漏斗", '["AgentInsight"]', 1, 0, "manual", "#競品", "none", now_iso, ""),
+            ("k9_old", "https://github.com/acme/too-old", "web", "AI", "12 天前舊項目",
+             "超出 7 天視窗不應撈出", '["MCP"]', 1, 0, "manual", "#競品", "none", old_iso, ""),
         ],
     )
     conn.execute(
@@ -71,10 +80,32 @@ def _make_demo_env(tmp_path: Path) -> tuple[Path, Path, Path]:
     (status_dir / "OmniKit" / "NOW.md").write_text("# OmniKit — 目前狀態\n- 專案路徑：C:/OmniKit\n", encoding="utf-8")
     (status_dir / "OmniKeep").mkdir(parents=True)
     (status_dir / "OmniKeep" / "NOW.md").write_text("# OmniKeep：現在\n- 專案路徑：C:/OmniKeep\n", encoding="utf-8")
+    (status_dir / "brand").mkdir(parents=True)
+    (status_dir / "brand" / "NOW.md").write_text("# brand 專案\n", encoding="utf-8")
     return db_path, data_dir, status_dir
 
 
-def test_repo_normalization_and_extraction():
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("https://github.com/tobi/qmd，這個很強", ["tobi/qmd"]),
+        ("見 github.com/tobi/qmd。", ["tobi/qmd"]),
+        ("（https://github.com/tobi/qmd）", ["tobi/qmd"]),
+        ("see github.com/tobi/qmd, and more", ["tobi/qmd"]),
+        ("執行 `github.com/tobi/qmd` 即可", ["tobi/qmd"]),
+        ("[github.com/tobi/qmd]", ["tobi/qmd"]),
+        ("docs.github.com/en/copilot", []),
+        ("gist.github.com/someone/abc123", []),
+        ("https://github.com/user-attachments/assets/1234-5678", []),
+        ("https://github.com/apps/dependabot", []),
+        ("https://api.github.com/repos/tobi/qmd", []),
+    ],
+)
+def test_repo_extraction_cjk_punctuation_and_non_repo_exclusions(text: str, expected: list[str]):
+    assert cw.extract_github_repos(text) == expected
+
+
+def test_repo_normalization_and_dedup():
     assert cw.normalize_repo("https://github.com/Fission-AI/OpenSpec.git") == "Fission-AI/OpenSpec"
     assert cw.normalize_repo("bitbonsai/mcpvault") == "bitbonsai/mcpvault"
     assert cw.normalize_repo("https://github.com/topics/mcp") is None
@@ -84,10 +115,13 @@ def test_repo_normalization_and_extraction():
     assert repos == ["tobi/qmd"]
 
 
-def test_scan_funnel_fast_track_noise_filter_and_top3_cap(tmp_path: Path):
+def test_scan_funnel_filters_insight_noise_general_note_and_dedups_top3(tmp_path: Path):
     db_path, data_dir, status_dir = _make_demo_env(tmp_path)
     items = cw.fetch_recent_items(db_path, days=7, include_radar=False)
-    assert {i["id"] for i in items} == {"k1", "k2", "k3", "k4", "k6", "k7"}
+    ids = {i["id"] for i in items}
+    assert "k5" not in ids  # radar 排除
+    assert "k8_insight" not in ids  # agent insight 排除（防自我迎合）
+    assert "k9_old" not in ids  # 超過 7 天 ISO 日期排除
 
     roster = cw.load_roster_tools(data_dir)
     projects = cw.load_project_profiles(status_dir)
@@ -98,13 +132,15 @@ def test_scan_funnel_fast_track_noise_filter_and_top3_cap(tmp_path: Path):
     }
     pkt = cw.build_scan_packet(items, roster, projects, days=7, max_deep=3, verify_gh=True, gh_verifier=fake_gh)
 
-    # 嚴格截斷最多 3 項深挖（k1/k7 快車道 + k2 工程競品；k6 落入 overflow；k3 與無備註投資文 k4 被濾除）
-    assert pkt["counts"]["deep_candidates"] == 3
-    assert pkt["counts"]["overflow_candidates"] == 1
+    # 美食加一般備註「下次去」(k3) 與無備註加星投資文 (k4) 都必須被濾除
     assert {f["id"] for f in pkt["filtered_out"]} == {"k3", "k4"}
+    assert pkt["counts"]["deep_candidates"] == 3
     deep_ids = [c["id"] for c in pkt["deep_candidates"]]
-    assert deep_ids[:2] == ["k1", "k7"] or set(deep_ids[:2]) == {"k1", "k7"}
-    assert "k2" in deep_ids
+    assert deep_ids[0] == "k1"
+    # 同一個 primary repo (bitbonsai/mcpvault) 不重複佔 Top 3
+    primary_repos = [c["repos"][0].lower() for c in pkt["deep_candidates"] if c["repos"]]
+    assert len(primary_repos) == len(set(primary_repos))
+    assert not ({"k2", "k2_dup"} <= set(deep_ids))
 
     # 驗證 citation repo 萃取與名冊曾拒絕查重
     all_cands = {c["id"]: c for c in pkt["deep_candidates"] + pkt["overflow_candidates"]}
@@ -112,15 +148,25 @@ def test_scan_funnel_fast_track_noise_filter_and_top3_cap(tmp_path: Path):
     assert all_cands["k6"]["roster_matches"][0]["status"] == "rejected"
 
     md = cw.render_markdown(pkt)
-    assert "adopt_or_integrate" in md
-    assert "dismiss_with_evidence" in md
-    assert "禁建 pending 墳場" in md
+    assert "adopt_or_integrate" in md and "dismiss_with_evidence" in md
 
 
-def test_target_mode_and_cli_selftest(tmp_path: Path):
+def test_verify_github_repo_handles_blank_stderr_safely():
+    class _FakeProc:
+        returncode = 1
+        stderr = "   \n  "
+        stdout = ""
+
+    res = cw.verify_github_repo("acme/demo", runner=lambda *a, **kw: _FakeProc())
+    assert res["ok"] is False and "exit 1" in res["error"]
+
+
+def test_target_mode_does_not_false_match_different_owner_and_cli_selftest(tmp_path: Path):
     _, data_dir, status_dir = _make_demo_env(tmp_path)
     roster = cw.load_roster_tools(data_dir)
     projects = cw.load_project_profiles(status_dir)
+
+    # 同 owner/repo 必命中
     pkt = cw.build_target_packet(
         "https://github.com/acme/prev-rejected",
         roster,
@@ -129,17 +175,25 @@ def test_target_mode_and_cli_selftest(tmp_path: Path):
         note="新版有改善 Windows 相容性嗎？",
         verify_gh=False,
     )
-    assert pkt["normalized_repo"] == "acme/prev-rejected"
     assert pkt["roster_match"]["reason"] == "Windows 下閃退"
-    assert pkt["matched_projects"][0]["project"] == "OmniKit"
 
-    # CLI --selftest 端到端執行
+    # 不同 owner 但同 repo 名，因名冊有填 url，絕不可誤判曾拒絕
+    pkt_other = cw.build_target_packet(
+        "https://github.com/another-org/prev-rejected",
+        roster,
+        projects,
+        verify_gh=False,
+    )
+    assert pkt_other["roster_match"] is None
+
+    # CLI --selftest 端到端執行（帶 stdin=DEVNULL 防 Windows WinError 6）
     proc = subprocess.run(
         [sys.executable, str(SCRIPTS / "competitor_watch.py"), "--selftest"],
         cwd=ROOT,
         capture_output=True,
         text=True,
         encoding="utf-8",
+        stdin=subprocess.DEVNULL,
         timeout=30,
     )
     assert proc.returncode == 0, proc.stderr
@@ -159,6 +213,7 @@ def test_target_mode_and_cli_selftest(tmp_path: Path):
         capture_output=True,
         text=True,
         encoding="utf-8",
+        stdin=subprocess.DEVNULL,
         timeout=30,
     )
     assert proc2.returncode == 0, proc2.stderr

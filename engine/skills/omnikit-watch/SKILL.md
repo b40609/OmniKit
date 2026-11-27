@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # /omnikit-watch：範圍 C 外部競品與收錄交叉檢視
 
-> 本 skill 設為 `disable-model-invocation: true`（平日 0 bytes 常駐預算開銷）。完整規範見 `docs/scope-c-competitor-watch.md`。
+> 本 skill 設為 `disable-model-invocation: true`（Claude Code 常駐 0 bytes，不佔自動預算棘輪；並已附 Codex `agents/openai.yaml` `allow_implicit_invocation: false`，Antigravity 與 Codex 是否完全移出清單待驗證）。完整規範見 `docs/scope-c-competitor-watch.md`。
 
 ## 執行步驟
 
