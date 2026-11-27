@@ -16,7 +16,7 @@ sources:
 notes: >-
   ★1,680，MIT，v0.25.1（commit c6763b7），Go 單檔零相依，官方 release 具 SHA-256 與 SLSA provenance。
   2026-11-27 隔離評測（2026-11-27-deja-vu-engram-eval.md）與跨家複審（2026-11-27-deja-vu-engram-eval-跨家複審.md）結論：
-  (1) 固定環境變數：DEJA_OFFLINE=1、DEJA_EMBED=off、DEJA_NO_UPDATE_NOTICE=1、DEJA_MANUAL_INDEX=1（防版本查詢、防本機嵌入探測、防背景自動重建索引）；
+  (1) 固定環境變數：DEJA_OFFLINE=1、DEJA_EMBED=off、DEJA_NO_UPDATE_NOTICE=1、DEJA_NO_AUTO_INDEX=1（防版本查詢、防本機嵌入探測、防背景自動重建索引；依 v0.25.1 internal/index/manual.go 核實，非 DEJA_MANUAL_INDEX）；
   (2) 首次建索引前必先設定 ~/.config/deja/exclude 排除敏感／公務與盲審評測目錄（建立後才補設須 --rebuild）；純十六進位密鑰豁免高熵遮蔽，且個人筆記 deja remember（未帶 --repo）不經 redact，勿寫入敏感憑證；
   (3) 僅按需 CLI 模式（0 常駐 token），嚴禁執行 deja install --auto／claude-auto／codex-auto／claude-code（會寫入 user scope）；
   (4) 執行 deja recall、deja search、deja how 一律強制顯式帶 --project "<專案根目錄絕對路徑>"（不可僅靠在專案目錄內裸跑，預設會跨專案回傳；僅無參數 deja handoff 嚴格限當前目錄）；
