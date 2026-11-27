@@ -9,6 +9,8 @@
 裝不裝得起來、有沒有被叫用、Claude Code 與 Codex 的非互動模式能不能跑、每回合的 context 成本。
 
 隔離做法（2026-11-05 在這台實測，見 docs/v2/HANDOFF.md）：
+- 假家目錄（--fake-home，會執行程式的工具預設開）：子行程的 USERPROFILE、HOME、APPDATA、LOCALAPPDATA、XDG_* 指到
+  執行目錄裡的空資料夾，清掉各 harness 的 *_HOME 與 DEJA_*／ENGRAM_* 等，受測的 MCP 或腳本讀不到真實家目錄的紀錄。
 - 獨立的使用者設定資料夾：Claude 用 CLAUDE_CONFIG_DIR、Codex 用 CODEX_HOME，每次重建。
   Codex 還會讀 ~/.agents/skills，所以在隔離的 config.toml 對每一個加 [[skills.config]] enabled = false。
 - worktree 與執行目錄放在使用者資料夾外（預設 %SystemDrive%\\omnikit-eval，可用 OMNIKIT_EVAL_ROOT 改）：
@@ -73,10 +75,51 @@ HOST_PREFIXES = ("CLAUDE_CODE_", "CLAUDECODE", "CLAUDE_AGENT_SDK", "CLAUDE_EFFOR
                  "ANTHROPIC_", "CODEX_", "OPENAI_", "MCP_CONNECTION", "MCP_SERVER_CONNECTION", "AI_AGENT", "LEVEL_ZERO")
 
 
-def clean_env(keep=(), **extra):
-    env = {k: v for k, v in os.environ.items() if k in keep or not k.upper().startswith(HOST_PREFIXES)}
+# 假家目錄模式要清掉的：各 harness 與記憶工具找紀錄的位置。deja-vu 的原始碼會讀 HERMES_HOME、GEMINI_CLI_HOME、
+# CURSOR_DATA_DIR、CLINE_DIR、GOOSE_PATH_ROOT、OPENCODE_DB、REASONIX_HOME 等（2026-11-27 跨家複審 P2-4），
+# 留著就繞過假家目錄讀到真實紀錄。*_HOME 一律清掉，只留編譯工具鏈用的 TOOLCHAIN_HOMES。
+HARNESS_PREFIXES = ("DEJA_", "ENGRAM_", "HERMES_", "GEMINI_CLI_", "CURSOR_", "CLINE_", "GOOSE_", "OPENCODE_", "REASONIX_",
+                    "ANTE_", "DSH_", "CLAW_", "CLAUDE_", "XDG_")
+TOOLCHAIN_HOMES = {"JAVA_HOME", "ANDROID_HOME", "CARGO_HOME", "RUSTUP_HOME"}
+
+
+def fake_home_vars(home):
+    """把家目錄類變數全部指到 home 底下（並建好資料夾）：Windows 的 Node 與 Python 看 USERPROFILE，Git Bash 與 Unix 工具看 HOME。"""
+    home = Path(home)
+    dirs = {
+        "USERPROFILE": home, "HOME": home,
+        "APPDATA": home / "AppData" / "Roaming", "LOCALAPPDATA": home / "AppData" / "Local",
+        "XDG_CONFIG_HOME": home / ".config", "XDG_DATA_HOME": home / ".local" / "share",
+        "XDG_STATE_HOME": home / ".local" / "state", "XDG_CACHE_HOME": home / ".cache",
+    }
+    for d in dirs.values():
+        d.mkdir(parents=True, exist_ok=True)
+    out = {k: str(v) for k, v in dirs.items()}
+    out["HOMEDRIVE"], out["HOMEPATH"] = home.drive, str(home)[len(home.drive):] or "\\"
+    return out
+
+
+def clean_env(keep=(), fake_home=None, **extra):
+    """子行程的環境：清掉外層 agent 的變數。給 fake_home 時再換掉家目錄類變數、清掉各 harness 的 *_HOME 與
+    DEJA_*／ENGRAM_* 等（受測的 MCP 或程式就讀不到真實家目錄的紀錄）。keep 與 extra 指定的最後才套上。"""
+    def drop(key):
+        k = key.upper()
+        if k.startswith(HOST_PREFIXES):
+            return True
+        if fake_home is None:
+            return False
+        return k.startswith(HARNESS_PREFIXES) or (k.endswith("_HOME") and k not in TOOLCHAIN_HOMES) \
+            or k in {"USERPROFILE", "HOME", "APPDATA", "LOCALAPPDATA", "HOMEDRIVE", "HOMEPATH"}
+    env = {k: v for k, v in os.environ.items() if k in keep or not drop(k)}
+    if fake_home is not None:
+        env.update(fake_home_vars(fake_home))
     env.update(extra)
     return env
+
+
+def use_fake_home(flag, reasons):
+    """假家目錄：有指定照指定；沒指定時，會執行程式（腳本、hook、MCP）的工具預設開。"""
+    return bool(reasons) if flag is None else bool(flag)
 
 
 def eval_root():
@@ -198,13 +241,7 @@ def codex_config(base_url, mcp, disable):
     return "\n".join(lines) + "\n"
 
 
-def user_codex_base_url():
-    """只讀使用者 config.toml 的 openai_base_url 這一行（這台經本機 proxy）；其他設定不帶進隔離環境。"""
-    path = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "config.toml"
-    if not path.exists():
-        return None
-    m = re.search(r'(?m)^openai_base_url\s*=\s*"([^"]+)"', path.read_text(encoding="utf-8", errors="replace"))
-    return m.group(1) if m else None
+user_codex_base_url = _cheap.user_codex_base_url
 
 
 def install(home_claude, home_codex, skills, mcp, base_url, disable):
@@ -272,13 +309,13 @@ def est_tokens(text):
     return round(ascii_chars / 4 + (len(text) - ascii_chars))
 
 
-def measure_once(agent, home, cwd, capture, extra_args, base_url_for_codex):
+def measure_once(agent, home, cwd, capture, extra_args, base_url_for_codex, fake_home=None):
     if agent == "claude":
-        env = clean_env(CLAUDE_CONFIG_DIR=str(home), ANTHROPIC_BASE_URL=capture.url, ANTHROPIC_API_KEY=DUMMY_KEY)
+        env = clean_env(fake_home=fake_home, CLAUDE_CONFIG_DIR=str(home), ANTHROPIC_BASE_URL=capture.url, ANTHROPIC_API_KEY=DUMMY_KEY)
         cmd = [shutil.which("claude"), "-p", "Reply OK", "--output-format", "json", "--max-turns", "1", *extra_args]
         suffix = "/v1/messages"
     else:
-        env = clean_env(CODEX_HOME=str(home), OPENAI_API_KEY=DUMMY_KEY)
+        env = clean_env(fake_home=fake_home, CODEX_HOME=str(home), OPENAI_API_KEY=DUMMY_KEY)
         cmd = [shutil.which("codex"), "exec", "--json", "--skip-git-repo-check", "--sandbox", "read-only", "--ephemeral", "Reply OK"]
         suffix = "/responses"
     capture.bodies.clear()
@@ -287,8 +324,9 @@ def measure_once(agent, home, cwd, capture, extra_args, base_url_for_codex):
     return body.decode("utf-8", "replace") if body else None
 
 
-def measure_context(name, skills, plugin, mcp, run_dir, agents, allow_exec):
-    """回傳 {agent: {baseline_bytes, with_bytes, delta_bytes, delta_tokens_est, mentions}}。"""
+def measure_context(name, skills, plugin, mcp, run_dir, agents, allow_exec, fake_home=False):
+    """回傳 {agent: {baseline_bytes, with_bytes, delta_bytes, delta_tokens_est, mentions}}。
+    fake_home：基準與有裝的兩次都在同一個假家目錄跑，兩邊條件一樣。"""
     cwd = fixture_repo()  # 在 git repo 裡量：跟實際使用一樣（不是 git repo 時 Claude 會直接列出更多工具）
     capture = Capture()
     out = {}
@@ -309,7 +347,8 @@ def measure_context(name, skills, plugin, mcp, run_dir, agents, allow_exec):
                     extra += ["--plugin-dir", str(plugin)]
                 if mcp_file:
                     extra += ["--mcp-config", str(mcp_file), "--strict-mcp-config"]
-                sizes[label] = measure_once(agent, home, cwd, capture, extra, capture.url)
+                fh = run_dir / f"fakehome-{agent}-{label}" if fake_home else None
+                sizes[label] = measure_once(agent, home, cwd, capture, extra, capture.url, fake_home=fh)
             if not sizes["baseline"] or not sizes["with"]:
                 out[agent] = {"error": "沒攔截到請求"}
                 continue
@@ -403,7 +442,7 @@ def drop_worktree(project, dest):
     subprocess.run(["git", "-C", str(project), "worktree", "remove", "--force", str(dest)], capture_output=True)
 
 
-def real_run(name, skills, plugin, mcp, run_dir, agents, prompt, project, model, allow_exec):
+def real_run(name, skills, plugin, mcp, run_dir, agents, prompt, project, model, allow_exec, fake_home=False):
     auth = auth_state()
     out = {}
     skill_names = [s.name for s in skills]
@@ -425,7 +464,8 @@ def real_run(name, skills, plugin, mcp, run_dir, agents, prompt, project, model,
                     cmd += ["--plugin-dir", str(plugin)]
                 if mcp_file:
                     cmd += ["--mcp-config", str(mcp_file), "--strict-mcp-config"]
-                env = clean_env(keep=("CLAUDE_CODE_OAUTH_TOKEN",), CLAUDE_CONFIG_DIR=str(home))
+                env = clean_env(keep=("CLAUDE_CODE_OAUTH_TOKEN",), fake_home=run_dir / "fakehome-claude" if fake_home else None,
+                                CLAUDE_CONFIG_DIR=str(home))
                 proc = subprocess.run(cmd, cwd=wt, env=env, capture_output=True, text=True, encoding="utf-8",
                                       errors="replace", timeout=900, stdin=subprocess.DEVNULL)
                 out[agent] = parse_claude(proc.stdout.splitlines(), skill_names, list(mcp))
@@ -435,7 +475,7 @@ def real_run(name, skills, plugin, mcp, run_dir, agents, prompt, project, model,
                 install(None, home, skills, mcp if allow_exec else {}, user_codex_base_url(), user_agent_skills())
                 cmd = [shutil.which("codex"), "exec", "--json", "--skip-git-repo-check", "--sandbox", "read-only", "--ephemeral",
                        "-C", str(wt)] + (["-m", model] if model else []) + [prompt]
-                env = clean_env(CODEX_HOME=str(home))
+                env = clean_env(fake_home=run_dir / "fakehome-codex" if fake_home else None, CODEX_HOME=str(home))
                 proc = subprocess.run(cmd, cwd=wt, env=env, capture_output=True, text=True, encoding="utf-8",
                                       errors="replace", timeout=900, stdin=subprocess.DEVNULL)
                 out[agent] = parse_codex(proc.stdout.splitlines(), skill_names, list(mcp))
@@ -807,6 +847,8 @@ def main():
     add_source(c)
     c.add_argument("--agents", default="claude,codex")
     c.add_argument("--reviewed", action="store_true", help="程式碼已審查：連 hook 與 MCP 一起在本機量")
+    c.add_argument("--fake-home", action=argparse.BooleanOptionalAction, default=None,
+                   help="子行程用假家目錄（USERPROFILE、HOME、APPDATA、XDG_*），清掉各 harness 的 *_HOME；會執行程式的工具預設開")
     r = sub.add_parser("run", help="真實非互動執行")
     add_source(r)
     r.add_argument("--prompt", required=True, help="縮小版的情境")
@@ -814,6 +856,8 @@ def main():
     r.add_argument("--project", help="跑在哪個 git repo 的 worktree（預設是小型 fixture）")
     r.add_argument("--model", help="預設 Claude 用 haiku、Codex 用它的預設")
     r.add_argument("--reviewed", action="store_true", help="程式碼已審查：允許在本機啟動 hook 與 MCP")
+    r.add_argument("--fake-home", action=argparse.BooleanOptionalAction, default=None,
+                   help="子行程用假家目錄（USERPROFILE、HOME、APPDATA、XDG_*），清掉各 harness 的 *_HOME；會執行程式的工具預設開")
     s = sub.add_parser("sandbox", help="在 Windows Sandbox 安裝與 MCP 交握")
     add_source(s)
     s.add_argument("--install", action="append", default=[], help="沙箱裡要跑的安裝指令（要釘版本），可重複")
@@ -852,7 +896,8 @@ def main():
         allow_exec = getattr(args, "reviewed", False) or not risky
         install_info = {"ok": bool(skills or plugin or mcp), "detail": f"{len(skills)} 個 skill" + ("、plugin" if plugin else "") + (f"、MCP {len(mcp)} 個" if mcp else "")}
         if args.cmd == "context":
-            payload = measure_context(args.id, skills, plugin, mcp, run_dir, args.agents.split(","), allow_exec)
+            payload = measure_context(args.id, skills, plugin, mcp, run_dir, args.agents.split(","), allow_exec,
+                                      fake_home=use_fake_home(args.fake_home, reasons))
             if not allow_exec:
                 payload["note"] = "有 hook 或 MCP、還沒審查：只量 skill；MCP 的工具定義用 sandbox 指令量"
             doc = save_result(args.id, "context", payload, source, reasons, today)
@@ -861,7 +906,8 @@ def main():
             if risky and not args.reviewed:
                 sys.exit("這個工具有 hook 或 MCP：先做程式碼審查（FR-24），審查過再加 --reviewed；或先用 sandbox 指令")
             project = Path(args.project).resolve() if args.project else fixture_repo()
-            payload = real_run(args.id, skills, plugin, mcp, run_dir, args.agents.split(","), args.prompt, project, args.model, allow_exec)
+            payload = real_run(args.id, skills, plugin, mcp, run_dir, args.agents.split(","), args.prompt, project, args.model, allow_exec,
+                               fake_home=use_fake_home(args.fake_home, reasons))
             doc = save_result(args.id, "run", payload, source, reasons, today)
             doc = save_result(args.id, "install", install_info, source, reasons, today)
         else:

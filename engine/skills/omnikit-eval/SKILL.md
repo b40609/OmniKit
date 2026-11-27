@@ -65,8 +65,8 @@ uv run scripts/layer0.py <GitHub 網址或 owner/repo> [--scan]
 
 **用工具跑（客觀題）：** `scripts/layer2.py`。決策規則寫好之後，在 `data/evals/<名稱>/spec.yaml` 寫題目、各組設定（現任或內建當基準，加上挑戰者的 MCP 與工具、`watch` 寫叫用哪些工具才算用到它）與評審，然後：
 
-1. `uv run scripts/layer2.py run data/evals/<名稱>`：`claude -p` 非互動執行，每組 × 每題 × 3 次。在使用者資料夾外的中性目錄跑，不載入使用者的規則、hook、plugin；`--tools` 只開這組的內建工具，`--disallowedTools` 擋掉檔案與指令類工具。
-2. `uv run scripts/layer2.py judge data/evals/<名稱>`：兩兩比較，去掉組別與工具名稱，A、B 兩種順序分給兩個評審。現任自己跟自己比的組會混在裡面，當雜訊基準。評審預設走 T3 子對話（Gemini 4 Hydrogen，T3 側邊欄看得到），`--via agy` 改用 `agy -p`。
+1. `uv run scripts/layer2.py run data/evals/<名稱>`：`claude -p` 非互動執行，每組 × 每題 × 3 次。在使用者資料夾外的中性目錄跑，不載入使用者的規則、hook、plugin 與 user scope 的 MCP（`--strict-mcp-config`）；子行程走假家目錄（`USERPROFILE`、`HOME`、`APPDATA`、`XDG_*` 換掉，各 harness 的 `*_HOME` 與 `DEJA_*`／`ENGRAM_*` 清掉），受測 MCP 讀不到真實的對話紀錄；登入優先用 `smoke.py login` 的隔離登入。`--tools` 只開這組的內建工具，`--disallowedTools` 擋掉檔案與指令類工具。
+2. `uv run scripts/layer2.py judge data/evals/<名稱>`：兩兩比較，去掉組別與工具名稱，A、B 兩種順序分給兩個評審。現任自己跟自己比的組會混在裡面，當雜訊基準。評審預設走 T3 子對話（Gemini 4 Hydrogen，T3 側邊欄看得到），`--via agy` 改用 `agy -p`；兩種都開在中性目錄（`OMNIKIT_EVAL_ROOT` 底下的 `judge`），不開在 OmniKit repo。
 3. `uv run scripts/layer2.py verdict data/evals/<名稱> --write`：兩種順序一致才算一勝。挑戰者要被叫用過半、淨勝率大於雜訊率、核對得到的比例不比現任低，才算勝出；結果寫 `result.json`（`contracts/layer2-result.schema.json`）。
 
 雜訊基準的由來：2026-11-13 試跑（`data/evals/2026-11-13-web-sources-WR1.md`），挑戰者的工具 6 次只被叫用 1 次，評審卻判它 4 勝 1 負，表示同一個設定每次跑出來的差異就足以分出勝負。牽涉品味的題目在 spec 寫 `judge.user: true`，評審結果只當建議，最後由使用者盲選。
@@ -88,7 +88,7 @@ uv run scripts/layer0.py <GitHub 網址或 owner/repo> [--scan]
    - 確認惡意、高風險、不相容：使用者確認後記在 `data/funnel/decisions.yaml`，附證據與日期。
 2. **第 1 層**：`uv run scripts/layer1.py run [--max N]`。便宜模型（預設 Claude Haiku，沒有任何工具可用）讀 README，記槽位與情境、可查證的主張、內建功能涵蓋、相似群組。`layer1.py clusters` 每群建議代表。
 3. **第 1b 層證據卡（2026-11-15 停用）**：27／28 個工具都是最低等級，對排序沒有作用（`docs/reviews/2026-11-10-project-review.md` 第 5 節）。`evidence.py` 留著但不再跑。
-4. **第 1c 層煙霧測試**：`uv run scripts/smoke.py env` 先確認隔離環境；`context` 不花 token 量每回合 context；`run` 真實非互動執行（隔離資料夾要先登入，見 `smoke.py login`）；有 hook、MCP 或可執行程式的，先做程式碼審查，再用 `sandbox` 在 Windows Sandbox 安裝與 MCP 交握。
+4. **第 1c 層煙霧測試**：`uv run scripts/smoke.py env` 先確認隔離環境；`context` 不花 token 量每回合 context；`run` 真實非互動執行（隔離資料夾要先登入，見 `smoke.py login`）；會執行程式（腳本、hook、MCP）的工具，`context` 與 `run` 預設用假家目錄（`--no-fake-home` 關掉）；有 hook、MCP 或可執行程式的，先做程式碼審查，再用 `sandbox` 在 Windows Sandbox 安裝與 MCP 交握。
 
 5. **第 2 層待測清單**：手寫在 `data/funnel/layer2-todo.md`，想實測的寫一行，測完刪掉並把結果寫進 `data/evals/`；`digest.py` 會列出來。自動排程（`schedule.py`）2026-11-15 停用：深度評估只跑過幾次，排程從沒被照著跑過。
 

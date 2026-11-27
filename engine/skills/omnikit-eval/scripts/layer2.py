@@ -12,13 +12,14 @@
 
 1. run：claude -p 非互動執行。每組 × 每題 × runs 次（預設 3）。在使用者資料夾外的中性目錄跑，
    --setting-sources "" 與 --strict-mcp-config：不載入使用者的規則、hook、plugin，各組只差 spec 寫的 MCP 與工具；
+   子行程走假家目錄（smoke.clean_env(fake_home=…)），本機 MCP 的 CLAUDE_CONFIG_DIR／CODEX_HOME 也指到假家目錄；
    檔案與指令類的內建工具一律擋掉。記下回答、叫用了哪些工具、token、秒數 → out/<組>-<題>-<次>.json。
 2. judge：把回答配成兩兩比較，去掉組別與工具名稱，A、B 兩種順序分給兩個評審（互相看不到）。
    - 挑戰者對現任：同一題同一次編號配一組。
    - 雜訊基準：現任自己跟自己（同一題的不同次）也配成組，混在裡面，評審不知道。
      2026-11-13 試跑發現：同一個設定跑 2 次，評審就判出 4 比 1，所以勝負要扣掉這個雜訊。
    評審走 T3 子對話（t3 thread start，預設 provider antigravity、模型 gemini-4-hydrogen，在 T3 側邊欄看得到）
-   或 agy -p。評審要逐條打開連結或檢查結果，輸出固定格式的 JSON → judge-1.json、judge-2.json；對照表在 key.json。
+   或 agy -p，都在中性目錄（OMNIKIT_EVAL_ROOT 底下的 judge 資料夾）啟動，不在 OmniKit repo。評審要逐條打開連結或檢查結果，輸出固定格式的 JSON → judge-1.json、judge-2.json；對照表在 key.json。
 3. verdict：兩種順序結果一致才算一勝，不一致算平手。判定（全部要成立才算挑戰者勝出）：
    - 挑戰者的工具在一半以上的執行裡被叫用（spec 的 watch）；沒被叫用就是「沒用到」，維持待評估。
    - 挑戰者的淨勝率（勝減負，除以組數）大於雜訊率（現任自己比自己分出勝負的比例）。沒量到雜訊就不判勝出。
@@ -55,6 +56,7 @@ from jsonschema import Draft202012Validator
 
 import _cheap
 import _omnikit
+import smoke
 
 CONTRACTS = Path(__file__).resolve().parents[1] / "contracts"
 # 執行時一律擋掉的內建工具：實測只比 spec 寫的工具，不讓模型去碰檔案或跑指令
@@ -159,6 +161,43 @@ def write_json(path, doc):
 
 # ---------- 1. 執行 ----------
 
+def claude_config_dir(workdir):
+    """受測 claude -p 的設定資料夾（登入從這裡來）。優先用 smoke.py login 的隔離登入：
+    CLAUDE_CODE_OAUTH_TOKEN → 每次執行一個空資料夾；隔離資料夾已登入 → 用它；都沒有才沿用使用者自己的設定資料夾
+    （跟修正前一樣的登入方式；家目錄與 MCP 子行程仍走假家目錄）。"""
+    auth = smoke.auth_state()["claude"]
+    if auth == "env":
+        path = Path(workdir) / "claude-config"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    if auth == "home":
+        return smoke.eval_root() / "claude-home"
+    return Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
+
+
+def fake_home(workdir):
+    return Path(workdir) / "home"
+
+
+def run_env(workdir):
+    """受測 claude -p 的環境：清掉外層 agent 的變數，家目錄換成這次執行自己的假家目錄（smoke.clean_env）。"""
+    return smoke.clean_env(keep=("CLAUDE_CODE_OAUTH_TOKEN",), fake_home=fake_home(workdir),
+                           CLAUDE_CONFIG_DIR=str(claude_config_dir(workdir)))
+
+
+def isolate_mcp(servers, workdir):
+    """本機啟動的 MCP（有 command 的）子行程：CLAUDE_CONFIG_DIR、CODEX_HOME 指到假家目錄，讀不到真實的對話紀錄；
+    spec 自己寫的 env 優先。"""
+    home = fake_home(workdir)
+    out = {}
+    for name, cfg in (servers or {}).items():
+        if isinstance(cfg, dict) and cfg.get("command"):
+            cfg = {**cfg, "env": {"CLAUDE_CONFIG_DIR": str(home / ".claude"), "CODEX_HOME": str(home / ".codex"),
+                                  **(cfg.get("env") or {})}}
+        out[name] = cfg
+    return out
+
+
 def exec_claude(prompt, arm, model, workdir, mcp_path):
     """真的跑 claude -p。回傳 (exit, stream 的每一行, stderr)。
     2026-11-13 實測（Claude Code 2.1.323）：WebSearch、WebFetch 是延遲載入的工具，要用 --tools 點名才拿得到；
@@ -170,7 +209,8 @@ def exec_claude(prompt, arm, model, workdir, mcp_path):
            "--tools", ",".join(builtin), "--disallowedTools", *[b for b in BLOCKED if b not in builtin]]
     if allowed:
         cmd += ["--allowedTools", *allowed]
-    p = subprocess.run(cmd, cwd=workdir, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=1800)
+    p = subprocess.run(cmd, cwd=workdir, env=run_env(workdir), capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", timeout=1800)
     return p.returncode, p.stdout.splitlines(), p.stderr
 
 
@@ -209,7 +249,7 @@ def run_one(folder, spec, arm, qid, n, executor=exec_claude):
     work.mkdir(parents=True, exist_ok=True)
     # 每次執行各寫一份：平行跑時共用一個檔，會讀到別人寫到一半的內容（2026-11-13 自我測試抓到）
     mcp_path = work / "mcp.json"
-    mcp_path.write_text(json.dumps({"mcpServers": arm.get("mcp") or {}}), encoding="utf-8")
+    mcp_path.write_text(json.dumps({"mcpServers": isolate_mcp(arm.get("mcp"), work)}), encoding="utf-8")
     t0 = time.time()
     code, lines, stderr = executor(spec["task"].replace("{question}", spec["questions"][qid]), arm, spec["model"], work, mcp_path)
     doc = {"arm": arm["id"], "q": qid, "n": n, "model": spec["model"], "seconds": round(time.time() - t0), "exit": code,
@@ -303,14 +343,29 @@ def extract_verdicts(text):
     return doc
 
 
-def judge_t3(folder, spec, order, project):
+def judge_dir():
+    """評審子對話的中性目錄：使用者資料夾外、不是 git repo、沒有專案規則與專案 scope 的 MCP。
+    不開在 OmniKit repo：以後記憶 MCP 用 local／project scope 掛進 OmniKit 時，評審會直接看到（2026-11-27 跨家複審 P2-4）。"""
+    path = smoke.eval_root() / "judge"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def judge_t3(folder, spec, order, project=None):
     j = spec["judge"]
     t3 = shutil.which("t3") or str(Path.home() / ".t3" / "bin" / "t3.cmd")
     msg = (Path(folder) / f"judge-{order}.txt").read_text(encoding="utf-8")
     title = f"OmniKit 第 2 層評審：{spec['slot']} {spec['scenario']} 順序 {order}（唯讀）"
-    p = subprocess.run([t3, "thread", "start", str(project), "-", "--title", title, "--provider", j["provider"], "--model", j["model"],
-                        "--worktree", "main", "--wait", "--json"], input=msg, capture_output=True, text=True, encoding="utf-8",
-                       errors="replace", timeout=3600)
+    cmd = [t3, "thread", "start", "<project>", "-", "--title", title, "--provider", j["provider"], "--model", j["model"], "--wait", "--json"]
+    if project is None:
+        project = judge_dir()
+        # 中性目錄要先是 T3 專案；已經加過時 add 會失敗，不影響（thread start 失敗才算錯）
+        subprocess.run([t3, "project", "add", str(project), "--title", "OmniKit 評審（中性目錄）"], capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", timeout=120, check=False)
+    else:
+        cmd += ["--worktree", "main"]  # 明確指定專案時照舊開 worktree
+    cmd[3] = str(project)
+    p = subprocess.run(cmd, input=msg, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3600)
     try:
         thread_id = json.loads(p.stdout)["threadId"]
     except (ValueError, KeyError):
@@ -322,13 +377,13 @@ def judge_t3(folder, spec, order, project):
                                                             "model": j["model"], "items": doc["thread"].get("itemCount")}
 
 
-def judge_agy(folder, spec, order, project):
+def judge_agy(folder, spec, order, project=None):
     j = spec["judge"]
     path = (Path(folder) / f"judge-{order}.txt").resolve()
     model = j["model"] if re.search(r"-(low|medium|high|xhigh)$", j["model"]) else j["model"] + "-high"
     p = subprocess.run(["agy", "-p", f"讀檔案 {path}，照裡面的說明做評審，最後只輸出那個 JSON 區塊。", "--model", model,
                         "--add-dir", str(path.parent), "--output-format", "text"], capture_output=True, text=True,
-                       encoding="utf-8", errors="replace", timeout=3600)
+                       encoding="utf-8", errors="replace", timeout=3600, cwd=project or judge_dir())
     return extract_verdicts(p.stdout), {"via": "agy", "model": model}
 
 
@@ -336,7 +391,6 @@ def judge(folder, spec, via=None, project=None, runner=None):
     """兩種順序分給兩個評審，同時跑。回傳兩份結果的路徑。"""
     via = via or spec["judge"]["via"]
     runner = runner or {"t3": judge_t3, "agy": judge_agy}[via]
-    project = project or _omnikit.ROOT
     pairs = prepare(folder, spec)
 
     def one(order):

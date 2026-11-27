@@ -1,22 +1,29 @@
 """便宜模型的非互動呼叫（第 1 層、證據卡整理用），回傳結構化 JSON 與 token 用量。
 
 - Claude（預設）：claude -p --model haiku --output-format json --json-schema ... --tools "" --setting-sources ""
-  --no-session-persistence。沒有任何工具可用、不載入使用者的 plugin 與 hook；在使用者資料夾外的中性目錄執行，
+  --strict-mcp-config --mcp-config '{"mcpServers":{}}' --no-session-persistence。沒有任何工具可用、不載入使用者的
+  plugin 與 hook；--setting-sources "" 只關 settings.json，user scope（~/.claude.json）的 MCP server 要靠
+  --strict-mcp-config 才擋得住（連同它 initialize 時注入的 instructions）。在使用者資料夾外的中性目錄執行，
   不會讀到任何專案的 CLAUDE.md。README 這類外部內容只當資料，模型就算被誘導也做不了事。
   2026-11-05 實測：Haiku 一次約 4K token context、輸出在 structured_output。
-- Codex：codex exec --json --output-schema <檔案> --sandbox read-only --ephemeral --skip-git-repo-check，
-  prompt 從 stdin 給。
+- Codex：codex exec --json --output-schema <檔案> --sandbox read-only --ephemeral --skip-git-repo-check
+  --ignore-user-config，prompt 從 stdin 給。--ignore-user-config 不載入 $CODEX_HOME/config.toml（擋掉 user 層的
+  mcp_servers、plugin、hook），登入仍走 CODEX_HOME，不碰憑證檔；只把 config.toml 的 openai_base_url 用 -c 補回。
+  做不到的：$CODEX_HOME/AGENTS.md 全域指示沒有設定開關（codex-rs/codex-home/src/instructions/mod.rs 只看
+  CODEX_HOME），要擋只能換 CODEX_HOME，這裡不做；~/.agents/skills 也照常載入。
 
 金鑰只靠各 CLI 自己的登入，這裡不讀不傳。便宜模型的結果只用來排除與排序，不能拿來決定勝負（FR-25）。
 """
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
 
 DEFAULT_MODEL = {"claude": "haiku", "codex": None}
+EMPTY_MCP = json.dumps({"mcpServers": {}})
 
 
 def neutral_dir():
@@ -25,6 +32,15 @@ def neutral_dir():
     path = root / "neutral"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def user_codex_base_url():
+    """只讀使用者 config.toml 的 openai_base_url 這一行（這台經本機 proxy）；其他設定不帶進隔離環境。"""
+    path = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "config.toml"
+    if not path.exists():
+        return None
+    m = re.search(r'(?m)^openai_base_url\s*=\s*"([^"]+)"', path.read_text(encoding="utf-8", errors="replace"))
+    return m.group(1) if m else None
 
 
 def normalize_usage(agent, raw):
@@ -48,7 +64,8 @@ def call(prompt, schema, agent="claude", model=None, timeout=600):
     try:
         if agent == "claude":
             cmd = [exe, "-p", "--output-format", "json", "--json-schema", json.dumps(schema, ensure_ascii=False),
-                   "--tools", "", "--setting-sources", "", "--no-session-persistence"]
+                   "--tools", "", "--setting-sources", "", "--mcp-config", EMPTY_MCP, "--strict-mcp-config",
+                   "--no-session-persistence"]
             if model:
                 cmd += ["--model", model]
             proc = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8",
@@ -69,7 +86,10 @@ def call(prompt, schema, agent="claude", model=None, timeout=600):
             schema_path = Path(tmp) / "schema.json"
             schema_path.write_text(json.dumps(schema, ensure_ascii=False), encoding="utf-8")
             cmd = [exe, "exec", "--json", "--output-schema", str(schema_path), "--sandbox", "read-only",
-                   "--ephemeral", "--skip-git-repo-check"]
+                   "--ephemeral", "--skip-git-repo-check", "--ignore-user-config"]
+            base_url = user_codex_base_url()
+            if base_url:
+                cmd += ["-c", f"openai_base_url={json.dumps(base_url)}"]
             if model:
                 cmd += ["-m", model]
             proc = subprocess.run(cmd + ["-"], input=prompt, capture_output=True, text=True, encoding="utf-8",
