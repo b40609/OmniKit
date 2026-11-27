@@ -11,7 +11,7 @@
 
 ## 裝好之後會有什麼
 
-安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了六個核心 skill（`omnikit-setup`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-research`、`omnikit-capabilities`、`omnikit-eval`，搭配 `ok`／`ok-*` 簡短入口；訪談選了不評估新工具的沒有 `omnikit-eval` 與 `ok-eval`）、一個按需讀取的前端底線 skill（`omnikit-mobile-web`）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
+安裝不會在 Claude Code、Codex 或 Antigravity 的畫面上多出按鈕或面板。改變的是 agent 開 session 時讀到的規則，以及多了六個核心 skill（`omnikit-setup`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-research`、`omnikit-capabilities`、`omnikit-eval`，搭配唯一的 `/ok` 簡短總入口；訪談選了不評估新工具的沒有 `omnikit-eval`）、一個按需讀取的前端底線 skill（`omnikit-mobile-web`）、一個 MCP。**已經開著的 session 不會重讀，要開新的 session 才生效。**
 
 開新的 session 試試看：
 
@@ -30,7 +30,7 @@ OmniKit 規則版本與 profile 是什麼？
 | 檢查 | Claude Code | Codex | Antigravity |
 |---|---|---|---|
 | 規則 | 問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的「規則版本」一樣，profile 是你選的 | 同左 | 同左 |
-| skill | 輸入 `/omnikit` 或 `/ok`，選單裡會出現 `omnikit-setup`、`omnikit-handoff` 等（訪談選了不評估新工具的，沒有 `omnikit-eval` 與 `ok-eval`） | 輸入 `$omnikit` 或 `$ok`，或用 `/skills` 列出來 | 問「你可用的 skill 有哪些？」，會列出這幾個 |
+| skill | 輸入 `/omnikit` 或 `/ok`，選單裡會出現 `omnikit-setup`、`omnikit-handoff` 等（訪談選了不評估新工具的，沒有 `omnikit-eval`） | 輸入 `$omnikit` 或 `$ok`，或用 `/skills` 列出來 | 問「你可用的 skill 有哪些？」，會列出這幾個 |
 | MCP | 終端機跑 `uv run engine/scripts/doctor.py`（或 `claude plugin list` 確認 `omnikit@omnikit-local` 已啟用） | 終端機跑 `codex mcp list`，`chrome_devtools` 是 enabled | 終端機跑 `agy mcp list`，`chrome_devtools` 是 enabled |
 
 終端機跑 `uv run engine/scripts/sync.py status`，可以看到這台接上了哪些 agent 與無帳本對帳狀態。
@@ -42,13 +42,13 @@ OmniKit 規則版本與 profile 是什麼？
 | 項目 | 會有什麼不同 | 三個 agent 的差別 |
 |---|---|---|
 | 規則（`data/rules/baseline.md` + `data/rules/dispatch.md` + profile 的 `AGENTS.md`） | 安全底線與分派原則所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問。完整分派政策在 `dispatch-policy.md`、個人帳號對應在 `dispatch.md`、行動端前端底線在 `omnikit-mobile-web` skill，都不常駐載入，需要時才讀 | Claude Code 直接 import 來源檔，改完開新 session 就生效；Codex 讀合併後的 `~/.codex/AGENTS.md` 受管區塊（<= 32 KiB）；Antigravity 拆成 `~/.gemini/AGENTS.md`（共用層）與 `~/.gemini/GEMINI.md`（個人層），單檔限制 <= 24,000 bytes 避免靜默截斷。改了 profile 跑 `uv run engine/scripts/profiles.py` 重新接上（維護者版 commit 時 git hook 自動同步） |
-| `ok`／`ok-*` 簡短入口 | 少打字的快捷選單與捷徑：`ok` 列出 5 項主選單（交接、調研、分派、設定、清點），或直接呼叫 `ok-handoff`、`ok-research`、`ok-dispatch`、`ok-setup`、`ok-eval` | Claude Code 與 Antigravity 輸入 `/ok`（如 `/ok 交接`），Codex 輸入 `$ok` |
-| `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 三邊說「幫我設定 OmniKit」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-setup` 或 `/ok-setup`，Codex 輸入 `$omnikit-setup` |
-| `omnikit-handoff` skill | 說「交接」，agent 把做到一半的工作 commit、push，寫一份交接檔到你的狀態 repo，再開新對話接著做；新對話說「讀 <交接檔路徑> 接著做」就照交接檔接手。狀態 repo 的位置寫在你的 profile，沒寫 agent 會先問 | 三邊說「交接」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-handoff` 或 `/ok-handoff`，Codex 輸入 `$omnikit-handoff` |
-| `omnikit-dispatch` skill | 派子任務、開子對話時照分派政策選模型與思考程度，收完結果後記一行委派紀錄（存在這台，不上傳）；也能看 Sonnet 試行的比較與本週 Claude 用量。見[子任務分派](dispatch.md) | 三邊說「委派紀錄」「分派統計」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-dispatch` 或 `/ok-dispatch`，Codex 輸入 `$omnikit-dispatch`。本週用量的快照只有 Claude Code 的狀態列存得到 |
-| `omnikit-research` skill | 說「先查業界做法」「找同類工具」「比較方案」，agent 每個管道都查（網頁中英文、GitHub topic 與星數、fork 與競品、skill／MCP 目錄、Hacker News、Product Hunt），關鍵字從結果擴展，連續 3 組沒有新名字才停（長尾題目改看 ★1,000 以上的名字，標「長尾未飽和」；12 組還沒停先回報）；報告附查了哪些管道與關鍵字、第幾組停、哪裡查不到，星數與授權用 `gh api` 實測並寫日期。安全底線有一行要求調研照這個 skill 做 | 三邊說「找同類工具」「調研」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-research` 或 `/ok-research`，Codex 輸入 `$omnikit-research`。GitHub 的管道要先 `gh auth login` |
+| `ok` 總入口 | 唯一簡短手動入口：不知用哪個就打 `/ok`（Codex 打 `$ok`），後面可直接講白話或選 1 到 5 號主選單（交接、調研、分派、設定、清點） | Claude Code 與 Antigravity 輸入 `/ok`（如 `/ok 交接`），Codex 輸入 `$ok` |
+| `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 三邊說「幫我設定 OmniKit」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-setup` 或 `/ok 設定`，Codex 輸入 `$omnikit-setup` 或 `$ok 設定` |
+| `omnikit-handoff` skill | 說「交接」，agent 把做到一半的工作 commit、push，寫一份交接檔到你的狀態 repo，再開新對話接著做；新對話說「讀 <交接檔路徑> 接著做」就照交接檔接手。狀態 repo 的位置寫在你的 profile，沒寫 agent 會先問 | 三邊說「交接」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-handoff` 或 `/ok 交接`，Codex 輸入 `$omnikit-handoff` 或 `$ok 交接` |
+| `omnikit-dispatch` skill | 派子任務、開子對話時照分派政策選模型與思考程度，收完結果後記一行委派紀錄（存在這台，不上傳）；也能看 Sonnet 試行的比較與本週 Claude 用量。見[子任務分派](dispatch.md) | 三邊說「委派紀錄」「分派統計」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-dispatch` 或 `/ok 分派`，Codex 輸入 `$omnikit-dispatch` 或 `$ok 分派`。本週用量的快照只有 Claude Code 的狀態列存得到 |
+| `omnikit-research` skill | 說「先查業界做法」「找同類工具」「比較方案」，agent 每個管道都查（網頁中英文、GitHub topic 與星數、fork 與競品、skill／MCP 目錄、Hacker News、Product Hunt），關鍵字從結果擴展，連續 3 組沒有新名字才停（長尾題目改看 ★1,000 以上的名字，標「長尾未飽和」；12 組還沒停先回報）；報告附查了哪些管道與關鍵字、第幾組停、哪裡查不到，星數與授權用 `gh api` 實測並寫日期。安全底線有一行要求調研照這個 skill 做 | 三邊說「找同類工具」「調研」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-research` 或 `/ok 調研`，Codex 輸入 `$omnikit-research` 或 `$ok 調研`。GitHub 的管道要先 `gh auth login` |
 | `omnikit-capabilities` skill | agent 要說「做不到」「沒有工具」「請你手動做」之前，先清點這台能用的 CLI（標出 Git Bash 找不到、只有 PowerShell 找得到的，例如只有 `t3.cmd` 的 T3）、各 agent 登記的 MCP server、本機 MCP 端點（開著沒、要不要登入、哪個 agent 還沒接），列出最省事的做法，再對照 `--help` 與最新官方文件。只看檔案、PATH 與本機連線，不印金鑰。安全底線的「說做不到之前」要求先照這個 skill 查完 | 三邊要說做不到、或使用者問「你能不能…」「有沒有辦法派給…」時觸發；要手動叫，Claude Code 輸入 `/omnikit-capabilities`，Codex 輸入 `$omnikit-capabilities`。也能直接跑 `uv run engine/scripts/capabilities.py` |
-| `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡；「每週彙整」是維護者評估工具用的 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval` 或 `/ok-eval`，Codex 輸入 `$omnikit-eval`。三邊皆透過無複製參照指向 `~/.omnikit/current/engine/skills`（維護者版 commit 時由 git hook 自動更新，同事版重跑 `install.ps1`） |
+| `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡；「每週彙整」是維護者評估工具用的 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval` 或 `/ok 評估`，Codex 輸入 `$omnikit-eval` 或 `$ok 評估`。三邊皆透過無複製參照指向 `~/.omnikit/current/engine/skills`（維護者版 commit 時由 git hook 自動更新，同事版重跑 `install.ps1`） |
 | `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 由薄 plugin 掛載並可加進免問清單，Codex 設成自動核准（同事版皆需本人同意），Antigravity 由薄 plugin 掛載並照它自己的權限設定 |
 | 護欄與提醒 hooks | 包含確定性安全護欄（`harness_hooks.py`，攔截危險繞過與敏感檔讀取）、開新對話提醒（`session_nudge.py`，含每日最多一則用法小提示）、說做不到查證（`claim_check.py`，未附查證擋回一次；設 `OMNIKIT_CLAIM_CHECK=off` 可暫關）、設定目錄檢查（`home_watch.py`）與 T3 MCP 斷線防護（`t3_watch.py`） | Claude Code 透過本地薄 plugin `omnikit@omnikit-local` 掛載（所有 Claude 設定目錄皆接）；Codex 只接開新對話提醒、說做不到查證與 T3 MCP 斷線防護，寫進 `config.toml`（需在 `/hooks` 信任才會跑），確定性護欄目前沒有接 Codex；Antigravity 於薄 plugin `config/plugins/omnikit/hooks.json` 掛載確定性護欄 |
 | git hooks（只有維護者版） | 只作用在 OmniKit repo：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、MCP、權限時自動同步。同事版不設 | 跟 agent 無關 |
@@ -68,7 +68,7 @@ OmniKit 規則版本與 profile 是什麼？
 | agent 可以自己做到哪 | 每步先問：改檔案、執行指令前先列計畫等你同意。專案內直接做（建議）：下載安裝、改專案以外的才先問。大多放手：下載安裝也直接做 |
 | 最想改善的習慣 | 例如「常改太多」變成「只改需求相關的地方，其他想改的先列出來問你」 |
 | 要評估新工具 | 情境範本裡的 `<你的專案>` 換成你的專案，評估工具時拿來當考題 |
-| 不評估新工具 | 不裝 `omnikit-eval` 與對應捷徑 `ok-eval`（評估工具與維護者的每週彙整都在這個 skill 裡）；已經裝了的會拿掉。之後改主意，重新訪談選「要」就會裝回來 |
+| 不評估新工具 | 不裝 `omnikit-eval`（評估工具與維護者的每週彙整都在這個 skill 裡）；已經裝了的會拿掉。之後改主意，重新訪談選「要」就會裝回來 |
 
 規則檔與情境檔都由 `engine/scripts/profile_new.py` 依固定範本產生、驗證，agent 只負責問問題；寫入後可以直接改，改完跑 `uv run engine/scripts/profiles.py` 重新接上。重新訪談時會帶入上次的答案，舊檔先備份成 `.bak`；手寫的 profile 與 repo 裡已經有的名稱不會被覆蓋。安全底線不能從 profile 放寬。
 
@@ -88,18 +88,19 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 
 找 profile 時先找 repo 外的 `~/.omnikit/profiles/<名稱>`，再找 repo 裡的 `data/profiles/<名稱>`。換完開新的 session 才生效。skills 也會跟著同步：換到訪談選了不評估新工具的 profile，`omnikit-eval` 會拿掉，換回來再裝上。還沒選過的電腦會一直用 `default`，並在安裝與同步時提醒。想重新訪談、改掉原本的答案，說「幫我設定 OmniKit」就好。
 
-### 簡短指令（`ok` 與 `ok-*`）
+### 簡短總入口（`/ok` / `$ok`）
 
-不想記完整 skill 名稱時，直接打總入口 `/ok`（Claude Code、Antigravity）或 `$ok`（Codex），會列出 1 到 5 號選單（交接、調研、分派、設定、清點），也可以直接帶參數或用對應捷徑：
+不想記完整 skill 名稱時，直接打唯一總入口 `/ok`（Claude Code、Antigravity）或 `$ok`（Codex），後面可以直接講白話，或留空列出 1 到 5 號主選單：
 
 | 指令（Claude／Antigravity；Codex 改用 `$`） | 對應 skill |
 |---|---|
 | `/ok` | 列出主選單，回編號執行 |
-| `/ok-handoff`（或 `/ok 交接`） | `omnikit-handoff`（交接、接手與更新 `NOW.md`） |
-| `/ok-research`（或 `/ok 調研`） | `omnikit-research`（飽和式調研） |
-| `/ok-dispatch`（或 `/ok 分派`） | `omnikit-dispatch`（子任務分派與委派紀錄） |
-| `/ok-setup`（或 `/ok 設定`） | `omnikit-setup`（訪談建立個人 profile） |
-| `/ok-eval`（或 `/ok 評估`） | `omnikit-eval`（評估新工具；選不評估時不裝） |
+| `/ok 交接`（或 `/ok handoff`） | `omnikit-handoff`（交接、接手與更新 `NOW.md`） |
+| `/ok 調研`（或 `/ok research`） | `omnikit-research`（飽和式調研） |
+| `/ok 分派`（或 `/ok dispatch`） | `omnikit-dispatch`（子任務分派與委派紀錄） |
+| `/ok 設定`（或 `/ok setup`） | `omnikit-setup`（訪談建立個人 profile） |
+| `/ok 評估`（或 `/ok eval`） | `omnikit-eval`（評估新工具；選不評估時不裝） |
+| `/ok <白話需求>` | 依語意對應最接近的一項，拿不準列主選單並提示 `/plan`、`/grill-me` |
 
 ### 評估新工具
 

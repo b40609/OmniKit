@@ -502,11 +502,11 @@ function Show-InstallPlan {
   }
   if ($Fresh) { $plan += '  ~/.claude/CLAUDE.md：受管區塊以外的舊規則先備份成 CLAUDE.md.pre-omnikit，再移除' }
 
-  # 跟 profiles.py 的 OPTIONAL_SKILLS 一樣：訪談第 5 題答「不要」（evaluate_tools 是 false）就不裝 omnikit-eval 與它的捷徑 ok-eval
+  # 跟 profiles.py 的 OPTIONAL_SKILLS 一樣：訪談第 5 題答「不要」（evaluate_tools 是 false）就不裝 omnikit-eval
   $answersFile = if ($profileDir) { Join-Path $profileDir 'answers.json' } else { '' }
   $skip = @()
   if ($answersFile -and (Test-Path -LiteralPath $answersFile)) {
-    try { if ((Get-FileText $answersFile | ConvertFrom-Json).evaluate_tools -eq $false) { $skip = @('omnikit-eval', 'ok-eval') } } catch { }
+    try { if ((Get-FileText $answersFile | ConvertFrom-Json).evaluate_tools -eq $false) { $skip = @('omnikit-eval') } } catch { }
   }
   $skills = (Get-ChildItem -Directory (Join-Path $Repo 'engine\skills') |
     Where-Object { (Test-Path (Join-Path $_.FullName 'SKILL.md')) -and $_.Name -notin $skip }).Name -join '、'

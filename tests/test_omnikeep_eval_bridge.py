@@ -255,6 +255,36 @@ def test_layer0_scanner_error_marks_needs_review(tmp_path):
     assert scanned["security_badge"] == "executable_needs_review"
 
 
+def test_layer0_cjk_skill_forces_layer1_llm_review_and_attaches_disclaimer(tmp_path):
+    (tmp_path / "SKILL.md").write_text(
+        "---\nname: zh-helper\ndescription: 中文助手\n---\n# 中文指令範例\n請整理目前專案摘要。\n",
+        encoding="utf-8",
+    )
+    scanned = layer0.scan_local(
+        tmp_path,
+        sha="44444444",
+        scanner_fn=lambda _p: {"max_severity": "SAFE", "findings": []},
+    )
+    assert scanned["has_cjk"] is True
+    assert scanned["cjk_files"] == ["SKILL.md"]
+    assert scanned["requires_layer1_llm_review"] is True
+    assert scanned["disclaimer"] == layer0.STATIC_SCAN_DISCLAIMER
+    assert any("必須進第 1 層" in r for r in scanned["security_reasons"])
+    assert layer0.STATIC_SCAN_DISCLAIMER in scanned["security_reasons"]
+
+    l0 = layer0.evaluate_target(
+        "EL4CTEO/fast-anything",
+        _fake_roster(),
+        do_scan=True,
+        client=_fake_gh(),
+        scan_fn=lambda _r: scanned,
+        now=datetime(2026, 11, 24, tzinfo=timezone.utc),
+        history_path=False,
+    )
+    assert l0["requires_layer1_llm_review"] is True
+    assert l0["scan_disclaimer"] == layer0.STATIC_SCAN_DISCLAIMER
+
+
 # ---------- 2. Layer 1 社群反例與使用者提問 ----------
 
 def test_layer1_prompt_and_output_include_user_note_and_counterpoints(tmp_path):

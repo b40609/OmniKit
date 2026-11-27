@@ -1218,7 +1218,7 @@ def selftest() -> int:
         (repo / "data" / "harness").mkdir(parents=True)
         (repo / "data" / "harness" / "claude-allow.txt").write_text("mcp__devtools\n", encoding="utf-8")
         (repo / "data" / "harness" / "claude-allow-retired.txt").write_text("mcp__retired_old\n", encoding="utf-8")
-        for sname in ("omnikit-handoff", "ok-handoff", "omnikit-eval", "ok-eval"):
+        for sname in ("omnikit-handoff", "ok", "omnikit-eval"):
             sd = repo / "engine" / "skills" / sname
             sd.mkdir(parents=True)
             (sd / "SKILL.md").write_text(f"---\nname: {sname}\ndescription: test {sname}\n---\n", encoding="utf-8")
@@ -1290,7 +1290,7 @@ def selftest() -> int:
               and not any(c[0] == "claude" and c[3] == "" for c in cli_calls))
         check("B8 鏡像：Claude 與 .claude-kai 皆有 OmniKit junction，且 ~/.claude 自訂 skill 自動鏡像至 .claude-kai、不碰 .claude-mem",
               is_link(home / ".claude" / "skills" / "omnikit-handoff")
-              and is_link(home / ".claude-kai" / "skills" / "ok-handoff")
+              and is_link(home / ".claude-kai" / "skills" / "ok")
               and is_link(home / ".claude-kai" / "skills" / "my-own-skill")
               and not (home / ".claude-mem" / "CLAUDE.md").exists())
         codex_cfg = tomllib.loads((home / ".codex" / "config.toml").read_text("utf-8"))

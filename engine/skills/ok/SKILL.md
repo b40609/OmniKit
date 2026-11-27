@@ -20,7 +20,7 @@ disable-model-invocation: true
 | `setup`、`設定` | 照 `omnikit-setup` 做 |
 | `capabilities`、`清點`、`能力` | 照 `omnikit-capabilities` 做 |
 | `eval`、`評估` | 照 `omnikit-eval` 做（若有安裝） |
-| 其他任何字 | 列出下面的「主選單」，並提醒：若需求還沒想清楚，可直接用內建 `/plan`（Antigravity 亦可用 `/grill-me`）讓 agent 先訪談對焦 |
+| 其他任何字 | 依語意對應上表最接近的一項；拿不準就列主選單，並提醒：若需求還沒想清楚，可直接用內建 `/plan`（Antigravity 亦可用 `/grill-me`）讓 agent 先訪談對焦 |
 
 「照某個 skill 做」：Claude Code 用 Skill 工具叫用它；其他 agent 讀同一層資料夾裡的 `../<skill 名稱>/SKILL.md`，照裡面的步驟做。
 

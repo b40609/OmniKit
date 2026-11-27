@@ -28,10 +28,13 @@ from pathlib import Path
 import _github
 import _omnikit
 
-SCANNER = "cisco-ai-skill-scanner==2.3.1"
+SCANNER = "cisco-ai-skill-scanner==2.3.2"
 STALE_DAYS = 365
 FEW_STARS = 50
 SEVERITY = ["SAFE", "INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
+STATIC_SCAN_DISCLAIMER = "靜態掃描召回率約 8%（廠商自測），中文自然語言指令無法偵測；通過不代表安全"
+CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]")
+MAX_CJK_SCAN_BYTES = 512 * 1024
 
 # 套件／建置清單檔：出現即代表目標 repo 含可執行程式或建置腳本，不能只靠靜態 SKILL.md 掃描判通過
 EXECUTABLE_MANIFESTS = {
@@ -288,11 +291,22 @@ def _plugin_has_mcp_or_hooks(path):
     return bool(doc.get("mcpServers") or doc.get("mcp_servers") or doc.get("hooks"))
 
 
+def _file_contains_cjk(path):
+    try:
+        if path.stat().st_size > MAX_CJK_SCAN_BYTES:
+            return False
+        text = path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return False
+    return bool(CJK_RE.search(text))
+
+
 def inspect_repo_tree(folder):
-    """靜態盤點 repo 檔案樹：找出所有 SKILL.md 以及可執行碼／建置設定／Shell 腳本／MCP server 設定。"""
+    """靜態盤點 repo 檔案樹：找出所有 SKILL.md、中日韓自然語言檔案以及可執行碼／建置設定／Shell 腳本／MCP server 設定。"""
     folder = Path(folder)
     skill_files = []
     indicators = []
+    cjk_files = []
 
     for path in sorted(folder.rglob("*")):
         if not path.is_file():
@@ -306,6 +320,8 @@ def inspect_repo_tree(folder):
 
         if path.name == "SKILL.md":
             skill_files.append(posix)
+            if _file_contains_cjk(path):
+                cjk_files.append(posix)
             continue
 
         if name_lower in EXECUTABLE_MANIFESTS:
@@ -324,14 +340,20 @@ def inspect_repo_tree(folder):
 
         if suffix_lower in SHELL_SCRIPT_EXTS:
             indicators.append({"path": posix, "kind": "shell_script"})
+            if _file_contains_cjk(path):
+                cjk_files.append(posix)
             continue
 
         if suffix_lower in EXECUTABLE_CODE_EXTS:
             indicators.append({"path": posix, "kind": "executable_code"})
+            if suffix_lower not in {".exe", ".msi", ".dll", ".so", ".dylib", ".wasm"} and _file_contains_cjk(path):
+                cjk_files.append(posix)
             continue
 
         if suffix_lower not in STATIC_DOC_EXTS and _has_shebang(path):
             indicators.append({"path": posix, "kind": "shell_script"})
+            if _file_contains_cjk(path):
+                cjk_files.append(posix)
 
     return {
         "skill_files": skill_files,
@@ -339,6 +361,8 @@ def inspect_repo_tree(folder):
         "has_executable_code": bool(indicators),
         "executable_indicators_total": len(indicators),
         "executable_indicators": indicators[:MAX_INDICATORS_REPORTED],
+        "has_cjk": bool(cjk_files),
+        "cjk_files": cjk_files[:MAX_INDICATORS_REPORTED],
     }
 
 
@@ -464,8 +488,16 @@ def scan_local(folder, sha="", scanner_fn=None):
         "has_executable_code": tree["has_executable_code"],
         "executable_indicators_total": tree["executable_indicators_total"],
         "executable_indicators": tree["executable_indicators"],
+        "has_cjk": tree["has_cjk"],
+        "cjk_files": tree["cjk_files"],
+        "requires_layer1_llm_review": tree["has_cjk"],
+        "disclaimer": STATIC_SCAN_DISCLAIMER,
     }
     badge, reasons = classify_security(result)
+    if tree["has_cjk"]:
+        sample_cjk = ", ".join(tree["cjk_files"][:5])
+        reasons.append(f"偵測到中日韓文字（{sample_cjk}）：靜態層看不懂中文，必須進第 1 層 LLM 語意審查")
+    reasons.append(STATIC_SCAN_DISCLAIMER)
     result["security_badge"] = badge
     result["security_reasons"] = reasons
     return result
@@ -574,6 +606,8 @@ def evaluate_target(
         "thresholds": checks,
         "scan": scanned,
         "security_badge": security_badge,
+        "requires_layer1_llm_review": bool(scanned and scanned.get("requires_layer1_llm_review")),
+        "scan_disclaimer": STATIC_SCAN_DISCLAIMER,
         "verdict": verdict,
         "next": "已收錄：回報現況與上次的理由，問要不要重新評估" if matches else (
             "不往下評，回報 fail 的理由" if verdict == "fail" else "進第 1 層：讀 README、決定槽位、寫卡片"

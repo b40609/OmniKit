@@ -106,7 +106,7 @@ engine/                      引擎：不用改
   schema/                    名冊與槽位的 JSON Schema
   scripts/                   安裝與移除（install.ps1／uninstall.ps1）、無帳本同步與健康檢查（sync.py／doctor.py）、profile 與帳號池、子任務分派、能力清點、名冊驗證與看板建置、護欄與提醒 hook
   site/                      看板的樣式與程式、匯出的架構地圖（map.html），以及 README 門面圖的產生器（readme_art.py）
-  skills/ok/、ok-*/          總入口選單與簡短指令捷徑（/ok、$ok、ok-handoff 等）
+  skills/ok/                 唯一簡短總入口選單（/ok、$ok，支援編號或白話對應）
   skills/omnikit-setup/      訪談建立個人 profile 的 skill
   skills/omnikit-eval/       評估新工具的 skill
   skills/omnikit-handoff/    交接與接手的 skill
