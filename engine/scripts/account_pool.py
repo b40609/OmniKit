@@ -1076,7 +1076,7 @@ def select_claude_instance(rows, mine, quotas, state_doc, *, strategy=None, now=
         if r.get("driver") != "claudeAgent":
             continue
         iid = r["id"]
-        sel_ok, sel_why = accounts.can_auto(r, "auto_select")
+        sel_ok, sel_why = accounts.can_auto(r, "auto_select", now=now_dt)
         blk, blk_why, blk_code = is_blocked(state_doc, iid, driver="claudeAgent", now=now_dt)
         q = qmap.get(iid) or {}
         w_rem = q.get("weekly_remaining_pct") if q.get("status") in ("ok", "stale") else None
@@ -1229,7 +1229,7 @@ def burn_candidates(rows, mine, quotas, state_doc, *, within_hours=None, min_rem
         iid, drv = r.get("id"), r.get("driver")
         if drv not in ("claudeAgent", "antigravity") or not classes.get(iid):
             continue
-        if not accounts.can_auto(r, "auto_dispatch")[0]:
+        if not accounts.can_auto(r, "auto_dispatch", now=now_dt)[0]:
             continue
         end = accounts.access_end(r)
         if end is not None and end <= now_dt:

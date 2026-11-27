@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 import time
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -305,3 +306,148 @@ def test_antigravity_stop_payload(tmp_path):
 def test_selftest_passes():
     p = subprocess.run([sys.executable, str(SCRIPTS / "done_check.py"), "--selftest"], capture_output=True, check=False)
     assert p.returncode == 0, p.stdout.decode("utf-8", "replace") + p.stderr.decode("utf-8", "replace")
+
+
+# ---- 審查修正 D10-R-07：表格的管線符號、程式碼區塊裡的範本、「只在這台」的否定句 ----
+
+FAKE_UNPUSHED = {("rev-parse", "--is-inside-work-tree"): (0, "true\n"), ("status", "--porcelain"): (0, ""),
+                 ("rev-list", "--count", "@{u}..HEAD"): (0, "2\n")}
+
+
+def unpushed_runner(args):
+    return FAKE_UNPUSHED.get(tuple(args), (1, ""))
+
+
+@pytest.mark.parametrize("cmd_cell", ['`pytest -k "a\\|b"`', "`grep a | wc -l`", "grep a \\| wc -l",
+                                      "``echo `a|b` ``"])
+def test_pipe_inside_code_or_escaped_does_not_shift_columns(tmp_path, cmd_cell):
+    """D10-R-07 之 1：驗證指令欄有 \\| 跳脫或反引號裡的 |，不能把欄位右移，讓「證據位置」讀到「結果」欄而漏檢。"""
+    msg = receipt("nonexistent/missing.png").replace("開面板截圖", cmd_cell)
+    assert "evidence-missing" in rules(dc.check(msg, cwd=str(tmp_path)))
+
+
+@pytest.mark.parametrize("fence", ["```", "~~~", "````"])
+def test_receipt_template_in_code_block_does_not_pass(tmp_path, fence):
+    """D10-R-07 之 2：把內建的 RECEIPT_FORMAT 範本包在程式碼區塊裡貼出來，不能自己通過。"""
+    msg = f"【完成待收尾】好了。\n\n{fence}markdown\n{dc.RECEIPT_FORMAT}\n{fence}\n"
+    assert "no-receipt" in rules(dc.check(msg, cwd=str(tmp_path)))
+
+
+def test_bare_receipt_template_does_not_pass(tmp_path):
+    """D10-R-07 之 2：沒包程式碼區塊、原樣貼出範本也一樣：佔位列不算一列，「沒驗的範圍」的佔位字不算有寫。"""
+    result = dc.check(f"【完成待收尾】好了。\n\n{dc.RECEIPT_FORMAT}\n", cwd=str(tmp_path))
+    assert {"receipt-empty", "no-scope"} <= rules(result)
+
+
+def test_real_receipt_next_to_a_code_block_example_still_counts(tmp_path):
+    """對照：交付檔裡有真的回執，旁邊的程式碼區塊放了範本當說明，照常用真的那一份。"""
+    msg = receipt() + "\n格式說明：\n```\n" + dc.RECEIPT_FORMAT + "\n```\n"
+    result = dc.check(msg, cwd=str(tmp_path))
+    assert result.triggered and not rules(result)
+
+
+@pytest.mark.parametrize("extra", [
+    "已經 push 了，不是只在這台。",
+    "這次並非只在這台。",
+    "改動不只在這台。",
+    "\n```\n規則：不能 push 的寫明只在這台\n```\n",
+    "規則寫 `只在這台` 才不查。",
+])
+def test_local_only_ignores_negation_and_code(tmp_path, extra):
+    """D10-R-07 之 3：「只在這台」在程式碼區塊、行內程式碼或否定句裡（不是只在這台），不能跳過未 push 的檢查。"""
+    msg = receipt().replace("改好了。", "改好了。" + extra)
+    assert "git-unpushed" in rules(dc.check(msg, cwd=str(tmp_path), runner=unpushed_runner))
+
+
+def test_local_only_declaration_still_skips_unpushed(tmp_path):
+    msg = receipt().replace("改好了。", "改好了，這個 repo 沒有權限 push，只在這台。")
+    assert "git-unpushed" not in rules(dc.check(msg, cwd=str(tmp_path), runner=unpushed_runner))
+
+
+# ---- 審查修正 D10-R-08：無時區的對話開始時間、含空白的 .done 路徑 ----
+
+def test_naive_transcript_time_does_not_mark_fresh_evidence_stale(tmp_path):
+    """D10-R-08 之 1：對話紀錄的時間沒帶時區時，不知道是本機時間還是 UTC，不能拿來判 evidence-stale。
+
+    模擬 UTC+8 的本機時間（比 UTC 快 8 小時、沒帶時區）：舊版硬套 UTC，剛產生的證據檔被當成對話開始前的舊檔擋下。
+    三家本機的真實紀錄都帶 Z（查證見結果檔），這是保守修法：無時區就跳過這項，不擋。
+    """
+    shot = tmp_path / "fresh_shot.png"
+    shot.write_bytes(b"png")
+    naive = (datetime.now(UTC) + timedelta(hours=8)).replace(tzinfo=None).isoformat(timespec="seconds")
+    tr = tmp_path / "t.jsonl"
+    tr.write_text(json.dumps({"type": "user", "timestamp": naive, "message": {"content": "開工"}}) + "\n",
+                  encoding="utf-8")
+    assert dc.session_start(str(tr)) is None
+    assert dc.handle(stop(receipt("fresh_shot.png"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK) is None
+
+
+@pytest.mark.parametrize("ts", ["2026-11-27T04:00:00.123Z", "2026-11-27T04:00:00Z", "2026-11-27T12:00:00+08:00"])
+def test_session_start_reads_real_transcript_time_formats(tmp_path, ts):
+    """三家本機紀錄實際的格式（Claude、Codex 帶毫秒的 Z；Antigravity 不帶毫秒的 Z）都照常讀成對話開始時間。"""
+    tr = tmp_path / "t.jsonl"
+    tr.write_text(json.dumps({"timestamp": ts, "created_at": ts}) + "\n", encoding="utf-8")
+    assert dc.session_start(str(tr)) == datetime.fromisoformat(ts).timestamp()
+
+
+def transcript_with_command(tmp_path: Path, command: str, tool: str = "Bash") -> Path:
+    tr = tmp_path / "t.jsonl"
+    rows = [{"type": "user", "timestamp": "2026-01-01T00:00:00.000Z", "message": {"content": "做完寫 .done"}},
+            {"type": "assistant", "message": {"id": "m1", "content": [
+                {"type": "tool_use", "id": "t1", "name": tool, "input": {"command": command}}]}}]
+    tr.write_text("\n".join(json.dumps(x, ensure_ascii=False) for x in rows) + "\n", encoding="utf-8")
+    return tr
+
+
+@pytest.mark.parametrize("quote", ['"', "'"])
+@pytest.mark.parametrize("tool", ["Bash", "PowerShell"])
+def test_done_path_with_spaces_in_quotes(tmp_path, quote, tool):
+    """D10-R-08 之 2：shell 指令寫進含空白資料夾的 "…/my reports/out.md.done"，要抓整段路徑，不能只抓後半截而誤擋 no-receipt。"""
+    folder = tmp_path / "my reports"
+    folder.mkdir()
+    (folder / "out.md").write_text(receipt(), encoding="utf-8")
+    done = folder / "out.md.done"
+    command = (f"echo ok > {quote}{done}{quote}" if tool == "Bash"
+               else f"Set-Content -Path {quote}{done}{quote} -Value ok")
+    tr = transcript_with_command(tmp_path, command, tool)
+    assert dc.done_paths_this_turn(str(tr)) == [str(done)]
+    assert dc.handle(stop("寫好了。", cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK) is None
+
+
+def test_unquoted_done_paths_are_still_found(tmp_path):
+    command = "echo ok > out/report.done && cp a.md.done b/c.md.done; echo x.done.bak"
+    tr = transcript_with_command(tmp_path, command)
+    assert dc.done_paths_this_turn(str(tr)) == ["out/report.done", "a.md.done", "b/c.md.done"]
+
+
+def test_long_command_without_done_is_linear_time(tmp_path):
+    """D10-R-09（順手）：很長、沒有空白的指令（base64、長 JSON），找 .done 不能二次方回溯拖過 hook 的 15 秒逾時。"""
+    tr = transcript_with_command(tmp_path, "A" * 80_000 + " > out/report.done")
+    t0 = time.perf_counter()
+    found = dc.done_paths_this_turn(str(tr))
+    assert time.perf_counter() - t0 < 2.0
+    assert found == ["out/report.done"]
+
+
+# ---- 壞輸入一律放行（hook 出錯不能卡住對話） ----
+
+@pytest.mark.parametrize("msg", [
+    "【完成待收尾】\n```\n沒關的程式碼區塊 | 層級 | 證據 |",
+    "【完成待收尾】\n| 需求項 | 驗證層級 | 證據位置 |\n|---|---|---|\n| `沒關的反引號 | 單元 | a.png \\",
+    "【完成待收尾】\n| 層級 | 證據 |\n| \\| | \\",
+    "【完成待收尾】" + "`" * 5000 + "|" * 5000,
+])
+def test_malformed_markdown_does_not_raise(tmp_path, msg):
+    result = dc.check(msg, cwd=str(tmp_path))
+    assert result.triggered
+    env = {**os.environ, **BLOCK, "OMNIKIT_STATE_DIR": str(tmp_path / "st")}
+    payload = json.dumps(stop(msg, cwd=str(tmp_path)), ensure_ascii=False).encode("utf-8")
+    p = subprocess.run([sys.executable, str(SCRIPTS / "done_check.py")], input=payload, capture_output=True, env=env,
+                       check=False)
+    assert p.returncode == 0 and p.stderr == b""
+
+
+@pytest.mark.parametrize("command", ['echo "', "echo '.done'", 'x > ".done"', "\"'\"'.done", "a.done" + '"' * 3000])
+def test_malformed_commands_do_not_raise(tmp_path, command):
+    tr = transcript_with_command(tmp_path, command)
+    assert isinstance(dc.done_paths_this_turn(str(tr)), list)

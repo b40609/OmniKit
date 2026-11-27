@@ -28,7 +28,7 @@ def write_cache(home, iid, used, reset):
 
 def quotas(tmp_path, monkeypatch):
     import accounts
-    monkeypatch.setattr(accounts, "can_auto", lambda r, what: (True, ""))
+    monkeypatch.setattr(accounts, "can_auto", lambda r, what, now=None: (True, ""))
     home = tmp_path / "home"
     t3_raw = {i: {"driver": "claudeAgent", "config": {"homePath": f"~/.{i}"}} for i in IDS}
     return ap.claude_quotas(tmp_path / "state", rows(), None, 80, home=home, t3_raw=t3_raw, now=T0)
