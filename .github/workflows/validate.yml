@@ -72,6 +72,8 @@ jobs:
       - run: uv run engine/skills/omnikit-capabilities/scripts/run.py --json > /dev/null
       # 說做不到查證的 Stop hook：寫死的例子與盲測集的誤擋率、hook 的輸入輸出（擋一次、第二次放行、可關閉）
       - run: uv run engine/scripts/claim_check.py --selftest
+      # NOW.md 完工路徑確定性門檻：打勾前查 CI（紅燈／進行中／無紀錄一律拒絕打勾）
+      - run: uv run engine/scripts/now_tick.py --selftest
       # 無帳本同步器（規則、skills junction、Claude 薄 plugin、Codex MCP CLI、Antigravity 薄 plugin、零遞迴刪除）自我測試
       - run: uv run engine/scripts/sync.py --selftest
       # 找出每個 agent 在用的設定目錄（多帳號、T3 Code 的實例、CLAUDE_CONFIG_DIR…），以及開新對話時接上新出現的

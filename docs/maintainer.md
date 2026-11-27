@@ -8,6 +8,7 @@
 - [新增一種業務](#新增一種業務)
 - [槽位的答案](#槽位的答案)
 - [改名冊](#改名冊)
+- [發版與合併流程（分支保護＋PR＋tag）](#發版與合併流程分支保護prtag)
 - [更新 README 門面圖](#更新-readme-門面圖)
 - [更新架構地圖](#更新架構地圖)
 - [跟上原作者的更新](#跟上原作者的更新)
@@ -81,6 +82,15 @@ uv run engine/scripts/build.py --site _site
 ```
 
 uv 不在 PATH 上的話，把 `uv` 換成 `& "$env:LOCALAPPDATA\Programs\uv\uv.exe"`。CI 會再檢查名冊、marketplace 清單是不是最新、看板能不能產生，並用 gitleaks 掃金鑰。
+
+## 發版與合併流程（分支保護＋PR＋tag）
+
+`main` 已啟用 GitHub 分支保護，所有改動一律走 PR 經過 CI 門檻才合併，不直接推 `main`：
+
+1. **開分支與提交**：從最新 `main` 切出工作分支（例如 `fix/...`、`feat/...`），小步 commit 並推送該分支（不要用 `git push --mirror`；維護者本機掃全歷史請用 `--log-opts="--branches --remotes"`）。
+2. **開 PR 等 CI 綠燈**：用 `gh pr create`（或 T3 的 `pull_request_create`）開 PR，等待「檢查」workflow 的必過檢查（`名冊`、`Windows（PowerShell 5.1）`、`Windows（PowerShell 7）`、`金鑰外洩`）全部通過。
+3. **直接合併**：CI 全綠後直接合併（`gh pr merge` 或 `pull_request_merge`）並清理已合併分支；合併回 `main` 後由 `now_tick.py` 查證 `gh run list --commit <sha>` 全綠才在狀態板 `NOW.md` 打勾。
+4. **發給同事的穩定版本（tag）**：由維護者本人確認要發給同事的版本後，在該 `main` commit 上打語意版本 tag（例如 `git tag -a v0.1.0 -m "首次同事試用版" && git push origin v0.1.0`）。同事端用 `git fetch --tags` 與 `install.ps1 -Tag v0.1.0` 升級，平日 `main` 上的變動不會波及同事。
 
 ## 更新 README 門面圖
 

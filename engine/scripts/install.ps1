@@ -63,6 +63,8 @@ AppData 底下新建的檔會被轉存到那個 app 自己的位置，終端機�
                        ~/.omnikit/profiles/<名稱>（訪談產生的），再找 data/profiles/<名稱>。
   -Edition <版本>      colleague（同事版）或 maintainer（維護者版），記下來；之後重跑不用再指定。
                        沒指定也沒記過：分版之前就裝過的電腦是維護者版，其他都是同事版。
+  -Tag <發行標籤>      同事版指定要安裝／升級到的發行 tag（例如 v0.1.0）；未指定時，同事版若偵測到
+                       v* 發行 tag 會自動鎖定最新穩定 tag（維護者推 main 不會影響你）。
   -Fresh               這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
                        備份後移除，避免新舊規則同時生效。
   -WhatIf              預覽：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不寫檔）；也會跑安裝前檢查。
@@ -71,9 +73,9 @@ AppData 底下新建的檔會被轉存到那個 app 自己的位置，終端機�
                        以及 uv 被防毒鎖住時的重試（用假的鎖檔），不動這台的設定。
 
 用法（Windows PowerShell 5.1 或 PowerShell 7）：
-  powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Edition colleague|maintainer] [-Fresh] [-WhatIf]
+  powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Edition colleague|maintainer] [-Tag <版本>] [-Fresh] [-WhatIf]
 #>
-param([string]$ProfileName, [ValidateSet('colleague', 'maintainer')][string]$Edition, [switch]$Fresh, [switch]$WhatIf,
+param([string]$ProfileName, [ValidateSet('colleague', 'maintainer')][string]$Edition, [string]$Tag, [switch]$Fresh, [switch]$WhatIf,
   [switch]$SelfTest, [string[]]$SkipCheck = @())
 
 $ErrorActionPreference = 'Stop'
@@ -389,6 +391,51 @@ function Clear-OldClaudeRules {
   Write-Host "已移除 CLAUDE.md 受管區塊以外的舊規則，備份在 $backup"
 }
 
+# 同事版版本鎖定（KIT-A-06）：只用穩定發行 tag（v*），不跟著維護者的 main HEAD 浮動。
+# 不用 2>$null：PowerShell 5.1 在 Stop 模式下會把原生指令的 stderr 當成錯誤丟出。
+function Get-LatestReleaseTag($repoPath) {
+  $tags = @(git -C $repoPath tag -l 'v*' --sort=-v:refname | Where-Object { $_ -and $_.Trim() })
+  if ($tags.Count -gt 0) { return $tags[0].Trim() }
+  return $null
+}
+
+function Get-CurrentTag($repoPath) {
+  $tags = @(git -C $repoPath tag --points-at HEAD | Where-Object { $_ -and $_.Trim() })
+  if ($tags.Count -gt 0) { return $tags[0].Trim() }
+  return $null
+}
+
+function Switch-ColleagueTag($edition, $requestedTag) {
+  if ($edition -eq 'maintainer') { return $null }
+  $curTag = Get-CurrentTag $Repo
+  $target = if ($requestedTag) { $requestedTag.Trim() } else { $null }
+  if ($target) {
+    $matched = @(git -C $Repo tag -l -- $target | Where-Object { $_.Trim() -eq $target })
+    if (-not $matched) { throw "找不到發行 tag「$target」，請先執行 git fetch --tags 並確認版本名稱" }
+  } elseif ($curTag) {
+    Write-Host "同事版穩定發行版本：$curTag"
+    return $curTag
+  } else {
+    $target = Get-LatestReleaseTag $Repo
+    if (-not $target) {
+      Write-Host '提示：目前 repo 尚未建立發行 tag（v*），暫以目前版本安裝；正式發版後將自動鎖定最新穩定 tag。'
+      return $null
+    }
+  }
+  if ($curTag -eq $target) {
+    Write-Host "同事版已在穩定發行版本：$target"
+    return $target
+  }
+  $dirty = @(git -C $Repo status --porcelain | Where-Object { $_ -and $_.Trim() })
+  if ($dirty.Count -gt 0) {
+    throw "repo 有尚未提交的本機變更，無法切換到發行 tag「$target」；請先處理變更後重跑"
+  }
+  git -C $Repo -c advice.detachedHead=false checkout --quiet $target
+  if ($LASTEXITCODE -ne 0) { throw "切換到發行 tag「$target」失敗（exit $LASTEXITCODE）" }
+  Write-Host "同事版已切換至穩定發行版本：$target（維護者推 main 不會影響你）"
+  return $target
+}
+
 # 維護者版：commit 前掃金鑰、驗證名冊，commit 或 pull 後自動同步。
 # 同事版不設 git hook，pull 不會改任何設定；以前設過的拿掉
 function Set-GitHooks($edition) {
@@ -416,6 +463,17 @@ function Show-InstallPlan {
     $plan += '版本：維護者版（commit 或 pull 後 git hook 自動同步；免問核准照 data 寫入）'
   } else {
     $plan += '版本：同事版（不設 git hook，pull 不會自動改設定；免問核准每個工具先問你）'
+    $curTag = Get-CurrentTag $Repo
+    $latestTag = Get-LatestReleaseTag $Repo
+    if ($Tag) {
+      $plan += "發行版本：切換至指定 tag「$Tag」"
+    } elseif ($curTag) {
+      $plan += "發行版本：維持目前的穩定 tag「$curTag」"
+    } elseif ($latestTag) {
+      $plan += "發行版本：自動切換至最新穩定 tag「$latestTag」（不追蹤 main HEAD）"
+    } else {
+      $plan += '發行版本：repo 尚未建立 v* 發行 tag，暫以目前版本安裝'
+    }
   }
   $tools = @(
     @{ Name = 'uv'; Version = $UvVersion; Path = $UvExe; Command = 'uv' },
@@ -589,7 +647,7 @@ function Show-NextSteps($edition) {
   }
   Write-Host '  - 換 profile：重跑 install.ps1 -ProfileName <名稱>，或 uv run engine/scripts/profiles.py --set <名稱>'
   if ($edition -ne 'maintainer') {
-    Write-Host '  - 這台是同事版：pull 不會自動改設定；要套用更新，先跑 install.ps1 -WhatIf 預覽，再跑 install.ps1'
+    Write-Host '  - 這台是同事版：預設鎖定穩定發行 tag，不會跟著 main 浮動；更新時先 git fetch --tags，再跑 install.ps1 -Tag <新版本> -WhatIf 預覽、install.ps1 -Tag <新版本> 套用'
     Write-Host '  - 免問核准：uv run engine/scripts/sync.py approvals 查看；--grant <名稱> 同意、--revoke <名稱> 撤回'
   }
   if ($hasEval) {
@@ -633,6 +691,45 @@ function Invoke-SelfTest {
     Check 'Set-GitHooks colleague：本來就沒設，不出錯' (-not (git -C $script:Repo config --get core.hooksPath))
     Set-GitHooks 'maintainer'
     Check 'Set-GitHooks maintainer：設成 .githooks' ((git -C $script:Repo config --get core.hooksPath) -eq '.githooks')
+
+    # 同事版發行 tag 鎖定（KIT-A-06）：自然版本排序、同事自動切到最新 tag、指定 -Tag、維護者不動分支、髒工作區拒絕切換
+    $tagRepo = Join-Path $tmp 'tr'
+    git -c core.longpaths=true init --quiet $tagRepo
+    git -C $tagRepo config core.longpaths true
+    git -C $tagRepo config user.name 'selftest'
+    git -C $tagRepo config user.email 'selftest@example.com'
+    git -C $tagRepo config core.autocrlf false
+    $savedTagRepo = $script:Repo
+    $script:Repo = $tagRepo
+    try {
+      [IO.File]::WriteAllText((Join-Path $tagRepo 'f.txt'), "v1`n", (New-Object Text.UTF8Encoding($false)))
+      git -C $tagRepo add f.txt
+      git -C $tagRepo commit --quiet -m 'c1'
+      Check 'Get-LatestReleaseTag：無 tag 時回 $null，同事版不報錯' ($null -eq (Get-LatestReleaseTag $tagRepo) -and $null -eq (Switch-ColleagueTag 'colleague' ''))
+      git -C $tagRepo tag v0.1.0
+      [IO.File]::WriteAllText((Join-Path $tagRepo 'f.txt'), "v2`n", (New-Object Text.UTF8Encoding($false)))
+      git -C $tagRepo commit --quiet -am 'c2'
+      git -C $tagRepo tag v0.2.0
+      [IO.File]::WriteAllText((Join-Path $tagRepo 'f.txt'), "v10`n", (New-Object Text.UTF8Encoding($false)))
+      git -C $tagRepo commit --quiet -am 'c3'
+      git -C $tagRepo tag v0.10.0
+      [IO.File]::WriteAllText((Join-Path $tagRepo 'f.txt'), "dev`n", (New-Object Text.UTF8Encoding($false)))
+      git -C $tagRepo commit --quiet -am 'c4-dev'
+      $devBranch = (git -C $tagRepo branch --show-current).Trim()
+      Check 'Get-LatestReleaseTag：語意版本自然排序 v0.10.0 > v0.2.0' ((Get-LatestReleaseTag $tagRepo) -eq 'v0.10.0')
+      $mRes = Switch-ColleagueTag 'maintainer' ''
+      Check 'Switch-ColleagueTag maintainer：維持原分支不切換' ($null -eq $mRes -and (git -C $tagRepo branch --show-current).Trim() -eq $devBranch)
+      $cRes = Switch-ColleagueTag 'colleague' ''
+      Check 'Switch-ColleagueTag colleague：未指定 -Tag 時自動切換到最新穩定 tag（略過未發版 commit）' ($cRes -eq 'v0.10.0' -and (Get-CurrentTag $tagRepo) -eq 'v0.10.0')
+      $pRes = Switch-ColleagueTag 'colleague' 'v0.1.0'
+      Check 'Switch-ColleagueTag colleague -Tag v0.1.0：切換到指定發行 tag' ($pRes -eq 'v0.1.0' -and (Get-CurrentTag $tagRepo) -eq 'v0.1.0')
+      [IO.File]::WriteAllText((Join-Path $tagRepo 'f.txt'), "dirty`n", (New-Object Text.UTF8Encoding($false)))
+      $dirtyBlocked = $false
+      try { [void](Switch-ColleagueTag 'colleague' 'v0.10.0') } catch { $dirtyBlocked = $_.Exception.Message -match '尚未提交' }
+      Check 'Switch-ColleagueTag：工作區有未提交變更時拒絕切換' $dirtyBlocked
+    } finally {
+      $script:Repo = $savedTagRepo
+    }
 
     # profile 的位置（FR-38）：訪談產生的在 repo 外，同名時優先；舊版存在 repo 裡、沒進版本控制的要搬
     $utf8 = New-Object Text.UTF8Encoding($false)
@@ -755,6 +852,7 @@ Install-Uv
 Merge-LegacyState
 Install-Gh
 $CurrentEdition = Resolve-Edition $Edition
+[void](Switch-ColleagueTag $CurrentEdition $Tag)
 if ($CurrentEdition -eq 'maintainer') { Install-Gitleaks }
 Sync-RepoConfig
 Install-McpPackages

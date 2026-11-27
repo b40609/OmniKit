@@ -7,7 +7,7 @@ description: 評估新的 agent 工具（skill、MCP、plugin、CLI）值不值�
 
 名冊在 OmniKit repo 的 `data/`：`modules/<層>/<id>.yaml` 是模組，一個檔裡有幾個槽位與情境範本（層分基礎 `foundation`、能力 `capability`、領域 `domain`）；`tools/*.yaml` 一個工具一張卡。使用者自己的真實情境在 profile 資料夾的 `scenarios.yaml`：訪談產生的在 repo 外（`~/.omnikit/profiles/<名稱>/`），維護者的在 `data/profiles/<名稱>/`。下面的指令路徑都相對於這個 skill 的資料夾；腳本輸出的 `omnikit_root` 就是 repo 根目錄。`uv` 不在 PATH 時，用 `%LOCALAPPDATA%\Programs\uv\uv.exe`。
 
-情境以 `peers.py` 輸出的 `slot.scenarios` 為準：已經套上這台選的 profile，沒寫到的槽位才是範本。情境裡還有 `<你的專案>` 這類佔位時，先問使用者換成哪個真實專案，再把答案寫進 `peers.py` 輸出的 `profile_dir` 裡的 `scenarios.yaml`（格式見 `data/profiles/ryan/scenarios.yaml`）。`profile` 是 `default` 或空的話，不要寫進 `data/profiles/default`：先請使用者說「幫我設定 OmniKit」建立自己的 profile（存在 repo 外，不會被 commit）。不要拿佔位直接評。
+情境以 `peers.py` 輸出的 `slot.scenarios` 為準：已經套上這台選的 profile，沒寫到的槽位才是範本。情境裡還有 `<你的專案>` 這類佔位時，先問使用者換成哪個真實專案，再把答案寫進 `peers.py` 輸出的 `profile_dir` 裡的 `scenarios.yaml`（不在公開 repo 裡，放 `~/.omnikit/profiles/<名稱>/scenarios.yaml`）。`profile` 是 `default` 或空的話，不要寫進 `data/profiles/default`：先請使用者說「幫我設定 OmniKit」建立自己的 profile（存在 repo 外，不會被 commit）。不要拿佔位直接評。
 
 三層各自獨立、JSON 進出：第 0、1 層便宜，可以批次跑；第 2 層只在使用者點名時跑。
 
@@ -103,4 +103,4 @@ uv run scripts/digest.py [--since YYYY-MM-DD]
 
 ## 改完名冊之後
 
-commit 時，pre-commit 會跑金鑰檢查、驗證名冊，並重新產生 marketplace 清單。push 依使用者的規則，要等使用者明確同意。
+commit 時，pre-commit 會跑金鑰檢查、驗證名冊，並重新產生 marketplace 清單。若 repo 已啟用 `main` 分支保護（例如 OmniKit），一律改走「推工作分支 → 開 PR → 等 CI 綠燈 → 合併」，不要直接推 `main`；push 與合併時機依使用者的規則。
