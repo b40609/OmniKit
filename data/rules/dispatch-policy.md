@@ -8,6 +8,7 @@
 1. 照 `tasks` 判斷任務類型，得到級別；在 `levels.<級別>.route` 由上往下挑第一個「你有實例、額度沒用完、`when` 成立（沒寫就算成立）、`tasks` 有列就要包含這個任務」的選項。
 2. 思考程度照選項寫明（Claude 叫 `effort`，Antigravity 叫 `thought_level`），不要沿用主線的設定，也不要靠預設值。
 3. 照 `channels` 選管道；派給 Antigravity 的模型時，管道照你的偏好 `visibility`（個人層 `dispatch.md` 的 `visibility`，沒寫用這裡的 `visibility.default`）；開子對話或派子代理時，在任務說明寫明級別與思考程度。派給 Antigravity 的模型時，任務說明還要照 `antigravity_turns.brief` 寫明交付檔與完成標記，驗收照 `antigravity_turns.verify`。
+   - 唯讀審查與驗收（`second_opinion`、`verify`、`readonly`）的任務說明加一行：跑任何指令前後用 fs_guard 比對（`uv run engine/scripts/fs_guard.py run --watch <根目錄…> --allow <交付檔> -- <指令>`，根目錄含被 .gitignore 的資料夾與專案宣告的家目錄路徑），允許清單外有變動就停下回報，不能宣稱沒改檔。
 4. 重大架構盲審（`architecture`）與工具評測子對話，嚴格遵守 `blind_review` 協定並**隔離跨對話記憶注入**。
 5. 子任務結果收回、驗收完、要 settle 之前，記一行委派紀錄（`run.py log`）；一次委派一行，重跑與升級記在同一行。
 6. 驗收不過照 `escalation` 升級，升級也要記。

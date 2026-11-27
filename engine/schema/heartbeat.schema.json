@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OmniKit 心跳狀態檔（spec 1）",
+  "description": "由讀取方判定的心跳與新鮮度規格（D10 改動 2）。7 條：\n1. 狀態檔不准存狀態字（running、ok、healthy…），只存事實與時間。\n2. 是否正常由讀的一方算：現在時間減 last_success_ts 大於 expected_period_s 加 grace_s 就是 STALE。\n3. 讀不到檔、欄位缺、時間解析失敗、pid 不存在或啟動時間對不上，一律 DOWN，不能當正常。\n4. 「成功」要是產出面的事實（progress 的寫出筆數、資料最新日期、這一輪錯誤數），不是 exit code：只有真的有產出才更新 last_success_ts。\n5. 檢查器只有全部新鮮才 exit 0；任何成功字樣只能在所有檢查跑完之後印。\n6. 檢查器自己也寫一筆心跳（stale_check.py --self-heartbeat），由另一個獨立觸發點看。\n7. 「已上線」要能對版本：帶 build，部署後要看到新的 build，而且 pid_start_ts 晚於部署開始時間（stale_check.py --expect-build、--started-after）。\n參考檢查器：engine/scripts/stale_check.py。時間一律 ISO 8601 並帶時區。擴充欄位用 x_ 開頭。",
+  "type": "object",
+  "required": [
+    "spec",
+    "name",
+    "last_attempt_ts",
+    "last_success_ts",
+    "expected_period_s",
+    "grace_s"
+  ],
+  "properties": {
+    "spec": {
+      "const": 1,
+      "description": "規格版本"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "工作或服務名稱，例如 demo-bot、daily-job"
+    },
+    "last_attempt_ts": {
+      "$ref": "#/$defs/timestamp",
+      "description": "最後一次開始嘗試的時間（不管成功與否）；晚於現在就是時鐘錯亂，判 DOWN"
+    },
+    "last_success_ts": {
+      "$ref": "#/$defs/timestamp",
+      "description": "最後一次有產出的成功時間；不能晚於 last_attempt_ts"
+    },
+    "expected_period_s": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "預期多久成功一次（秒）；每週一次的工作寫 604800"
+    },
+    "grace_s": {
+      "type": "number",
+      "minimum": 0,
+      "description": "寬限（秒）：超過週期加寬限沒有新的成功就是 STALE"
+    },
+    "pid": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "常駐行程的 pid；跑完就結束的工作不要寫"
+    },
+    "pid_start_ts": {
+      "$ref": "#/$defs/timestamp",
+      "description": "行程啟動時間（行程一啟動就記）；讀的一方拿系統的啟動時間比，對不上判 DOWN"
+    },
+    "build": {
+      "type": "string",
+      "minLength": 1,
+      "description": "跑的版本，例如 commit 短 SHA"
+    },
+    "max_data_age_days": {
+      "type": "number",
+      "minimum": 0,
+      "description": "progress.data_date 最多可以落後幾天；讀的一方也可以用 --max-data-age-days 指定"
+    },
+    "progress": {
+      "type": "object",
+      "description": "產出面的事實；額外的欄位可以是數字、字串、布林或 null，但不能是狀態字",
+      "properties": {
+        "items_out": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "這一輪寫出幾筆"
+        },
+        "data_date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "資料最新日期"
+        },
+        "errors_last_run": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "這一輪 log 裡的錯誤數"
+        }
+      },
+      "propertyNames": {
+        "not": {
+          "$ref": "#/$defs/statusKey"
+        }
+      },
+      "additionalProperties": {
+        "type": [
+          "number",
+          "string",
+          "boolean",
+          "null"
+        ],
+        "not": {
+          "$ref": "#/$defs/statusWord"
+        }
+      }
+    }
+  },
+  "patternProperties": {
+    "^x_[A-Za-z0-9_]+$": {
+      "not": {
+        "$ref": "#/$defs/statusWord"
+      }
+    }
+  },
+  "propertyNames": {
+    "not": {
+      "enum": [
+        "x_status",
+        "x_state",
+        "x_health",
+        "x_healthy",
+        "x_ok",
+        "x_running",
+        "x_alive",
+        "x_up",
+        "x_success",
+        "x_verified",
+        "x_passes"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(Z|z|[+-]\\d{2}:\\d{2})$"
+    },
+    "statusKey": {
+      "enum": [
+        "status",
+        "Status",
+        "STATUS",
+        "state",
+        "State",
+        "STATE",
+        "health",
+        "Health",
+        "HEALTH",
+        "healthy",
+        "Healthy",
+        "HEALTHY",
+        "ok",
+        "Ok",
+        "OK",
+        "running",
+        "Running",
+        "RUNNING",
+        "alive",
+        "Alive",
+        "ALIVE",
+        "up",
+        "Up",
+        "UP",
+        "success",
+        "Success",
+        "SUCCESS",
+        "verified",
+        "Verified",
+        "VERIFIED",
+        "passes",
+        "Passes",
+        "PASSES"
+      ]
+    },
+    "statusWord": {
+      "enum": [
+        "running",
+        "Running",
+        "RUNNING",
+        "ok",
+        "Ok",
+        "OK",
+        "healthy",
+        "Healthy",
+        "HEALTHY",
+        "alive",
+        "Alive",
+        "ALIVE",
+        "green",
+        "Green",
+        "GREEN",
+        "success",
+        "Success",
+        "SUCCESS",
+        "succeeded",
+        "Succeeded",
+        "SUCCEEDED",
+        "online",
+        "Online",
+        "ONLINE",
+        "ready",
+        "Ready",
+        "READY",
+        "verified",
+        "Verified",
+        "VERIFIED",
+        "passing",
+        "Passing",
+        "PASSING",
+        "passed",
+        "Passed",
+        "PASSED"
+      ]
+    }
+  }
+}
