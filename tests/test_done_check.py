@@ -62,8 +62,9 @@ def git(repo: Path, *args: str) -> str:
     return p.stdout
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def state(tmp_path, monkeypatch):
+    """每個測試的 tripwire 都寫到暫存目錄，不碰這台真的 ~/.omnikit。"""
     st = tmp_path / "state"
     monkeypatch.setenv("OMNIKIT_STATE_DIR", str(st))
     monkeypatch.delenv("OMNIKIT_TRIPWIRE_LOG", raising=False)
@@ -201,6 +202,14 @@ def test_session_start_comes_from_transcript(tmp_path):
     tr.write_text(json.dumps({"type": "user", "timestamp": started, "message": {"content": "開工"}}) + "\n", encoding="utf-8")
     out = dc.handle(stop(receipt("old.png"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK)
     assert out["decision"] == "block" and "old.png" in out["reason"]
+
+
+def test_unpushed_but_declared_local_only_is_allowed(pushed_repo):
+    (pushed_repo / "b.txt").write_text("b\n", encoding="utf-8")
+    git(pushed_repo, "add", "b.txt")
+    git(pushed_repo, "commit", "-q", "-m", "second")
+    msg = receipt().replace("改好了。", "改好了，這個 repo 沒有權限 push，只在這台。")
+    assert "git-unpushed" not in rules(dc.check(msg, cwd=str(pushed_repo)))
 
 
 def test_uncommitted_changes_block(pushed_repo):
