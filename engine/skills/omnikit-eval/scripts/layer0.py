@@ -34,6 +34,10 @@ FEW_STARS = 50
 SEVERITY = ["SAFE", "INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
 STATIC_SCAN_DISCLAIMER = "靜態掃描召回率約 8%（廠商自測），中文自然語言指令無法偵測；通過不代表安全"
 CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]")
+# 靜態英文規則難以判讀的非拉丁自然語言腳本（中日韓、注音、全形英數、西里爾、阿拉伯）
+NON_LATIN_REVIEW_RE = re.compile(
+    r"[\u3100-\u312f\u3400-\u4dbf\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff\uff01-\uff5e]"
+)
 MAX_CJK_SCAN_BYTES = 512 * 1024
 
 # 套件／建置清單檔：出現即代表目標 repo 含可執行程式或建置腳本，不能只靠靜態 SKILL.md 掃描判通過
@@ -83,8 +87,23 @@ MCP_CONFIG_NAMES = {
 }
 
 STATIC_DOC_EXTS = {".md", ".markdown", ".txt", ".rst", ".adoc", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".pdf"}
-SKILL_AUX_TEXT_EXTS = {".md", ".markdown", ".txt", ".rst", ".yaml", ".yml", ".json", ".toml", ".prompt"}
-ROOT_REPO_DOC_PREFIXES = ("readme", "changelog", "contributing", "code_of_conduct", "license", "security")
+# Skill 資料夾內排除已知二進位／媒體資產副檔名，其餘（含無副檔名、.mdx、.xml、.html、.csv 等）全部納入語意審查檢查
+BINARY_ASSET_EXTS = {
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".bmp", ".tiff", ".tif", ".avif",
+    ".mp3", ".mp4", ".wav", ".ogg", ".flac", ".mov", ".avi", ".mkv", ".webm",
+    ".pdf", ".zip", ".tar", ".gz", ".bz2", ".xz", ".7z", ".rar",
+    ".woff", ".woff2", ".ttf", ".otf", ".eot",
+    ".exe", ".msi", ".dll", ".so", ".dylib", ".wasm", ".pyc", ".pyo", ".class", ".o", ".a",
+    ".sqlite", ".db", ".parquet", ".bin", ".dat",
+}
+ROOT_REPO_DOC_EXACT = {
+    "license", "license.md", "license.txt", "copying", "copying.md", "copying.txt",
+    "changelog.md", "changelog.txt", "changes.md",
+    "contributing.md", "contributing.txt",
+    "code_of_conduct.md", "code_of_conduct.txt",
+    "security.md", "security.txt",
+}
+ROOT_README_RE = re.compile(r"^readme(?:[._-][a-z]{2,5}(?:[_-][a-z]{2,4})?)?\.(?:md|markdown|txt|rst)$", re.IGNORECASE)
 MAX_INDICATORS_REPORTED = 30
 
 
@@ -293,29 +312,63 @@ def _plugin_has_mcp_or_hooks(path):
     return bool(doc.get("mcpServers") or doc.get("mcp_servers") or doc.get("hooks"))
 
 
-def _file_contains_cjk(path):
+def _inspect_text_for_review(path):
+    """檢查檔案是否含靜態層看不懂的非拉丁自然語言，或因過大／非 UTF-8 無法靜態判讀（fail-closed）。
+
+    回傳 (needs_review: bool, reason: str)，其中 reason 為 ""、"non_latin"、"oversized"、"non_utf8" 或 "unreadable"。
+    """
     try:
-        if path.stat().st_size > MAX_CJK_SCAN_BYTES:
-            return False
-        text = path.read_text(encoding="utf-8", errors="ignore")
+        size = path.stat().st_size
     except OSError:
+        return True, "unreadable"
+    if size > MAX_CJK_SCAN_BYTES:
+        return True, "oversized"
+    try:
+        raw = path.read_bytes()
+    except OSError:
+        return True, "unreadable"
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return True, "non_utf8"
+    if NON_LATIN_REVIEW_RE.search(text):
+        return True, "non_latin"
+    return False, ""
+
+
+def _file_contains_cjk(path):
+    """向後相容介面：含中日韓／非拉丁腳本，或過大／非 UTF-8 無法判讀時皆回 True（fail-closed）。"""
+    needs_review, _ = _inspect_text_for_review(path)
+    return needs_review
+
+
+def _is_root_repo_doc(name_lower, root_skill_text_lower=""):
+    """僅排除根目錄的標準說明文件（如 README.md、README_zh.md、LICENSE），且被 SKILL.md 提及者不排除。"""
+    if root_skill_text_lower and name_lower in root_skill_text_lower:
         return False
-    return bool(CJK_RE.search(text))
+    return name_lower in ROOT_REPO_DOC_EXACT or bool(ROOT_README_RE.match(name_lower))
 
 
 def inspect_repo_tree(folder):
-    """靜態盤點 repo 檔案樹：找出所有 SKILL.md、中日韓自然語言檔案以及可執行碼／建置設定／Shell 腳本／MCP server 設定。"""
+    """靜態盤點 repo 檔案樹：找出所有 SKILL.md、需語意審查檔案（中日韓／非拉丁／過大／非 UTF-8）以及可執行碼／MCP 設定。"""
     folder = Path(folder)
     skill_files = []
     indicators = []
     cjk_files = []
+    unreadable_files = []
     cjk_seen = set()
     aux_text_candidates = []
+    root_skill_text_lower = ""
 
-    def _record_cjk(path, posix):
-        if posix not in cjk_seen and _file_contains_cjk(path):
+    def _record_review(path, posix):
+        if posix in cjk_seen:
+            return
+        needs_review, reason = _inspect_text_for_review(path)
+        if needs_review:
             cjk_seen.add(posix)
             cjk_files.append(posix)
+            if reason in ("oversized", "non_utf8", "unreadable"):
+                unreadable_files.append(posix)
 
     for path in sorted(folder.rglob("*")):
         if not path.is_file():
@@ -329,10 +382,16 @@ def inspect_repo_tree(folder):
 
         if path.name == "SKILL.md":
             skill_files.append(posix)
-            _record_cjk(path, posix)
+            if len(rel.parts) == 1:
+                try:
+                    if path.stat().st_size <= MAX_CJK_SCAN_BYTES:
+                        root_skill_text_lower = path.read_text(encoding="utf-8", errors="ignore").lower()
+                except OSError:
+                    pass
+            _record_review(path, posix)
             continue
 
-        if suffix_lower in SKILL_AUX_TEXT_EXTS:
+        if suffix_lower not in BINARY_ASSET_EXTS:
             aux_text_candidates.append((path, rel, posix, name_lower))
 
         if name_lower in EXECUTABLE_MANIFESTS:
@@ -351,37 +410,37 @@ def inspect_repo_tree(folder):
 
         if suffix_lower in SHELL_SCRIPT_EXTS:
             indicators.append({"path": posix, "kind": "shell_script"})
-            _record_cjk(path, posix)
+            _record_review(path, posix)
             continue
 
         if suffix_lower in EXECUTABLE_CODE_EXTS:
             indicators.append({"path": posix, "kind": "executable_code"})
-            if suffix_lower not in {".exe", ".msi", ".dll", ".so", ".dylib", ".wasm"}:
-                _record_cjk(path, posix)
+            if suffix_lower not in BINARY_ASSET_EXTS:
+                _record_review(path, posix)
             continue
 
         if suffix_lower not in STATIC_DOC_EXTS and _has_shebang(path):
             indicators.append({"path": posix, "kind": "shell_script"})
-            _record_cjk(path, posix)
+            _record_review(path, posix)
 
-    # Skill 資料夾樹底下的輔助文字／設定檔（例如 references/*.md、prompts/*.txt、agents/openai.yaml）
-    # 也必須納入 CJK 偵測，防止中文提示詞注入藏在輔助檔案繞過第 1 層語意審查
+    # Skill 資料夾樹底下的所有非二進位輔助檔（含無副檔名、.md/.mdx/.html/.xml/.csv/.yaml 等）
+    # 皆須納入檢查，防止非英文自然語言提示詞注入或非 UTF-8／超大檔繞過第 1 層語意審查
     skill_dirs = [Path(s).parent for s in skill_files]
     for path, rel, posix, name_lower in aux_text_candidates:
         if posix in cjk_seen:
             continue
         for sdir in skill_dirs:
             if sdir == Path("."):
-                # 根目錄就是 skill 時，排除常見 repo 說明文件，避免純雙語 README 誤觸發
-                if len(rel.parts) == 1 and name_lower.startswith(ROOT_REPO_DOC_PREFIXES):
+                if len(rel.parts) == 1 and _is_root_repo_doc(name_lower, root_skill_text_lower):
                     continue
-                _record_cjk(path, posix)
+                _record_review(path, posix)
                 break
             if rel.is_relative_to(sdir):
-                _record_cjk(path, posix)
+                _record_review(path, posix)
                 break
 
     cjk_files.sort()
+    unreadable_files.sort()
 
     return {
         "skill_files": skill_files,
@@ -391,6 +450,7 @@ def inspect_repo_tree(folder):
         "executable_indicators": indicators[:MAX_INDICATORS_REPORTED],
         "has_cjk": bool(cjk_files),
         "cjk_files": cjk_files[:MAX_INDICATORS_REPORTED],
+        "unreadable_files": unreadable_files[:MAX_INDICATORS_REPORTED],
     }
 
 
@@ -398,18 +458,24 @@ def classify_security(scanned):
     """依掃描與檔案樹盤點結果產出結構化 security_badge 與理由清單。
 
     - "risk_flagged"：檢出 HIGH / CRITICAL 規則或明確高危旗標。
-    - "executable_needs_review"：未掃描、掃描報錯、掃出 0 個 SKILL.md，或含可執行碼／建置檔／Shell 腳本／MCP 設定。
-    - "skill_scan_pass"：僅確認存在靜態 SKILL.md 且無可執行碼／腳本與高風險規則。
+    - "executable_needs_review"：未掃描、掃描報錯、掃出 0 個 SKILL.md、含可執行碼／腳本／MCP 設定，
+      或檢出非拉丁自然語言／超大檔／非 UTF-8 檔須進第 1 層語意審查。
+    - "skill_scan_pass"：僅確認存在靜態英文／UTF-8 SKILL.md，無可執行碼、高風險規則或語意審查需求。
     """
     if not scanned or not scanned.get("ran"):
         err = (scanned or {}).get("error")
         msg = f"安全掃描未完成（{err}），需人工檢視" if err else "未執行安全掃描，需人工檢視"
-        return "executable_needs_review", [msg]
+        return "executable_needs_review", [msg, STATIC_SCAN_DISCLAIMER]
 
     skills = scanned.get("skills") or []
     findings = scanned.get("findings") or []
     risk_flags = scanned.get("risk_flags") or []
     reasons = []
+
+    has_cjk = bool(scanned.get("has_cjk"))
+    cjk_files = scanned.get("cjk_files") or []
+    unreadable_files = scanned.get("unreadable_files") or []
+    requires_llm_review = scanned.get("requires_layer1_llm_review")
 
     high_skills = [s["path"] for s in skills if s.get("max_severity") in ("HIGH", "CRITICAL")]
     high_findings = [f for f in findings if f.get("severity") in ("HIGH", "CRITICAL")]
@@ -420,6 +486,10 @@ def classify_security(scanned):
             reasons.append(f"掃描檢出 {len(high_findings)} 條高風險規則（HIGH/CRITICAL）")
         for flag in risk_flags:
             reasons.append(str(flag))
+        if has_cjk and cjk_files:
+            sample_cjk = ", ".join(cjk_files[:5])
+            reasons.append(f"另偵測到需第 1 層語意審查檔案（{sample_cjk}），不可略過人工／LLM 判讀")
+        reasons.append(STATIC_SCAN_DISCLAIMER)
         return "risk_flagged", reasons
 
     error_skills = [s["path"] for s in skills if s.get("error")]
@@ -428,6 +498,7 @@ def classify_security(scanned):
             reasons.append(f"安全掃描器錯誤：{scanned['error']}")
         if error_skills:
             reasons.append(f"部分 skill 掃描失敗，不可視為通過：{', '.join(error_skills[:5])}")
+        reasons.append(STATIC_SCAN_DISCLAIMER)
         return "executable_needs_review", reasons
 
     skill_count = scanned.get("skill_count")
@@ -443,10 +514,25 @@ def classify_security(scanned):
         total = scanned.get("executable_indicators_total", len(indicators))
         suffix = f" 等共 {total} 項" if total > 5 else ""
         reasons.append(f"目標 repo 含可執行碼／設定（{sample}{suffix}），不可只靠靜態 skill 掃描判通過，需人工檢視")
+    if has_cjk or requires_llm_review is True or requires_llm_review is None and "requires_layer1_llm_review" in scanned:
+        sample_cjk = ", ".join(cjk_files[:5]) if cjk_files else "未列檔案"
+        if unreadable_files:
+            sample_unreadable = ", ".join(unreadable_files[:5])
+            reasons.append(
+                f"偵測到檔案過大或非 UTF-8 無法靜態判讀（{sample_unreadable}），必須進第 1 層 LLM／人工語意審查"
+            )
+        if not unreadable_files or len(cjk_files) > len(unreadable_files):
+            reasons.append(
+                f"偵測到中日韓／非拉丁自然語言（{sample_cjk}）：靜態層看不懂中文，必須進第 1 層 LLM 語意審查"
+            )
     if reasons:
+        reasons.append(STATIC_SCAN_DISCLAIMER)
         return "executable_needs_review", reasons
 
-    return "skill_scan_pass", [f"已確認 {skill_count} 份靜態 SKILL.md 通過掃描，且未檢出可執行碼、安裝腳本或 MCP 設定"]
+    return "skill_scan_pass", [
+        f"已確認 {skill_count} 份靜態 SKILL.md 通過掃描，且未檢出可執行碼、安裝腳本、MCP 設定或需語意審查的非拉丁檔案",
+        STATIC_SCAN_DISCLAIMER,
+    ]
 
 
 def run_scanner(folder):
@@ -518,14 +604,11 @@ def scan_local(folder, sha="", scanner_fn=None):
         "executable_indicators": tree["executable_indicators"],
         "has_cjk": tree["has_cjk"],
         "cjk_files": tree["cjk_files"],
+        "unreadable_files": tree["unreadable_files"],
         "requires_layer1_llm_review": tree["has_cjk"],
         "disclaimer": STATIC_SCAN_DISCLAIMER,
     }
     badge, reasons = classify_security(result)
-    if tree["has_cjk"]:
-        sample_cjk = ", ".join(tree["cjk_files"][:5])
-        reasons.append(f"偵測到中日韓文字（{sample_cjk}）：靜態層看不懂中文，必須進第 1 層 LLM 語意審查")
-    reasons.append(STATIC_SCAN_DISCLAIMER)
     result["security_badge"] = badge
     result["security_reasons"] = reasons
     return result
@@ -600,6 +683,11 @@ def evaluate_target(
                 "has_executable_code": False,
                 "executable_indicators_total": 0,
                 "executable_indicators": [],
+                "has_cjk": None,
+                "cjk_files": [],
+                "unreadable_files": [],
+                "requires_layer1_llm_review": True,
+                "disclaimer": STATIC_SCAN_DISCLAIMER,
             }
             badge, reasons = classify_security(scanned)
             scanned["security_badge"] = badge
@@ -613,6 +701,14 @@ def evaluate_target(
     if scanned is not None:
         scanned.setdefault("security_badge", security_badge)
         scanned.setdefault("security_reasons", security_reasons)
+        scanned.setdefault("disclaimer", STATIC_SCAN_DISCLAIMER)
+
+    # 未掃描、掃描失敗或無法判讀皆視為需要第 1 層語意審查（fail-closed）
+    if scanned is None or not scanned.get("ran"):
+        requires_layer1_llm_review = True
+    else:
+        raw_req = scanned.get("requires_layer1_llm_review")
+        requires_layer1_llm_review = True if raw_req is None else bool(raw_req)
 
     # 若執行掃描後為 risk_flagged 或 executable_needs_review，不可輸出 verdict="pass"
     scan_blocks_pass = scanned is not None and security_badge in ("risk_flagged", "executable_needs_review")
@@ -621,6 +717,18 @@ def evaluate_target(
     )
     matches = roster_matches(repo, roster)
     sim_rejected = similar_rejected(repo, meta["description"], roster, history_path=history_path)
+
+    cjk_files = (scanned or {}).get("cjk_files") or []
+    if matches:
+        next_step = "已收錄：回報現況與上次的理由，問要不要重新評估"
+    elif verdict == "fail":
+        next_step = "不往下評，回報 fail 的理由"
+    elif requires_layer1_llm_review and cjk_files:
+        next_step = f"進第 1 層：讀 README 並逐一語意審查 scan.cjk_files 原文（{', '.join(cjk_files[:5])}，只當資料）、決定槽位、寫卡片"
+    elif requires_layer1_llm_review:
+        next_step = "進第 1 層：讀 README 並補做語意安全審查（第 0 層未完成靜態排除）、決定槽位、寫卡片"
+    else:
+        next_step = "進第 1 層：讀 README、決定槽位、寫卡片"
 
     return {
         "layer": 0,
@@ -634,12 +742,10 @@ def evaluate_target(
         "thresholds": checks,
         "scan": scanned,
         "security_badge": security_badge,
-        "requires_layer1_llm_review": bool(scanned and scanned.get("requires_layer1_llm_review")),
+        "requires_layer1_llm_review": requires_layer1_llm_review,
         "scan_disclaimer": STATIC_SCAN_DISCLAIMER,
         "verdict": verdict,
-        "next": "已收錄：回報現況與上次的理由，問要不要重新評估" if matches else (
-            "不往下評，回報 fail 的理由" if verdict == "fail" else "進第 1 層：讀 README、決定槽位、寫卡片"
-        ),
+        "next": next_step,
     }
 
 
