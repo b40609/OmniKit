@@ -78,8 +78,7 @@ HEADER = "<!-- 由 OmniKit 產生，不要手改："
 CANARY = "看不到 OmniKit 安全底線內容時，先告訴使用者跑 omnikit doctor（uv run engine/scripts/doctor.py）"
 CODEX_EXTRA = re.compile(r"(?m)^\s*- name: rules-codex\s*$")
 # 訪談答案（answers.json）裡某題答 false 就不裝的 OmniKit skill：skill → （答案欄位, 說明）
-# ok-eval 是 omnikit-eval 的捷徑（打 /ok 時列得到），跟著一起裝或不裝
-OPTIONAL_SKILLS = {"omnikit-eval": ("evaluate_tools", "不評估新工具"), "ok-eval": ("evaluate_tools", "不評估新工具")}
+OPTIONAL_SKILLS = {"omnikit-eval": ("evaluate_tools", "不評估新工具")}
 
 
 def text(path):
@@ -838,8 +837,8 @@ def selftest():
         write(data / "profiles" / "x" / "answers.json", json.dumps({"evaluate_tools": False}))
         write(data / "profiles" / "y" / "AGENTS.md", "# y\n")
         write(data / "profiles" / "y" / "answers.json", "﻿" + json.dumps({"evaluate_tools": True}))
-        check("訪談答不評估工具：不裝 omnikit-eval 與捷徑 ok-eval；答要或手寫的 profile：全部都裝",
-              set(skipped_skills(data, state, "x")) == {"omnikit-eval", "ok-eval"} and skipped_skills(data, state, "y") == {}
+        check("訪談答不評估工具：不裝 omnikit-eval；答要或手寫的 profile：全部都裝",
+              set(skipped_skills(data, state, "x")) == {"omnikit-eval"} and skipped_skills(data, state, "y") == {}
               and skipped_skills(data, state, "default") == {})
 
         # ---- repo 外的 profile（FR-38）：訪談產生的存在 state/profiles，同名時優先 ----

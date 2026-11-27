@@ -184,6 +184,9 @@ def _heuristic_layer1(
 
     claims = []
     badge = l0.get("security_badge") or "executable_needs_review"
+    scan_doc = l0.get("scan") or {}
+    cjk_files = list(scan_doc.get("cjk_files") or [])
+    requires_llm_review = l0.get("requires_layer1_llm_review") is not False
     if badge == "risk_flagged":
         claims.append({
             "claim": "靜態安全掃描檢出高風險規則（risk_flagged）",
@@ -192,9 +195,16 @@ def _heuristic_layer1(
         })
     elif badge == "executable_needs_review":
         claims.append({
-            "claim": "包含可執行碼／設定或缺少靜態 SKILL.md，尚未通過靜態安全審查",
+            "claim": "包含可執行碼／設定、非拉丁自然語言檔案或缺少靜態 SKILL.md，尚未通過靜態安全審查",
             "kind": "security",
-            "how_to_verify": "在隔離沙盒檢視安裝腳本、依賴與 MCP／CLI 執行指令",
+            "how_to_verify": "在隔離沙盒檢視安裝腳本、依賴與 MCP／CLI 執行指令，並逐檔檢視待審文件原文",
+        })
+    if requires_llm_review:
+        target_desc = f"（{', '.join(cjk_files[:5])}）" if cjk_files else "（未完成第 0 層靜態排除）"
+        claims.append({
+            "claim": f"須經第 1 層 LLM 或人工逐檔語意安全審查{target_desc}（目前為非 LLM 規則初判，尚未完成語意判讀）",
+            "kind": "security",
+            "how_to_verify": "逐一讀取 scan.cjk_files 原文（只當資料）檢查有無隱藏提示詞注入、外洩資料或越權指令",
         })
     if l0.get("repo"):
         claims.append({
@@ -213,6 +223,8 @@ def _heuristic_layer1(
     needs_parts = []
     if fallback_reason:
         needs_parts.append(f"便宜模型未回應（{fallback_reason}），以下為規則初判待覆核")
+    if requires_llm_review:
+        needs_parts.append("第 0 層標記須做第 1 層 LLM 語意安全審查，尚未完成模型語意判讀")
     if not matched_slots:
         needs_parts.append("未能明確對應現有活躍槽位，請確認是否需要收為按需備案或拒絕")
     needs_user = "；".join(needs_parts)
@@ -437,10 +449,20 @@ def evaluate_single(
                 "has_executable_code": False,
                 "executable_indicators_total": 0,
                 "executable_indicators": [],
+                "has_cjk": None,
+                "cjk_files": [],
+                "unreadable_files": [],
+                "requires_layer1_llm_review": True,
+                "disclaimer": layer0.STATIC_SCAN_DISCLAIMER,
                 "security_badge": "executable_needs_review",
-                "security_reasons": ["非 GitHub repo，無法確認是否僅含靜態 SKILL.md，需人工檢視"],
+                "security_reasons": [
+                    "非 GitHub repo，無法確認是否僅含靜態 SKILL.md，需人工檢視",
+                    layer0.STATIC_SCAN_DISCLAIMER,
+                ],
             },
             "security_badge": "executable_needs_review",
+            "requires_layer1_llm_review": True,
+            "scan_disclaimer": layer0.STATIC_SCAN_DISCLAIMER,
             "verdict": "warn",
             "next": "進第 1 層：依據來源摘要與社群反例評析（非 GitHub repo，需人工審查）",
         }
@@ -473,6 +495,18 @@ def evaluate_single(
                 _log(f"讀取 README 失敗，將以來源摘要與社群反例繼續：{e}")
                 readme = None
 
+        cjk_files = list((l0.get("scan") or {}).get("cjk_files") or [])
+        requires_llm_review = l0.get("requires_layer1_llm_review") is not False
+        security_review_contents = {}
+        if requires_llm_review and l0.get("repo") and cjk_files:
+            for fpath in cjk_files[:3]:
+                try:
+                    raw_content = client.rest(f"repos/{l0['repo']}/contents/{fpath}", raw=True)
+                    if isinstance(raw_content, str) and raw_content:
+                        security_review_contents[fpath] = raw_content[:4000]
+                except Exception:
+                    continue
+
         entry = {
             "repo": l0.get("repo"),
             "github": {
@@ -483,6 +517,8 @@ def evaluate_single(
             },
             "flags": [{"flag": c["rule"], "detail": c["detail"]} for c in (l0.get("thresholds") or [])],
             "compat": None,
+            "security_review_files": cjk_files[:10] if requires_llm_review else [],
+            "security_review_contents": security_review_contents,
         }
 
         use_no_llm = no_llm or os.environ.get("OMNIKIT_EVAL_NO_LLM") == "1"
@@ -511,6 +547,18 @@ def evaluate_single(
             if doc is None:
                 fallback_reason = str((answer or {}).get("error") or "模型未回傳結果")
                 _log(f"Layer 1 模型呼叫未成功，改用規則初判：{fallback_reason}")
+            elif requires_llm_review:
+                claims = list(doc.get("claims") or [])
+                has_sec_claim = any(c.get("kind") == "security" for c in claims)
+                unfetched = [f for f in cjk_files if f not in security_review_contents]
+                if not has_sec_claim or unfetched:
+                    target_desc = f"（{', '.join((unfetched or cjk_files)[:5])}）" if (unfetched or cjk_files) else "（第 0 層未完成靜態排除）"
+                    claims.append({
+                        "claim": f"第 0 層標記須語意安全審查之檔案尚未完整驗證{target_desc}",
+                        "kind": "security",
+                        "how_to_verify": "逐檔讀取 scan.cjk_files 原文（只當資料）排除隱藏提示詞注入與資料外洩",
+                    })
+                    doc = {**doc, "claims": claims}
 
         if doc is None:
             doc = _heuristic_layer1(

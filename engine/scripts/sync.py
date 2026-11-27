@@ -15,7 +15,7 @@
    所有連結與路徑指向該乾淨副本（--dev 改指開發 repo，--no-dev 切回乾淨副本）。
 4. 規則：交由 profiles.py（Claude @import 附帶內金絲雀行並依 dev_link 選來源；Codex 受管區塊 <= 32 KiB；
    Antigravity 拆 ~/.gemini/AGENTS.md 共用與 GEMINI.md 個人，單檔 <= 24,000 bytes，絕不碰 T3 實例副本）。
-5. Skills（擁有權依 omnikit-* 與 ok / ok-* 前綴）：
+5. Skills（擁有權依 omnikit-*、ok 與 6 個退役 ok-* 別名清單）：
    - Claude Code（~/.claude 與明確列舉的 claude_homes）：Directory Junction，並無帳本鏡像 ~/.claude 使用者自裝 skill
    - Codex（~/.codex/skills 與明確列舉的 codex_homes/skills，S2 實測確認）：Directory Junction
    - Antigravity：於 ~/.gemini/config/skills.json 參照 POSIX 路徑 "/C:/..."（S3 實測確認，T3 自動同步至全實例）
@@ -76,8 +76,19 @@ CODEX_MCP_END = "# --- omnikit:mcp:end ---"
 CODEX_MCP_BLOCK = re.compile(re.escape(CODEX_MCP_BEGIN) + r".*?" + re.escape(CODEX_MCP_END) + r"\n?", re.DOTALL)
 
 
+# 2026-11-27 退役之短別名固定清單：只清理這 6 個舊連結，絕不誤刪使用者自建的 ok-* skill
+RETIRED_OK_ALIASES = frozenset({
+    "ok-handoff",
+    "ok-research",
+    "ok-dispatch",
+    "ok-setup",
+    "ok-eval",
+    "ok-ask",
+})
+
+
 def is_omnikit_skill(name: str) -> bool:
-    return name == "ok" or name.startswith(("omnikit-", "ok-"))
+    return name == "ok" or name.startswith("omnikit-") or name in RETIRED_OK_ALIASES
 
 
 def is_link(path: Path) -> bool:
@@ -360,7 +371,7 @@ def expected_skills(root: Path, data: Path, state: Path) -> tuple[list[str], set
 
 
 def sync_dir_junctions(skills_dir: Path, src_root: Path, wanted: list[str], check_only: bool = False) -> list[str]:
-    """在 Claude 或 Codex 的 skills 目錄對帳 omnikit-* / ok-* Directory Junctions。"""
+    """在 Claude 或 Codex 的 skills 目錄對帳 omnikit-*、ok 與已退役 ok-* 別名的 Directory Junctions。"""
     diffs = []
     wanted_set = set(wanted)
     if skills_dir.is_dir():
@@ -1281,7 +1292,7 @@ def selftest() -> int:
         (repo / "data" / "harness").mkdir(parents=True)
         (repo / "data" / "harness" / "claude-allow.txt").write_text("mcp__devtools\n", encoding="utf-8")
         (repo / "data" / "harness" / "claude-allow-retired.txt").write_text("mcp__retired_old\n", encoding="utf-8")
-        for sname in ("omnikit-handoff", "ok-handoff", "omnikit-eval", "ok-eval"):
+        for sname in ("omnikit-handoff", "ok", "omnikit-eval"):
             sd = repo / "engine" / "skills" / sname
             sd.mkdir(parents=True)
             (sd / "SKILL.md").write_text(f"---\nname: {sname}\ndescription: test {sname}\n---\n", encoding="utf-8")
@@ -1353,7 +1364,7 @@ def selftest() -> int:
               and not any(c[0] == "claude" and c[3] == "" for c in cli_calls))
         check("B8 鏡像：Claude 與 .claude-kai 皆有 OmniKit junction，且 ~/.claude 自訂 skill 自動鏡像至 .claude-kai、不碰 .claude-mem",
               is_link(home / ".claude" / "skills" / "omnikit-handoff")
-              and is_link(home / ".claude-kai" / "skills" / "ok-handoff")
+              and is_link(home / ".claude-kai" / "skills" / "ok")
               and is_link(home / ".claude-kai" / "skills" / "my-own-skill")
               and not (home / ".claude-mem" / "CLAUDE.md").exists())
         codex_cfg = tomllib.loads((home / ".codex" / "config.toml").read_text("utf-8"))
