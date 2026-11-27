@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniKit 心跳狀態檔（spec 1）",
-  "description": "由讀取方判定的心跳與新鮮度規格（D10 改動 2）。7 條：\n1. 狀態檔不准存狀態字（running、ok、healthy…），只存事實與時間。\n2. 是否正常由讀的一方算：現在時間減 last_success_ts 大於 expected_period_s 加 grace_s 就是 STALE。\n3. 讀不到檔、欄位缺、時間解析失敗、pid 不存在或啟動時間對不上，一律 DOWN，不能當正常。\n4. 「成功」要是產出面的事實（progress 的寫出筆數、資料最新日期、這一輪錯誤數），不是 exit code：只有真的有產出才更新 last_success_ts。\n5. 檢查器只有全部新鮮才 exit 0；任何成功字樣只能在所有檢查跑完之後印。\n6. 檢查器自己也寫一筆心跳（stale_check.py --self-heartbeat），由另一個獨立觸發點看。\n7. 「已上線」要能對版本：帶 build，部署後要看到新的 build，而且 pid_start_ts 晚於部署開始時間（stale_check.py --expect-build、--started-after）。\n參考檢查器：engine/scripts/stale_check.py。時間一律 ISO 8601 並帶時區。擴充欄位用 x_ 開頭。",
+  "description": "由讀取方判定的心跳與新鮮度規格（D10 改動 2）。7 條：\n1. 狀態檔不准存狀態字（running、ok、healthy…；欄位名稱或值都算，不分大小寫，巢狀物件與陣列裡也算），只存事實與時間。\n2. 是否正常由讀的一方算：現在時間減 last_success_ts 大於 expected_period_s 加 grace_s 就是 STALE。\n3. 讀不到檔、不是標準 JSON（Infinity、NaN 不算）、欄位缺、數字是無限大、時間解析失敗、pid 不存在、超出範圍或啟動時間對不上，一律 DOWN，不能當正常。\n4. 「成功」要是產出面的事實（progress 的寫出筆數、資料最新日期、這一輪錯誤數），不是 exit code：只有真的有產出才更新 last_success_ts。\n5. 檢查器只有全部新鮮才 exit 0；任何成功字樣只能在所有檢查跑完之後印。\n6. 檢查器自己也寫一筆心跳（stale_check.py --self-heartbeat），由另一個獨立觸發點看。\n7. 「已上線」要能對版本：帶 build，部署後要看到新的 build，而且 pid_start_ts 晚於部署開始時間（stale_check.py --expect-build、--started-after）。\n參考檢查器：engine/scripts/stale_check.py。時間一律 ISO 8601 並帶時區。擴充欄位用 x_ 開頭。",
   "type": "object",
   "required": [
     "spec",
@@ -42,7 +42,8 @@
     "pid": {
       "type": "integer",
       "minimum": 1,
-      "description": "常駐行程的 pid；跑完就結束的工作不要寫"
+      "description": "常駐行程的 pid（1 到 4294967295）；跑完就結束的工作不要寫",
+      "maximum": 4294967295
     },
     "pid_start_ts": {
       "$ref": "#/$defs/timestamp",
@@ -81,7 +82,7 @@
       },
       "propertyNames": {
         "not": {
-          "$ref": "#/$defs/statusKey"
+          "$ref": "#/$defs/statusKeyName"
         }
       },
       "additionalProperties": {
@@ -92,33 +93,19 @@
           "null"
         ],
         "not": {
-          "$ref": "#/$defs/statusWord"
+          "$ref": "#/$defs/statusWordValue"
         }
       }
     }
   },
   "patternProperties": {
     "^x_[A-Za-z0-9_]+$": {
-      "not": {
-        "$ref": "#/$defs/statusWord"
-      }
+      "$ref": "#/$defs/factValue"
     }
   },
   "propertyNames": {
     "not": {
-      "enum": [
-        "x_status",
-        "x_state",
-        "x_health",
-        "x_healthy",
-        "x_ok",
-        "x_running",
-        "x_alive",
-        "x_up",
-        "x_success",
-        "x_verified",
-        "x_passes"
-      ]
+      "$ref": "#/$defs/statusKeyName"
     }
   },
   "additionalProperties": false,
@@ -163,7 +150,8 @@
         "passes",
         "Passes",
         "PASSES"
-      ]
+      ],
+      "description": "狀態字的欄位名稱清單（給人看，也給測試跟檢查器比對）；驗證用不分大小寫的 statusKeyName"
     },
     "statusWord": {
       "enum": [
@@ -203,7 +191,35 @@
         "passed",
         "Passed",
         "PASSED"
-      ]
+      ],
+      "description": "狀態字的值清單（給人看，也給測試跟檢查器比對）；驗證用不分大小寫的 statusWordValue"
+    },
+    "statusKeyName": {
+      "type": "string",
+      "pattern": "^(?:[xX]_)?(?:[sS][tT][aA][tT][uU][sS]|[sS][tT][aA][tT][eE]|[hH][eE][aA][lL][tT][hH]|[hH][eE][aA][lL][tT][hH][yY]|[oO][kK]|[rR][uU][nN][nN][iI][nN][gG]|[aA][lL][iI][vV][eE]|[uU][pP]|[sS][uU][cC][cC][eE][sS][sS]|[vV][eE][rR][iI][fF][iI][eE][dD]|[pP][aA][sS][sS][eE][sS])$",
+      "description": "statusKey 不分大小寫、可以帶 x_ 前綴（JSON Schema 的 regex 沒有忽略大小寫的旗標，所以每個字母寫成 [xX]）"
+    },
+    "statusWordValue": {
+      "type": "string",
+      "pattern": "^\\s*(?:[rR][uU][nN][nN][iI][nN][gG]|[oO][kK]|[hH][eE][aA][lL][tT][hH][yY]|[aA][lL][iI][vV][eE]|[gG][rR][eE][eE][nN]|[sS][uU][cC][cC][eE][sS][sS]|[sS][uU][cC][cC][eE][eE][dD][eE][dD]|[oO][nN][lL][iI][nN][eE]|[rR][eE][aA][dD][yY]|[vV][eE][rR][iI][fF][iI][eE][dD]|[pP][aA][sS][sS][iI][nN][gG]|[pP][aA][sS][sS][eE][dD])\\s*$",
+      "description": "statusWord 不分大小寫、前後可以有空白"
+    },
+    "factValue": {
+      "description": "擴充欄位（x_ 開頭）的值：可以是任何 JSON，但不管多深，欄位名稱與字串值都不能是狀態字",
+      "not": {
+        "$ref": "#/$defs/statusWordValue"
+      },
+      "propertyNames": {
+        "not": {
+          "$ref": "#/$defs/statusKeyName"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/factValue"
+      },
+      "items": {
+        "$ref": "#/$defs/factValue"
+      }
     }
   }
 }

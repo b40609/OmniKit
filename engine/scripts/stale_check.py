@@ -12,8 +12,10 @@
 
 - FRESH：現在減 last_success_ts 在 expected_period_s 加 grace_s 以內，其他檢查也都過。
 - STALE：超過週期加寬限沒有新的成功；資料最新日期落後超過上限；部署開始後還沒有成功紀錄。
-- DOWN：讀不到檔、不是 JSON、欄位缺、時間解析失敗或沒帶時區、pid 不存在、pid 啟動時間對不上、
-  時鐘錯亂（last_attempt_ts 晚於現在）、存了狀態字、build 不是預期的版本、行程是部署前就在跑的那一個。
+- DOWN：讀不到檔、不是標準 JSON（含 Infinity、NaN 這類常數）、欄位缺、數字是無限大、時間解析失敗或沒帶時區、
+  pid 不存在或超出 1 到 0xFFFFFFFF、pid 啟動時間對不上、時鐘錯亂（last_attempt_ts 晚於現在）、
+  存了狀態字（巢狀物件、陣列裡也算，不分大小寫）、build 不是預期的版本、行程是部署前就在跑的那一個、
+  指定了部署開始時間卻沒有 pid 可以查證（狀態檔來自別台機器就加 --skip-pid）。
 
 用法：
   uv run engine/scripts/stale_check.py <狀態檔…> [--expect-build <build>] [--started-after <ISO 時間>]
@@ -31,9 +33,11 @@
 每個檔的結果與結論都在全部檢查跑完之後才印，結論在最後一行。
 """
 import argparse
+import collections
 import contextlib
 import io
 import json
+import math
 import os
 import subprocess
 import sys
@@ -57,6 +61,7 @@ EXIT_USAGE = 2
 CLOCK_SKEW_S = 60          # 時間晚於現在超過這麼多秒才算時鐘錯亂
 ORDER_SLACK_S = 1          # last_success_ts 晚於 last_attempt_ts 不到 1 秒當成同一次寫入
 PID_START_TOLERANCE_S = 60  # 狀態檔記的啟動時間與系統的差多少秒以內算對得上（程式通常啟動後才記）
+PID_MAX = 0xFFFFFFFF       # Windows 的 pid 是 32 位元 DWORD；更大的值交給系統呼叫會被截斷成別的行程
 
 
 # ---- 時間 ----
@@ -89,7 +94,15 @@ def human(seconds):
 
 
 def _num(v):
-    return isinstance(v, int | float) and not isinstance(v, bool)
+    """有限的數字。整數一定有限；浮點數要排除 inf 與 nan（1e400 這種寫法 json.loads 會溢位成 inf）。"""
+    if isinstance(v, bool):
+        return False
+    return isinstance(v, int) or (isinstance(v, float) and math.isfinite(v))
+
+
+def _reject_constant(name):
+    """json.loads 的 parse_constant：Infinity、-Infinity、NaN 不是標準 JSON（RFC 8259），一律不收。"""
+    raise ValueError(f"不是標準 JSON 的數值常數 {name}")
 
 
 # ---- 行程 ----
@@ -177,6 +190,8 @@ def _ps_process(pid):
 
 def process_info(pid):
     """(狀態, 系統記錄的啟動時間, 備註)。狀態是 alive、dead 或 unknown。"""
+    if isinstance(pid, bool) or not isinstance(pid, int) or not 0 < pid <= PID_MAX:
+        return "dead", None, f"pid 超出範圍（要在 1 到 {PID_MAX}）"
     if sys.platform == "win32":
         return _win_process(pid)
     if Path("/proc/self/stat").exists():
@@ -186,26 +201,42 @@ def process_info(pid):
 
 # ---- 檢查一個狀態檔 ----
 
+def _short(v):
+    try:
+        s = json.dumps(v, ensure_ascii=False)
+    except (ValueError, RecursionError):
+        s = type(v).__name__
+    return s if len(s) <= 80 else s[:77] + "..."
+
+
 def _status_words(doc):
-    """規格第 1 條：找出狀態字（欄位名稱或值）。回傳說明字串清單。"""
+    """規格第 1 條：找出狀態字（欄位名稱或值）。巢狀的物件與陣列一路往下看，不分大小寫。回傳說明字串清單。"""
     found = []
 
     def key_hit(k):
-        return k.removeprefix("x_").lower() in STATUS_KEYS
+        return isinstance(k, str) and k.lower().removeprefix("x_") in STATUS_KEYS
 
     def val_hit(v):
         return isinstance(v, str) and v.strip().lower() in STATUS_WORDS
 
+    nested = collections.deque()
     for k, v in doc.items():
         if k in ("name", "build"):
             continue
         if key_hit(k) or ((k.startswith("x_") or k not in REQUIRED + OPTIONAL) and val_hit(v)):
-            found.append(f"{k}={json.dumps(v, ensure_ascii=False)}")
-    prog = doc.get("progress")
-    if isinstance(prog, dict):
-        for k, v in prog.items():
-            if key_hit(k) or val_hit(v):
-                found.append(f"progress.{k}={json.dumps(v, ensure_ascii=False)}")
+            found.append(f"{k}={_short(v)}")
+        if isinstance(v, dict | list):
+            nested.append((k, v))
+    # 用佇列不用遞迴：巢狀很深的檔也不會讓檢查器自己爆掉
+    while nested:
+        path, v = nested.popleft()
+        children = ((f"{path}.{k}", k, sub) for k, sub in v.items()) if isinstance(v, dict) \
+            else ((f"{path}[{i}]", None, sub) for i, sub in enumerate(v))
+        for where, k, sub in children:
+            if key_hit(k) or val_hit(sub):
+                found.append(f"{where}={_short(sub)}")
+            if isinstance(sub, dict | list):
+                nested.append((where, sub))
     return found
 
 
@@ -330,6 +361,8 @@ def check_doc(doc, now, opts):
     if "pid" in doc:
         if not (isinstance(pid, int) and not isinstance(pid, bool) and pid > 0):
             down(f"pid 要是正整數：{pid!r}")
+        elif pid > PID_MAX:
+            down(f"pid 超出範圍（要在 1 到 {PID_MAX}）：{pid}；不能交給系統呼叫截斷成別的行程")
         elif opts.get("skip_pid"):
             info(f"沒查 pid {pid}（--skip-pid）")
         else:
@@ -368,6 +401,9 @@ def check_doc(doc, now, opts):
             if recorded_start <= after:
                 down(f"行程啟動時間 {doc['pid_start_ts']} 不晚於部署開始 {after.isoformat(timespec='seconds')}："
                      "還是部署前就在跑的那個行程")
+            elif "pid" not in doc and not opts.get("skip_pid"):
+                down("有部署開始時間（--started-after）但狀態檔沒有 pid：pid_start_ts 是做事那方自己寫的，"
+                     "沒向系統查證就不能確認部署後真的重啟過（狀態檔來自別台機器就加 --skip-pid）")
             elif not verified_start:
                 info("pid_start_ts 沒有向系統查證（沒有 pid、--skip-pid 或查不到）")
         if success and success <= after:
@@ -384,9 +420,9 @@ def check_file(path, now, opts):
         result["reasons"] = [("DOWN", f"讀不到狀態檔：{e}")]
         return result
     try:
-        doc = json.loads(text)
-    except json.JSONDecodeError as e:
-        result["reasons"] = [("DOWN", f"不是合法的 JSON：{e}")]
+        doc = json.loads(text, parse_constant=_reject_constant)
+    except (ValueError, RecursionError) as e:   # JSONDecodeError 是 ValueError；巢狀太深是 RecursionError
+        result["reasons"] = [("DOWN", f"不是合法的 JSON：{type(e).__name__}: {e}")]
         return result
     if isinstance(doc, dict) and isinstance(doc.get("name"), str):
         result["name"] = doc["name"]
@@ -490,6 +526,16 @@ def selftest():
     ok("要求資料日期上限但沒有 data_date：DOWN", verdict(hb(), max_data_age_days=2)[0] == "DOWN")
     ok("build 不是預期的版本：DOWN", verdict(hb(build="OLD"), expect_build="NEW")[0] == "DOWN")
     ok("build 短 SHA 前綴相同：不擋", verdict(hb(build="6940d7f"), expect_build="6940d7f1a2b3")[0] == "FRESH")
+    ok("週期或寬限是無限大：DOWN", verdict(hb(expected_period_s=float("inf")))[0] == "DOWN"
+       and verdict(hb(grace_s=float("inf")))[0] == "DOWN")
+    ok("巢狀物件、陣列、混合大小寫的狀態字：DOWN", all(verdict(hb(**kw))[0] == "DOWN" for kw in (
+        {"x_meta": {"status": "running"}}, {"x_tags": ["Healthy"]}, {"progress": {"X_Ok": 1}})))
+    ok("pid 超出 32 位元：DOWN，不截斷", verdict(hb(pid=2**32 + os.getpid()))[0] == "DOWN"
+       and process_info(2**32 + os.getpid())[0] == "dead")
+    ok("--started-after 卻沒有 pid：DOWN（--skip-pid 才放過）",
+       verdict(hb(pid_start_ts=ago(minutes=5)), started_after=now - timedelta(minutes=10))[0] == "DOWN"
+       and verdict(hb(pid_start_ts=ago(minutes=5)), started_after=now - timedelta(minutes=10), skip_pid=True)[0]
+       == "FRESH")
 
     me = os.getpid()
     state, started, _ = process_info(me)
@@ -516,6 +562,9 @@ def selftest():
         broken.write_text("{oops", encoding="utf-8")
         res = run_checks([good, old, broken, base / "missing.json"], now=now)
         ok("讀不到檔、不是 JSON：DOWN", [r["verdict"] for r in res] == ["FRESH", "STALE", "DOWN", "DOWN"])
+        inf = base / "inf.json"
+        inf.write_text(json.dumps(hb(x_ratio="__RAW__")).replace('"__RAW__"', "NaN"), encoding="utf-8")
+        ok("NaN、Infinity 不是標準 JSON：DOWN", run_checks([inf], now=now)[0]["verdict"] == "DOWN")
         text = format_results(res)
         ok("有 DOWN 時結束碼 2，結論在最後一行、沒有「全部 FRESH」",
            summarize(res)[1] == 2 and text.splitlines()[-1].startswith("stale_check：有 1 個 STALE、2 個 DOWN")
@@ -572,6 +621,12 @@ def main(argv=None):
         started_after, err = parse_ts(args.started_after)
         if err:
             print(f"stale_check：--started-after {err}", file=sys.stderr)
+            return EXIT_USAGE
+    for flag, value in (("--max-data-age-days", args.max_data_age_days),
+                        ("--pid-start-tolerance-s", args.pid_start_tolerance_s),
+                        ("--self-period-s", args.self_period_s), ("--self-grace-s", args.self_grace_s)):
+        if value is not None and not math.isfinite(value):
+            print(f"stale_check：{flag} 要是有限的數字，拿到 {value}", file=sys.stderr)
             return EXIT_USAGE
     if args.max_data_age_days is not None and args.max_data_age_days < 0:
         print("stale_check：--max-data-age-days 要是 0 以上", file=sys.stderr)
