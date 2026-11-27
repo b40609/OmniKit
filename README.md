@@ -32,6 +32,8 @@ OmniKit 把這些收成一份設定，一次接到三個 agent。它不蓋掉你
 幫我安裝 OmniKit：https://github.com/b40609/OmniKit
 ```
 
+> **給 agent：** 照[安裝說明](docs/install.md#直接安裝同事用不用-fork不用-github-帳號)做。`install.ps1` 跑完不用叫使用者開新對話，直接讀 `engine/skills/omnikit-setup/SKILL.md`，在同一段對話接著做設定訪談。
+
 想自己來，在 PowerShell 跑（同事版預設鎖定最新穩定發行 tag，維護者推 `main` 不會影響你；也可加上 `-Tag <版本>` 指定版本）：
 
 ```powershell
@@ -41,7 +43,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 -
 powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 ```
 
-裝完開一個**新的** session，問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭一樣就是接上了。接著說「幫我設定 OmniKit」，回答最多 6 題，建立你自己的 profile。
+裝完開一個**新的**對話，隨便打一句（例如「嗨」），OmniKit 會主動帶你做 1 分鐘設定：回答最多 6 題，建立你自己的 profile，最後給你一段新手導覽。讓 agent 幫你裝的話，它裝完會在同一段對話直接接著問，不用另外開。
 
 | 你在意的 | OmniKit 怎麼做 |
 |---|---|

@@ -186,6 +186,9 @@ def resolve(data, state, wanted=None):
 SHARED_RULES = ("baseline.md", "dispatch.md")
 OPTIONAL_RULES = {"dispatch.md"}
 PROFILE_RULES = ("AGENTS.md",)  # 個人層常駐載入的規則；dispatch.md 移出 always-on，由 dispatch.py 直接讀
+# 2026-11-27：同事實測「裝好了然後呢，什麼都沒發生」。還沒選 profile 時多接一份 default/onboarding.md，
+# 讓三家（不靠 hook：Codex 的 hook 要先信任、Antigravity 不吃 SessionStart）開新對話的第一則回覆主動破冰並接設定訪談
+ONBOARDING = "onboarding.md"
 AGY_MAX_FILE_BYTES = 24_000     # agy-customizations/docs/rules.md:31 單檔超過 24,000 bytes 會在行界靜默截斷
 AGY_MAX_TOTAL_TOKENS = 20_000   # agy-customizations/docs/rules.md:34 全域與 always-on 合計超過 20,000 tokens 會降級為路徑指標
 CODEX_MAX_FILE_BYTES = 32 * 1024
@@ -219,10 +222,20 @@ def shared_rules_files(data):
     return [data / "rules" / f for f in SHARED_RULES if f not in OPTIONAL_RULES or (data / "rules" / f).is_file()]
 
 
+def onboarding_active(state, name):
+    """還沒選過 profile、用的是預設 default：開新對話要主動破冰並帶使用者做設定訪談。
+    選定任何 profile（含 --set default「不設定、用預設」）就關掉。state 是 None（預算棘輪量最大值）時當成開著。"""
+    return name == DEFAULT and (state is None or chosen(state) is None)
+
+
 def personal_rules_files(data, state, name):
-    """個人層常駐載入的規則檔（AGENTS.md 必列；查表型的 dispatch.md 不常駐載入）。"""
+    """個人層常駐載入的規則檔（AGENTS.md 必列；查表型的 dispatch.md 不常駐載入）；
+    還沒選 profile 時再接上 default 的 onboarding.md（開新對話主動破冰、當場接設定訪談）。"""
     base = folder(data, state, name) or data / "profiles" / name
-    return [base / f for f in PROFILE_RULES if f not in OPTIONAL_RULES or (base / f).is_file()]
+    files = [base / f for f in PROFILE_RULES if f not in OPTIONAL_RULES or (base / f).is_file()]
+    if onboarding_active(state, name) and (base / ONBOARDING).is_file():
+        files.append(base / ONBOARDING)
+    return files
 
 
 def rules_files(data, state, name):
@@ -677,6 +690,7 @@ def selftest():
         legacy_config = tmp / "skillshare.yaml"
         write(data / "rules" / "baseline.md", "# 底線\r\n\r\n不碰金鑰\r\n")
         write(data / "profiles" / "default" / "AGENTS.md", "# default\n保守\n")
+        write(data / "profiles" / "default" / ONBOARDING, "## 第一次使用\n主動破冰\n")
         write(data / "profiles" / "x" / "AGENTS.md", "# x\n放手\n")
         write(data / "profiles" / "empty" / "notes.md", "沒有 AGENTS.md 的資料夾不算 profile\n")
         old_block = f"{BEGIN}\n@C:/old/data/rules/AGENTS.md\n{END}"
@@ -722,6 +736,10 @@ def selftest():
         check("Antigravity：原本的規則先備份",
               text(paths["antigravity"].with_name("GEMINI.md.pre-omnikit")) == "# 我原本的 Antigravity 規則\n")
         check("訊息列出三個 agent", lines[0].startswith("已套用 profile：default（Claude Code、Codex、Antigravity，"))
+        check("沒選過：三家都接上開場破冰（Claude import onboarding.md、Codex 與 Antigravity 個人層含內容）",
+              import_line(data / "profiles" / "default" / ONBOARDING) in md
+              and codex.index("保守") < codex.index("主動破冰") < codex.index(END)
+              and "主動破冰" in gemini and "主動破冰" not in agy_shared)
 
         before = {k: p.read_bytes() for k, p in paths.items()}
         before_agy_shared = paths["antigravity"].with_name("AGENTS.md").read_bytes()
@@ -735,11 +753,18 @@ def selftest():
               and "放手" in text(paths["codex"]) and "放手" in text(paths["antigravity"]) and "放手" in text(shared))
         check("--set：不會多出第二份備份", not list(paths["codex"].parent.glob("AGENTS.md.pre-omnikit-*")))
         check("選過之後：不再提醒", not any("還沒選" in line for line in run(agents=all3)))
+        check("選了自己的 profile：開場破冰三家都拿掉",
+              ONBOARDING not in text(paths["claude-code"]) and all("主動破冰" not in text(p) for p in paths.values()))
         write(paths["codex"], text(paths["codex"]) + "# 之後自己加的\n")
         run(agents=all3, wanted="default")
         codex = text(paths["codex"])
         check("Codex 換 profile：只換區塊，區塊外原本的與之後自己加的都留著",
               "保守" in codex and "放手" not in codex and codex.endswith(END + "\n# 我原本的 Codex 規則\n# 之後自己加的\n"))
+        check("明確選 default（不設定、用預設）：不再破冰，也不再提醒還沒選",
+              chosen(state) == "default" and ONBOARDING not in text(paths["claude-code"])
+              and all("主動破冰" not in text(p) for p in paths.values())
+              and onboarding_active(None, DEFAULT) and not onboarding_active(state, DEFAULT)
+              and not onboarding_active(None, "x"))
         run(agents=all3, wanted="x")
 
         write(paths["codex"], "# 使用者自己換掉的\n")
