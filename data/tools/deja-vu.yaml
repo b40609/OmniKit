@@ -3,12 +3,23 @@ name: deja-vu
 kind: cli
 slots:
 - memory
-status: pending
+status: trial
 url: https://github.com/vshulcz/deja-vu
 works_with:
 - claude
 - codex
+decided_at: '2026-11-27'
+trial_until: '2026-12-11'
+reason: 2026-11-27 第 1–2 層隔離評測（v0.25.1，commit c6763b7）與跨家複審（0 P0／2 P1／4 P2，有條件支持）確認零 LLM 呼叫、零第三方相依、跨 agent 接手（M1）實測成立；採純按需 CLI 模式試用兩週至 2026-12-11，加嚴跨專案與首次索引護欄，不裝 hooks、不掛 user scope MCP。
 sources:
 - Awesome-Agent-Harness
-notes: ★1,615，MIT，v0.24.2（2026-11-12），2026-11-18 第 0 層通過。Go 單檔、不呼叫 LLM：搜尋多家 coding agent 的對話紀錄、交接到另一個 agent、compaction 之後救回脈絡（README 說法，待驗證）。對上 M1（換 agent 接手不用重講）與 M2（compaction 後還記得）。OmniKit 決定「讀紀錄不跨 agent、不自己寫解析」，它是現成的替代。會讀這台所有 agent 的紀錄，裝之前要掃描並確認它不往外送資料。2026-11-17 記進收件匣，2026-11-18 移進名冊。評估紀錄：data/evals/2026-11-18-tool-reeval.md。
+notes: >-
+  ★1,680，MIT，v0.25.1（commit c6763b7），Go 單檔零相依，官方 release 具 SHA-256 與 SLSA provenance。
+  2026-11-27 隔離評測（2026-11-27-deja-vu-engram-eval.md）與跨家複審（2026-11-27-deja-vu-engram-eval-跨家複審.md）結論：
+  (1) 固定環境變數：DEJA_OFFLINE=1、DEJA_EMBED=off、DEJA_NO_UPDATE_NOTICE=1、DEJA_MANUAL_INDEX=1（防版本查詢、防本機嵌入探測、防背景自動重建索引）；
+  (2) 首次建索引前必先設定 ~/.config/deja/exclude 排除敏感／公務與盲審評測目錄（建立後才補設須 --rebuild）；純十六進位密鑰豁免高熵遮蔽，且個人筆記 deja remember（未帶 --repo）不經 redact，勿寫入敏感憑證；
+  (3) 僅按需 CLI 模式（0 常駐 token），嚴禁執行 deja install --auto／claude-auto／codex-auto／claude-code（會寫入 user scope）；
+  (4) 執行 deja recall、deja search、deja how 一律強制顯式帶 --project "<專案根目錄絕對路徑>"（不可僅靠在專案目錄內裸跑，預設會跨專案回傳；僅無參數 deja handoff 嚴格限當前目錄）；
+  (5) 盲審與評測子對話一律不掛載；第 2 階段 --scope local MCP 須待試用滿一週且評測腳本 judge_t3 改為中性目錄後再評估；
+  (6) 12-11 結算：有效跨 agent／新 session 接手至少 3 次（至少 2 次免重講）、compaction 後找回決策至少 2 次、0 筆非預期對外連線、0 次盲審洩漏；若通過且維持純按需 CLI 可轉 on_demand 並補 trigger_when；退場清理路徑包含 ~/.cache/deja、~/.config/deja、%APPDATA%\deja（Windows 預設 notes.jsonl）與 %LOCALAPPDATA%\deja。
 added: '2026-11-18'

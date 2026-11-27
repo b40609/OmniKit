@@ -1,0 +1,22 @@
+id: engram
+name: engram
+kind: mcp
+slots:
+- memory
+status: assess
+url: https://github.com/Gentleman-Programming/engram
+works_with:
+- claude
+- codex
+decided_at: '2026-11-27'
+reason: 2026-11-27 第 1–2 層隔離評測（v3.7.2，commit c6ba9e3）與跨家複審列 Assess 觀察至 2026-12-11 與 deja-vu 一併重評：空 ENGRAM_DATA_DIR 可達零洩漏，但策展式主動記憶與既有狀態板／交接檔重疊、27 個工具約 34 KB schema 偏重、完整 plugin 在 Windows 缺 jq 依賴，且未標記 <private> 之金鑰明文入庫。
+sources:
+- 飽和調研（2026-11-27-claude-mem-替代品-飽和調研.md）
+notes: >-
+  ★8,329，MIT，v3.7.2（commit c6ba9e3），Go 單檔，官方 release 僅附 checksums（無 SLSA provenance）。
+  2026-11-27 隔離評測（2026-11-27-deja-vu-engram-eval.md）與跨家複審（2026-11-27-deja-vu-engram-eval-跨家複審.md）關鍵發現：
+  (1) 內建選配 LLM 路徑：conflicts scan --semantic 或 HTTP /conflicts/scan（semantic: true）搭配 ENGRAM_AGENT_CLI 時會執行 claude -p --model haiku 消耗訂閱額度，預設關閉；
+  (2) 隱私邊界：僅剝除 <private>...</private> 內文字，未標記金鑰會明文寫入 engram.db 且 mem_save 預設 capture_prompt=true；CLI 指令預設同步查 GitHub 版本且會帶 GH_TOKEN（設 ENGRAM_NO_UPDATE_CHECK=1 可關）；
+  (3) 跨專案隔離：預設依目錄專案隔離，但 mem_context 帶 scope: personal 未指定 project 時依設計跨專案回傳，all_projects 與 mem_list_projects 亦會跨專案，盲審若掛載必須指定全新空 ENGRAM_DATA_DIR；
+  (4) Windows 完整 plugin 的 SessionStart 腳本需 Git Bash＋jq＋curl 且每次注入最多 16 KB；若 2026-12-11 重評發現 deja-vu 對決策級記憶（M2）不足，只採 Bare MCP（engram mcp --tools=agent）、設 ENGRAM_NO_UPDATE_CHECK=1、停用 ENGRAM_AGENT_CLI 與 ENGRAM_CLOUD_AUTOSYNC。
+added: '2026-11-27'
