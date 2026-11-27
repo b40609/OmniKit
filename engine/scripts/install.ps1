@@ -638,13 +638,20 @@ function Show-NextSteps($edition) {
     try { if ((Get-FileText $answersFile | ConvertFrom-Json).evaluate_tools -eq $false) { $hasEval = $false } } catch { }
   }
   Write-Host ''
-  Write-Host "OmniKit 已接上 $($connected -join '、')（profile：$name），開新的 session 才會生效："
-  Write-Host "  - 問「OmniKit 規則版本與 profile 是什麼？」，應該回答 $version 與 $name"
+  Write-Host "OmniKit 已接上 $($connected -join '、')（profile：$name），開新的 session 才會生效。"
   if ($name -eq 'default') {
-    Write-Host '  - 建立自己的 profile：開新 session 說「幫我設定 OmniKit」（Claude Code 也可以輸入 /omnikit-setup，Codex 輸入 $omnikit-setup），回答幾題就好' -ForegroundColor Yellow
+    # 2026-11-27 同事實測：裝完只印說明、什麼都沒發生。下一步放最前面，並讓幫忙安裝的 agent 當場接著做設定訪談
+    $setupSkill = Join-Path $Repo 'engine\skills\omnikit-setup\SKILL.md'
+    Write-Host ''
+    Write-Host '下一步（約 1 分鐘）：' -ForegroundColor Yellow
+    Write-Host '  - 開一個新的對話，隨便打一句（例如「嗨」），OmniKit 會主動帶你設定：回答幾題，之後就照你的習慣做事' -ForegroundColor Yellow
+    Write-Host "  - 給幫你跑安裝的 agent：不用等新對話，現在就讀 $setupSkill，在這段對話接著跟使用者做設定訪談" -ForegroundColor Yellow
+    Write-Host ''
+    Write-Host '其他：'
   } else {
     Write-Host '  - 重新設定 profile：開新 session 說「幫我設定 OmniKit」'
   }
+  Write-Host "  - 確認接上了：問「OmniKit 規則版本與 profile 是什麼？」，應該回答 $version 與 $name"
   Write-Host '  - 換 profile：重跑 install.ps1 -ProfileName <名稱>，或 uv run engine/scripts/profiles.py --set <名稱>'
   if ($edition -ne 'maintainer') {
     Write-Host '  - 這台是同事版：預設鎖定穩定發行 tag，不會跟著 main 浮動；更新時先 git fetch --tags，再跑 install.ps1 -Tag <新版本> -WhatIf 預覽、install.ps1 -Tag <新版本> 套用'

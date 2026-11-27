@@ -13,6 +13,7 @@ description: 用簡短訪談建立或重新設定使用者自己的 OmniKit prof
 - 你只負責問問題、把答案寫成 JSON；規則檔與情境檔一律由 `setup.py` 產生，不要自己寫或改 profile 資料夾裡的檔案，也不要在 repo 的 `data/profiles/` 建檔。
 - 寫入之前一定先給使用者看預覽，取得同意。
 - 不讀、不印金鑰；掃描結果只有名稱與版本。
+- 從哪裡進來都一樣照這份做：使用者說要設定、開新對話時 OmniKit 規則的「第一次使用」要你主動破冰，或你剛幫使用者跑完 `install.ps1`（這段對話還沒載入 OmniKit 規則也沒關係，不用叫使用者開新對話，直接接著訪談）。從破冰或安裝進來時，開場 2 行講完就進第 1 步，不要先問「要不要設定」。
 
 ## 1. 掃描
 
@@ -107,18 +108,36 @@ uv run scripts/setup.py profile --answers <answers_file>
 uv run scripts/setup.py profile --answers <answers_file> --write --apply
 ```
 
-（要覆蓋時再加 `--force`。）輸出出現「已套用 profile：…」就完成。回報：
+（要覆蓋時再加 `--force`。）輸出出現「已套用 profile：…」就完成。接著給使用者一段**新手導覽**，15 行內、用條列，不要貼長篇說明：
 
-- 開新的 session 才會生效。確認方式：問「OmniKit 規則版本與 profile 是什麼？」
+1. **已經在背後幫你做的**（1 到 2 行，不用他做任何事）：安全底線（刪除、對外發送、付款前先確認，不碰金鑰）；Claude Code 與 Antigravity 另有確定性護欄（常見的繞過捷徑與讀敏感檔直接擋下）；Claude Code 與 Codex 在對話太長或推送完會提醒開新對話。
+2. **現在就能試的 3 句話**：照抄就能用的句子，依答案挑：
+   - 一定給：「交接」——工作做到一半要換對話時，把進度交給新對話接著做。
+   - 第 5 題選「要」：「幫我評估 <GitHub 連結>」——拿他的情境比較這個工具值不值得用。
+   - 依第 2 題給一個驗收的試法：`scope-creep`→「只改 X，其他不要動」，看它守不守；`no-verification`→「改完附上測試的實際輸出」；`too-long`→隨便問一題，看回覆有沒有變短；`guesses`→問一件它查不到的事，看它會不會說不確定。第 2 題沒選就給：需求還沒想清楚時打 `/plan`（Antigravity 也可以 `/grill-me`）先對焦再動手。
+   - 想看全部功能：Claude Code 與 Antigravity 打 `/ok`，Codex 打 `$ok`。
+3. **下一步**：新的 profile 要開新的對話才生效；開了以後問「OmniKit 規則版本與 profile 是什麼？」確認。
+4. 最後問一句要不要接著做下面 4b 的進階設定（多帳號分派、回覆精簡、自動壓縮），不要就結束。
+
+其他照實補一句（有才講）：
+
 - 第 5 題選「先不要」：輸出會有「不裝 omnikit-eval」，評估工具的 skill 已經拿掉；之後想用，重新訪談選「要」就會裝回來。
-- 依第 2 題給一個試試看的例子，例如選了 `scope-creep`：請它改一個小地方，看它會不會順手改別的。
-- 需求還沒想清楚時：用內建 `/plan`（Antigravity 亦可用 `/grill-me`）讓 agent 先訪談對焦再動手。三家指令對照看 `docs/cli-features.md`；新電腦該裝什麼、哪些不用裝看 `docs/starter.md`。
-- profile 存在這台電腦的 `profiles_dir`（`~/.omnikit/profiles/<名稱>/`），在 repo 外，不會被 commit 或上傳。之後想手動改，直接改那裡的 `AGENTS.md`，再在 repo 根目錄跑 `uv run engine/scripts/profiles.py` 重新接上（Claude Code 直接讀這份；Codex 與 Antigravity 讀的是接在一起的副本）；想換別的 profile，跑 `uv run engine/scripts/profiles.py --set <名稱>`。
 - 輸出提到某個 agent 的規則「沒有覆蓋」或「沒有加回去」：那是使用者自己改過的檔案，這次沒動；要接上就在 repo 根目錄重跑 `install.ps1`。
+- 使用者問 profile 存在哪、怎麼手動改：存在這台的 `profiles_dir`（`~/.omnikit/profiles/<名稱>/`），在 repo 外，不會被 commit 或上傳；直接改那裡的 `AGENTS.md`，再在 repo 根目錄跑 `uv run engine/scripts/profiles.py` 重新接上（Claude Code 直接讀這份；Codex 與 Antigravity 讀的是接在一起的副本）；換別的 profile 跑 `uv run engine/scripts/profiles.py --set <名稱>`。三家指令對照看 `docs/cli-features.md`；新電腦該裝什麼看 `docs/starter.md`。
+
+## 不設定、用預設
+
+使用者說不要再提醒、就用預設的時候做（只說「先不要」不用做，這段對話不再提就好）：
+
+```
+uv run scripts/setup.py skip
+```
+
+這會選定 `default`（下載、安裝前會先問），開新對話就不會再主動帶設定。回報：「好，之後想照你的習慣設定，說『幫我設定 OmniKit』就好。」
 
 ## 4b. 套用之後：三項設定
 
-profile 套用完，再逐項問這三項。每一項都是改使用者的設定檔：先講會改哪個檔、改成什麼，同意才改；不要的就跳過。改之前備份原檔。細節與各家的對應見 `docs/cli-features.md`。
+新手導覽最後使用者說要，再逐項問這三項（說不要就結束，之後說「幫我設定 OmniKit」可以再來）。每一項都是改使用者的設定檔：先講會改哪個檔、改成什麼，同意才改；不要的就跳過。改之前備份原檔。細節與各家的對應見 `docs/cli-features.md`。
 
 1. **帳號池與多模型分派設定（4 到 5 題）**
    - 掃描結果的 `account_pool`（或跑 `uv run scripts/setup.py pool recommend`）已經列出這台偵測到的 T3 實例、多個 `CLAUDE_CONFIG_DIR`／`CODEX_HOME`、環境變數裡有沒有 API 金鑰／雲端專案（只看有沒有，絕不讀值），以及每一項設定的**建議值與原因**。使用者的選擇永遠優先。
