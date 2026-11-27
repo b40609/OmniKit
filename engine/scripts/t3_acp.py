@@ -71,9 +71,40 @@ def parse_version(text):
     return (int(a), int(b), int(c), int(d) if d else 99999999, int(n) if n else 0)
 
 
+def find_t3_cli(environ=None, home=None):
+    """尋找本機 t3 CLI：先查 PATH，找不到再查 $T3CODE_HOME/bin 與 ~/.t3/bin。"""
+    env = os.environ if environ is None else environ
+    is_win = os.name == "nt"
+    exe_names = ("t3.cmd", "t3.exe", "t3") if is_win else ("t3",)
+    if environ is None:
+        for name in exe_names:
+            found = shutil.which(name)
+            if found:
+                return found
+    else:
+        path_val = env.get("PATH")
+        if path_val:
+            for name in exe_names:
+                found = shutil.which(name, path=path_val)
+                if found:
+                    return found
+    base_home = Path(home) if home is not None else Path.home()
+    candidates = []
+    t3_home = (env.get("T3CODE_HOME") or "").strip()
+    if t3_home:
+        for name in exe_names:
+            candidates.append(Path(t3_home) / "bin" / name)
+    for name in exe_names:
+        candidates.append(base_home / ".t3" / "bin" / name)
+    for cand in candidates:
+        if cand.is_file():
+            return str(cand)
+    return None
+
+
 def t3_version():
     """本機 T3 的版本（parse_version 的結果）；找不到 t3 或跑不起來回 None。"""
-    exe = shutil.which("t3") or shutil.which("t3.cmd")
+    exe = find_t3_cli()
     if not exe:
         return None
     try:

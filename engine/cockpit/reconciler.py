@@ -14,6 +14,7 @@ import json
 import os
 import queue
 import subprocess
+import sys
 import threading
 from collections.abc import Callable
 from datetime import datetime
@@ -28,26 +29,34 @@ DEFAULT_OPTION = "thought_level=xhigh"
 RECONCILE_TIMEOUT_SEC = 300
 
 
-def _resolve_default_provider() -> str:
-    env_p = os.environ.get("OMNIKIT_RECONCILE_PROVIDER", "").strip()
+def _resolve_default_provider(
+    *,
+    state_dir: Path | None = None,
+    data_dir: Path | None = None,
+    environ: dict[str, str] | None = None,
+) -> str:
+    env = os.environ if environ is None else environ
+    env_p = env.get("OMNIKIT_RECONCILE_PROVIDER", "").strip()
     if env_p:
         return env_p
+    scripts_dir = str(Path(__file__).resolve().parents[1] / "scripts")
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    import dispatch
+    import profiles
+    import statedir
+
+    state = state_dir if state_dir is not None else statedir.state_dir(env)
+    data = data_dir if data_dir is not None else (collector.ROOT / "data")
     try:
-        import sys
-        scripts_dir = str(Path(__file__).resolve().parents[1] / "scripts")
-        if scripts_dir not in sys.path:
-            sys.path.insert(0, scripts_dir)
-        import dispatch
-        import profiles
-        import statedir
-        state = statedir.resolve()
-        pname = profiles.current(state, collector.REPO_ROOT)
-        mine = dispatch.load_personal(state, collector.REPO_ROOT / "data", pname) or {}
-        for iid, spec in (mine.get("instances") or {}).items():
-            if isinstance(spec, dict) and spec.get("driver") == "antigravity" and spec.get("classes"):
-                return str(iid)
-    except Exception:
-        pass
+        pname, _ = profiles.resolve(data, state)
+    except SystemExit:
+        return "antigravity"
+    pdir = profiles.folder(data, state, pname)
+    mine = dispatch.personal(pdir) or {}
+    for iid, spec in (mine.get("instances") or {}).items():
+        if isinstance(spec, dict) and spec.get("driver") == "antigravity" and spec.get("classes"):
+            return str(iid)
     return "antigravity"
 
 
@@ -162,6 +171,7 @@ def run_t3_reconcile(
     provider: str = DEFAULT_PROVIDER,
     model: str = DEFAULT_MODEL,
     option: str = DEFAULT_OPTION,
+    state_dir: Path | None = None,
 ) -> dict[str, Any]:
     """預設執行器：呼叫官方 `t3 thread start` 開可見對話完成對帳。"""
     cli = collector._find_t3_cli()
@@ -169,7 +179,7 @@ def run_t3_reconcile(
         raise RuntimeError("找不到本機 t3 CLI，無法自動派送對帳對話")
     if not project_path.is_dir():
         raise RuntimeError(f"本機找不到專案目錄：{project_path}")
-    effective_provider = provider or _resolve_default_provider()
+    effective_provider = provider or _resolve_default_provider(state_dir=state_dir)
 
     git_ctx = _collect_git_context(project_path)
     t3_ctx = _collect_recent_t3_context(project_path)
@@ -229,7 +239,12 @@ def run_t3_reconcile(
             pass
 
     if proc.returncode != 0:
-        detail = collector.sanitize(err or out or f"t3 thread start 結束碼 {proc.returncode}")
+        raw_detail = err or out or f"t3 thread start 結束碼 {proc.returncode}"
+        if "no t3 code project matches" in raw_detail.lower():
+            raise RuntimeError(
+                f"此資料夾尚未加入 T3 Code 專案，請先在 T3 Code 開啟並註冊「{project_path}」後再按對帳。"
+            )
+        detail = collector.sanitize(raw_detail)
         raise RuntimeError(detail)
 
     return {
@@ -319,13 +334,16 @@ class ReconcileManager:
 
             try:
                 now_path = collector.safe_status_now_path(self.state_dir, pid)
-                res = self.runner(
-                    project_id=pid,
-                    project_name=job["project_name"],
-                    project_path=Path(job["project_path"]),
-                    now_path=now_path,
-                    t3_base_url=job["t3_base_url"],
-                )
+                run_kw: dict[str, Any] = {
+                    "project_id": pid,
+                    "project_name": job["project_name"],
+                    "project_path": Path(job["project_path"]),
+                    "now_path": now_path,
+                    "t3_base_url": job["t3_base_url"],
+                }
+                if self.runner is run_t3_reconcile:
+                    run_kw["state_dir"] = self.state_dir
+                res = self.runner(**run_kw)
                 with self._lock:
                     job["status"] = "done"
                     job["finished_at"] = collector.iso_utc(collector.utc_now())
