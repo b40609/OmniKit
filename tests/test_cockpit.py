@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from engine.cockpit import collector, server
+from engine.cockpit import collector, reconciler, server
 
 
 TOKEN = "test-token"
@@ -396,3 +396,87 @@ def test_host_name_and_tailnet_hosts():
         raise OSError("沒有 tailscale")
 
     assert server.tailnet_hosts({}, run=boom, exe="tailscale") == set()
+
+
+def test_resolve_default_provider_reads_personal_dispatch_and_skips_manual_only(tmp_path: Path):
+    """回歸測試：reconciler._resolve_default_provider 應正確讀個人 dispatch.md，跳過 manual_only（classes 空）。"""
+    state = tmp_path / "state"
+    pdir = state / "profiles" / "colleague"
+    pdir.mkdir(parents=True)
+    (state / "profile.json").write_text(json.dumps({"profile": "colleague"}), encoding="utf-8")
+    (pdir / "AGENTS.md").write_text("# 測試規則\n", encoding="utf-8")
+    (pdir / "dispatch.md").write_text(
+        "# 分派\n\n```yaml\ninstances:\n"
+        "  antigravity_manual: {driver: antigravity, classes: []}\n"
+        "  antigravity_auto:   {driver: antigravity, classes: [gemini-fast, gemini-pro]}\n"
+        "```\n",
+        encoding="utf-8",
+    )
+    assert reconciler._resolve_default_provider(state_dir=state, environ={}) == "antigravity_auto"
+    assert reconciler._resolve_default_provider(
+        state_dir=state, environ={"OMNIKIT_RECONCILE_PROVIDER": "antigravity_override"}
+    ) == "antigravity_override"
+
+    # 沒有 dispatch.md 時退回預設 "antigravity"
+    (pdir / "dispatch.md").unlink()
+    assert reconciler._resolve_default_provider(state_dir=state, environ={}) == "antigravity"
+
+
+def test_find_t3_cli_fallback_t3code_home_and_user_home(tmp_path: Path):
+    """回歸測試：PATH 無 t3 時應自動 fallback 查 $T3CODE_HOME/bin 與 ~/.t3/bin（collector 與 t3_acp 一致）。"""
+    import os
+    import t3_acp
+
+    exe_name = "t3.cmd" if os.name == "nt" else "t3"
+    home_dir = tmp_path / "home"
+    home_bin = home_dir / ".t3" / "bin" / exe_name
+    home_bin.parent.mkdir(parents=True)
+    home_bin.write_text("@echo off\n", encoding="utf-8")
+
+    # 僅 ~/.t3/bin 存在
+    assert collector._find_t3_cli(environ={"PATH": ""}, home=home_dir) == str(home_bin)
+    assert t3_acp.find_t3_cli(environ={"PATH": ""}, home=home_dir) == str(home_bin)
+
+    # 同時設 T3CODE_HOME 時優先於 ~/.t3/bin
+    custom_home = tmp_path / "custom-t3"
+    custom_bin = custom_home / "bin" / exe_name
+    custom_bin.parent.mkdir(parents=True)
+    custom_bin.write_text("@echo off\n", encoding="utf-8")
+    env = {"PATH": "", "T3CODE_HOME": str(custom_home)}
+    assert collector._find_t3_cli(environ=env, home=home_dir) == str(custom_bin)
+    assert t3_acp.find_t3_cli(environ=env, home=home_dir) == str(custom_bin)
+
+
+def test_unregistered_t3_project_friendly_message(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """回歸測試：資料夾未註冊為 T3 專案時，探測與對帳應回傳明確中文引導訊息。"""
+    proj = tmp_path / "UnregisteredRepo"
+    proj.mkdir()
+    now_path = tmp_path / "NOW.md"
+
+    monkeypatch.setattr(collector, "_find_t3_cli", lambda **_kw: "fake-t3")
+    monkeypatch.setattr(
+        collector,
+        "_run_cmd",
+        lambda *_a, **_kw: (1, "", f"Error: No T3 Code project matches '{proj}'"),
+    )
+    probed = collector.probe_t3_threads(proj)
+    assert probed["available"] is False
+    assert probed.get("unregistered") is True
+    assert "尚未在 T3 Code 註冊" in probed["reason"]
+
+    class FakeProc:
+        returncode = 1
+        stdout = ""
+        stderr = f"Error: No T3 Code project matches '{proj}'"
+
+    monkeypatch.setattr(reconciler.subprocess, "run", lambda *_a, **_kw: FakeProc())
+    with pytest.raises(RuntimeError) as exc_info:
+        reconciler.run_t3_reconcile(
+            project_id="UnregisteredRepo",
+            project_name="UnregisteredRepo",
+            project_path=proj,
+            now_path=now_path,
+            provider="antigravity_auto",
+        )
+    assert "尚未加入 T3 Code 專案" in str(exc_info.value)
+    assert "開啟並註冊" in str(exc_info.value)

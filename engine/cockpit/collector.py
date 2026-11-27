@@ -817,10 +817,35 @@ def probe_git(project_path: Path, now_updated_at: datetime | None = None) -> dic
     }
 
 
-def _find_t3_cli() -> str | None:
-    if os.name == "nt":
-        return shutil.which("t3.cmd") or shutil.which("t3.exe") or shutil.which("t3")
-    return shutil.which("t3")
+def _find_t3_cli(*, environ: dict[str, str] | None = None, home: Path | None = None) -> str | None:
+    env = os.environ if environ is None else environ
+    is_win = os.name == "nt"
+    exe_names = ("t3.cmd", "t3.exe", "t3") if is_win else ("t3",)
+    if environ is None:
+        for name in exe_names:
+            found = shutil.which(name)
+            if found:
+                return found
+    else:
+        path_val = env.get("PATH")
+        if path_val:
+            for name in exe_names:
+                found = shutil.which(name, path=path_val)
+                if found:
+                    return found
+
+    base_home = Path(home) if home is not None else Path.home()
+    candidates: list[Path] = []
+    t3_home = env.get("T3CODE_HOME", "").strip()
+    if t3_home:
+        for name in exe_names:
+            candidates.append(Path(t3_home) / "bin" / name)
+    for name in exe_names:
+        candidates.append(base_home / ".t3" / "bin" / name)
+    for cand in candidates:
+        if cand.is_file():
+            return str(cand)
+    return None
 
 
 def rewrite_t3_link(original_link: str | None, t3_base_url: str) -> str:
@@ -854,7 +879,15 @@ def probe_t3_threads(
             return {"available": False, "reason": "找不到 t3 CLI 或本機目錄", "threads": []}
         rc, out, err = _run_cmd([cli, "thread", "list", "--project", str(project_path), "--json"], timeout=10)
         if rc != 0:
-            return {"available": False, "reason": sanitize(err or "t3 thread list 執行失敗"), "threads": []}
+            raw_err = err or "t3 thread list 執行失敗"
+            if "no t3 code project matches" in raw_err.lower():
+                return {
+                    "available": False,
+                    "unregistered": True,
+                    "reason": "尚未在 T3 Code 註冊此專案資料夾（請先在 T3 Code 開啟該資料夾）",
+                    "threads": [],
+                }
+            return {"available": False, "reason": sanitize(raw_err), "threads": []}
         try:
             parsed = json.loads(out)
             raw_threads = parsed if isinstance(parsed, list) else []
