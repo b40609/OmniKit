@@ -2,8 +2,8 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""在 Codex 的 ~/.codex/config.toml 註冊 OmniKit 的 hook：Stop 的開新對話提醒（session_nudge.py）與
-說做不到查證（claim_check.py），SessionStart 的 T3 MCP 斷線防護（t3_watch.py）。
+"""在 Codex 的 ~/.codex/config.toml 註冊 OmniKit 的 hook：Stop 的開新對話提醒（session_nudge.py）、
+說做不到查證（claim_check.py）與完工宣稱檢查（done_check.py），SessionStart 的 T3 MCP 斷線防護（t3_watch.py）。
 每支各寫成一段 [[hooks.<事件>]]，可以分開加、分開拿掉。
 
 寫進 config.toml 而不是 hooks.json：同一層兩種都有時 Codex 每次啟動都會警告，
@@ -27,12 +27,12 @@ import tempfile
 import tomllib
 from pathlib import Path
 
-from claude_allow import CLAIM, HOOK_NAMES, NUDGE, RECORD, T3W, hook_command, is_ours, load, save
+from claude_allow import CLAIM, DONE, HOOK_NAMES, NUDGE, RECORD, T3W, hook_command, is_ours, load, save
 from fsretry import flaky, retry  # 防毒短暫鎖住檔案時等一下再試（FR-34）
 
-SCRIPTS = (NUDGE, CLAIM, T3W)  # OmniKit 在 Codex 註冊的 hook，照這個順序寫
-EVENTS = {NUDGE: "Stop", CLAIM: "Stop", T3W: "SessionStart"}
-TIMEOUTS = {NUDGE: 10, CLAIM: 10, T3W: 30}
+SCRIPTS = (NUDGE, CLAIM, T3W, DONE)  # OmniKit 在 Codex 註冊的 hook，照這個順序寫（新的加在後面，舊設定不用重排）
+EVENTS = {NUDGE: "Stop", CLAIM: "Stop", T3W: "SessionStart", DONE: "Stop"}
+TIMEOUTS = {NUDGE: 10, CLAIM: 10, T3W: 30, DONE: 15}
 MARKS = {script: f"# OmniKit：{HOOK_NAMES[script]}（install.ps1 加入、uninstall.ps1 移除）" for script in SCRIPTS}
 MARK = MARKS[NUDGE]
 
@@ -200,6 +200,12 @@ def selftest() -> int:
     assert [h["timeout"] for g in event_groups(tomllib.loads(three), "SessionStart") for h in g["hooks"]] == [30]
     assert len(stop_groups(tomllib.loads(three))) == 2 and remove(three, T3W) == both
     assert remove(remove(remove(three), CLAIM), T3W) == base
+    # Stop 的完工宣稱檢查：第三段 Stop，timeout 15，跟其他 hook 分開加、分開拿掉
+    done = cmd.replace(NUDGE, DONE)
+    four = add(three, done, DONE)
+    assert MARKS[DONE] in four and add(four, done, DONE) is None and len(stop_groups(tomllib.loads(four))) == 3
+    assert [h["timeout"] for g in stop_groups(tomllib.loads(four)) for h in g["hooks"] if DONE in h["command"]] == [15]
+    assert remove(four, DONE) == three and remove(remove(remove(remove(four, DONE)), CLAIM), T3W) == base
     # 防毒短暫鎖住 config.toml（FR-34）：等一下再試，寫進去的內容與換行照原本的
     with tempfile.TemporaryDirectory() as tmp:
         config = Path(tmp) / "config.toml"
