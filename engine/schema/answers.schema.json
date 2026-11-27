@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniKit 訪談答案",
-  "description": "omnikit-setup 訪談的答案；engine/scripts/profile_new.py 依這份產生 repo 外的 ~/.omnikit/profiles/<name>/。",
+  "description": "omnikit-setup 與本機控制面板精靈的答案；engine/scripts/profile_new.py 依這份產生 repo 外的 ~/.omnikit/profiles/<name>/。",
   "type": "object",
   "required": ["name", "language", "verbosity", "autonomy", "pains", "evaluate_tools"],
   "anyOf": [{ "required": ["domains"] }, { "required": ["work"] }],
@@ -35,11 +35,22 @@
       "items": { "enum": ["coding", "data", "docs", "research"] }
     },
     "pains": {
-      "description": "最想改善的事，最多兩項",
+      "description": "想加強的工作習慣與守則（自由複選，不限項數）",
       "type": "array",
-      "maxItems": 2,
       "uniqueItems": true,
-      "items": { "enum": ["too-long", "scope-creep", "no-verification", "guesses"] }
+      "items": {
+        "enum": [
+          "too-long",
+          "scope-creep",
+          "no-verification",
+          "anti-fake-done",
+          "guesses",
+          "english-drift",
+          "breaks-existing",
+          "manual-steps",
+          "no-plan"
+        ]
+      }
     },
     "background": {
       "description": "主要工作與技術，一句話",

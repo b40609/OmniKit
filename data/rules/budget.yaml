@@ -2,7 +2,7 @@
 # 原則：超標即阻斷 CI，除非於同一 commit 顯式調高本檔（讓常駐膨脹成為可見 diff）；每次減肥後將上限下調扣緊。
 
 schema_version: 1
-updated_at: '2026-11-26'
+updated_at: '2026-11-28'
 
 limits:
   # Antigravity ~/.gemini/AGENTS.md 共用受管區塊上限（移出 mobile-web.md 並補雙向對等審查後實測 5,320 bytes）
@@ -11,5 +11,5 @@ limits:
   antigravity_personal_max_bytes: 7800
   # Codex ~/.codex/AGENTS.md 合併受管區塊上限（兩波瘦身：15,284 -> 13,707 -> 12,767 bytes；平台硬上限 32,768 bytes）
   codex_combined_max_bytes: 13000
-  # 所有未設 disable-model-invocation: true 的 engine/skills/*/SKILL.md 之 description 總 UTF-8 bytes（實測 7 個共 3,529 bytes）
-  auto_skill_desc_max_bytes: 3800
+  # 所有未設 disable-model-invocation: true 的 engine/skills/*/SKILL.md 之 description 總 UTF-8 bytes（2026-11-28 新增第 8 個核心技能 omnikit-verify 防假完工真機驗收，實測 3,943 bytes）
+  auto_skill_desc_max_bytes: 4050

@@ -8,6 +8,7 @@ url: https://github.com/pingdotgg/t3code
 works_with:
 - claude
 - codex
+- antigravity
 decided_at: '2026-11-25'
 reason: 唯一能在同一個介面跑 Claude、Codex、Antigravity 多帳號實例的 GUI，經兩週實戰（S1 規則與 skill 載入、T3 MCP 跨家派工、子對話自動 settle、跨模型 context handoff）穩定勝任日常主力，試用期滿轉為預設。
 sources:

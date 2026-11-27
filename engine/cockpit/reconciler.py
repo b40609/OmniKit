@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import queue
+import re
 import subprocess
 import sys
 import threading
@@ -161,6 +162,94 @@ def build_reconcile_prompt(
 """
 
 
+def _fallback_local_git_reconcile(
+    *,
+    project_id: str,
+    project_name: str,
+    project_path: Path,
+    now_path: Path,
+    state_dir: Path | None = None,
+    reason_note: str = "",
+) -> dict[str, Any]:
+    """無 T3 Code 或資料夾尚未註冊 T3 時的確定性本機對帳退路（不報錯、完整保留不滿意待改與既有步驟）。"""
+    now_stamp = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M")
+    git_info = collector.probe_git(project_path)
+    branch = git_info.get("branch") or "main"
+    last_subj = git_info.get("last_subject") or "尚無 commit 紀錄"
+    last_hash = git_info.get("last_hash") or ""
+    dirty = int(git_info.get("dirty_count") or 0)
+
+    old_raw = collector.read_utf8(now_path) if now_path.is_file() else ""
+    parsed = collector.parse_now_md(old_raw) if old_raw.strip() else None
+
+    if not old_raw.strip():
+        body = (
+            f"# {project_name} 狀態板\n\n"
+            f"- 更新時間：{now_stamp}\n"
+            f"- 專案路徑：`{project_path}`\n"
+            f"- 分支：{branch}" + (f"（最新 `{last_hash}` {last_subj}）" if last_hash else "") + "\n\n"
+            "## 完工路徑\n"
+            "還有 1 步，完成 0 步（上坡）\n"
+            "- [ ] 開啟對話對齊本階段目標與驗收步驟\n\n"
+            "## 目前結論\n"
+            f"- 本機自動掃描完成（分支 `{branch}`，未提交變更 {dirty} 個檔案）\n\n"
+            "## 不滿意待改\n"
+            "- 無\n\n"
+            "## 等使用者決定的事\n"
+            "- 無\n\n"
+            "## 下一步\n"
+            "- 【agent 可直接做】開啟專案對話推進開發並更新 NOW.md\n"
+        )
+    else:
+        lines = old_raw.replace("\r\n", "\n").splitlines()
+        updated_hdr = False
+        for i, ln in enumerate(lines[:12]):
+            if re.match(r"^\s*-\s*更新時間\s*[:：]", ln):
+                lines[i] = f"- 更新時間：{now_stamp}"
+                updated_hdr = True
+            elif re.match(r"^\s*-\s*分支\s*[:：]", ln) and last_hash:
+                lines[i] = f"- 分支：{branch}（最新 `{last_hash}` {last_subj}）"
+        if not updated_hdr:
+            insert_pos = 1 if lines and lines[0].startswith("#") else 0
+            lines.insert(insert_pos, f"- 更新時間：{now_stamp}")
+
+        if git_info.get("available"):
+            short_stamp = now_stamp[-11:]
+            commit_part = f"最新 `{last_hash}` {last_subj}" if last_hash else last_subj
+            sync_bullet = f"- 本機 Git 同步（{short_stamp}）：分支 `{branch}`，{commit_part}，未提交變更 {dirty} 檔"
+            conc_start = None
+            conc_end = len(lines)
+            for idx, ln in enumerate(lines):
+                hm = collector.HEADING_RE.match(ln)
+                if hm:
+                    if conc_start is None and collector._classify_section(hm.group(2)) == "conclusions":
+                        conc_start = idx
+                    elif conc_start is not None:
+                        conc_end = idx
+                        break
+            if conc_start is not None:
+                sec_body = [
+                    ln
+                    for ln in lines[conc_start + 1 : conc_end]
+                    if not ln.strip().startswith("- 本機 Git 同步（")
+                    and not ln.strip().startswith("- （待補")
+                ]
+                lines = lines[: conc_start + 1] + [sync_bullet] + sec_body + lines[conc_end:]
+        body = "\n".join(lines).rstrip("\n") + "\n"
+
+    collector.write_utf8_atomic(now_path, body)
+    sdir = state_dir if state_dir is not None else collector.default_state_dir()
+    collector._maybe_git_commit_status(sdir, now_path, f"reconcile({project_id}): 本機 Git 狀態同步")
+    suffix = f"（{reason_note}，已用本機 Git 狀態直接更新）" if reason_note else ""
+    _ = parsed
+    return {
+        "thread_id": "",
+        "thread_url": "",
+        "mode": "local_git",
+        "message": f"{project_name} 已更新 NOW.md{suffix}",
+    }
+
+
 def run_t3_reconcile(
     *,
     project_id: str,
@@ -172,13 +261,21 @@ def run_t3_reconcile(
     model: str = DEFAULT_MODEL,
     option: str = DEFAULT_OPTION,
     state_dir: Path | None = None,
+    allow_local_fallback: bool = False,
 ) -> dict[str, Any]:
-    """預設執行器：呼叫官方 `t3 thread start` 開可見對話完成對帳。"""
-    cli = collector._find_t3_cli()
-    if not cli:
-        raise RuntimeError("找不到本機 t3 CLI，無法自動派送對帳對話")
+    """預設執行器：有 T3 Code 且專案已註冊時呼叫 `t3 thread start`；無 T3 CLI 或佇列允許降級時退回本機確定性 Git 對帳。"""
     if not project_path.is_dir():
         raise RuntimeError(f"本機找不到專案目錄：{project_path}")
+    cli = collector._find_t3_cli()
+    if not cli:
+        return _fallback_local_git_reconcile(
+            project_id=project_id,
+            project_name=project_name,
+            project_path=project_path,
+            now_path=now_path,
+            state_dir=state_dir,
+            reason_note="這台未安裝 T3 Code",
+        )
     effective_provider = provider or _resolve_default_provider(state_dir=state_dir)
 
     git_ctx = _collect_git_context(project_path)
@@ -241,8 +338,26 @@ def run_t3_reconcile(
     if proc.returncode != 0:
         raw_detail = err or out or f"t3 thread start 結束碼 {proc.returncode}"
         if "no t3 code project matches" in raw_detail.lower():
+            if allow_local_fallback:
+                return _fallback_local_git_reconcile(
+                    project_id=project_id,
+                    project_name=project_name,
+                    project_path=project_path,
+                    now_path=now_path,
+                    state_dir=state_dir,
+                    reason_note="此資料夾尚未加入 T3 Code 專案",
+                )
             raise RuntimeError(
-                f"此資料夾尚未加入 T3 Code 專案，請先在 T3 Code 開啟並註冊「{project_path}」後再按對帳。"
+                f"此資料夾尚未加入 T3 Code 專案（{project_path}），請先在 T3 Code 開啟並註冊該資料夾後再執行對帳"
+            )
+        if allow_local_fallback and "connect econnrefused" in raw_detail.lower():
+            return _fallback_local_git_reconcile(
+                project_id=project_id,
+                project_name=project_name,
+                project_path=project_path,
+                now_path=now_path,
+                state_dir=state_dir,
+                reason_note="T3 Code 目前未啟動",
             )
         detail = collector.sanitize(raw_detail)
         raise RuntimeError(detail)
@@ -343,6 +458,7 @@ class ReconcileManager:
                 }
                 if self.runner is run_t3_reconcile:
                     run_kw["state_dir"] = self.state_dir
+                    run_kw["allow_local_fallback"] = True
                 res = self.runner(**run_kw)
                 with self._lock:
                     job["status"] = "done"

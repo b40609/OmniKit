@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -39,7 +40,17 @@ except ImportError:
         return fn(*args, **kwargs)
 
 
-SAFE_PROJECT_ID = re.compile(r"^[A-Za-z0-9._-]+$")
+SAFE_PROJECT_ID = re.compile(r"^[\w.-]+$")
+WIN_RESERVED_NAMES = frozenset(
+    {
+        "CON",
+        "PRN",
+        "AUX",
+        "NUL",
+        *(f"COM{i}" for i in range(1, 10)),
+        *(f"LPT{i}" for i in range(1, 10)),
+    }
+)
 SECRET_PATTERNS = (
     re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]{8,}"),
     re.compile(r"\bsk-[A-Za-z0-9_-]{12,}"),
@@ -206,9 +217,37 @@ def status_repo_dir(state_dir: Path) -> Path:
 
 def validate_project_id(project_id: str) -> str:
     pid = str(project_id or "").strip()
-    if not pid or pid in (".", "..") or not SAFE_PROJECT_ID.match(pid):
-        raise ValueError("專案代號只允許英數字、點、底線與連字號")
+    if (
+        not pid
+        or pid.strip(".") == ""
+        or pid.endswith(".")
+        or pid.split(".")[0].upper() in WIN_RESERVED_NAMES
+        or not SAFE_PROJECT_ID.match(pid)
+    ):
+        raise ValueError("專案代號不可為空白、純句點或系統保留字，且只允許中英數字、點、底線與連字號")
     return pid
+
+
+def _slug_project_id(name: str) -> str:
+    cleaned = re.sub(r"[^\w.-]+", "-", str(name or "").strip()).strip("-.")
+    if not cleaned or cleaned.strip(".") == "" or cleaned.split(".")[0].upper() in WIN_RESERVED_NAMES:
+        digest = hashlib.sha1(str(name or "").encode("utf-8")).hexdigest()[:6]
+        return f"proj-{digest}"
+    return cleaned
+
+
+def _default_desktop_dir(home: Path | None = None) -> Path:
+    h = home if home is not None else Path.home()
+    candidates: list[Path] = []
+    if home is None:
+        od_env = os.environ.get("OneDrive", "").strip()
+        if od_env:
+            candidates.append(Path(od_env) / "Desktop")
+    candidates.extend([h / "OneDrive" / "Desktop", h / "Desktop"])
+    for cand in candidates:
+        if cand.is_dir():
+            return cand
+    return h / "Projects"
 
 
 def safe_status_now_path(state_dir: Path, project_id: str) -> Path:
@@ -242,7 +281,18 @@ def load_config(state_dir: Path) -> dict[str, Any]:
 
 
 def save_config(state_dir: Path, cfg: dict[str, Any]) -> dict[str, Any]:
+    existing: dict[str, Any] = {}
+    p = config_path(state_dir)
+    if p.is_file():
+        try:
+            raw = json.loads(read_utf8(p))
+            if isinstance(raw, dict):
+                existing = raw
+        except (OSError, ValueError):
+            existing = {}
     normalized = {
+        **existing,
+        **cfg,
         "t3_base_url": str(cfg.get("t3_base_url") or "").strip().rstrip("/"),
         "parked_days": max(1, min(60, int(cfg.get("parked_days") or 3))),
         "overload_items": max(100, min(10000, int(cfg.get("overload_items") or 1000))),
@@ -250,7 +300,7 @@ def save_config(state_dir: Path, cfg: dict[str, Any]) -> dict[str, Any]:
         "auto_push_status": bool(cfg.get("auto_push_status", False)),
         "projects": list(cfg.get("projects") or []),
     }
-    write_utf8_atomic(config_path(state_dir), json.dumps(normalized, ensure_ascii=False, indent=2) + "\n")
+    write_utf8_atomic(p, json.dumps(normalized, ensure_ascii=False, indent=2) + "\n")
     return normalized
 
 
@@ -285,7 +335,7 @@ def register_project(
 ) -> dict[str, Any]:
     """在 ~/.omnikit/cockpit/config.json 登記、更新或移除專案設定。"""
     cfg = load_config(state_dir)
-    raw_id = project_id or re.sub(r"[^A-Za-z0-9._-]+", "-", name.strip()).strip("-")
+    raw_id = str(project_id).strip() if (project_id is not None and str(project_id).strip()) else _slug_project_id(name)
     pid = validate_project_id(raw_id)
     projects = [p for p in cfg["projects"] if isinstance(p, dict)]
     existing_idx = next((i for i, p in enumerate(projects) if str(p.get("id", "")).lower() == pid.lower()), None)
@@ -634,29 +684,27 @@ def _format_critique_line(text: str = "", symptom: str = "", pain: str = "", cri
 
 
 def _maybe_git_commit_status(state_dir: Path, target: Path, message: str) -> dict[str, Any]:
-    repo = status_repo_dir(state_dir)
-    if not (repo / ".git").exists():
-        return {"committed": False, "pushed": False, "note": "狀態資料夾非 git repo，已寫入本機檔案"}
     cfg = load_config(state_dir)
     if not cfg.get("auto_commit_status", True):
-        return {"committed": False, "pushed": False, "note": "已寫入檔案（未啟用自動 commit）"}
-    rel = target.relative_to(repo).as_posix()
-    rc_add, _, err_add = _run_cmd(["git", "add", "--", rel], cwd=repo, timeout=8)
-    if rc_add != 0:
-        return {"committed": False, "pushed": False, "note": f"git add 略過：{sanitize(err_add)}"}
-    rc_c, _, err_c = _run_cmd(["git", "commit", "-m", message, "--", rel], cwd=repo, timeout=10)
-    if rc_c != 0:
-        return {"committed": False, "pushed": False, "note": f"已存檔，git commit 略過：{sanitize(err_c)}"}
-    pushed = False
-    note = "已寫入並 commit 至狀態庫"
-    if cfg.get("auto_push_status", False):
-        rc_p, _, err_p = _run_cmd(["git", "push"], cwd=repo, timeout=15)
-        if rc_p == 0:
-            pushed = True
-            note = "已寫入、commit 並 push 至狀態庫"
-        else:
-            note = f"已 commit，但 push 失敗：{sanitize(err_p)}"
-    return {"committed": True, "pushed": pushed, "note": note}
+        return {"committed": False, "pushed": False, "note": "已寫入檔案（未啟用自動記錄歷史）"}
+    try:
+        import status as status_mod  # type: ignore
+
+        repo = status_repo_dir(state_dir)
+        rel = target.relative_to(repo).as_posix()
+        res = status_mod.save_status(
+            state=state_dir,
+            message=message,
+            rel_paths=[rel],
+            push=bool(cfg.get("auto_push_status", False)),
+        )
+        return {
+            "committed": bool(res.get("committed")),
+            "pushed": bool(res.get("pushed")),
+            "note": str(res.get("note") or res.get("error") or ""),
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"committed": False, "pushed": False, "note": f"已寫入檔案（本機歷史略過：{sanitize(exc)}）"}
 
 
 def add_critique(
@@ -964,18 +1012,130 @@ def probe_t3_threads(
 # ---------- 專案探索、球權分流與全景總覽 ----------
 
 def sync_status_repo(state_dir: Path) -> dict[str, Any]:
-    """對 ~/.omnikit/status 做唯讀安全同步（git pull --ff-only），不自動改檔或衝突覆蓋。"""
-    repo = status_repo_dir(state_dir)
-    if not (repo / ".git").exists():
-        return {"synced": False, "reason": "狀態目錄尚未綁定 git repo"}
-    rc, out, err = _run_cmd(["git", "pull", "--ff-only"], cwd=repo, timeout=15)
-    if rc == 0:
-        return {"synced": True, "message": sanitize(out or "已同步至最新")}
-    return {"synced": False, "reason": sanitize(err or out or "git pull --ff-only 失敗")}
+    """對 ~/.omnikit/status 執行安全同步（本機模式自動初始化不報錯，遠端模式 git pull --ff-only）。"""
+    try:
+        import status as status_mod  # type: ignore
+
+        res = status_mod.sync_status(state_dir)
+        return {
+            "synced": bool(res.get("synced")),
+            "mode": res.get("mode", "local"),
+            "message": sanitize(res.get("message") or ""),
+            **({"reason": sanitize(res.get("reason"))} if not res.get("synced") else {}),
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"synced": False, "reason": sanitize(exc)}
+
+
+def scan_candidate_projects(home: Path | None = None, state_dir: Path | None = None) -> list[dict[str, str]]:
+    """淺層掃描使用者常見開發資料夾，找出尚未登記到面板的本機專案供一鍵匯入（不讀檔案內容）。"""
+    h = home if home is not None else Path.home()
+    sdir = state_dir if state_dir is not None else default_state_dir()
+    cfg = load_config(sdir)
+    known_paths = {
+        os.path.normcase(str(Path(p["path"]).resolve()))
+        for p in (cfg.get("projects") or [])
+        if isinstance(p, dict) and p.get("path")
+    }
+    known_ids = {str(p.get("id", "")).lower() for p in (cfg.get("projects") or []) if isinstance(p, dict)}
+    if status_repo_dir(sdir).is_dir():
+        known_ids.update(d.name.lower() for d in status_repo_dir(sdir).iterdir() if d.is_dir())
+    known_ids.add("omnikit")
+
+    markers = (".git", "package.json", "pyproject.toml", "Cargo.toml", "go.mod", "requirements.txt")
+    roots = [
+        h / "OneDrive" / "Desktop",
+        h / "Desktop",
+        h / "Documents" / "GitHub",
+        h / "Documents",
+        h / "source" / "repos",
+        h / "dev",
+        h / "projects",
+        h / "workspace",
+        h / "repos",
+        h / "code",
+    ]
+    found: list[dict[str, str]] = []
+    seen_norm: set[str] = set(known_paths)
+    for rdir in roots:
+        if not rdir.is_dir():
+            continue
+        try:
+            children = sorted(rdir.iterdir(), key=lambda x: x.name.lower())
+        except OSError:
+            continue
+        for child in children[:60]:
+            if not child.is_dir() or child.name.startswith((".", "$", "_")):
+                continue
+            try:
+                norm = os.path.normcase(str(child.resolve()))
+            except OSError:
+                continue
+            if norm in seen_norm:
+                continue
+            raw_id = _slug_project_id(child.name)
+            try:
+                raw_id = validate_project_id(raw_id)
+            except ValueError:
+                continue
+            if raw_id.lower() in known_ids:
+                continue
+            if any((child / mk).exists() for mk in markers):
+                seen_norm.add(norm)
+                found.append({"id": raw_id, "name": child.name, "path": str(child)})
+                if len(found) >= 16:
+                    return found
+    return found
+
+
+def create_starter_project(
+    state_dir: Path,
+    *,
+    name: str,
+    parent_dir: Path | None = None,
+    ok_prefix: str = "/ok",
+) -> dict[str, Any]:
+    """為零專案新手一鍵建立新專案資料夾、初始化本地 Git 與首份本機 NOW.md，並回傳 3 句破冰提示詞。"""
+    clean_name = str(name or "").strip()
+    if (
+        not clean_name
+        or clean_name.strip(".") == ""
+        or clean_name.endswith(".")
+        or clean_name.split(".")[0].upper() in WIN_RESERVED_NAMES
+        or any(ch in clean_name for ch in '<>:"/\\|?*')
+        or any(ord(ch) < 32 for ch in clean_name)
+    ):
+        raise ValueError("請輸入合法的專案名稱（不可為純句點、系統保留字或包含路徑特殊符號）")
+    pid = validate_project_id(_slug_project_id(clean_name))
+
+    base_parent = parent_dir if parent_dir is not None else _default_desktop_dir()
+    base_resolved = base_parent.resolve()
+    target_dir = (base_resolved / clean_name).resolve()
+    if target_dir == base_resolved or target_dir.parent != base_resolved:
+        raise ValueError("不合法的專案目錄名稱（解析路徑脫離上層資料夾）")
+
+    target_dir.mkdir(parents=True, exist_ok=True)
+    readme = target_dir / "README.md"
+    if not readme.exists():
+        write_utf8_atomic(readme, f"# {clean_name}\n\n由 OmniKit 控制面板建立的專案工作區。\n")
+    if not (target_dir / ".git").exists() and shutil.which("git"):
+        _run_cmd(["git", "init", "-b", "main"], cwd=target_dir, timeout=6)
+
+    reg = register_project(state_dir, name=clean_name, path=str(target_dir), project_id=pid)
+    import status as status_mod  # type: ignore
+
+    now_res = status_mod.project_now_path(pid, state=state_dir, project_path=str(target_dir), ensure=True)
+    verify_cmd = "$ok 驗收" if ok_prefix == "$ok" else "/ok 驗收（Codex 用 $ok 驗收）"
+    starters = [
+        f"請先讀 ~/.omnikit/status/{pid}/NOW.md，我想在「{clean_name}」做一個新工具，先用 /plan 問我幾個問題幫我規劃步驟。",
+        f"幫我在「{clean_name}」做出第一個可用的頁面或腳本，完成後請照 {verify_cmd} 實際跑過並檢查 0 錯誤再回報。",
+        "幫我先調查這個點子目前業界與開源有哪些現成好用的做法，比較優缺點後給我建議。",
+    ]
+    return {"ok": True, "project": reg, "now_path": now_res.get("path"), "starter_prompts": starters}
 
 
 def discover_projects(state_dir: Path, cfg: dict[str, Any], default_repo_root: Path | None = ROOT) -> list[dict[str, Any]]:
-    """合併「本機登記專案 ∪ ~/.omnikit/status/* ∪ 目前 OmniKit repo」成不重複清單。"""
+    """合併「本機登記專案 ∪ ~/.omnikit/status/* ∪ 維護者或既有 OmniKit 狀態板」成不重複清單。"""
     merged: dict[str, dict[str, Any]] = {}
 
     def _upsert(pid: str, *, name: str | None = None, path: str | None = None, source: str, parked: bool | None = None):
@@ -1022,7 +1182,9 @@ def discover_projects(state_dir: Path, cfg: dict[str, Any], default_repo_root: P
         for child in sorted(sdir.iterdir(), key=lambda p: p.name.lower()):
             if not child.is_dir() or child.name.startswith(".") or child.name.startswith("_"):
                 continue
-            if not SAFE_PROJECT_ID.match(child.name):
+            try:
+                validate_project_id(child.name)
+            except ValueError:
                 continue
             now_file = child / "NOW.md"
             hint_path = ""
@@ -1034,9 +1196,18 @@ def discover_projects(state_dir: Path, cfg: dict[str, Any], default_repo_root: P
                     hint_path = ""
             _upsert(child.name, name=child.name, path=hint_path, source="status_repo")
 
-    # 3. 保底：把 OmniKit 自己放進去（同事零設定開啟也看得到）
+    # 3. 僅在已有 OmniKit/NOW.md 或維護者版環境時自動納入 OmniKit repo，避免零專案新手看見無關的缺檔紅燈
     if default_repo_root is not None and default_repo_root.is_dir():
-        _upsert(default_repo_root.name, name=default_repo_root.name, path=str(default_repo_root), source="workspace")
+        has_omnikit_now = (sdir / default_repo_root.name / "NOW.md").is_file()
+        is_maintainer = False
+        ed_file = state_dir / "edition.json"
+        if ed_file.is_file():
+            try:
+                is_maintainer = json.loads(read_utf8(ed_file)).get("edition") == "maintainer"
+            except (OSError, ValueError):
+                is_maintainer = False
+        if has_omnikit_now or is_maintainer:
+            _upsert(default_repo_root.name, name=default_repo_root.name, path=str(default_repo_root), source="workspace")
 
     return list(merged.values())
 
@@ -1382,12 +1553,47 @@ def collect_tools_overlay(state_dir: Path | None = None, data_dir: Path | None =
 
 # ---------- 個人疊層：多帳號與額度 ----------
 
-def collect_accounts(state_dir: Path | None = None, *, refresh_agy: bool = False) -> dict[str, Any]:
-    """透過 account_pool.py 讀取 Claude + Antigravity 多帳號額度與警示（不存不印任何 token）。"""
+def _collect_codex_status(home: Path | None = None) -> list[dict[str, Any]]:
+    """讀取本機 Codex 設定目錄狀態（不讀任何 auth.json 憑證值），讓無 Claude 用戶在額度頁也能看見 Codex。"""
+    h = home if home is not None else Path.home()
+    dirs = [h / ".codex"]
+    try:
+        import homes as homes_mod  # type: ignore
+
+        for f in homes_mod.discover(h):
+            if f.agent == "codex" and f.path not in dirs:
+                dirs.append(f.path)
+    except Exception:  # noqa: BLE001
+        pass
+
+    out: list[dict[str, Any]] = []
+    has_cli = bool(shutil.which("codex") or shutil.which("codex.cmd"))
+    for idx, d in enumerate(dirs):
+        if not d.is_dir() and not (idx == 0 and has_cli):
+            continue
+        logged_in = (d / "auth.json").is_file()
+        trust_dir = d / ".hook-trust"
+        hooks_trusted = trust_dir.is_dir() and any(trust_dir.iterdir())
+        has_rules = (d / "AGENTS.md").is_file()
+        out.append({
+            "id": "codex" if idx == 0 else d.name,
+            "label": "Codex（預設）" if idx == 0 else f"Codex（{d.name}）",
+            "cli_installed": has_cli,
+            "logged_in": logged_in,
+            "rules_connected": has_rules,
+            "hooks_trusted": hooks_trusted,
+            "quota_note": "OpenAI Codex CLI 目前未公開本地剩餘額度快取檔；可在 Codex 輸入 /status 查看即時用量",
+        })
+    return out
+
+
+def collect_accounts(state_dir: Path | None = None, *, refresh_agy: bool = False, home: Path | None = None) -> dict[str, Any]:
+    """透過 account_pool.py 讀取 Claude + Antigravity 多帳號額度，並整合 Codex 連線狀態（不存不印任何 token）。"""
     sdir = state_dir if state_dir is not None else default_state_dir()
+    codex_list = _collect_codex_status(home)
     script = SCRIPTS_DIR / "account_pool.py"
     if not script.is_file():
-        return {"available": False, "error": "找不到 account_pool.py"}
+        return {"available": False, "error": "找不到 account_pool.py", "codex": codex_list}
 
     env = dict(os.environ)
     env["OMNIKIT_STATE_DIR"] = str(sdir)
@@ -1409,14 +1615,14 @@ def collect_accounts(state_dir: Path | None = None, *, refresh_agy: bool = False
     try:
         proc = subprocess.run(cmd, check=False, **kwargs)
     except (OSError, subprocess.SubprocessError) as exc:
-        return {"available": False, "error": sanitize(exc)}
+        return {"available": False, "error": sanitize(exc), "codex": codex_list}
 
     if proc.returncode != 0:
-        return {"available": False, "error": sanitize(proc.stderr or proc.stdout or "讀取帳號額度失敗")}
+        return {"available": False, "error": sanitize(proc.stderr or proc.stdout or "讀取帳號額度失敗"), "codex": codex_list}
     try:
         doc = json.loads(proc.stdout)
     except ValueError:
-        return {"available": False, "error": "帳號額度回傳非合法 JSON"}
+        return {"available": False, "error": "帳號額度回傳非合法 JSON", "codex": codex_list}
 
     # 去除本機敏感絕對設定目錄不必要資訊，保留乾淨展示欄位
     return {
@@ -1426,5 +1632,6 @@ def collect_accounts(state_dir: Path | None = None, *, refresh_agy: bool = False
         "claude": doc.get("claude") or [],
         "claude_selection": doc.get("claude_selection"),
         "antigravity": doc.get("antigravity") or [],
+        "codex": codex_list,
         "alerts": doc.get("alerts") or [],
     }

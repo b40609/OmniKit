@@ -35,7 +35,16 @@
     "works_with": {
       "type": "array",
       "uniqueItems": true,
-      "items": { "enum": ["claude", "codex"] }
+      "items": { "enum": ["claude", "codex", "antigravity"] }
+    },
+    "trust": {
+      "description": "信任標章：builtin（內建）、curated（實測精選）、community（社群觀察）、custom（本機自訂）；未填依 status 自動推導",
+      "enum": ["builtin", "curated", "community", "custom"]
+    },
+    "context_cost": {
+      "description": "開場常駐 Context token 估算（0 表示按需載入不占開場額度）",
+      "type": "integer",
+      "minimum": 0
     },
     "decided_at": { "$ref": "#/$defs/date" },
     "reason": { "type": "string", "minLength": 1 },

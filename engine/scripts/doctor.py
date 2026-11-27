@@ -271,8 +271,16 @@ def check_permissions_and_hooks(env: sync.Env, agents: list[str], claude_dirs: l
             toml_p = d / "config.toml"
             txt = toml_p.read_text(encoding="utf-8", errors="replace") if toml_p.is_file() else ""
             missing_h = [claude_allow.HOOK_NAMES[s] for s in CODEX_SCRIPTS if not re.search(r"(?m)^command\s*=.*" + re.escape(s), txt)]
-            out.append(row("hook", lbl, "config.toml Stop hooks", OK if not missing_h else FAIL,
-                           f"{len(CODEX_SCRIPTS)} 支 hook 皆已登記（需於 /hooks 信任）" if not missing_h else f"缺少 {'、'.join(missing_h)}"))
+            trust_dir = d / ".hook-trust"
+            trusted = trust_dir.is_dir() and any(trust_dir.iterdir())
+            if missing_h:
+                out.append(row("hook", lbl, "config.toml Stop hooks", FAIL, f"缺少 {'、'.join(missing_h)}"))
+            elif env.runner is None and not trusted:
+                out.append(row("hook", lbl, "config.toml Stop hooks", WARN,
+                               f"{len(CODEX_SCRIPTS)} 支 hook 已登記，但尚未在 Codex 輸入 /hooks 按信任（信任前不會觸發）"))
+            else:
+                out.append(row("hook", lbl, "config.toml Stop hooks", OK,
+                               f"{len(CODEX_SCRIPTS)} 支 hook 皆已登記" + ("並已信任" if trusted else "")))
             try:
                 tdoc = tomllib.loads(txt) if txt.strip() else {}
                 mcps = tdoc.get("mcp_servers") or {}

@@ -1,0 +1,27 @@
+id: claude-code-setup
+name: Claude Code Setup
+kind: plugin
+slots:
+- tool-discovery
+status: default
+url: https://github.com/anthropics/claude-plugins-official/tree/main/plugins/claude-code-setup
+works_with:
+- claude
+decided_at: '2026-11-28'
+reason: Anthropic 官方唯讀專案掃描精靈（/claude-automation-recommender），依專案檔案結構精準推薦 1–2 個適合該 repo 的 hook、skill、subagent 與 MCP，零常駐污染，補齊 Claude 端專案級自動推薦。
+plugin:
+  claude:
+    source: git-subdir
+    url: https://github.com/anthropics/claude-plugins-official.git
+    path: plugins/claude-code-setup
+    sha: 'a2e251d9b97b909bf728b3e84fc8d17e6aba0063'
+sources:
+- 收件匣轉正
+- 官方目錄查證
+notes: 固定在 anthropics/claude-plugins-official 的 a2e251d9b97b909bf728b3e84fc8d17e6aba0063；純唯讀分析專案目錄，不自動改寫設定。無 Claude 的純 Codex／Antigravity 環境由 OmniKit 內建 scan.py 確定性專案依賴推薦接手。
+baseline_eval:
+  verified_at: '2026-11-28'
+  verified_model: claude-opus-5-5
+  verdict: essential_infra
+  scope_note: 官方唯讀專案自動化推薦器，與本機 scan.py 互補
+added: '2026-11-15'

@@ -480,3 +480,208 @@ def test_unregistered_t3_project_friendly_message(tmp_path: Path, monkeypatch: p
         )
     assert "尚未加入 T3 Code 專案" in str(exc_info.value)
     assert "開啟並註冊" in str(exc_info.value)
+
+    # 當面板佇列允許降級（allow_local_fallback=True）或無 t3 CLI 時，應無縫退回本機 Git 狀態同步而不報錯
+    _init_git_repo(proj, message="initial local")
+    fallback_res = reconciler.run_t3_reconcile(
+        project_id="UnregisteredRepo",
+        project_name="UnregisteredRepo",
+        project_path=proj,
+        now_path=now_path,
+        provider="antigravity_auto",
+        state_dir=tmp_path / "state",
+        allow_local_fallback=True,
+    )
+    assert fallback_res["mode"] == "local_git"
+    assert now_path.is_file()
+    assert "UnregisteredRepo" in now_path.read_text(encoding="utf-8")
+
+
+def test_exclusive_port_bind_security_headers_and_control_panel_apis(short_tmp: Path):
+    """驗證 P0-1 排他埠綁定與順移、P1-1 Origin 埠號比對與 Sec-Fetch-Site 防護，以及控制面板 bootstrap / kit apply / starter project。"""
+    state = short_tmp / "state"
+    home = short_tmp / "home"
+    (home / ".codex").mkdir(parents=True)
+    (home / "Desktop" / "ExistingRepo").mkdir(parents=True)
+    _init_git_repo(home / "Desktop" / "ExistingRepo")
+
+    app = server.CockpitApp(
+        state_dir=state,
+        home_dir=home,
+        default_repo_root=None,
+        t3_runner=lambda _: [],
+        cli_runner=lambda *_a, **_kw: (0, "[]", ""),
+        cache_ttl=0,
+        allowed_hosts=set(),
+        token=TOKEN,
+    )
+    httpd = server.create_server("127.0.0.1", 0, app=app)
+    port = httpd.server_address[1]
+    th = threading.Thread(target=httpd.serve_forever, daemon=True)
+    th.start()
+    try:
+        # 1. 同埠第二次綁定必須拋出 OSError，且 bind_server(strict_port=False) 會自動順移
+        with pytest.raises(OSError):
+            dup = server.create_server("127.0.0.1", port, app=app)
+            dup.server_close()
+        fb = server.bind_server("127.0.0.1", port, app=app, strict_port=False)
+        assert fb.server_address[1] > port
+        fb.server_close()
+
+        base = f"http://127.0.0.1:{port}"
+        # 2. Sec-Fetch-Site 跨站阻擋與 Origin 不同埠阻擋
+        assert _http_json(f"{base}/api/session", headers={"Sec-Fetch-Site": "cross-site"})[0] == 403
+        st_ses, ses = _http_json(f"{base}/api/session", headers={"Sec-Fetch-Site": "same-origin"})
+        assert st_ses == 200 and ses == {"writable": True, "mode": "local", "token": TOKEN}
+        assert _http_json(
+            f"{base}/api/kit/preview",
+            method="POST",
+            payload={},
+            headers={"Origin": f"http://127.0.0.1:{port + 5}"},
+        )[0] == 403
+
+        # 3. Bootstrap 探索候選專案、9 個習慣與預設工作台
+        st_b, boot = _http_json(f"{base}/api/bootstrap")
+        assert st_b == 200
+        assert len(boot["habits_catalog"]) == 9
+        assert any(c["name"] == "ExistingRepo" for c in boot["candidate_projects"])
+
+        # 4. 一鍵套用個人設定與精選工作台（含防假完工習慣與全部複選不設上限）
+        st_ap, ap = _http_json(
+            f"{base}/api/kit/apply",
+            method="POST",
+            payload={
+                "answers": {
+                    "name": "starter",
+                    "language": "zh-TW",
+                    "verbosity": "concise",
+                    "autonomy": "balanced",
+                    "domains": ["software-dev"],
+                    "pains": ["anti-fake-done", "no-verification", "guesses", "scope-creep", "manual-steps"],
+                    "evaluate_tools": False,
+                },
+                "tools": ["chrome-devtools-mcp", "gitleaks", "frontend-design"],
+                "done_check": "block",
+            },
+        )
+        assert st_ap == 200 and ap["ok"] is True and ap["active_profile"] == "starter"
+        assert (state / "kit.yaml").is_file()
+        assert (state / "profiles" / "starter" / "AGENTS.md").is_file()
+        assert (home / ".codex" / "AGENTS.md").is_file()
+
+        # 5. 零專案新手一鍵建立第一個專案與本機 NOW.md 歷史還原
+        st_cp, cp = _http_json(
+            f"{base}/api/projects/create",
+            method="POST",
+            payload={"name": "FirstDemo", "parent_dir": str(home / "Desktop")},
+        )
+        assert st_cp == 201 and cp["ok"] is True
+        assert len(cp["starter_prompts"]) == 3
+        st_hist, hist = _http_json(f"{base}/api/projects/FirstDemo/history")
+        assert st_hist == 200 and len(hist["entries"]) >= 1
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_chinese_project_names_and_win32_dot_traversal_guard(short_tmp: Path):
+    """回歸測試（P1-6 & P1-7）：支援中文專案名稱且兩個中文專案不撞代號；Win32 結尾句點與純句點如 '...' 必須在 mkdir/git init 前拒絕。"""
+    state = short_tmp / "state"
+    desktop = short_tmp / "Desktop"
+    desktop.mkdir(parents=True)
+
+    # 1. 純句點、結尾句點或 Windows 保留字必須直接拋出 ValueError，絕不可在 desktop 初始化 .git 或寫 README.md
+    for bad_name in ("...", "..", ".", "bad.", "CON", "NUL.txt", "a/b", "a\\b"):
+        with pytest.raises(ValueError):
+            collector.create_starter_project(state, name=bad_name, parent_dir=desktop)
+    assert not (desktop / ".git").exists()
+    assert not (desktop / "README.md").exists()
+
+    # 2. 兩個中文專案名稱建立成功且代號各自獨立不覆蓋
+    r1 = collector.create_starter_project(state, name="我的第一個網站", parent_dir=desktop, ok_prefix="$ok")
+    r2 = collector.create_starter_project(state, name="AI自動化助手", parent_dir=desktop, ok_prefix="$ok")
+    assert r1["project"]["id"] == "我的第一個網站"
+    assert r2["project"]["id"] == "AI自動化助手"
+    assert r1["project"]["id"] != r2["project"]["id"]
+    assert any("$ok 驗收" in s for s in r1["starter_prompts"])
+    assert (state / "status" / "我的第一個網站" / "NOW.md").is_file()
+    assert (state / "status" / "AI自動化助手" / "NOW.md").is_file()
+
+
+def test_non_loopback_client_forced_readonly_and_cross_site_api_blocked(short_tmp: Path):
+    """回歸測試（P1-11 & P2）：非本機迴路 IP 即使偽造 Host: 127.0.0.1 也強制唯讀；跨站 Sec-Fetch-Site 連 GET /api/* 一併 403。"""
+    state = short_tmp / "state"
+    app = server.CockpitApp(
+        state_dir=state,
+        default_repo_root=None,
+        t3_runner=lambda _: [],
+        cache_ttl=0,
+        allowed_hosts=set(),
+        token=TOKEN,
+    )
+    httpd = server.create_server("127.0.0.1", 0, app=app)
+    port = httpd.server_address[1]
+    th = threading.Thread(target=httpd.serve_forever, daemon=True)
+    th.start()
+    try:
+        base = f"http://127.0.0.1:{port}"
+        # Sec-Fetch-Site: cross-site 讀取任何 /api/* 皆應回 403，但靜態首頁 / 可開啟
+        assert _http_json(f"{base}/api/bootstrap", headers={"Sec-Fetch-Site": "cross-site"})[0] == 403
+        assert _http_json(f"{base}/api/overview", headers={"Sec-Fetch-Site": "cross-site"})[0] == 403
+
+        # 模擬非 loopback client_address（例如綁定 0.0.0.0 時區網電腦偽造 Host: 127.0.0.1）
+        handler_cls = httpd.RequestHandlerClass
+        dummy = object.__new__(handler_cls)
+        dummy.headers = {"Host": f"127.0.0.1:{port}"}
+        dummy.client_address = ("192.168.1.88", 54321)
+        why, is_remote = dummy._access()
+        assert why is None
+        assert is_remote is True
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_adopted_drift_preserved_across_foreground_apply_kit(short_tmp: Path):
+    """回歸測試（P1-2）：使用者點選『採用外部修改（adopt）』後，前台控制面板套用工作台不得覆蓋該外部手改規則檔。"""
+    import kit as kit_mod  # type: ignore
+
+    state = short_tmp / "state"
+    home = short_tmp / "home"
+    (home / ".codex").mkdir(parents=True)
+
+    app = server.CockpitApp(
+        state_dir=state,
+        home_dir=home,
+        default_repo_root=None,
+        t3_runner=lambda _: [],
+        cli_runner=lambda *_a, **_kw: (0, "[]", ""),
+        cache_ttl=0,
+        allowed_hosts=set(),
+        token=TOKEN,
+    )
+    app.apply_kit({"tools": ["gitleaks"], "done_check": "block"})
+    codex_rules = home / ".codex" / "AGENTS.md"
+    assert codex_rules.is_file()
+
+    # 模擬使用者手改 ~/.codex/AGENTS.md 受管區塊內部，並在面板點選「採用外部修改」
+    custom_marker = "\n# 使用者手寫保留條款：嚴禁覆蓋此段\n"
+    orig_txt = codex_rules.read_text(encoding="utf-8")
+    assert "<!-- omnikit:rules:end -->" in orig_txt
+    codex_rules.write_text(
+        orig_txt.replace("<!-- omnikit:rules:end -->", custom_marker + "<!-- omnikit:rules:end -->", 1),
+        encoding="utf-8",
+    )
+    drifts = kit_mod.detect_drift(state, home)
+    assert any(d["id"] == "rule:codex" for d in drifts)
+
+    kit_mod.resolve_drift("rule:codex", "adopt", state=state, home=home, repo_root=app.repo_root)
+    assert kit_mod.detect_drift(state, home) == []
+
+    # 再次透過面板前台 apply_kit 切換工具，手改內容必須被完整保留
+    res2 = app.apply_kit({"tools": ["gitleaks", "frontend-design", "exa"], "done_check": "log"})
+    assert custom_marker in codex_rules.read_text(encoding="utf-8")
+    # 未設 EXA_API_KEY 時 exa 應自動維持 disabled 並附帶清楚提醒
+    assert any("EXA_API_KEY" in w for w in res2.get("warnings") or [])
+    kdoc = kit_mod.load(state)
+    assert kdoc["profiles"][kdoc["active_profile"]]["tools"]["exa"]["tier"] == "disabled"

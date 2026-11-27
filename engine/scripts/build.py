@@ -61,7 +61,7 @@ KIND = {
     "skill": "skill", "plugin": "plugin", "mcp": "MCP", "cli": "CLI", "app": "獨立程式",
     "service": "線上服務", "library": "程式庫", "native": "原生功能", "collection": "skill 合集", "rules": "規則包",
 }
-AGENT = {"claude": "Claude Code", "codex": "Codex"}
+AGENT = {"claude": "Claude Code", "codex": "Codex", "antigravity": "Antigravity"}
 # 卡片在槽位裡的排列：Golden Path 四環由內往外（Adopt -> Trial -> Assess -> Hold），待評估放最後
 ORDER = {"default": 0, "trial": 1, "on_demand": 2, "assess": 3, "rejected": 4, "retired": 5, "pending": 6}
 # 內嵌的 favicon，省掉一個請求，也不會 404

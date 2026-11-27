@@ -8,6 +8,7 @@ url: https://github.com/anthropics/skills/tree/main/skills/frontend-design
 works_with:
 - claude
 - codex
+- antigravity
 decided_at: '2026-11-04'
 reason: 訪談：有感；但沒解決 CatOS 前端的核心痛點，這個槽位要主動找替代。
 plugin:

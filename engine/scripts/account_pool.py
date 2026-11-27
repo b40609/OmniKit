@@ -2076,7 +2076,7 @@ def selftest():
             "antigravity_m5": {"driver": "antigravity", "label": "m5", "enabled": True, "auth_mode": None},
             "antigravity_m6": {"driver": "antigravity", "label": "m6", "enabled": True, "auth_mode": None},
         }
-        rows = accounts.registry(t3_meta, mine, accounts.load_terms(profiles.DATA))
+        rows = accounts.registry(t3_meta, mine, accounts.load_terms(profiles.DATA), now=t0)
         c_state = st / "cstate"
         ufile = claude_usage_path(c_state)
         ufile.parent.mkdir(parents=True)

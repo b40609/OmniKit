@@ -18,21 +18,21 @@
 
 <br>
 
-同時用 Claude Code、Codex 與 Antigravity，同一套規矩就得寫三遍：哪些事要先問、金鑰不能碰、子任務該派給誰。plugin、skill、MCP 每週都有新的，裝到後來也說不清哪個真的有用。
+同時用 Claude Code、Codex 與 Antigravity，同一套規矩就得寫三遍：哪些事要先問、金鑰不能碰、改完沒真跑實測就說「好了」結果一開就爆。plugin、skill、MCP 每週都有新的，裝到後來也說不清哪個真的有用、吃了多少開場 Context。
 
-OmniKit 把這些收成一份設定，一次接到三個 agent。它不蓋掉你原本的規則，裝之前可以逐項預覽，不想用了一行指令還原。
+OmniKit 把這些收成一套**本機網頁控制面板 ＋ 開箱即用精選工作台 ＋ 防假完工真機驗收護欄**，一次同步到三個 agent。它不蓋掉你原本的規則，免建 GitHub 帳號就能用本機 `NOW.md` 專案狀態板，不想用了一行指令乾淨還原。
 
 ## 快速開始
 
-**需要：** Windows 11、[Git](https://git-scm.com/download/win)、[Node.js LTS](https://nodejs.org/)，以及 Claude Code、Codex、Antigravity 至少一個。不需要 GitHub 帳號。
+**需要：** Windows 11、[Git](https://git-scm.com/download/win)，以及 Claude Code、Codex、Antigravity 至少一個（裝 [Node.js LTS](https://nodejs.org/) 可啟用瀏覽器自動實測 MCP；沒裝也能先用規則、技能與控制面板）。**不需要 GitHub 帳號。**
 
-最省事的做法是直接跟 Claude Code 或 Codex 說：
+最省事的做法是直接跟 Claude Code、Codex 或 Antigravity 說：
 
 ```text
 幫我安裝 OmniKit：https://github.com/b40609/OmniKit
 ```
 
-> **給 agent：** 照[安裝說明](docs/install.md#直接安裝同事用不用-fork不用-github-帳號)做。`install.ps1` 跑完不用叫使用者開新對話，直接讀 `engine/skills/omnikit-setup/SKILL.md`，在同一段對話接著做設定訪談。
+> **給 agent：** 照[安裝說明](docs/install.md#直接安裝同事用不用-fork不用-github-帳號)執行 `install.ps1`。裝完會自動啟動本機控制面板（`http://127.0.0.1:3780/`），使用者在網頁勾選即可一鍵完成個人化與精選工作台設定；若在無頭環境也可讀 `engine/skills/omnikit-setup/SKILL.md` 在對話內設定。
 
 想自己來，在 PowerShell 跑（同事版預設鎖定最新穩定發行 tag，維護者推 `main` 不會影響你；也可加上 `-Tag <版本>` 指定版本）：
 
@@ -43,23 +43,24 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 -
 powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 ```
 
-裝完開一個**新的**對話，隨便打一句（例如「嗨」），OmniKit 會主動帶你做 1 分鐘設定：回答最多 6 題，建立你自己的 profile，最後給你一段新手導覽。讓 agent 幫你裝的話，它裝完會在同一段對話直接接著問，不用另外開。
+裝完會自動打開**本機控制面板**（`http://127.0.0.1:3780/`）：預先勾好免金鑰精選套件與防假完工習慣（9 項習慣自由複選不設上限），看得到三家 Agent 的開場 Context 預算佔比，按一下「一鍵套用」就全部裝好。就算手邊還沒有任何專案，也能在面板裡一鍵建立第一個專案與破冰提示詞。
 
 | 你在意的 | OmniKit 怎麼做 |
 |---|---|
-| 原本的設定會不會被蓋掉 | 規則只加一段受管區塊，第一次接上先備份；MCP 與權限合併寫入，不碰別人的 |
-| 裝了什麼看得到嗎 | `-WhatIf` 列出每一處會改的地方；安裝前檢查（網路、proxy、防毒、執行原則）不過就停，什麼都不寫 |
-| 不想用了怎麼辦 | `engine\scripts\uninstall.ps1` 只拿掉 OmniKit 加的東西，備份放回原位 |
+| 原本的設定會不會被蓋掉 | 規則只加一段受管區塊，第一次接上先備份；若你外部手動改過受管區塊，背景同步自動保留並在面板提示三選一 |
+| 裝了什麼、吃多少額度看得到嗎 | 控制面板即時顯示每個工具佔用的開場 Context token 數；`-WhatIf` 預覽零寫入副作用 |
+| AI 老是只跑假測試就說完工怎麼辦 | 內建防假完工護欄（`done_check` 預設攔截 `.skip` 假綠燈與無實測宣稱）＋ `/ok 驗收` 真機瀏覽器驗收 |
+| 不想用了怎麼辦 | `engine\scripts\uninstall.ps1` 停止面板並只拿掉 OmniKit 加的東西，備份放回原位 |
 
-之後要更新到新發行版：`git fetch --tags`，再跑 `install.ps1 -Tag <版本> -WhatIf` 預覽、`install.ps1 -Tag <版本>` 套用（第一個 tag 由維護者建立）。fork 一份自己維護、只裝預設 plugin、每一處改動的完整清單，見[安裝說明](docs/install.md)。
+之後要更新到新發行版：`git fetch --tags`，再跑 `install.ps1 -Tag <版本> -WhatIf` 預覽、`install.ps1 -Tag <版本>` 套用。fork 一份自己維護與每一處改動的完整清單，見[安裝說明](docs/install.md)。
 
 ## 裝好之後
 
-畫面上不會多出按鈕。改變的是 agent 每次開 session 讀到的規則，以及幾個隨時叫得出來的入口：
+安裝完成會自動開啟本機控制面板（隨時可在對話打 `/ok 面板` 或執行 `uv run scripts/cockpit.py open` 叫出來，預設按需啟動不常駐吃資源），並在對話裡提供 `/ok` 總入口：
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/session-dark.svg">
-  <img alt="示意：輸入 /ok 列出交接、調研、分派、設定、清點五個選項；要 agent 讀 .env 或用 --no-verify 跳過檢查時，OmniKit 護欄直接擋下並說明原因。" src=".github/assets/session-light.svg">
+  <img alt="示意：輸入 /ok 呼叫面板、防假完工驗收、交接、調研、分派、設定、清點；要 agent 讀 .env 或跳過驗證時，OmniKit 護欄直接擋下。" src=".github/assets/session-light.svg">
 </picture>
 
 ## 功能
@@ -68,48 +69,48 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 <tr>
 <td width="50%" valign="top">
 
-### 安全底線與護欄
+### 本機控制面板與一鍵精選工作台
 
-刪檔、`git push -f`、對外發送、付款之前先問你；金鑰不讀、不印、不寫死。規則之外，Claude Code 與 Antigravity 還有確定性的 hook，用來**擋常見捷徑，不是沙箱**：直接讀 `.env` 或常見憑證檔、用 `--no-verify` 跳過檢查、一次塞進一堆 lint ignore 時會擋下並說明原因；真正的安全界線仍靠權限模式與 OS 層沙箱（Codex 目前只接提醒類 hook，靠規則約束）。
+不用背指令、不用手改 YAML：在瀏覽器一頁勾選目標套餐、個人習慣與精選工具（`chrome-devtools-mcp`、`gitleaks`、`frontend-design`、`skill-creator`、`claude-code-setup` 等免金鑰套件開箱預選），即時預覽三家 Agent 開場 Context 預算，一鍵同步到位。
 
 </td>
 <td width="50%" valign="top">
 
-### `/ok` 與六個核心 skill
+### 防假完工護欄與 `/ok 驗收`
 
-`/ok` 列出交接、調研、分派、設定、清點五個入口。交接把做到一半的工作寫成交接檔，開新對話接著做；調研查到連續三組沒有新名字才停；說「做不到」之前，先清點這台有哪些 CLI 與 MCP。
-
-</td>
-</tr>
-<tr>
-<td valign="top">
-
-### 一份設定，三個 agent
-
-規則、skills、MCP 只寫一次，由 OmniKit 自己的同步腳本接到 Claude Code、Codex 與 Antigravity，多個帳號與 T3 Code 的每個實例都接。不記雜湊帳本，`doctor.py` 隨時對帳，查不到的標「未知」，不算通過。
-
-</td>
-<td valign="top">
-
-### 子任務照你有的模型派
-
-派子代理時依任務輕重選模型與思考程度，只列你方案裡有的：只有 Claude 就用 Opus 與 Sonnet；接了 Gemini 才做跨家審查，審查者不比作者弱；Fable 5.2 這類選配模型要自己宣告才會派。
+根治「AI 寫一堆 Mock 單測全綠就宣稱完工，真人一打開就白屏報錯」：`done_check` 預設強制攔截偷加 `.skip` 的假綠燈與無實測證據的完工宣稱；搭配 `/ok 驗收`（`omnikit-verify`）自動掃描斷頭引用、真開服務與桌機／手機寬度瀏覽器確認 0 錯誤。
 
 </td>
 </tr>
 <tr>
 <td valign="top">
 
-### 有理由的工具名冊
+### 零帳號本機 `NOW.md` 專案狀態板
 
-160 多張工具卡分在 26 個槽位，每張記下狀態、日期與理由。新工具拿槽位的真實情境跟現任比，比贏才換，結果列在[線上槽位看板](https://b40609.github.io/OmniKit/)。貼上 GitHub 連結說「幫我評估」，agent 會寫成一張卡。
+不用先去開 GitHub 私人 repo：安裝即自動在 `~/.omnikit/status` 建立本機 Git 狀態庫，記錄每個專案的完工進度、現行結論、三段式不滿意待改與下一步，支援面板一鍵檢視歷史與還原舊版；日後想跨機同步再綁遠端即可。
 
 </td>
 <td valign="top">
 
-### 規則會自己瘦身
+### 一份設定，三個 agent（含純單家環境）
 
-常駐規則有位元組預算，超過就擋 CI；補模型弱點的規則都登記退役條件，新一代模型用不到就拿掉。agent 每次開 session 讀到的，只留真的有用的。
+規則、skills、MCP 與護欄寫一次，同步到 Claude Code、Codex 與 Antigravity（只裝其中一家如純 Codex 或純 Antigravity 也完整可用）。`doctor.py` 與面板健康檢查頁隨時對帳並支援一鍵修復。
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### 安全底線與確定性護欄
+
+刪檔、`git push -f`、對外發送、付款之前先問你；金鑰不讀、不印、不寫死（需 API Key 的工具只讀環境變數，絕不明文落盤）。Claude Code 與 Antigravity 另有確定性 hook 擋下偷讀 `.env`、`--no-verify` 等繞過捷徑。
+
+</td>
+<td valign="top">
+
+### 實測工具名冊與自動瘦身
+
+160 多張工具卡分在 26 個槽位，附信任徽章與選用理由，線上可看[槽位看板](https://b40609.github.io/OmniKit/)。常駐規則有位元組預算棘輪，超過即擋 CI，確保開場 Context 永遠精實。
 
 </td>
 </tr>
@@ -144,9 +145,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 </details>
 
 <details>
-<summary><b>裝好了，卻看不出有什麼不同？</b></summary>
+<summary><b>裝好了，要去哪裡調整設定或開關工具？</b></summary>
 
-安裝改的是規則、skill 與 MCP，畫面上不會多出東西，而且要開新的 session 才生效。照[確認接上了](docs/usage.md#確認接上了)檢查一遍。
+安裝完成會自動打開本機控制面板（`http://127.0.0.1:3780/`）；平常關閉瀏覽器後，隨時可在對話輸入 `/ok 面板`、從 Windows 開始功能表點「OmniKit 控制面板」，或在終端機執行 `uv run scripts/cockpit.py open` 重新開啟。改完規則與工具後，新開的 Agent 對話即生效。
 
 </details>
 

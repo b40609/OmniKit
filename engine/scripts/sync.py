@@ -235,8 +235,10 @@ def load_config(state: Path) -> dict:
 
 
 def save_config(state: Path, cfg: dict) -> None:
-    kept = {k: cfg[k] for k in ("agents", "claude_homes", "codex_homes", "dev_link", "repo") if k in cfg}
-    atomic_write_json(state / "config.json", kept)
+    existing = load_config(state)
+    merged = {**existing, **cfg}
+    merged.pop("legacy_migrated", None)
+    atomic_write_json(state / "config.json", merged)
     legacy = state / "agents.json"
     if legacy.exists():
         retry(legacy.unlink)
@@ -550,6 +552,9 @@ def claude_cli_env(home: Path, cdir: Path) -> dict[str, str | None]:
 
 def _run_cli(env: Env, cmd: list[str], extra_env: dict[str, str | None] | None = None, timeout: int = 120) -> tuple[int, str, str]:
     merged_env = dict(env.environ if env.environ is not None else os.environ)
+    if not same_path(env.home, Path.home()):
+        merged_env["USERPROFILE"] = str(env.home)
+        merged_env["HOME"] = str(env.home)
     for k, v in (extra_env or {}).items():
         if v is None:
             merged_env.pop(k, None)
@@ -1084,7 +1089,8 @@ def refresh_t3_rule_copies(home: Path, check_only: bool = False) -> list[str]:
 def run_sync(env: Env, *, profile: str | None = None, agents_override: list[str] | None = None,
              take_over: bool = False, do_rules: bool = True, do_skills: bool = True,
              do_mcp: bool = True, do_user_plugins: bool = True, dev: bool | None = None,
-             check_only: bool = False) -> tuple[int, list[str]]:
+             check_only: bool = False, background: bool = False,
+             respect_drift: bool = False) -> tuple[int, list[str]]:
     real_repo = resolve_real_repo(env.repo, env.state)
     env = Env(home=env.home, repo=real_repo, state=env.state, which=env.which, runner=env.runner, environ=env.environ)
     cfg = load_config(env.state)
@@ -1109,15 +1115,38 @@ def run_sync(env: Env, *, profile: str | None = None, agents_override: list[str]
     codex_dirs = [env.home / ".codex", *[f.path for f in found if f.agent == "codex" and f.writable]]
 
     if do_rules and not check_only:
-        paths = {"claude-code": env.home / ".claude" / "CLAUDE.md",
-                 "codex": env.home / ".codex" / "AGENTS.md",
-                 "antigravity": env.home / ".gemini" / "GEMINI.md"}
-        lines.extend(profiles.apply(
-            real_repo / "data", env.state, paths=paths, wanted=profile, agents=agents, take_over=take_over,
-            claude_extra=[d / "CLAUDE.md" for d in claude_dirs[1:]],
-            codex_extra=[d / "AGENTS.md" for d in codex_dirs[1:]],
-            new_extra=[d / "AGENTS.md" for d in codex_dirs[1:] if not (d / "AGENTS.md").exists()],
-        ))
+        import kit as kit_mod
+
+        protect = background or respect_drift
+        drifted = kit_mod.drifted_rule_keys(env.state, env.home) if protect else set()
+        rule_agents = list(agents)
+        if protect and drifted:
+            if "rule:claude-code" in drifted and "claude-code" in rule_agents:
+                rule_agents.remove("claude-code")
+                lines.append("同步保護：偵測到 Claude Code 規則受管區塊有外部手改，已保留手改不覆寫")
+            if "rule:codex" in drifted and "codex" in rule_agents:
+                rule_agents.remove("codex")
+                lines.append("同步保護：偵測到 Codex 規則受管區塊有外部手改，已保留手改不覆寫")
+            if ("rule:antigravity-shared" in drifted or "rule:antigravity-personal" in drifted) and "antigravity" in rule_agents:
+                rule_agents.remove("antigravity")
+                lines.append("同步保護：偵測到 Antigravity 規則受管區塊有外部手改，已保留手改不覆寫")
+        if rule_agents or profile:
+            paths = {"claude-code": env.home / ".claude" / "CLAUDE.md",
+                     "codex": env.home / ".codex" / "AGENTS.md",
+                     "antigravity": env.home / ".gemini" / "GEMINI.md"}
+            lines.extend(profiles.apply(
+                real_repo / "data", env.state, paths=paths, wanted=profile, agents=rule_agents, take_over=take_over,
+                claude_extra=[d / "CLAUDE.md" for d in claude_dirs[1:]],
+                codex_extra=[d / "AGENTS.md" for d in codex_dirs[1:]],
+                new_extra=[d / "AGENTS.md" for d in codex_dirs[1:] if not (d / "AGENTS.md").exists()],
+            ))
+            # 背景同步與保護同步都必須刷新本次實際更新之非漂移目標指紋，防止下次產生假漂移（修盲審 P1-1、P1-2）
+            kit_mod.record_applied_snapshot(
+                env.state,
+                env.home,
+                preserve_keys=drifted,
+                reset_adopted=not protect,
+            )
 
     if do_skills:
         wanted_skills, skipped = expected_skills(target_root, real_repo / "data", env.state)
@@ -1407,6 +1436,16 @@ def selftest() -> int:
         rc_chk, chk_lines = run_sync(env, check_only=True)
         check("--check 唯讀對帳模式：同步後 0 差異通過", rc_chk == 0 and "一致" in chk_lines[0])
 
+        # P0-2 防護：使用者手動修改受管區塊後，--background 不覆寫手改並保留漂移；前景 sync 才還原
+        claude_md_p = home / ".claude" / "CLAUDE.md"
+        orig_md = claude_md_p.read_text("utf-8")
+        claude_md_p.write_text(orig_md.replace("baseline.md", "baseline.md\n# hand-edit"), encoding="utf-8")
+        _, bg_lines = run_sync(env, background=True)
+        check("P0-2 防護：sync --background 遇到手改受管區塊時保留不覆寫",
+              "# hand-edit" in claude_md_p.read_text("utf-8") and any("外部手改" in ln for ln in bg_lines))
+        run_sync(env, background=False)
+        check("前景 sync 重新同步並更新快照", "# hand-edit" not in claude_md_p.read_text("utf-8"))
+
         # MCP 密鑰阻擋測試
         (repo / "data" / "mcp" / "servers.yaml").write_text(
             "servers:\n  bad:\n    command: x\n    env:\n      API_KEY: secret123\n    targets: [claude]\n", encoding="utf-8"
@@ -1470,6 +1509,7 @@ def main(argv=None) -> int:
     s.add_argument("--plugins", action="store_true")
     s.add_argument("--ask", action="store_true")
     s.add_argument("--check", action="store_true", help="純唯讀對帳模式（有差異 exit 1）")
+    s.add_argument("--background", action="store_true", help="背景觸發模式：遇使用者外部手改受管區塊時保留不覆寫")
     sg = s.add_mutually_exclusive_group()
     sg.add_argument("--dev", action="store_true", help="直接連結開發 repo")
     sg.add_argument("--no-dev", action="store_true", help="關閉 dev_link，切回 ~/.omnikit/current 乾淨副本")
@@ -1515,6 +1555,7 @@ def main(argv=None) -> int:
             do_user_plugins=bool(args.plugins or every),
             dev=_dev_arg(args),
             check_only=args.check,
+            background=args.background,
         )
     elif args.command == "approvals":
         interactive = sys.stdin.isatty()

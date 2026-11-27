@@ -27,6 +27,7 @@ rm -f "$cfg"
 if git diff --cached --name-only | grep -qE '^(data/|engine/(schema|scripts|skills)/)'; then
   uv=$(command -v uv || echo "$LOCALAPPDATA/Programs/uv/uv.exe")
   "$uv" run --quiet engine/scripts/validate.py || exit 1
+  "$uv" run --quiet engine/scripts/wiring_audit.py --staged || exit 1
   "$uv" run --quiet engine/scripts/build.py --marketplace-only >/dev/null || exit 1
   git add .claude-plugin/marketplace.json .agents/plugins/marketplace.json
 fi

@@ -15,6 +15,12 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: astral-sh/setup-uv@v10.3.3
       - run: uv run engine/scripts/validate.py
+      # 入口接線、刪舊孤兒與反假綠燈稽核（防假完工閘門 G2+G3）與單一事實來源／本機狀態板自我測試
+      - run: uv run engine/scripts/wiring_audit.py --selftest
+      - run: uv run engine/scripts/wiring_audit.py
+      - run: uv run engine/scripts/kit.py --selftest
+      - run: uv run engine/scripts/status.py --selftest
+      - run: uv run engine/scripts/cleanroom_e2e.py --selftest
       # marketplace 清單是由名冊產生的，commit 進來的版本要跟名冊一致
       - run: uv run engine/scripts/build.py --check
       # 看板要能正常產生

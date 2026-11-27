@@ -1,5 +1,5 @@
-// OmniKit 個人指揮台 Service Worker（v3）：API 永遠直連，靜態外殼網路優先
-const CACHE_NAME = "omnikit-cockpit-v3";
+// OmniKit 個人控制面板 Service Worker（v5）：API 永遠直連，靜態外殼以去 query 網址當快取鍵（防網址參數殘留快取）
+const CACHE_NAME = "omnikit-cockpit-v5";
 const SHELL_ASSETS = ["/", "/style.css", "/app.js", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -21,15 +21,16 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET" || url.pathname.startsWith("/api/")) {
     return;
   }
+  const cleanKey = url.origin + url.pathname;
   event.respondWith(
     fetch(event.request)
       .then((resp) => {
         if (resp.ok && url.origin === self.location.origin && SHELL_ASSETS.includes(url.pathname)) {
           const copy = resp.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
+          caches.open(CACHE_NAME).then((cache) => cache.put(cleanKey, copy)).catch(() => {});
         }
         return resp;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => caches.match(cleanKey))
   );
 });

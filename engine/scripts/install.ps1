@@ -68,15 +68,17 @@ AppData 底下新建的檔會被轉存到那個 app 自己的位置，終端機�
   -Fresh               這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
                        備份後移除，避免新舊規則同時生效。
   -WhatIf              預覽：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不寫檔）；也會跑安裝前檢查。
+  -NoBrowser           安裝完成後不自動彈開瀏覽器（背景伺服器仍可按需啟動，或搭配 -NoLaunch 都不啟動）。
+  -NoLaunch            安裝完成後不啟動本機控制面板伺服器（CI 或無頭部署用；環境變數 OMNIKIT_NO_LAUNCH=1 同效）。
   -SkipCheck <名稱>    安裝前檢查要略過的項目（已經自己處理好，例如防毒已請 IT 放行：-SkipCheck antivirus）。
   -SelfTest            自我測試：在暫存資料夾與暫存 git repo 測版本判斷、git hook 設定與 profile 的位置，
                        以及 uv 被防毒鎖住時的重試（用假的鎖檔），不動這台的設定。
 
 用法（Windows PowerShell 5.1 或 PowerShell 7）：
-  powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Edition colleague|maintainer] [-Tag <版本>] [-Fresh] [-WhatIf]
+  powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Edition colleague|maintainer] [-Tag <版本>] [-Fresh] [-NoBrowser] [-NoLaunch] [-WhatIf]
 #>
 param([string]$ProfileName, [ValidateSet('colleague', 'maintainer')][string]$Edition, [string]$Tag, [switch]$Fresh, [switch]$WhatIf,
-  [switch]$SelfTest, [string[]]$SkipCheck = @())
+  [switch]$NoBrowser, [switch]$NoLaunch, [switch]$SelfTest, [string[]]$SkipCheck = @())
 
 $ErrorActionPreference = 'Stop'
 # PowerShell 5.1 的下載進度條會讓 Invoke-WebRequest 慢很多
@@ -104,6 +106,9 @@ $ProfilesPy = Join-Path $Repo 'engine\scripts\profiles.py'
 $AgentsPy = Join-Path $Repo 'engine\scripts\sync.py'
 $EditionPy = Join-Path $Repo 'engine\scripts\edition.py'
 $StatedirPy = Join-Path $Repo 'engine\scripts\statedir.py'
+$StatusPy = Join-Path $Repo 'engine\scripts\status.py'
+$KitPy = Join-Path $Repo 'engine\scripts\kit.py'
+$CockpitPy = Join-Path $Repo 'scripts\cockpit.py'
 $PreflightPs1 = Join-Path $Repo 'engine\scripts\preflight.ps1'
 $EditionNames = @{ 'colleague' = '同事版'; 'maintainer' = '維護者版' }
 $Arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
@@ -455,6 +460,136 @@ function Test-GitIdentity {
   }
 }
 
+# 判斷是否允許啟動本機控制面板伺服器（CI、SSH、Session 0、-NoLaunch、OMNIKIT_NO_LAUNCH 時一律略過）
+function Test-CanLaunchServer([switch]$ForceNoLaunch) {
+  if ($ForceNoLaunch -or $NoLaunch) { return $false }
+  foreach ($v in @($env:OMNIKIT_NO_LAUNCH, $env:CI, $env:GITHUB_ACTIONS, $env:TF_BUILD, $env:SSH_CONNECTION, $env:SSH_CLIENT)) {
+    if ($v -and "$v".Trim() -notin @('', '0', 'false', 'False')) { return $false }
+  }
+  try {
+    if (-not [Environment]::UserInteractive) { return $false }
+  } catch { }
+  try {
+    if ((Get-Process -Id $PID -ErrorAction SilentlyContinue).SessionId -eq 0) { return $false }
+  } catch { }
+  return $true
+}
+
+# 判斷是否自動在桌面開啟預設瀏覽器（額外檢查 -NoBrowser 與 OMNIKIT_NO_BROWSER）
+function Test-CanOpenUi([switch]$ForceNoBrowser, [switch]$ForceNoLaunch) {
+  if ($ForceNoBrowser -or $NoBrowser) { return $false }
+  if ($env:OMNIKIT_NO_BROWSER -and "$($env:OMNIKIT_NO_BROWSER)".Trim() -notin @('', '0', 'false', 'False')) { return $false }
+  return (Test-CanLaunchServer -ForceNoLaunch:$ForceNoLaunch)
+}
+
+# Preflight 僅缺 npm 時允許降級繼續安裝（規則、核心技能、防假完工與本機控制面板不依賴 Node.js）
+function Test-PreflightAllowsContinue($results) {
+  $failed = @($results | Where-Object { -not $_.ok } | ForEach-Object { $_.name })
+  if ($failed.Count -eq 0) { return @{ Ok = $true; WarnOnlyNpm = $false } }
+  if ($failed.Count -eq 1 -and $failed[0] -eq 'npm') { return @{ Ok = $true; WarnOnlyNpm = $true } }
+  return @{ Ok = $false; WarnOnlyNpm = $false }
+}
+
+function Invoke-SafeBrowserOpen($url, [scriptblock]$Opener = $null) {
+  try {
+    if ($Opener) { & $Opener $url } else { Start-Process $url | Out-Null }
+    return $true
+  } catch {
+    Write-Warning "無法自動開啟瀏覽器（$($_.Exception.Message)），請手動在瀏覽器開啟：$url"
+    return $false
+  }
+}
+
+# 初始化零帳號本機狀態板（NOW.md）與預設免金鑰精選工作台
+function Initialize-LocalWorkbench {
+  $rSt = Invoke-UvRun (Get-Uv) @('run', '--quiet', $StatusPy, 'init') -Capture
+  if ($rSt.Code -ne 0) {
+    Write-Warning "初始化本機狀態板略過（$($rSt.Error)）"
+  }
+  $kitFile = Join-Path $StateDir 'kit.yaml'
+  if (-not (Test-Path -LiteralPath $kitFile)) {
+    $initPy = @'
+import sys
+from pathlib import Path
+repo = Path(sys.argv[1])
+state = Path(sys.argv[2])
+sys.path.insert(0, str(repo / "engine" / "scripts"))
+import kit, profiles
+prof = profiles.chosen(state) or "default"
+kit.patch(state, active_profile=prof, onboarding_completed=(prof != "default"))
+for tid in kit.DEFAULT_ENABLED_TOOLS:
+    try:
+        kit.apply_tool_toggle(tid, "resident", state=state, repo_root=repo)
+    except Exception:
+        pass
+kit.record_applied_snapshot(state)
+'@
+    $tmpInit = Join-Path ([IO.Path]::GetTempPath()) ('omnikit-kit-init-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.py')
+    try {
+      [IO.File]::WriteAllText($tmpInit, $initPy, (New-Object Text.UTF8Encoding($false)))
+      [void](Invoke-UvRun (Get-Uv) @('run', '--quiet', $tmpInit, $Repo, $StateDir) -Capture)
+    } finally {
+      Remove-Item -Force $tmpInit -ErrorAction SilentlyContinue
+    }
+  } else {
+    $snapPy = @'
+import sys
+from pathlib import Path
+repo, state = Path(sys.argv[1]), Path(sys.argv[2])
+sys.path.insert(0, str(repo / "engine" / "scripts"))
+import kit
+kit.record_applied_snapshot(state)
+'@
+    $tmpSnap = Join-Path ([IO.Path]::GetTempPath()) ('omnikit-kit-snap-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.py')
+    try {
+      [IO.File]::WriteAllText($tmpSnap, $snapPy, (New-Object Text.UTF8Encoding($false)))
+      [void](Invoke-UvRun (Get-Uv) @('run', '--quiet', $tmpSnap, $Repo, $StateDir) -Capture)
+    } finally {
+      Remove-Item -Force $tmpSnap -ErrorAction SilentlyContinue
+    }
+  }
+}
+
+# 在開始功能表建立「OmniKit 控制面板.lnk」（包在 try/catch 內，絕不讓捷徑失敗中斷安裝）
+function New-ControlPanelShortcut {
+  if (-not (Test-CanLaunchServer)) { return }
+  try {
+    $programsMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
+    if (-not (Test-Path -LiteralPath $programsMenu)) { return }
+    $lnk = Join-Path $programsMenu 'OmniKit 控制面板.lnk'
+    $psExe = Join-Path ($env:SystemRoot) 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $uvPath = Get-Uv
+    $sh = New-Object -ComObject WScript.Shell
+    $s = $sh.CreateShortcut($lnk)
+    $s.TargetPath = $psExe
+    $s.Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -Command `"& '$uvPath' run '$CockpitPy' open`""
+    $s.WorkingDirectory = $Repo
+    $s.WindowStyle = 7
+    $s.Description = '開啟 OmniKit 本機控制面板'
+    $s.Save()
+    Add-InstallRecord shortcuts $lnk
+  } catch {
+    # 捷徑屬輔助入口，失敗不警告、不阻斷
+  }
+}
+
+function Start-ControlPanelIfAllowed {
+  if (-not (Test-CanLaunchServer)) { return $null }
+  try {
+    $r = Invoke-UvRun (Get-Uv) @('run', '--quiet', $CockpitPy, '--state-dir', $StateDir, 'launch', '--json') -Capture
+    if ($r.Code -eq 0 -and $r.Output.Trim()) {
+      $doc = $r.Output.Trim() | ConvertFrom-Json
+      if ($doc.ok -and $doc.url) {
+        if (Test-CanOpenUi) { [void](Invoke-SafeBrowserOpen $doc.url) }
+        return $doc.url
+      }
+    }
+  } catch {
+    Write-Warning "本機控制面板自動啟動略過（可隨時執行 uv run scripts/cockpit.py open 開啟）"
+  }
+  return $null
+}
+
 # -WhatIf：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不寫檔）
 function Show-InstallPlan {
   $edition = Get-EditionPreview $Edition
@@ -477,11 +612,9 @@ function Show-InstallPlan {
   }
   $tools = @(
     @{ Name = 'uv'; Version = $UvVersion; Path = $UvExe; Command = 'uv' },
-    @{ Name = 'gh'; Version = $GhVersion; Path = $GhExe; Command = 'gh' }
+    @{ Name = 'gh'; Version = $GhVersion; Path = $GhExe; Command = 'gh' },
+    @{ Name = 'gitleaks'; Version = $GitleaksVersion; Path = $GitleaksExe; Command = 'gitleaks' }
   )
-  if ($edition -eq 'maintainer') {
-    $tools += @{ Name = 'gitleaks'; Version = $GitleaksVersion; Path = $GitleaksExe; Command = $null }
-  }
   foreach ($t in $tools) {
     $onPath = $t.Command -and (Get-Command $t.Command -ErrorAction SilentlyContinue)
     if (-not $onPath -and -not (Test-Path $t.Path)) {
@@ -489,10 +622,12 @@ function Show-InstallPlan {
     }
   }
 
-  $url = git -C $Repo remote get-url origin
-  $config = [IO.File]::ReadAllText((Join-Path $Repo 'data\omnikit.yaml'), [Text.Encoding]::UTF8)
-  if ($url -match 'github\.com[:/]([^/]+)/([^/]+?)(\.git)?/?$' -and $config -notmatch "(?m)^repo: $([regex]::Escape("$($Matches[1])/$($Matches[2])"))\s*$") {
-    $plan += "data/omnikit.yaml 改成 $($Matches[1])/$($Matches[2])、看板用的 profile 改回 default，重新產生 marketplace 清單"
+  if ($edition -eq 'maintainer') {
+    $url = git -C $Repo remote get-url origin
+    $config = [IO.File]::ReadAllText((Join-Path $Repo 'data\omnikit.yaml'), [Text.Encoding]::UTF8)
+    if ($url -match 'github\.com[:/]([^/]+)/([^/]+?)(\.git)?/?$' -and $config -notmatch "(?m)^repo: $([regex]::Escape("$($Matches[1])/$($Matches[2])"))\s*$") {
+      $plan += "data/omnikit.yaml 改成 $($Matches[1])/$($Matches[2])、看板用的 profile 改回 default，重新產生 marketplace 清單"
+    }
   }
   $packages = @(Get-Content -Encoding UTF8 (Join-Path $Repo 'data\mcp\packages.txt') |
     ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
@@ -615,6 +750,12 @@ function Show-InstallPlan {
     $plan += '不設 git hook：pull 不會自動改設定；要套用更新就重跑 install.ps1（先用 -WhatIf 預覽）'
   }
 
+  $plan += "初始化零帳號本機狀態板（$(Join-Path $StateDir 'status')）與預設免金鑰精選工作台（$(Join-Path $StateDir 'kit.yaml')）"
+  if (Test-CanLaunchServer) {
+    $uiNote = if (Test-CanOpenUi) { '並自動在預設瀏覽器開啟' } else { '（不自動彈開瀏覽器）' }
+    $plan += "啟動本機控制面板（http://127.0.0.1:3780/）$uiNote"
+  }
+
   Write-Host '這是預覽，什麼都沒改。照這台目前的狀態，install.ps1 會：'
   # 兩個空白開頭的是上一項的細節，縮排顯示
   $plan | ForEach-Object { if ($_.StartsWith('  ')) { Write-Host "      $($_.Trim())" } else { Write-Host "  - $_" } }
@@ -622,46 +763,31 @@ function Show-InstallPlan {
   Write-Host '拿掉 -WhatIf 再執行就會照做；每一項的說明見 docs/install.md 的「安裝會改動哪些地方」。'
 }
 
-# 安裝完畫面上不會多出東西，告訴使用者怎麼確認接上了、接下來怎麼用
-function Show-NextSteps($edition) {
+# 安裝完成後提示本機控制面板入口、零帳號狀態板與日常指令
+function Show-NextSteps($edition, $panelUrl = $null) {
   $text = [IO.File]::ReadAllText((Join-Path $Repo 'data\rules\baseline.md'), [Text.Encoding]::UTF8)
   $version = if ($text -match '規則版本：(\S+)') { $Matches[1] } else { 'data/rules/baseline.md 開頭的版本' }
-  # 只接 ASCII 的值：profile 名稱只能用小寫英數與 -
   $name = (Invoke-UvRun (Get-Uv) @('run', '--quiet', $ProfilesPy, '--show') -Capture).Output.Trim()
   $cfgFile = Join-Path $StateDir 'config.json'
   $record = if (Test-Path $cfgFile) { try { [IO.File]::ReadAllText($cfgFile) | ConvertFrom-Json } catch { $null } } else { try { [IO.File]::ReadAllText($AgentsFile) | ConvertFrom-Json } catch { $null } }
   $connected = @($record.agents | Where-Object { $_ } | ForEach-Object { $AgentNames[$_] })
-  $profileDir = Get-ProfileDir $name
-  $answersFile = if ($profileDir) { Join-Path $profileDir 'answers.json' } else { '' }
-  $hasEval = $true
-  if ($answersFile -and (Test-Path -LiteralPath $answersFile)) {
-    try { if ((Get-FileText $answersFile | ConvertFrom-Json).evaluate_tools -eq $false) { $hasEval = $false } } catch { }
+  Write-Host ''
+  Write-Host "OmniKit 已接上 $($connected -join '、')（profile：$name），新開的對話將套用防假完工護欄與精選工作台。" -ForegroundColor Green
+  Write-Host ''
+  if ($panelUrl) {
+    Write-Host "本機控制面板已啟動：$panelUrl" -ForegroundColor Cyan
+    Write-Host '  - 直接在瀏覽器勾選偏好與精選套件，一鍵套用即可（免建 GitHub 私人 repo 即可使用本機 NOW.md 狀態板）' -ForegroundColor Cyan
+  } else {
+    Write-Host '開啟本機控制面板：uv run scripts/cockpit.py open（或在對話輸入 /ok 面板）' -ForegroundColor Cyan
   }
   Write-Host ''
-  Write-Host "OmniKit 已接上 $($connected -join '、')（profile：$name），開新的 session 才會生效。"
-  if ($name -eq 'default') {
-    # 2026-11-27 同事實測：裝完只印說明、什麼都沒發生。下一步放最前面，並讓幫忙安裝的 agent 當場接著做設定訪談
-    $setupSkill = Join-Path $Repo 'engine\skills\omnikit-setup\SKILL.md'
-    Write-Host ''
-    Write-Host '下一步（約 1 分鐘）：' -ForegroundColor Yellow
-    Write-Host '  - 開一個新的對話，隨便打一句（例如「嗨」），OmniKit 會主動帶你設定：回答幾題，之後就照你的習慣做事' -ForegroundColor Yellow
-    Write-Host "  - 給幫你跑安裝的 agent：不用等新對話，現在就讀 $setupSkill，在這段對話接著跟使用者做設定訪談" -ForegroundColor Yellow
-    Write-Host ''
-    Write-Host '其他：'
-  } else {
-    Write-Host '  - 重新設定 profile：開新 session 說「幫我設定 OmniKit」'
-  }
-  Write-Host "  - 確認接上了：問「OmniKit 規則版本與 profile 是什麼？」，應該回答 $version 與 $name"
-  Write-Host '  - 換 profile：重跑 install.ps1 -ProfileName <名稱>，或 uv run engine/scripts/profiles.py --set <名稱>'
+  Write-Host '日常快捷指令：'
+  Write-Host '  - 開啟面板或查看狀態：在對話輸入 /ok（或 /ok 面板）'
+  Write-Host '  - 防假完工實體驗收：在對話輸入 /ok 驗收（自動檢查假綠燈並真開服務／瀏覽器確認 0 錯誤）'
+  Write-Host "  - 確認連線版本：問「OmniKit 規則版本與 profile 是什麼？」，應回答 $version 與 $name"
   if ($edition -ne 'maintainer') {
-    Write-Host '  - 這台是同事版：預設鎖定穩定發行 tag，不會跟著 main 浮動；更新時先 git fetch --tags，再跑 install.ps1 -Tag <新版本> -WhatIf 預覽、install.ps1 -Tag <新版本> 套用'
-    Write-Host '  - 免問核准：uv run engine/scripts/sync.py approvals 查看；--grant <名稱> 同意、--revoke <名稱> 撤回'
+    Write-Host '  - 版本更新：預設鎖定穩定發行 tag；升級時先 git fetch --tags，再跑 install.ps1 -Tag <新版本>'
   }
-  if ($hasEval) {
-    Write-Host '  - 評估新工具：說「幫我評估」加上 GitHub 連結（Claude Code 也可以輸入 /omnikit-eval，Codex 輸入 $omnikit-eval）'
-  }
-  Write-Host '  - 需求沒想清楚想先對焦：用內建 /plan（Antigravity 亦可用 /grill-me）；三家指令對照見 docs/cli-features.md'
-  Write-Host '  - 預設 plugin 不會自動安裝；安裝方式見 docs/install.md 的「預設 plugin 要另外裝」，日常用法見 docs/usage.md'
 }
 
 # -SelfTest：%LOCALAPPDATA% 換成暫存資料夾、repo 換成暫存 git repo，測版本判斷與 git hook 設定
@@ -822,6 +948,24 @@ print(json.dumps(sys.argv[3:]))
     $mixed = $utf8.GetBytes("UTF-8 的中文`r`n") + $cp950.GetBytes("cp950 的中文`n")
     Check 'stderr 逐行解碼：UTF-8 照用，不是 UTF-8 的才用主控台字碼頁（cp950）' (
       (ConvertFrom-UvBytes $mixed $cp950) -eq "UTF-8 的中文`ncp950 的中文")
+
+    # 無頭環境抑制與瀏覽器例外安全攔截（P0-1 / Gap 6）
+    $savedCi, $savedNoBr, $savedNoLn = $env:CI, $env:OMNIKIT_NO_BROWSER, $env:OMNIKIT_NO_LAUNCH
+    try {
+      $env:CI = '1'
+      Check 'CI=1 時自動抑制伺服器與瀏覽器啟動' (-not (Test-CanLaunchServer) -and -not (Test-CanOpenUi))
+      $env:CI = ''
+      $env:OMNIKIT_NO_BROWSER = '1'
+      Check 'OMNIKIT_NO_BROWSER=1 時抑制自動開啟瀏覽器' (-not (Test-CanOpenUi))
+    } finally {
+      $env:CI, $env:OMNIKIT_NO_BROWSER, $env:OMNIKIT_NO_LAUNCH = $savedCi, $savedNoBr, $savedNoLn
+    }
+    $openSafe = Invoke-SafeBrowserOpen 'http://127.0.0.1:3780/' -Opener { param($u) throw "模擬預設瀏覽器錯誤 $u" } 3>$null
+    Check 'Invoke-SafeBrowserOpen：瀏覽器啟動拋出例外時安全攔截回傳 $false，不讓安裝腳本非零退出' ($openSafe -eq $false)
+
+    $pfOnlyNpm = Test-PreflightAllowsContinue @([pscustomobject]@{name='git';ok=$true}, [pscustomobject]@{name='npm';ok=$false})
+    $pfNoGit = Test-PreflightAllowsContinue @([pscustomobject]@{name='git';ok=$false}, [pscustomobject]@{name='npm';ok=$false})
+    Check 'Test-PreflightAllowsContinue：僅缺 npm 時允許降級繼續；缺 git 等硬性條件時嚴格阻斷' ($pfOnlyNpm.Ok -and $pfOnlyNpm.WarnOnlyNpm -and -not $pfNoGit.Ok)
   } finally {
     $env:LOCALAPPDATA, $script:Repo, $env:UV_CACHE_DIR = $realLocal, $realRepo, $realUvCache
     $env:OMNIKIT_STATE_DIR, $script:StateDir = $realStateEnv, $realStateDir
@@ -841,10 +985,25 @@ if ($ProfileProblem -and -not $WhatIf) {
   exit 1
 }
 
-# 安裝前檢查（FR-35）：任一項不通過就什麼都不下載、不寫入
+# 安裝前檢查（FR-35）：硬性條件不通過就什麼都不下載、不寫入；僅缺 npm 時降級提示繼續安裝
 & $PreflightPs1 -Skip $SkipCheck
 $PreflightOk = ($LASTEXITCODE -eq 0)
+$WarnOnlyNpm = $false
+if (-not $PreflightOk) {
+  try {
+    $pfJson = (& $PreflightPs1 -Json -Skip $SkipCheck) | ConvertFrom-Json
+    $pfEval = Test-PreflightAllowsContinue @($pfJson)
+    if ($pfEval.Ok -and $pfEval.WarnOnlyNpm) {
+      $PreflightOk = $true
+      $WarnOnlyNpm = $true
+    }
+  } catch { }
+}
 Write-Host ''
+if ($WarnOnlyNpm) {
+  Write-Host '提示：這台尚未安裝 Node.js / npm，將先安裝 OmniKit 規則、核心技能、防假完工護欄與本機控制面板；需要 Node 的 MCP 套件待安裝 Node.js LTS 後重跑即可補上。' -ForegroundColor Yellow
+  Write-Host ''
+}
 if ($WhatIf) {
   if (-not $PreflightOk) { Write-Host '注意：安裝前檢查沒通過，照上面的處理方式處理好之前，實際安裝會停在這一步。'; Write-Host '' }
   Show-InstallPlan
@@ -860,13 +1019,16 @@ Merge-LegacyState
 Install-Gh
 $CurrentEdition = Resolve-Edition $Edition
 [void](Switch-ColleagueTag $CurrentEdition $Tag)
-if ($CurrentEdition -eq 'maintainer') { Install-Gitleaks }
-Sync-RepoConfig
+Install-Gitleaks
+if ($CurrentEdition -eq 'maintainer') { Sync-RepoConfig }
 Install-McpPackages
 if ($CurrentEdition -ne 'maintainer') { Request-AutoApprove }
 Move-LegacyProfiles
 Connect-Agents
+Initialize-LocalWorkbench
+New-ControlPanelShortcut
 if ($Fresh) { Clear-OldClaudeRules }
 Set-GitHooks $CurrentEdition
 if ($CurrentEdition -eq 'maintainer') { Test-GitIdentity }
-Show-NextSteps $CurrentEdition
+$PanelUrl = Start-ControlPanelIfAllowed
+Show-NextSteps $CurrentEdition $PanelUrl
