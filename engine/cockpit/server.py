@@ -4,11 +4,24 @@
 - 預設只綁定 127.0.0.1:3780（手機端透過 Tailscale Serve 走 HTTPS 反代，不直接對區網裸奔）。
 - 所有 API 回傳 no-store 與基本安全標頭；寫入只限 ~/.omnikit/status/<id>/NOW.md 與 ~/.omnikit/cockpit/config.json。
 - 背景自動對帳採單一 FIFO 佇列（一次一條可見 T3 對話），零外部相依。
+- 2026-11-27（KIT-A-01、KIT-B-16）：
+  - Host 白名單：只接受 127.0.0.1、localhost、::1，以及這台的 Tailscale MagicDNS 名稱（tailscale status 自動找，
+    或環境變數 OMNIKIT_COCKPIT_HOSTS 用逗號列）。其他 Host 一律 403，擋 DNS rebinding。
+  - 經 Tailscale 進來的（Host 不是本機名稱，或帶 Tailscale-User-Login、X-Forwarded-For 這類反代標頭）只能讀：
+    POST、PATCH 一律 403；寫入與對帳只在這台電腦上開 http://127.0.0.1:3780 時可以做。
+  - 本機寫入要帶 X-OmniKit-Token：伺服器每次啟動產生，前端從同源的 GET /api/session 取得（跨站頁面讀不到回應）；
+    有 Origin 標頭時也要是本機來源。
+  - 全部重新對帳（only_stale=false）要明確帶 confirm_all=true，避免誤觸一次替每個專案開一條對話。
 """
 from __future__ import annotations
 
+import hmac
 import json
 import mimetypes
+import os
+import secrets
+import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -24,6 +37,48 @@ from . import collector, reconciler
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 MAP_FILE = collector.ROOT / "engine" / "site" / "map.html"
 MAX_BODY_BYTES = 64 * 1024  # 64 KB 防畸形大封包
+LOCAL_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+# Tailscale Serve 反代時會加的標頭（Tailscale 會先清掉用戶端自己帶的 Tailscale-*）；任一出現就當作經 Tailscale 進來
+FORWARD_HEADERS = ("Tailscale-User-Login", "Tailscale-User-Name", "Tailscale-Headers-Info",
+                   "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "Forwarded")
+TOKEN_HEADER = "X-OmniKit-Token"
+HOSTS_ENV = "OMNIKIT_COCKPIT_HOSTS"
+
+
+def host_name(value: str | None) -> str:
+    """Host 標頭去掉連接埠與結尾的點、轉小寫；IPv6 的中括號拿掉。"""
+    v = str(value or "").strip().lower()
+    if v.startswith("["):
+        v = v[1:].split("]", 1)[0]
+    elif v.count(":") == 1:
+        v = v.split(":", 1)[0]
+    return v.rstrip(".")
+
+
+def _tailscale_exe() -> str | None:
+    found = shutil.which("tailscale")
+    if found:
+        return found
+    default = Path(os.environ.get("ProgramFiles") or "C:/Program Files") / "Tailscale" / "tailscale.exe"
+    return str(default) if default.is_file() else None
+
+
+def tailnet_hosts(environ: dict[str, str] | None = None, run: Callable[..., Any] = subprocess.run,
+                  exe: str | None = None) -> set[str]:
+    """這台的 Tailscale MagicDNS 名稱：環境變數 OMNIKIT_COCKPIT_HOSTS（逗號分隔）加上 tailscale status --json 的
+    Self.DNSName。沒裝 Tailscale、查不到或逾時都只回環境變數的（只剩本機名稱能進來）。"""
+    environ = os.environ if environ is None else environ
+    hosts = {host_name(h) for h in str(environ.get(HOSTS_ENV) or "").split(",") if h.strip()}
+    exe = exe or _tailscale_exe()
+    if exe:
+        try:
+            r = run([exe, "status", "--json"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5)
+            name = (json.loads(r.stdout or "{}").get("Self") or {}).get("DNSName") if r.returncode == 0 else None
+            if isinstance(name, str) and name.strip():
+                hosts.add(host_name(name))
+        except (OSError, subprocess.TimeoutExpired, ValueError, AttributeError):
+            pass
+    return {h for h in hosts if h}
 
 MIME_MAP = {
     ".html": "text/html; charset=utf-8",
@@ -49,12 +104,18 @@ class CockpitApp:
         t3_runner: Callable[[Path], list[dict[str, Any]] | None] | None = None,
         reconcile_runner: Callable[..., dict[str, Any]] | None = None,
         cache_ttl: float = 15.0,
+        allowed_hosts: set[str] | None = None,
+        token: str | None = None,
     ):
         self.state_dir = state_dir if state_dir is not None else collector.default_state_dir()
         self.data_dir = data_dir if data_dir is not None else (collector.ROOT / "data")
         self.default_repo_root = default_repo_root
         self.t3_runner = t3_runner
         self.cache_ttl = cache_ttl
+        # 本機名稱以外還能用哪些 Host 進來（經 Tailscale，只能讀）；None 時自動找這台的 MagicDNS 名稱
+        found = tailnet_hosts() if allowed_hosts is None else allowed_hosts
+        self.remote_hosts = {host_name(h) for h in found} - LOCAL_HOSTS
+        self.token = token or secrets.token_urlsafe(32)
         self._lock = threading.Lock()
         self._cache: dict[str, tuple[float, Any]] = {}
         self.reconciler = reconciler.ReconcileManager(
@@ -127,7 +188,9 @@ class CockpitApp:
         job = self.reconciler.enqueue(target, t3_base_url=ov["settings"].get("t3_base_url") or "")
         return {"ok": True, "job": job, "reconcile": self.reconciler.snapshot()}
 
-    def enqueue_reconcile_all(self, *, only_stale: bool = True) -> dict[str, Any]:
+    def enqueue_reconcile_all(self, *, only_stale: bool = True, confirm_all: bool = False) -> dict[str, Any]:
+        if not only_stale and not confirm_all:
+            raise ValueError("全部重新對帳會替每個本機專案各開一條對話：要帶 confirm_all=true 才會排入")
         ov = self.get_overview(force_sync=False)
         t3_base = ov["settings"].get("t3_base_url") or ""
         queued: list[dict[str, Any]] = []
@@ -168,6 +231,36 @@ def _make_handler(app: CockpitApp):
         def _send_json(self, status: int, payload: Any) -> None:
             raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
             self._send_bytes(status, raw, "application/json; charset=utf-8")
+
+        def _access(self) -> tuple[str | None, bool]:
+            """回傳（拒絕原因或 None, 是不是經 Tailscale 進來的）。"""
+            host = host_name(self.headers.get("Host"))
+            if host not in LOCAL_HOSTS and host not in app.remote_hosts:
+                return "Host 不在白名單（只接受本機與這台的 Tailscale 名稱）", True
+            remote = host not in LOCAL_HOSTS or any(self.headers.get(h) for h in FORWARD_HEADERS)
+            return None, remote
+
+        def _guard_read(self) -> bool:
+            why, _ = self._access()
+            if why:
+                self._send_json(HTTPStatus.FORBIDDEN, {"error": why})
+                return False
+            return True
+
+        def _guard_write(self) -> bool:
+            """寫入只限這台電腦本機開的頁面：Host 白名單、不是經 Tailscale、同源、帶對的 token。"""
+            why, remote = self._access()
+            if not why and remote:
+                why = "經 Tailscale 開啟時只能看：寫入與對帳請在這台電腦上開 http://127.0.0.1:3780"
+            origin = self.headers.get("Origin")
+            if not why and origin and host_name(urlparse(origin).netloc) not in LOCAL_HOSTS:
+                why = "來源（Origin）不是這台電腦本機的頁面"
+            if not why and not hmac.compare_digest(str(self.headers.get(TOKEN_HEADER) or ""), app.token):
+                why = f"缺少或錯誤的 {TOKEN_HEADER}：重新整理頁面再試"
+            if why:
+                self._send_json(HTTPStatus.FORBIDDEN, {"error": why})
+                return False
+            return True
 
         def _read_json_body(self) -> dict[str, Any]:
             ctype = str(self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
@@ -216,7 +309,15 @@ def _make_handler(app: CockpitApp):
             path = parsed.path
             qs = parse_qs(parsed.query)
 
+            if not self._guard_read():
+                return
             try:
+                if path == "/api/session":
+                    _, remote = self._access()
+                    self._send_json(HTTPStatus.OK, {"writable": not remote, "mode": "remote" if remote else "local",
+                                                    "token": None if remote else app.token})
+                    return
+
                 if path == "/api/health":
                     self._send_json(HTTPStatus.OK, {"ok": True, "service": "omnikit-cockpit", "map_available": MAP_FILE.is_file()})
                     return
@@ -264,12 +365,14 @@ def _make_handler(app: CockpitApp):
         def do_POST(self) -> None:
             parsed = urlparse(self.path)
             path = parsed.path
+            if not self._guard_write():
+                return
             try:
                 body = self._read_json_body()
 
                 if path == "/api/reconcile-all":
                     only_stale = bool(body.get("only_stale", True))
-                    res = app.enqueue_reconcile_all(only_stale=only_stale)
+                    res = app.enqueue_reconcile_all(only_stale=only_stale, confirm_all=body.get("confirm_all") is True)
                     self._send_json(HTTPStatus.ACCEPTED, res)
                     return
 
@@ -318,6 +421,8 @@ def _make_handler(app: CockpitApp):
         def do_PATCH(self) -> None:
             parsed = urlparse(self.path)
             path = parsed.path
+            if not self._guard_write():
+                return
             try:
                 body = self._read_json_body()
 

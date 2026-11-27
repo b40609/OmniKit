@@ -78,9 +78,10 @@ def _print_snapshot_text(overview: dict) -> None:
             print(f"  下一步：{p['now']['next_action']['text']}")
 
 
-def _http_json(url: str, *, method: str = "GET", payload: dict | None = None) -> tuple[int, dict]:
+def _http_json(url: str, *, method: str = "GET", payload: dict | None = None,
+               headers: dict | None = None) -> tuple[int, dict]:
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8") if payload is not None else None
-    headers = {"Content-Type": "application/json"} if data is not None else {}
+    headers = {**({"Content-Type": "application/json"} if data is not None else {}), **(headers or {})}
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
         with urllib.request.urlopen(req, timeout=8) as resp:
@@ -295,7 +296,9 @@ def selftest() -> int:
         check("CompanyOnly 標記為遠端專案且不報錯", by_id["CompanyOnly"]["remote_only"] is True and by_id["CompanyOnly"]["now"]["progress"]["total"] == 2)
 
         # 測試 HTTP 伺服器與 CRUD / 路徑穿越防護
-        app = server.CockpitApp(state_dir=state, default_repo_root=None, t3_runner=fake_t3, cache_ttl=0)
+        app = server.CockpitApp(state_dir=state, default_repo_root=None, t3_runner=fake_t3, cache_ttl=0,
+                                allowed_hosts={"box.example.ts.net"}, token="selftest-token")
+        tok = {"X-OmniKit-Token": app.token}
         httpd = server.create_server("127.0.0.1", 0, app=app)
         port = httpd.server_address[1]
         th = threading.Thread(target=httpd.serve_forever, daemon=True)
@@ -313,6 +316,7 @@ def selftest() -> int:
                 f"{base}/api/projects/Alpha/critiques",
                 method="POST",
                 payload={"text": "按鈕太靠邊需要加間距"},
+                headers=tok,
             )
             check("POST 新增不滿意待改成功", st_add == 201 and len(body_add.get("critiques", [])) == 2)
             raw_after = alpha_now.read_text(encoding="utf-8")
@@ -323,6 +327,7 @@ def selftest() -> int:
                 f"{base}/api/projects/Alpha/critiques/0",
                 method="PATCH",
                 payload={"done": True},
+                headers=tok,
             )
             check("PATCH 勾銷不滿意待改成功", st_tog == 200 and body_tog["critiques"][0]["done"] is True)
 
@@ -331,6 +336,7 @@ def selftest() -> int:
                 f"{base}/api/settings",
                 method="PATCH",
                 payload={"t3_base_url": "https://t3.example.ts.net:2388"},
+                headers=tok,
             )
             st_o2, body_o2 = _http_json(f"{base}/api/overview")
             alpha2 = next(p for p in body_o2["projects"] if p["id"] == "Alpha")
@@ -344,8 +350,32 @@ def selftest() -> int:
                 f"{base}/api/projects/..%2Fevil/critiques",
                 method="POST",
                 payload={"text": "bad"},
+                headers=tok,
             )
             check("路徑穿越防護拒絕 .. 專案代號", st_bad == 400)
+
+            # 2026-11-27（KIT-A-01）：Host 白名單、寫入要 token、經 Tailscale 只能讀
+            st_ses, ses = _http_json(f"{base}/api/session")
+            check("本機開：/api/session 給 token、可寫", st_ses == 200 and ses["writable"] is True and ses["token"] == "selftest-token")
+            st_evil, _ = _http_json(f"{base}/api/health", headers={"Host": "evil.example"})
+            check("不在白名單的 Host（DNS rebinding）讀也 403", st_evil == 403)
+            st_ts, ses_ts = _http_json(f"{base}/api/session", headers={"Host": "box.example.ts.net:2389", "X-Forwarded-For": "100.64.0.9"})
+            check("經 Tailscale：可以讀、不給 token", st_ts == 200 and ses_ts["writable"] is False and ses_ts["token"] is None)
+            st_tsw, _ = _http_json(f"{base}/api/projects/Alpha/critiques", method="POST", payload={"text": "x"},
+                                   headers={**tok, "Host": "box.example.ts.net", "Tailscale-User-Login": "u@example.test"})
+            check("經 Tailscale：帶對的 token 寫入也 403", st_tsw == 403)
+            st_fwd, _ = _http_json(f"{base}/api/settings", method="PATCH", payload={"t3_base_url": ""},
+                                   headers={**tok, "X-Forwarded-For": "100.64.0.9"})
+            check("Host 寫 127.0.0.1 但帶反代標頭：當作經 Tailscale，寫入 403", st_fwd == 403)
+            st_not, _ = _http_json(f"{base}/api/projects/Alpha/critiques", method="POST", payload={"text": "x"})
+            st_bad_tok, _ = _http_json(f"{base}/api/projects/Alpha/critiques", method="POST", payload={"text": "x"},
+                                       headers={"X-OmniKit-Token": "wrong"})
+            check("本機寫入沒帶或帶錯 token：403", st_not == 403 and st_bad_tok == 403)
+            st_org, _ = _http_json(f"{base}/api/projects/Alpha/critiques", method="POST", payload={"text": "x"},
+                                   headers={**tok, "Origin": "https://evil.example"})
+            check("Origin 不是本機頁面：403", st_org == 403)
+            st_all, _ = _http_json(f"{base}/api/reconcile-all", method="POST", payload={"only_stale": False}, headers=tok)
+            check("全部重新對帳沒帶 confirm_all：400，不排入", st_all == 400)
 
             # 檢視靜態首頁與 manifest
             with urllib.request.urlopen(f"{base}/", timeout=5) as resp:

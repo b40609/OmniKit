@@ -102,7 +102,7 @@ docs/                        說明文件（安裝、使用、分派、運作方
   cli-features.md            三家 CLI 內建功能與指令對照表
   starter.md                 新電腦起步清單
 engine/                      引擎：不用改
-  cockpit/                   本機 Cockpit 多專案面板後端與前端（個人進階功能，同事版預設不啟用）
+  cockpit/                   本機 Cockpit 多專案面板後端與前端（個人進階功能，同事版預設不啟用；只接受本機與這台 Tailscale 名稱的 Host，經 Tailscale 只能看，寫入與對帳要在本機開並帶啟動時產生的 token）
   schema/                    名冊與槽位的 JSON Schema
   scripts/                   安裝與移除（install.ps1／uninstall.ps1）、無帳本同步與健康檢查（sync.py／doctor.py）、profile 與帳號池、子任務分派、能力清點、名冊驗證與看板建置、護欄與提醒 hook
   site/                      看板的樣式與程式、匯出的架構地圖（map.html），以及 README 門面圖的產生器（readme_art.py）

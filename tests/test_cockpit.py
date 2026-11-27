@@ -20,11 +20,18 @@ if str(ROOT) not in sys.path:
 from engine.cockpit import collector, server
 
 
-def _http_json(url: str, *, method: str = "GET", payload: dict | None = None, content_type: str | None = "application/json") -> tuple[int, dict]:
+TOKEN = "test-token"
+
+
+def _http_json(url: str, *, method: str = "GET", payload: dict | None = None, content_type: str | None = "application/json",
+               token: str | None = TOKEN, headers: dict | None = None) -> tuple[int, dict]:
+    """寫入（POST、PATCH）預設帶測試用的 token；token=None 測沒帶的情況。"""
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8") if payload is not None else None
-    headers = {}
+    headers = dict(headers or {})
     if data is not None and content_type:
         headers["Content-Type"] = content_type
+    if method not in ("GET", "HEAD") and token:
+        headers.setdefault("X-OmniKit-Token", token)
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
         with urllib.request.urlopen(req, timeout=8) as resp:
@@ -197,7 +204,8 @@ def test_http_server_crud_and_security(short_tmp: Path):
     _init_git_repo(repo)
     collector.register_project(state, name="MyApp", path=str(repo))
 
-    app = server.CockpitApp(state_dir=state, default_repo_root=None, t3_runner=lambda _: [], cache_ttl=0)
+    app = server.CockpitApp(state_dir=state, default_repo_root=None, t3_runner=lambda _: [], cache_ttl=0,
+                            allowed_hosts=set(), token=TOKEN)
     httpd = server.create_server("127.0.0.1", 0, app=app)
     port = httpd.server_address[1]
     th = threading.Thread(target=httpd.serve_forever, daemon=True)
@@ -273,6 +281,8 @@ def test_reconcile_queue_single_and_batch_api(short_tmp: Path):
         t3_runner=lambda _: [],
         reconcile_runner=fake_reconcile,
         cache_ttl=0,
+        allowed_hosts=set(),
+        token=TOKEN,
     )
     httpd = server.create_server("127.0.0.1", 0, app=app)
     port = httpd.server_address[1]
@@ -329,3 +339,60 @@ def test_mobile_web_engineering_guardrails():
     assert "@media (display-mode: standalone)" in css
     assert "viewport-fit=cover" in html
     assert "manifest.webmanifest" in html
+
+
+def test_write_guard_host_allowlist_token_and_tailscale_readonly(short_tmp: Path):
+    """KIT-A-01：不在白名單的 Host 一律 403；經 Tailscale（MagicDNS Host 或反代標頭）只能讀；本機寫入要 token；
+    KIT-B-16：全部重新對帳要 confirm_all。"""
+    state = short_tmp / "state"
+    repo = short_tmp / "GuardApp"
+    _init_git_repo(repo)
+    collector.register_project(state, name="GuardApp", path=str(repo))
+    app = server.CockpitApp(state_dir=state, default_repo_root=None, t3_runner=lambda _: [], cache_ttl=0,
+                            allowed_hosts={"box.example.ts.net"}, token=TOKEN, reconcile_runner=lambda **_kw: {})
+    httpd = server.create_server("127.0.0.1", 0, app=app)
+    th = threading.Thread(target=httpd.serve_forever, daemon=True)
+    th.start()
+    try:
+        base = f"http://127.0.0.1:{httpd.server_address[1]}"
+        ts = {"Host": "box.example.ts.net:2389", "X-Forwarded-For": "100.64.0.9", "Tailscale-User-Login": "u@example.test"}
+        assert _http_json(f"{base}/api/health", headers={"Host": "evil.example"})[0] == 403
+        assert _http_json(f"{base}/", headers={"Host": "evil.example:3780"})[0] == 403
+        st, ses = _http_json(f"{base}/api/session")
+        assert st == 200 and ses == {"writable": True, "mode": "local", "token": TOKEN}
+        st, ses = _http_json(f"{base}/api/session", headers=ts)
+        assert st == 200 and ses["writable"] is False and ses["token"] is None
+        assert _http_json(f"{base}/api/overview", headers=ts)[0] == 200
+        add = f"{base}/api/projects/GuardApp/critiques"
+        assert _http_json(add, method="POST", payload={"text": "x"}, headers=ts)[0] == 403
+        assert _http_json(add, method="POST", payload={"text": "x"}, headers={"X-Forwarded-For": "100.64.0.9"})[0] == 403
+        assert _http_json(add, method="POST", payload={"text": "x"}, token=None)[0] == 403
+        assert _http_json(add, method="POST", payload={"text": "x"}, token="wrong")[0] == 403
+        assert _http_json(add, method="POST", payload={"text": "x"}, headers={"Origin": "https://evil.example"})[0] == 403
+        assert _http_json(f"{base}/api/settings", method="PATCH", payload={"t3_base_url": ""}, headers=ts)[0] == 403
+        assert _http_json(add, method="POST", payload={"text": "本機可以寫"},
+                          headers={"Origin": f"http://127.0.0.1:{httpd.server_address[1]}"})[0] == 201
+        st_all, body = _http_json(f"{base}/api/reconcile-all", method="POST", payload={"only_stale": False})
+        assert st_all == 400 and "confirm_all" in body["error"]
+        assert _http_json(f"{base}/api/reconcile-all", method="POST", payload={"only_stale": False, "confirm_all": True})[0] == 202
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_host_name_and_tailnet_hosts():
+    assert server.host_name("Box.Example.ts.net.:2389") == "box.example.ts.net"
+    assert server.host_name("[::1]:3780") == "::1"
+    assert server.host_name("127.0.0.1:3780") == "127.0.0.1"
+
+    class R:
+        returncode = 0
+        stdout = json.dumps({"Self": {"DNSName": "box.example.ts.net."}})
+
+    got = server.tailnet_hosts({"OMNIKIT_COCKPIT_HOSTS": "a.example.ts.net, "}, run=lambda *a, **k: R(), exe="tailscale")
+    assert got == {"a.example.ts.net", "box.example.ts.net"}
+
+    def boom(*a, **k):
+        raise OSError("沒有 tailscale")
+
+    assert server.tailnet_hosts({}, run=boom, exe="tailscale") == set()

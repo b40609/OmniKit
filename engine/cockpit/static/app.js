@@ -13,6 +13,8 @@
     toolSearch: "",
     triFormOpen: new Set(),
     mapLoaded: false,
+    // 2026-11-27：寫入要帶伺服器給的 token；經 Tailscale 開啟時只能看（writable=false）
+    session: { writable: true, token: null, mode: "local" },
     pollTimer: null,
     wasBusy: false,
   };
@@ -88,11 +90,16 @@
     }, 2800);
   }
 
+  const READONLY_MSG = "經 Tailscale 開啟時只能看；對帳、登記與改設定請在這台電腦上開 http://127.0.0.1:3780";
+
   async function api(url, opts = {}) {
-    const res = await fetch(url, {
-      headers: opts.body ? { "Content-Type": "application/json" } : undefined,
-      ...opts,
-    });
+    const method = (opts.method || "GET").toUpperCase();
+    const write = method !== "GET" && method !== "HEAD";
+    if (write && !state.session.writable) throw new Error(READONLY_MSG);
+    const headers = {};
+    if (opts.body) headers["Content-Type"] = "application/json";
+    if (write && state.session.token) headers["X-OmniKit-Token"] = state.session.token;
+    const res = await fetch(url, { ...opts, headers });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `請求失敗（${res.status}）`);
     return data;
@@ -246,10 +253,21 @@
 
   async function triggerReconcileAll() {
     const stale = staleLocalCount();
+    let confirmAll = false;
+    if (stale === 0) {
+      // 沒有過期的專案時按下去會替每個本機專案各開一條對話（KIT-B-16）：先問
+      const local = (state.overview?.projects || []).filter((p) => p.local_available && !p.remote_only).length;
+      if (local === 0) {
+        showToast("沒有需要對帳的本機專案");
+        return;
+      }
+      confirmAll = window.confirm(`目前沒有過期的專案。要把全部 ${local} 個本機專案重新對帳嗎？會開 ${local} 條 T3 對話、一次跑一條。`);
+      if (!confirmAll) return;
+    }
     try {
       const res = await api("/api/reconcile-all", {
         method: "POST",
-        body: JSON.stringify({ only_stale: stale > 0 }),
+        body: JSON.stringify(stale > 0 ? { only_stale: true } : { only_stale: false, confirm_all: confirmAll }),
       });
       if (state.overview) state.overview.reconcile = res.reconcile;
       const n = res.queued?.length || 0;
@@ -1071,7 +1089,20 @@
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   }
 
+  async function loadSession() {
+    try {
+      const res = await fetch("/api/session", { cache: "no-store" });
+      const s = await res.json();
+      state.session = { writable: Boolean(s.writable), token: s.token || null, mode: s.mode || "local" };
+    } catch {
+      // 讀不到就維持預設；寫入時伺服器會再擋一次
+    }
+    document.body.classList.toggle("is-readonly", !state.session.writable);
+    const banner = $("#readonly-banner");
+    if (banner) banner.hidden = state.session.writable;
+  }
+
   initTheme();
   bindEvents();
-  loadOverview(false);
+  loadSession().finally(() => loadOverview(false));
 })();

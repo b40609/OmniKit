@@ -59,6 +59,11 @@
       </div>
     </header>
 
+    <!-- 經 Tailscale 開啟時只能看（2026-11-27）：寫入與對帳只在這台電腦上開 -->
+    <div id="readonly-banner" class="reconcile-banner readonly-banner" role="status" hidden>
+      <span>只能看：經 Tailscale 開啟。對帳、登記與改設定請在這台電腦上開 http://127.0.0.1:3780</span>
+    </div>
+
     <!-- 對帳進行中細條（空閒時隱藏） -->
     <div id="reconcile-banner" class="reconcile-banner" hidden>
       <span class="live-dot" aria-hidden="true"></span>

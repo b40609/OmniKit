@@ -282,6 +282,10 @@ svg { flex: 0 0 auto; }
   font-size: 13px;
 }
 .reconcile-banner b { color: var(--text); font-weight: 500; }
+/* 唯讀時把會寫入的入口收起來，避免按了才被擋 */
+body.is-readonly #btn-reconcile-all,
+body.is-readonly #btn-add-project,
+body.is-readonly [data-reconcile] { display: none !important; }
 .live-dot {
   width: 8px;
   height: 8px;
