@@ -16,11 +16,12 @@
 
 可以直接在 Claude Code 或 Codex 說「幫我安裝 OmniKit：https://github.com/b40609/OmniKit」，agent 會照下面的步驟做；也可以自己在 PowerShell 跑。
 
-1. **Clone。** 放在之後不會搬動的淺層路徑（如 `$env:USERPROFILE\OmniKit`，避免 Windows 預設長路徑上限）：規則與 skills 會連到這個資料夾。
+1. **Clone。** 放在之後不會搬動的淺層路徑（如 `$env:USERPROFILE\OmniKit`，避免 Windows 預設長路徑上限）：規則與 skills 會連到這個資料夾。建議直接指定最新穩定發行 tag（第一個 tag 由維護者建立；若直接 clone 預設分支，`install.ps1` 在同事版偵測到 `v*` 發行 tag 時也會自動切過去）：
 
    ```powershell
    git clone https://github.com/b40609/OmniKit.git "$env:USERPROFILE\OmniKit"
    cd "$env:USERPROFILE\OmniKit"
+   # 若已知發行版號，也可直接：git clone --branch v0.1.0 https://github.com/b40609/OmniKit.git "$env:USERPROFILE\OmniKit"
    ```
 
 2. **安裝。** 先加 `-WhatIf` 預覽，什麼都不會改；確認之後拿掉 `-WhatIf` 再跑一次。開始前會先做安裝前檢查（git、連得到 GitHub、npm、PyPI、proxy、防毒、PowerShell 執行原則），任一項不通過就停下來、列出處理方式，什麼都不寫入。完整清單見[安裝會改動哪些地方](#安裝會改動哪些地方)。
@@ -28,15 +29,16 @@
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 -WhatIf
    powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
+   # 指定特定發行 tag：加上 -Tag v0.1.0
    ```
 
-   這樣裝的是同事版：不設 git hook，`git pull` 不會改任何設定；讓 agent 免問就能用某個工具之前，會先問你。見[維護者版與同事版](#維護者版與同事版)。
+   這樣裝的是同事版：不設 git hook，預設鎖定穩定發行 tag（維護者推 `main` 不會影響你）；讓 agent 免問就能用某個工具之前，會先問你。見[維護者版與同事版](#維護者版與同事版)。
 
 3. **確認接上了。** 開一個新的 Claude Code 或 Codex session，問「OmniKit 規則版本與 profile 是什麼？」，版本跟 `data/rules/baseline.md` 開頭的一樣，就表示規則生效了。skill 與 MCP 怎麼檢查，見[使用指南的確認接上了](usage.md#確認接上了)。
 
 4. **建立自己的 profile。** 在新的 session 說「幫我設定 OmniKit」，回答最多 6 題，看過預覽才寫入，見[建立自己的 profile](usage.md#建立自己的-profile)。profile 存在 `~/.omnikit/profiles/<名稱>/`，不在 repo 裡，不會被 commit 或上傳。
 
-之後要更新：`git pull`，再跑 `install.ps1 -WhatIf` 預覽、`install.ps1` 套用。`git pull` 本身不會改任何設定。
+之後要更新到新發行版：`git fetch --tags`，先跑 `install.ps1 -Tag <新版本> -WhatIf` 預覽，確認後跑 `install.ps1 -Tag <新版本>` 套用（不帶 `-Tag` 時若尚未停在 tag 上會自動鎖定最新 `v*` tag）。`git fetch` 本身不會改任何設定。
 
 ## Fork 一份自己維護（維護者用）
 
@@ -57,7 +59,7 @@
    - `data/rules/baseline.md` 是安全底線，所有人都套用：刪除、對外發送、付款前先確認，不碰金鑰。
    - profile 是個人層：`AGENTS.md` 寫語言、語氣、哪些事可以直接做；`scenarios.yaml` 寫評估工具用的真實情境，沒寫的槽位用模組檔（`data/modules/`）的範本。訪談產生的 profile 存在 repo 外的 `~/.omnikit/profiles/<名稱>/`；repo 裡的 `data/profiles/<名稱>/` 放 `default` 與維護者手寫、要跟著 repo 的 profile。兩邊同名時，repo 外的優先。
 
-   不用先改檔案：先用 `default` 安裝（繁體中文、下載安裝前先問），裝好之後用[訪談](usage.md#建立自己的-profile)產生你自己的 profile。想手寫也行：複製 `data/profiles/default` 成 `data/profiles/<你的名字>` 再改，會跟著你的 fork commit；`data/profiles/ryan` 是原作者的，可以參考。
+   不用先改檔案：先用 `default` 安裝（繁體中文、下載安裝前先問），裝好之後用[訪談](usage.md#建立自己的-profile)產生你自己的 profile（存在 repo 外的 `~/.omnikit/profiles/`，不進公開 repo）。想手寫也行：複製 `data/profiles/default` 成 `~/.omnikit/profiles/<你的名字>` 再改。
 
 4. **安裝。** 加上 `-Edition maintainer`（指定一次就會記住）：commit 前驗證名冊、掃金鑰，commit 或 pull 後自動同步。已經有自己的 profile，就加上 `-ProfileName <名稱>`，一樣指定一次就會記住。
 
@@ -68,11 +70,13 @@
 
    偵測到這是 fork 時，會自動把 `data/omnikit.yaml` 的 `repo`、`owner`、`marketplace` 改成你的、看板用的 `profile` 改回 `default`，並重新產生 marketplace 清單，避免跟原作者的撞名。
 
-5. **推上去。** 推到 main 之後，到 Actions 的「部署看板」手動觸發一次（`workflow_dispatch`），就會部署到 `https://<你的帳號>.github.io/OmniKit/`。
+5. **推上去並開啟看板。** 若你自己的 fork 還沒開 `main` 分支保護，可直接推上預設分支；若已開分支保護（建議做法，見[維護名冊的發版與合併流程](maintainer.md#發版與合併流程分支保護prtag)），改開分支推 PR 等 CI 綠燈後再合併。進 `main` 之後，到 Actions 的「部署看板」手動觸發一次（`workflow_dispatch`），就會部署到 `https://<你的帳號>.github.io/OmniKit/`。
 
    ```powershell
+   git checkout -b chore/init-fork
    git commit -am "chore: 改成自己的 OmniKit"
-   git push
+   git push -u origin chore/init-fork
+   # 用 gh pr create 開 PR，等 CI 全綠後合併進 main
    ```
 
 6. **確認接上了，再建立自己的 profile。** 跟上面直接安裝的第 3、4 步一樣。
@@ -134,7 +138,8 @@
 
 | | 維護者版 | 同事版（預設） |
 |---|---|---|
-| git hook | commit 前掃金鑰、驗證名冊；commit 或 pull 後自動同步。在 git worktree（例如 `.claude/worktrees/` 底下）裡只掃金鑰、驗證名冊，不同步，合進 main 後由主 checkout 同步 | 不設。pull 不會改任何設定；要套用更新，先跑 `install.ps1 -WhatIf` 預覽，再跑 `install.ps1` |
+| 版本來源 | 追蹤開發分支，透過分支＋PR＋CI 綠燈合進 `main` | 預設鎖定穩定發行 tag（`v*`），不受維護者推 `main` 影響；升級用 `git fetch --tags`＋`install.ps1 -Tag <版本>` |
+| git hook | commit 前掃金鑰、驗證名冊；commit 或 pull 後自動同步。在 git worktree（例如 `.claude/worktrees/` 底下）裡只掃金鑰、驗證名冊，不同步，合進 main 後由主 checkout 同步 | 不設。pull 或 fetch 不會改任何設定；要套用更新，先跑 `install.ps1 -WhatIf` 預覽，再跑 `install.ps1` |
 | 免問核准 | 照 `data/harness/claude-allow.txt` 與 `data/mcp/servers.yaml` 寫入，那是維護者自己同意的 | 每個工具先問你，同意了才寫入（預設否）。之後可以改：`uv run engine/scripts/sync.py approvals` 查看，`--grant <名稱>` 同意、`--revoke <名稱>` 撤回 |
 | gitleaks | 裝，給 pre-commit 用 | 不裝 |
 

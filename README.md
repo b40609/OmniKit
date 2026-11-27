@@ -32,7 +32,7 @@ OmniKit 把這些收成一份設定，一次接到三個 agent。它不蓋掉你
 幫我安裝 OmniKit：https://github.com/b40609/OmniKit
 ```
 
-想自己來，在 PowerShell 跑：
+想自己來，在 PowerShell 跑（同事版預設鎖定最新穩定發行 tag，維護者推 `main` 不會影響你；也可加上 `-Tag <版本>` 指定版本）：
 
 ```powershell
 git clone https://github.com/b40609/OmniKit.git "$env:USERPROFILE\OmniKit"
@@ -49,7 +49,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 | 裝了什麼看得到嗎 | `-WhatIf` 列出每一處會改的地方；安裝前檢查（網路、proxy、防毒、執行原則）不過就停，什麼都不寫 |
 | 不想用了怎麼辦 | `engine\scripts\uninstall.ps1` 只拿掉 OmniKit 加的東西，備份放回原位 |
 
-之後要更新：`git pull`，再跑一次 `install.ps1`。fork 一份自己維護、只裝預設 plugin、每一處改動的完整清單，見[安裝說明](docs/install.md)。
+之後要更新到新發行版：`git fetch --tags`，再跑 `install.ps1 -Tag <版本> -WhatIf` 預覽、`install.ps1 -Tag <版本>` 套用（第一個 tag 由維護者建立）。fork 一份自己維護、只裝預設 plugin、每一處改動的完整清單，見[安裝說明](docs/install.md)。
 
 ## 裝好之後
 
