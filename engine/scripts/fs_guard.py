@@ -12,10 +12,10 @@
 要宣稱「沒改檔」「唯讀完成」，回執裡要有一列是這支的輸出；唯讀任務要跑測試，就包在 run 裡。
 
 用法：
-  uv run engine/scripts/fs_guard.py snapshot <根目錄…> --out before.json [--ignore <glob>…]
-  uv run engine/scripts/fs_guard.py diff before.json [after.json] [--allow <glob>…] [--full-hash] [--json]
-  uv run engine/scripts/fs_guard.py run --watch <根目錄…> [--allow <glob>…] [--ignore <glob>…] [--full-hash] \\
-      [--report <檔>] -- <指令…>
+  uv run engine/scripts/fs_guard.py snapshot <根目錄…> --out before.json [--ignore <glob>…] [--no-default-ignore]
+  uv run engine/scripts/fs_guard.py diff before.json [after.json] [--allow <路徑或 glob>…] [--full-hash] [--json]
+  uv run engine/scripts/fs_guard.py run --watch <根目錄…> [--allow <路徑或 glob>…] [--ignore <glob>…] [--full-hash] \\
+      [--no-default-ignore] [--report <檔>] -- <指令…>
   uv run engine/scripts/fs_guard.py --selftest
 
   diff 只給 before.json 時，照快照裡記的根目錄現在再掃一次來比；給兩個檔就比兩份快照。
@@ -24,17 +24,25 @@
 - 只比內容雜湊，不比修改時間：只碰時間戳不算變動。
 - 預篩：之後那次快照，大小與修改時間都跟之前一樣就沿用之前的雜湊、不重讀，大目錄才跑得快；
   --full-hash 一律重讀（大小與修改時間都被刻意還原的改寫，只有 --full-hash 抓得到）。
-- 內建忽略：__pycache__、.pytest_cache、.ruff_cache 資料夾與 *.log 檔。其他用 --ignore（不記錄）
-  或 --allow（照列出來，但不算失敗）。
-- glob 用 fnmatch：「相對於根目錄的路徑」、它的上層資料夾、絕對路徑、檔名任一個對上就算；`*` 可以跨資料夾；
-  Windows 不分大小寫。例：--allow "out/*"、--allow out、--allow "*.tmp"。
+- 內建忽略：__pycache__、.pytest_cache、.ruff_cache 資料夾不記錄。*.log 檔照記：新增或只在後面附加
+  （之前的內容一個位元組都沒變）不算失敗，另外列出；刪除、清空、改寫照算允許清單外的變動。
+  --no-default-ignore 把這兩項都關掉（快取資料夾照記、log 附加也算變動）；設定記在快照裡，diff 照快照的設定。
+  其他用 --ignore（不記錄）或 --allow（照列出來，但不算失敗）。
+- --allow 不含萬用字元（* ? [）的是字面路徑：相對路徑只比對「相對於根目錄」的那一個與它底下的檔，
+  絕對路徑比對絕對路徑；不比對子資料夾裡的同名檔（--allow report.md 不會放行 private/data/report.md）。
+  交付檔寫絕對路徑或相對於根目錄的路徑；--allow out 放行根目錄的整個 out 資料夾。
+- 含萬用字元的用 fnmatch：「相對於根目錄的路徑」、它的上層資料夾、絕對路徑、檔名任一個對上就算；`*` 可以跨資料夾。
+  路徑裡字面的 [ ]（例如 [id] 資料夾）先照字面比，比不上才當萬用字元。例：--allow "out/*"、--allow "*.tmp"。
+- --ignore 同上，另外不含萬用字元的名稱也比對任一層的檔名與資料夾名（--ignore node_modules）。
+- Windows 不分大小寫：--allow 與兩份快照的路徑（C:\\ 與 c:\\）都照不分大小寫對齊。
 - 根目錄不存在也可以監看（當成空的），之後出現的檔都算新增。
 - 符號連結與 junction 不跟進，只記它指向哪裡。
 - 讀不到內容的檔（被鎖住、沒權限）記下原因，只比大小與修改時間，並在輸出標明。
+  連大小與修改時間都讀不到（資料夾不能列出、檔案資訊讀不到），就列為「無法確認」，算在允許清單外：不能背書沒改檔。
 - .git 資料夾不在內建忽略：監看 repo 根目錄時，git 指令改了索引也會列出來，要的話 --allow ".git/*"。
 - 抓不到：指令結束之後才由背景行程寫的檔。
 
-結束碼：0 沒有允許清單外的變動；3 有；run 時被包住的指令失敗就傳出它的結束碼（變動清單照印）；
+結束碼：0 沒有允許清單外的變動；3 有（含讀不到而無法確認的）；run 時被包住的指令失敗就傳出它的結束碼（變動清單照印）；
         127 找不到要包住的指令；2 用法錯誤或讀不到快照。成功字樣只在全部比完之後、最後一行印。
 """
 import argparse
@@ -42,6 +50,7 @@ import fnmatch
 import hashlib
 import json
 import os
+import posixpath
 import shutil
 import stat
 import subprocess
@@ -56,11 +65,12 @@ from fsretry import retry  # 防毒短暫鎖住剛寫好的檔時等一下再試
 
 SPEC = 1
 BUILTIN_IGNORE_DIRS = ("__pycache__", ".pytest_cache", ".ruff_cache")
-BUILTIN_IGNORE_FILES = ("*.log",)
+APPEND_ONLY_FILES = ("*.log",)  # 預設：新增或只在後面附加不算失敗；刪除、清空、改寫照算
+WILDCARDS = "*?["
 EXIT_CHANGED = 3
 EXIT_USAGE = 2
 EXIT_NOT_FOUND = 127
-KIND_LABEL = {"added": "新增", "modified": "修改", "deleted": "刪除"}
+KIND_LABEL = {"added": "新增", "modified": "修改", "deleted": "刪除", "unverified": "無法確認"}
 CHUNK = 1 << 20
 
 
@@ -78,16 +88,50 @@ def _rel_candidates(rel):
         yield "/".join(parts[:i])
 
 
-def matches(globs, rel, abspath):
+def _rel_key(p):
+    """相對路徑的比對鍵：去掉 ./ 與多餘的分隔字元（Windows 的 \\ 也算分隔），再照系統規則統一大小寫。"""
+    if os.name == "nt":
+        p = p.replace("\\", "/")
+    return os.path.normcase(posixpath.normpath(p))
+
+
+def _under(path, prefix):
+    """path 是 prefix 本身或在它底下（兩邊都已經是比對鍵）。"""
+    return path == prefix or path.startswith(prefix.rstrip(os.sep) + os.sep)
+
+
+def _is_abs(g):
+    return os.path.isabs(g) or (os.name == "nt" and g[:1] in ("/", "\\"))
+
+
+def matches(globs, rel, abspath, anywhere=False):
+    """--allow／--ignore 的比對（規則見檔頭）。anywhere=True（--ignore）時，不含萬用字元的名稱也比對任一層的名稱。"""
     if not globs:
         return False
+    rel_k, abs_k = _rel_key(rel), os.path.normcase(abspath)
     name = rel.rsplit("/", 1)[-1]
-    for g in globs:
-        if fnmatch.fnmatch(name, g) or fnmatch.fnmatch(abspath, g):
+    for g in map(str, globs):
+        if not g:
+            continue
+        # 字面路徑：路徑本身或它底下；[id] 這類字面的方括號也在這裡對上
+        if _is_abs(g):
+            if _under(abs_k, os.path.normcase(os.path.abspath(g))):
+                return True
+        else:
+            gk = _rel_key(g)
+            if gk != "." and not gk.startswith(".." + os.sep) and _under(rel_k, gk):
+                return True
+        wild = any(ch in g for ch in WILDCARDS)
+        if (wild or anywhere) and fnmatch.fnmatch(name, g):
             return True
-        if any(fnmatch.fnmatch(c, g) for c in _rel_candidates(rel)):
+        if wild and (fnmatch.fnmatch(abspath, g) or any(fnmatch.fnmatch(c, g) for c in _rel_candidates(rel))):
             return True
     return False
+
+
+def _append_only(rel):
+    name = rel.rsplit("/", 1)[-1]
+    return any(fnmatch.fnmatch(name, g) for g in APPEND_ONLY_FILES)
 
 
 # ---- 快照 ----
@@ -103,15 +147,24 @@ def _is_link(entry):
     return tag == getattr(stat, "IO_REPARSE_TAG_MOUNT_POINT", -1)
 
 
-def _sha256(path):
+def _sha256(path, prefix_len=None):
+    """整個檔的 SHA-256。給 prefix_len 時同一次讀檔另外算前 prefix_len 個位元組的雜湊，回傳 (整檔, 前段或 None)。"""
     h = hashlib.sha256()
+    prefix, seen = None, 0
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(CHUNK), b""):
-            h.update(chunk)
-    return h.hexdigest()
+            if prefix_len is not None and prefix is None and seen + len(chunk) >= prefix_len:
+                cut = prefix_len - seen
+                h.update(chunk[:cut])
+                prefix = h.copy().hexdigest()
+                h.update(chunk[cut:])
+            else:
+                h.update(chunk)
+            seen += len(chunk)
+    return h.hexdigest() if prefix_len is None else (h.hexdigest(), prefix)
 
 
-def _iter_entries(root, ignores):
+def _iter_entries(root, ignores, defaults=True):
     """走過一個根目錄，產生 (相對路徑, 絕對路徑, DirEntry 或 None)。內建忽略與 --ignore 的資料夾整個跳過。"""
     if os.path.isfile(root) or (os.path.islink(root) and not os.path.isdir(root)):
         yield os.path.basename(root), root, None
@@ -131,17 +184,18 @@ def _iter_entries(root, ignores):
         for e in entries:
             rel = os.path.relpath(e.path, root).replace(os.sep, "/")
             if not _is_link(e) and e.is_dir(follow_symlinks=False):
-                if e.name in BUILTIN_IGNORE_DIRS or matches(ignores, rel, e.path):
+                if (defaults and e.name in BUILTIN_IGNORE_DIRS) or matches(ignores, rel, e.path, anywhere=True):
                     continue
                 stack.append(e.path)
                 continue
-            if matches(BUILTIN_IGNORE_FILES, rel, e.path) or matches(ignores, rel, e.path):
+            if matches(ignores, rel, e.path, anywhere=True):
                 continue
             yield rel, e.path, e
 
 
-def _record(path, entry, prev, full_hash, counter):
-    """一個檔的紀錄：大小、修改時間、SHA-256；連結記指向哪裡；讀不到記原因。"""
+def _record(path, entry, prev, full_hash, counter, append_check=False):
+    """一個檔的紀錄：大小、修改時間、SHA-256；連結記指向哪裡；讀不到記原因。
+    append_check（*.log）：檔變大時另外記之前那段的雜湊（prefix_sha256），比對時看是不是只在後面附加。"""
     try:
         st = entry.stat(follow_symlinks=False) if entry is not None else os.stat(path, follow_symlinks=False)
     except OSError as e:
@@ -160,31 +214,44 @@ def _record(path, entry, prev, full_hash, counter):
         rec["sha256"] = prev["sha256"]
         counter["reused"] += 1
         return rec
+    prefix_len = None
+    if (append_check and prev and prev.get("sha256") and isinstance(prev.get("size"), int)
+            and rec["size"] > prev["size"]):
+        prefix_len = prev["size"]
     try:
-        rec["sha256"] = retry(_sha256, path)
+        if prefix_len is None:
+            rec["sha256"] = retry(_sha256, path)
+        else:
+            rec["sha256"], prefix = retry(_sha256, path, prefix_len)
+            if prefix is not None:
+                rec["prefix_size"], rec["prefix_sha256"] = prefix_len, prefix
         counter["hashed"] += 1
     except OSError as e:
         rec["error"] = f"讀不到內容：{e}"
     return rec
 
 
-def take_snapshot(roots, ignores=(), prev=None, full_hash=False, exclude=()):
-    """掃過每個根目錄。prev 是之前的快照（拿來預篩），exclude 是不記的絕對路徑（例如快照檔自己）。"""
+def take_snapshot(roots, ignores=(), prev=None, full_hash=False, exclude=(), defaults=True):
+    """掃過每個根目錄。prev 是之前的快照（拿來預篩與判斷 log 附加），exclude 是不記的絕對路徑（例如快照檔自己）。
+    defaults=False（--no-default-ignore）：快取資料夾也記，log 附加也算變動。"""
     excluded = {os.path.normcase(os.path.abspath(p)) for p in exclude}
-    prev_files = (prev or {}).get("files", {})
+    prev_files = {os.path.normcase(k): v for k, v in (prev or {}).get("files", {}).items()}
     counter = {"hashed": 0, "reused": 0}
-    files = {}
+    files, seen = {}, set()
     root_info = []
     for idx, raw in enumerate(roots):
         root = os.path.abspath(str(raw))
         root_info.append({"path": root, "exists": os.path.exists(root)})
-        for rel, path, entry in _iter_entries(root, list(ignores)):
-            if os.path.normcase(path) in excluded or path in files:
+        for rel, path, entry in _iter_entries(root, list(ignores), defaults):
+            key = os.path.normcase(path)
+            if key in excluded or key in seen:
                 continue
+            seen.add(key)
             if isinstance(entry, OSError):
                 files[path] = {"root": idx, "rel": rel, "error": f"讀不到資料夾：{entry}"}
                 continue
-            rec = _record(path, entry, prev_files.get(path), full_hash, counter)
+            rec = _record(path, entry, prev_files.get(key), full_hash, counter,
+                          append_check=defaults and _append_only(rel))
             files[path] = {"root": idx, "rel": rel, **rec}
     return {
         "spec": SPEC,
@@ -192,6 +259,7 @@ def take_snapshot(roots, ignores=(), prev=None, full_hash=False, exclude=()):
         "created": datetime.now(UTC).isoformat(timespec="seconds"),
         "roots": root_info,
         "ignore": list(ignores),
+        "default_ignore": bool(defaults),
         "files": files,
         "stats": counter,
     }
@@ -220,20 +288,38 @@ def write_json(path, data):
 # ---- 比對 ----
 
 def _same(b, a):
-    """(一樣嗎, 備註)。兩邊都有雜湊就比雜湊；連結比指向；有一邊讀不到就退回比大小與修改時間。"""
+    """(一樣嗎, 備註)。兩邊都有雜湊就比雜湊；連結比指向；有一邊讀不到就退回比大小與修改時間；
+    連大小與修改時間都沒有（資料夾不能列出、檔案資訊讀不到）回傳 None：無法確認，不能當成一樣。"""
     if "link" in b or "link" in a:
         return b.get("link") == a.get("link"), ""
     if b.get("sha256") and a.get("sha256"):
         return b["sha256"] == a["sha256"], ""
+    if any(x.get(k) is None for x in (b, a) for k in ("size", "mtime_ns")):
+        return None, "讀不到檔案資訊，無法確認有沒有變動"
     note = "讀不到內容，只比大小與修改時間"
     return (b.get("size") == a.get("size") and b.get("mtime_ns") == a.get("mtime_ns")), note
 
 
-def compare(before, after, allow=()):
+def _appended(b, a):
+    """log 只在後面附加：變大了，而且之前那段的雜湊跟之前整個檔一樣。"""
+    return bool(b.get("sha256") and isinstance(b.get("size"), int) and isinstance(a.get("size"), int)
+                and a["size"] > b["size"] and a.get("prefix_size") == b["size"]
+                and a.get("prefix_sha256") == b["sha256"])
+
+
+def compare(before, after, allow=(), defaults=None):
+    """defaults：*.log 新增或只附加算內建允許；沒給就照之前那份快照的設定（--no-default-ignore 記在快照裡）。"""
+    if defaults is None:
+        defaults = before.get("default_ignore", True) is not False
     bf, af = before["files"], after["files"]
-    allowed, unallowed, unreadable = [], [], []
-    for path in sorted(set(bf) | set(af)):
-        b, a = bf.get(path), af.get(path)
+    # Windows 路徑不分大小寫：C:\ 與 c:\ 的快照要對得上
+    bk = {os.path.normcase(p): p for p in bf}
+    ak = {os.path.normcase(p): p for p in af}
+    allowed, unallowed, unreadable, default_allowed = [], [], [], []
+    for key in sorted(set(bk) | set(ak)):
+        bp, ap = bk.get(key), ak.get(key)
+        b, a = (bf[bp] if bp else None), (af[ap] if ap else None)
+        path = ap or bp
         note = ""
         if b is None:
             kind = "added"
@@ -245,13 +331,18 @@ def compare(before, after, allow=()):
                 if note:
                     unreadable.append(path)
                 continue
-            kind = "modified"
+            kind = "unverified" if same is None else "modified"
         rel = (a or b).get("rel", os.path.basename(path))
         item = {"kind": kind, "path": path, "rel": rel}
         if note:
             item["note"] = note
-        (allowed if matches(allow, rel, path) else unallowed).append(item)
-    return {"allowed": allowed, "unallowed": unallowed, "unreadable": unreadable}
+        if matches(allow, rel, path):
+            allowed.append(item)
+        elif defaults and _append_only(rel) and (kind == "added" or (kind == "modified" and _appended(b, a))):
+            default_allowed.append(item)
+        else:
+            unallowed.append(item)
+    return {"allowed": allowed, "unallowed": unallowed, "unreadable": unreadable, "default_allowed": default_allowed}
 
 
 def _change_lines(items):
@@ -278,6 +369,10 @@ def format_report(before, after, result, command_rc=None, command=None):
     if result["allowed"]:
         lines.append(f"允許的變動 {len(result['allowed'])} 筆（--allow，不算失敗）：")
         lines += _change_lines(result["allowed"])
+    if result.get("default_allowed"):
+        lines.append(f"內建允許的 log 變動 {len(result['default_allowed'])} 筆（*.log 新增或只在後面附加，不算失敗；"
+                     "刪除、清空、改寫照算；--no-default-ignore 關掉）：")
+        lines += [f"  {'新增' if c['kind'] == 'added' else '附加'}日誌  {c['path']}" for c in result["default_allowed"]]
     if result["unreadable"]:
         lines.append(f"讀不到內容、只比大小與修改時間的檔 {len(result['unreadable'])} 個：")
         lines += [f"  {p}" for p in result["unreadable"]]
@@ -288,7 +383,11 @@ def format_report(before, after, result, command_rc=None, command=None):
     n = len(result["unallowed"])
     failed_cmd = command is not None and command_rc != 0
     if n:
-        verdict = f"fs_guard：有 {n} 筆允許清單外的變動"
+        unknown = sum(1 for c in result["unallowed"] if c["kind"] == "unverified")
+        parts = [f"{n - unknown} 筆允許清單外的變動"] if n - unknown else []
+        if unknown:
+            parts.append(f"{unknown} 筆讀不到、無法確認有沒有變動（不能背書沒改檔）")
+        verdict = f"fs_guard：有 {'、'.join(parts)}"
         if failed_cmd:
             verdict += f"；被包住的指令也失敗（結束碼 {command_rc}，照傳出）"
     elif failed_cmd:
@@ -309,7 +408,7 @@ def exit_code(result, command_rc=None):
 
 def cmd_snapshot(args):
     out = os.path.abspath(args.out)
-    snap = take_snapshot(args.roots, args.ignore, exclude=[out, out + ".tmp"])
+    snap = take_snapshot(args.roots, args.ignore, exclude=[out, out + ".tmp"], defaults=not args.no_default_ignore)
     write_json(out, snap)
     print(f"fs_guard：快照寫在 {out}（{len(snap['roots'])} 個根目錄、{len(snap['files'])} 個檔）")
     return 0
@@ -323,8 +422,8 @@ def cmd_diff(args):
         else:
             roots = [r["path"] for r in before["roots"]]
             own = [os.path.abspath(args.before), os.path.abspath(args.before) + ".tmp"]
-            after = take_snapshot(roots, before.get("ignore", []), prev=None if args.full_hash else before,
-                                  full_hash=args.full_hash, exclude=own)
+            after = take_snapshot(roots, before.get("ignore", []), prev=before, full_hash=args.full_hash, exclude=own,
+                                  defaults=before.get("default_ignore", True) is not False)
     except SnapshotError as e:
         print(f"fs_guard：{e}", file=sys.stderr)
         return EXIT_USAGE
@@ -336,10 +435,10 @@ def cmd_diff(args):
     return exit_code(result)
 
 
-def run_guarded(watch, command, allow=(), ignore=(), full_hash=False, report=None, runner=None):
+def run_guarded(watch, command, allow=(), ignore=(), full_hash=False, report=None, runner=None, defaults=True):
     """包住一個指令：前後各快照一次。回傳 (結束碼, 報告文字, 結果)。"""
     exclude = [os.path.abspath(report), os.path.abspath(report) + ".tmp"] if report else []
-    before = take_snapshot(watch, ignore, exclude=exclude)
+    before = take_snapshot(watch, ignore, exclude=exclude, defaults=defaults)
     exe = shutil.which(command[0])
     if exe is None and not os.path.exists(command[0]):
         text = f"fs_guard：找不到要包住的指令：{command[0]}"
@@ -354,7 +453,8 @@ def run_guarded(watch, command, allow=(), ignore=(), full_hash=False, report=Non
         rc = 130
     except OSError as e:
         return EXIT_NOT_FOUND, f"fs_guard：要包住的指令跑不起來：{e}", None
-    after = take_snapshot(watch, ignore, prev=None if full_hash else before, full_hash=full_hash, exclude=exclude)
+    # prev 一律傳：--full-hash 只關掉沿用雜湊，判斷 log 是不是只附加還是要之前的大小與雜湊
+    after = take_snapshot(watch, ignore, prev=before, full_hash=full_hash, exclude=exclude, defaults=defaults)
     result = compare(before, after, allow)
     code = exit_code(result, rc)
     if report:
@@ -371,7 +471,8 @@ def cmd_run(args, command):
     if not args.watch:
         print("fs_guard：至少要一個 --watch <根目錄>", file=sys.stderr)
         return EXIT_USAGE
-    code, text, _ = run_guarded(args.watch, command, args.allow, args.ignore, args.full_hash, args.report)
+    code, text, _ = run_guarded(args.watch, command, args.allow, args.ignore, args.full_hash, args.report,
+                                defaults=not args.no_default_ignore)
     print(text)
     return code
 
@@ -480,6 +581,29 @@ def selftest():
            and matches(["*.tmp"], "a/b/c.tmp", "/x/a/b/c.tmp")
            and matches(["out/*"], "out/sub/a.json", "/x/out/sub/a.json")
            and not matches(["out/*"], "outside/a.json", "/x/outside/a.json"))
+        ok("--allow 字面路徑：只比根目錄底下那一個，不比子資料夾同名檔；字面的 [id] 對得上",
+           matches(["report.md"], "report.md", "/x/report.md")
+           and not matches(["report.md"], "private/data/report.md", "/x/private/data/report.md")
+           and matches(["brackets/[id]/out.json"], "brackets/[id]/out.json", "/x/brackets/[id]/out.json"))
+
+        logs = base / "logs"
+        logs.mkdir()
+        (logs / "audit.log").write_text("a\n", encoding="utf-8")
+        (logs / "app.log").write_text("a\n", encoding="utf-8")
+        b4 = take_snapshot([logs])
+        (logs / "audit.log").unlink()
+        with open(logs / "app.log", "a", encoding="utf-8") as f:
+            f.write("b\n")
+        r4 = compare(b4, take_snapshot([logs], prev=b4))
+        ok("*.log：附加算內建允許，刪除照算允許清單外的變動",
+           [c["rel"] for c in r4["default_allowed"]] == ["app.log"]
+           and [(c["kind"], c["rel"]) for c in r4["unallowed"]] == [("deleted", "audit.log")])
+
+        locked = {"spec": SPEC, "tool": "fs_guard", "roots": [], "files": {
+            "/x/locked": {"root": 0, "rel": "locked", "error": "讀不到資料夾：Permission denied"}}}
+        r5 = compare(locked, json.loads(json.dumps(locked)))
+        ok("前後都讀不到：列為無法確認，exit 3", exit_code(r5) == EXIT_CHANGED
+           and [c["kind"] for c in r5["unallowed"]] == ["unverified"])
 
     print(f"\nfs_guard.py selftest：{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0
@@ -503,19 +627,24 @@ def main(argv=None):
     p_snap.add_argument("roots", nargs="+", help="要監看的根目錄（可以還不存在）")
     p_snap.add_argument("--out", required=True, help="快照寫到哪個 JSON 檔")
     p_snap.add_argument("--ignore", action="append", default=[], help="不記錄的 glob（可重複）")
+    p_snap.add_argument("--no-default-ignore", action="store_true",
+                        help="不用內建忽略：快取資料夾照記，*.log 附加也算變動（設定記在快照裡）")
 
+    allow_help = "允許變動的路徑或 glob（可重複）；不含萬用字元的是字面路徑：絕對路徑，或相對於根目錄的路徑"
     p_diff = sub.add_parser("diff", help="跟快照比：列出新增、修改、刪除")
     p_diff.add_argument("before", help="之前的快照")
     p_diff.add_argument("after", nargs="?", help="之後的快照；不給就照快照裡的根目錄現在再掃一次")
-    p_diff.add_argument("--allow", action="append", default=[], help="允許變動的 glob（可重複）")
+    p_diff.add_argument("--allow", action="append", default=[], help=allow_help)
     p_diff.add_argument("--full-hash", action="store_true", help="不預篩，每個檔都重算雜湊")
     p_diff.add_argument("--json", action="store_true", help="輸出 JSON")
 
     p_run = sub.add_parser("run", help="包住一個指令，前後各快照一次")
     p_run.add_argument("--watch", action="append", default=[], help="要監看的根目錄（可重複，可以還不存在）")
-    p_run.add_argument("--allow", action="append", default=[], help="允許變動的 glob（可重複）")
+    p_run.add_argument("--allow", action="append", default=[], help=allow_help)
     p_run.add_argument("--ignore", action="append", default=[], help="不記錄的 glob（可重複）")
     p_run.add_argument("--full-hash", action="store_true", help="不預篩，每個檔都重算雜湊")
+    p_run.add_argument("--no-default-ignore", action="store_true",
+                       help="不用內建忽略：快取資料夾照記，*.log 附加也算變動")
     p_run.add_argument("--report", help="另外把結果寫成 JSON 檔")
 
     args = ap.parse_args(argv)
