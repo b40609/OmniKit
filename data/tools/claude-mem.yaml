@@ -3,7 +3,9 @@ name: claude-mem
 kind: plugin
 slots:
 - memory
-status: pending
+status: rejected
+reason: 2026-11-27 使用者拍板停用下架：背景觀察摘要會切回消耗 Claude 訂閱額度或依賴付費 Vertex 閘道，且 SessionStart／PreToolUse:Read 雙通道注入會污染盲審與工具評測子對話；已停用本機三套 Claude 與 Codex 外掛及 OmniKeep 5101 閘道，另開飽和調研尋找零額度、可隔離的替代品。
+decided_at: '2026-11-27'
 url: https://github.com/thedotmack/claude-mem
 works_with:
 - claude
