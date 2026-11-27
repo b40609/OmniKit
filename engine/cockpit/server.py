@@ -257,6 +257,21 @@ class CockpitApp:
                 for k in keys:
                     self._cache.pop(k, None)
 
+    def _is_isolated_home(self) -> bool:
+        return os.path.normcase(str(self.home_dir.resolve())) != os.path.normcase(str(Path.home().resolve()))
+
+    def _scoped_which(self, name: str) -> str | None:
+        if self._is_isolated_home():
+            if name == "claude" and not (self.home_dir / ".claude").is_dir():
+                return None
+            if name == "codex" and not (self.home_dir / ".codex").is_dir():
+                return None
+            if name in ("agy", "antigravity") and not (
+                (self.home_dir / ".gemini" / "config").is_dir() or (self.home_dir / ".gemini" / "antigravity").is_dir()
+            ):
+                return None
+        return shutil.which(name)
+
     def _make_sync_env(self):
         import sync as sync_mod  # type: ignore
 
@@ -273,24 +288,11 @@ class CockpitApp:
             "HOME": str(self.home_dir),
             "OMNIKIT_STATE_DIR": str(self.state_dir),
         }
-        # 隔離家目錄時，只把真實存在設定資料夾的 Agent 視為已安裝，避免誤抓宿主機 PATH 上的其他 Agent
-        is_isolated = os.path.normcase(str(self.home_dir.resolve())) != os.path.normcase(str(Path.home().resolve()))
-
-        def _which(name: str):
-            if is_isolated:
-                if name == "claude" and not (self.home_dir / ".claude").is_dir():
-                    return None
-                if name == "codex" and not (self.home_dir / ".codex").is_dir():
-                    return None
-                if name in ("agy", "antigravity") and not ((self.home_dir / ".gemini" / "config").is_dir() or (self.home_dir / ".gemini" / "antigravity").is_dir()):
-                    return None
-            return shutil.which(name)
-
         return sync_mod.Env(
             home=self.home_dir,
             repo=self.repo_root,
             state=self.state_dir,
-            which=_which,
+            which=self._scoped_which,
             runner=self.cli_runner,
             environ=iso_env,
         )
@@ -366,11 +368,20 @@ class CockpitApp:
             sample_project_dir = Path(candidates[0]["path"])
 
         sample_files = scan_mod.project_names(sample_project_dir) if sample_project_dir and sample_project_dir.is_dir() else []
+        if not hasattr(self, "_git_user_cache"):
+            if self._is_isolated_home():
+                self._git_user_cache = None
+            else:
+                _, g_out, _ = collector._run_cmd(["git", "config", "--global", "user.name"], timeout=3)
+                self._git_user_cache = g_out.strip() or None
+        # 控制面板首頁只需快速檢查 PATH 是否存在，不逐一啟動 pwsh/node/gh --version 子行程，根除冷啟動 Windows 15s 逾時
         scan_res = scan_mod.scan(
             self.home_dir,
             self.data_dir,
             self.state_dir,
-            git_name=scan_mod.git_user_name(),
+            which=self._scoped_which,
+            run=lambda _path, *_a: ("", None),
+            git_name=self._git_user_cache,
             project=sample_project_dir,
         )
         catalog = kit_mod.build_workbench_catalog(self.state_dir, self.data_dir, project_files=sample_files)

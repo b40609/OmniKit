@@ -63,7 +63,7 @@ def _http_json(
         hdrs["X-OmniKit-Token"] = token
     req = urllib.request.Request(url, data=raw, headers=hdrs, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:
             return resp.status, json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         body_txt = exc.read().decode("utf-8", errors="replace")
