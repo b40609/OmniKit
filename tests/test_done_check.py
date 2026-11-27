@@ -57,7 +57,8 @@ def rules(result) -> set[str]:
 
 def git(repo: Path, *args: str) -> str:
     env = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
-    p = subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.invalid", *args],
+    p = subprocess.run(["git", "-C", str(repo), "-c", "core.longpaths=true", "-c", "user.name=t", "-c", "user.email=t@example.invalid",
+                        *args],
                        capture_output=True, text=True, env=env, check=True)
     return p.stdout
 
@@ -79,14 +80,21 @@ def hits(state: Path) -> list[dict]:
 
 @pytest.fixture
 def pushed_repo(tmp_path):
-    remote, repo = tmp_path / "remote.git", tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    """已 push 的 repo：上游用 refs/remotes/origin/main 指向 HEAD 模擬，不需要 bare repo 或網路。"""
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "-c", "core.longpaths=true", "init", "-q", "-b", "main", str(repo)], capture_output=True, check=False)
+    probe = subprocess.run(["git", "-C", str(repo), "rev-parse", "--is-inside-work-tree"], capture_output=True, check=False)
+    if probe.returncode != 0:
+        # Windows CI 故意把暫存路徑拉到超過 260 字元；Git for Windows 無法 chdir 進去，core.longpaths 也一樣。
+        # done_check 遇到這種情況會跳過 git 檢查（放行）；這組測試在一般路徑與 Ubuntu CI 會跑。
+        pytest.skip("git 無法進入超過 260 字元的路徑")
     (repo / "a.txt").write_text("a\n", encoding="utf-8")
     git(repo, "add", "a.txt")
     git(repo, "commit", "-q", "-m", "init")
-    git(repo, "remote", "add", "origin", str(remote))
-    git(repo, "push", "-q", "-u", "origin", "main")
+    git(repo, "remote", "add", "origin", "https://example.invalid/repo.git")
+    git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    git(repo, "config", "branch.main.remote", "origin")
+    git(repo, "config", "branch.main.merge", "refs/heads/main")
     return repo
 
 
@@ -181,6 +189,14 @@ def test_evidence_path_must_exist(tmp_path):
     shot.write_bytes(b"png")
     assert not rules(dc.check(receipt("scratch/panel-after.png"), cwd=str(tmp_path)))
     assert not rules(dc.check(receipt(f"`{shot}`"), cwd=str(tmp_path)))
+
+
+def test_evidence_path_with_spaces_without_backticks(tmp_path):
+    shot = tmp_path / "my shots" / "panel after.png"
+    shot.parent.mkdir()
+    shot.write_bytes(b"png")
+    assert not rules(dc.check(receipt(str(shot)), cwd=str(tmp_path)))
+    assert "evidence-missing" in rules(dc.check(receipt(str(tmp_path / "my shots" / "none.png")), cwd=str(tmp_path)))
 
 
 def test_evidence_older_than_session_is_stale(tmp_path):

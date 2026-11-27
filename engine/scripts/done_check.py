@@ -171,6 +171,18 @@ def evidence_paths(cell: str) -> list:
     return list(dict.fromkeys(out))
 
 
+def cell_paths(cell: str, base: Path) -> list:
+    """整格本身就是一個存在的路徑（含空白、沒包反引號，例如 C:/My Files/a.png）就整格算一個；否則照 evidence_paths 切。"""
+    whole = LINE_SUFFIX.sub("", cell.strip().strip("`'\""))
+    if whole and "://" not in whole and (" " in whole or "	" in whole):
+        try:
+            if resolve(whole, base).exists():
+                return [whole]
+        except (OSError, ValueError):
+            pass
+    return evidence_paths(cell)
+
+
 def resolve(raw: str, base: Path) -> Path:
     s = raw
     if os.name == "nt" and re.match(r"^/[a-zA-Z]/", s):
@@ -198,7 +210,7 @@ def _git(cwd: str):
 
     def run(args):
         try:
-            p = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True, encoding="utf-8",
+            p = subprocess.run(["git", "-C", cwd, "-c", "core.longpaths=true", *args], capture_output=True, text=True, encoding="utf-8",
                                errors="replace", timeout=GIT_TIMEOUT, stdin=subprocess.DEVNULL, env=env, check=False)
             return p.returncode, p.stdout
         except (OSError, subprocess.SubprocessError):
@@ -270,7 +282,7 @@ def check(message: str, cwd: str | None = None, session_start: float | None = No
             r.problems.append(("no-scope", "完工回執沒有「沒驗的範圍：」這一行（沒有也要寫「無」）"))
         missing, stale = [], []
         for row in rc.rows:
-            for raw in evidence_paths(row.evidence):
+            for raw in cell_paths(row.evidence, base):
                 p = resolve(raw, base)
                 try:
                     if not p.exists():
