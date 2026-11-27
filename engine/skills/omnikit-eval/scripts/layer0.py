@@ -83,6 +83,8 @@ MCP_CONFIG_NAMES = {
 }
 
 STATIC_DOC_EXTS = {".md", ".markdown", ".txt", ".rst", ".adoc", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".pdf"}
+SKILL_AUX_TEXT_EXTS = {".md", ".markdown", ".txt", ".rst", ".yaml", ".yml", ".json", ".toml", ".prompt"}
+ROOT_REPO_DOC_PREFIXES = ("readme", "changelog", "contributing", "code_of_conduct", "license", "security")
 MAX_INDICATORS_REPORTED = 30
 
 
@@ -307,6 +309,13 @@ def inspect_repo_tree(folder):
     skill_files = []
     indicators = []
     cjk_files = []
+    cjk_seen = set()
+    aux_text_candidates = []
+
+    def _record_cjk(path, posix):
+        if posix not in cjk_seen and _file_contains_cjk(path):
+            cjk_seen.add(posix)
+            cjk_files.append(posix)
 
     for path in sorted(folder.rglob("*")):
         if not path.is_file():
@@ -320,9 +329,11 @@ def inspect_repo_tree(folder):
 
         if path.name == "SKILL.md":
             skill_files.append(posix)
-            if _file_contains_cjk(path):
-                cjk_files.append(posix)
+            _record_cjk(path, posix)
             continue
+
+        if suffix_lower in SKILL_AUX_TEXT_EXTS:
+            aux_text_candidates.append((path, rel, posix, name_lower))
 
         if name_lower in EXECUTABLE_MANIFESTS:
             indicators.append({"path": posix, "kind": "package_manifest"})
@@ -340,20 +351,37 @@ def inspect_repo_tree(folder):
 
         if suffix_lower in SHELL_SCRIPT_EXTS:
             indicators.append({"path": posix, "kind": "shell_script"})
-            if _file_contains_cjk(path):
-                cjk_files.append(posix)
+            _record_cjk(path, posix)
             continue
 
         if suffix_lower in EXECUTABLE_CODE_EXTS:
             indicators.append({"path": posix, "kind": "executable_code"})
-            if suffix_lower not in {".exe", ".msi", ".dll", ".so", ".dylib", ".wasm"} and _file_contains_cjk(path):
-                cjk_files.append(posix)
+            if suffix_lower not in {".exe", ".msi", ".dll", ".so", ".dylib", ".wasm"}:
+                _record_cjk(path, posix)
             continue
 
         if suffix_lower not in STATIC_DOC_EXTS and _has_shebang(path):
             indicators.append({"path": posix, "kind": "shell_script"})
-            if _file_contains_cjk(path):
-                cjk_files.append(posix)
+            _record_cjk(path, posix)
+
+    # Skill 資料夾樹底下的輔助文字／設定檔（例如 references/*.md、prompts/*.txt、agents/openai.yaml）
+    # 也必須納入 CJK 偵測，防止中文提示詞注入藏在輔助檔案繞過第 1 層語意審查
+    skill_dirs = [Path(s).parent for s in skill_files]
+    for path, rel, posix, name_lower in aux_text_candidates:
+        if posix in cjk_seen:
+            continue
+        for sdir in skill_dirs:
+            if sdir == Path("."):
+                # 根目錄就是 skill 時，排除常見 repo 說明文件，避免純雙語 README 誤觸發
+                if len(rel.parts) == 1 and name_lower.startswith(ROOT_REPO_DOC_PREFIXES):
+                    continue
+                _record_cjk(path, posix)
+                break
+            if rel.is_relative_to(sdir):
+                _record_cjk(path, posix)
+                break
+
+    cjk_files.sort()
 
     return {
         "skill_files": skill_files,
