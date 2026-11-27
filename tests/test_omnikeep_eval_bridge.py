@@ -387,9 +387,15 @@ def test_eval_single_suggested_action_transitions(tmp_path):
 
 # ---------- 1 + 5. max_layer=1 嚴格純唯讀驗證（含真實 subprocess） ----------
 
-def test_eval_single_max_layer_1_is_strictly_readonly_subprocess():
-    before_data = _snapshot_tree(ROOT / "data")
-    before_scripts = _snapshot_tree(ROOT / "scripts")
+def test_eval_single_max_layer_1_is_strictly_readonly_subprocess(tmp_path):
+    # KIT-X-05：先將 data/ 複製到隔離的 tmp_path，避免多對話並行改動真實 repo 時誤紅
+    work_root = tmp_path / "repo"
+    data_copy = work_root / "data"
+    state_dir = tmp_path / "state"
+    shutil.copytree(ROOT / "data", data_copy)
+    state_dir.mkdir(parents=True, exist_ok=True)
+    before_data = _snapshot_tree(data_copy)
+    before_state = _snapshot_tree(state_dir)
 
     payload = {
         "schema_version": "1.0",
@@ -405,11 +411,18 @@ def test_eval_single_max_layer_1_is_strictly_readonly_subprocess():
         ],
         "max_layer": 1,
     }
-    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1", "OMNIKIT_EVAL_NO_LLM": "1"}
+    env = {
+        **os.environ,
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUTF8": "1",
+        "OMNIKIT_EVAL_NO_LLM": "1",
+        "OMNIKIT_HOME": str(work_root),
+        "OMNIKIT_STATE_DIR": str(state_dir),
+    }
     proc = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "eval_single.py"), "--no-scan"],
         input=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        cwd=ROOT,
+        cwd=work_root,
         env=env,
         capture_output=True,
         timeout=30,
@@ -427,9 +440,9 @@ def test_eval_single_max_layer_1_is_strictly_readonly_subprocess():
     assert any("Windows 服務模式" in c["claim"] for c in doc["layer1"]["claims"])
     assert "支援中文與無頭模式嗎" in doc["layer1"]["differences"]
 
-    # 嚴格斷言工作區檔案零變更
-    assert _snapshot_tree(ROOT / "data") == before_data
-    assert _snapshot_tree(ROOT / "scripts") == before_scripts
+    # 嚴格斷言子行程對隔離 data/ 與 state/ 零變更
+    assert _snapshot_tree(data_copy) == before_data
+    assert _snapshot_tree(state_dir) == before_state
 
 
 # ---------- 4. record_decision.py 三態拍板落地與契約測試 ----------

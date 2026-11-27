@@ -547,13 +547,38 @@ def burn_lines(burn):
 
 # ---------- 委派紀錄 ----------
 
+NOISE_PROJECT_RE = re.compile(
+    r"(?i)(?:^\d{4}-\d{2}-\d{2}(?:[-_]|$)|[-_][0-9a-f]{7,}$|^[0-9a-f]{7,}$|^omnikit-)"
+)
+
+
+def looks_like_noise_project(name):
+    """project 名稱看起來像日期、hash、worktree 或 skill 子目錄名時回傳 True（KIT-X-06）。"""
+    return bool(name and NOISE_PROJECT_RE.search(str(name).strip()))
+
+
 def log_path(state):
     return Path(state) / "dispatch" / "log.jsonl"
 
 
 def project_name(cwd=None):
-    """專案名稱：所在 git repo 的資料夾名；不在 repo 裡就用目前資料夾名。只記名稱，不記完整路徑。"""
+    """專案名稱：優先用 git common-dir 取主 repo 資料夾名（worktree 也能回到主專案名）；
+    次用 --show-toplevel；不在 repo 裡就用目前資料夾名。只記名稱，不記完整路徑。"""
     cwd = Path(cwd or os.getcwd())
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(cwd), "rev-parse", "--git-common-dir"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            raw = Path(r.stdout.strip())
+            common = raw.resolve() if raw.is_absolute() else (cwd / raw).resolve()
+            if common.name == ".git":
+                return common.parent.name
+            if common.name.endswith(".git") and len(common.name) > 4:
+                return common.name[:-4]
+    except (OSError, subprocess.TimeoutExpired):
+        pass
     try:
         r = subprocess.run(["git", "-C", str(cwd), "rev-parse", "--show-toplevel"], capture_output=True, text=True, timeout=10)
         if r.returncode == 0 and r.stdout.strip():
@@ -1168,6 +1193,11 @@ def main(argv=None):
                     _, pool_msg = account_pool.record_ok(state, rec["instance"], driver=drv, model=rec["model"])
         print(json.dumps(rec, ensure_ascii=False))
         print(("（預覽，沒有寫入）" if args.dry_run else f"已記到 {log_path(state)}"))
+        if looks_like_noise_project(rec.get("project")):
+            print(
+                f"提醒：project 名稱「{rec['project']}」看起來像日期、hash 或 skill 子目錄，請確認是否應帶 --project <專案名>",
+                file=sys.stderr,
+            )
         if pool_msg:
             print(f"帳號池狀態：{pool_msg}")
         return 0
@@ -1536,6 +1566,26 @@ def selftest():
         (rules / "dispatch-policy.md").unlink()
         (rules / "dispatch.md").write_text("```yaml\nc: 3\n```\n", encoding="utf-8")
         ok("舊版把 yaml 放在 dispatch.md 的還讀得到", policy(rules.parent) == {"c": 3})
+
+        # KIT-X-06：worktree 裡用 --git-common-dir 仍回到主 repo 名；日期／hash／skill 目錄名觸發提醒
+        main_repo = Path(tmp) / "SampleProj"
+        wt_dir = Path(tmp) / "2026-11-23-sample-145f3fe3"
+        main_repo.mkdir()
+        git_env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@e",
+                   "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@e"}
+        subprocess.run(["git", "-C", str(main_repo), "init", "-q"], check=True, env=git_env)
+        (main_repo / "a.txt").write_text("x\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(main_repo), "add", "a.txt"], check=True, env=git_env)
+        subprocess.run(["git", "-C", str(main_repo), "commit", "-q", "-m", "init"], check=True, env=git_env)
+        subprocess.run(["git", "-C", str(main_repo), "worktree", "add", "-q", "-b", "wt-test", str(wt_dir)], check=True, env=git_env)
+        ok("project_name 在 git worktree 內取回主 repo 名，不被 worktree 目錄名污染",
+           project_name(main_repo) == "SampleProj" and project_name(wt_dir) == "SampleProj")
+        ok("looks_like_noise_project 偵測日期、hash 與 skill 子目錄名，正常專案名不誤判",
+           looks_like_noise_project("2026-11-23-lineport-145f3fe3")
+           and looks_like_noise_project("2026-11-24-claude-mem-f7ebcde3")
+           and looks_like_noise_project("omnikit-dispatch")
+           and not looks_like_noise_project("OmniKit")
+           and not looks_like_noise_project("LinePort"))
 
     print(f"\n{'全部通過' if not failures else f'{len(failures)} 項失敗'}")
     return 1 if failures else 0

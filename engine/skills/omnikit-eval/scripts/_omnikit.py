@@ -41,7 +41,10 @@ def repo_root():
 
 
 ROOT = repo_root()
-sys.path.insert(0, str(ROOT / "engine" / "scripts"))
+_ENGINE_SCRIPTS = ROOT / "engine" / "scripts"
+if not _ENGINE_SCRIPTS.is_dir():
+    _ENGINE_SCRIPTS = Path(__file__).resolve().parents[3] / "scripts"
+sys.path.insert(0, str(_ENGINE_SCRIPTS))
 import validate  # 共用名冊的讀取與驗證
 
 
