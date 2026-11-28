@@ -19,9 +19,9 @@
 2. 回執沒有「沒驗的範圍」（同一行寫，或標題、冒號後換行接條列或「無」都算；沒有也要寫「無」）。
 3. 證據位置是檔案路徑的：檔案要存在（先照回執所在交付檔的資料夾找，再照 cwd；交付檔在別的 repo、相對路徑解不到的
    只提示）。新鮮度：
-   - Claude Code（看得到寫檔）：這段對話在 cwd 裡改過檔（.md 這類文件以外）時，實跑觀察、截圖這類層級的列裡，
+   - Claude Code 與 Antigravity（看得到寫檔）：這段對話在 cwd 裡改過檔（.md 這類文件以外）時，實跑觀察、截圖這類層級的列裡，
      量得到時間的證據檔至少一項不早於最後一次改檔；沒改過檔不判。第幾次工具呼叫、程式碼行號、git 追蹤的檔算中性。
-   - Antigravity、Codex（看不到寫檔）與沒有對話紀錄時：每個證據檔的修改時間要在這段對話開始之後。
+   - Codex（看不到寫檔）與沒有對話紀錄時：每個證據檔的修改時間要在這段對話開始之後。
    對話開始與改檔時間取對話紀錄裡的時間；沒帶時區就不知道是本機時間還是 UTC，跳過這項不擋。三家本機紀錄實際都帶 Z。
 4. 標了【完成待收尾】：cwd 的 git 有未提交（git status --porcelain）或未 push（@{u}..HEAD；沒設上游時看 HEAD
    在不在任何遠端分支裡）。不是 git repo、沒有遠端、git 出錯或逾時都跳過不擋。回覆寫明「只在這台」時不查未 push
@@ -39,7 +39,7 @@ stop_hook_active（Antigravity 是 continuationActive）為真一定放行，擋
 
 限制：回執內容仍是做事者填的，可以填假的。這道閘擋的是「完全沒附」與「機器查得到的不一致」，不是造假。
 Antigravity 的 Stop 輸入沒有最後一則回覆，從 transcriptPath 找最後一筆 MODEL 的 PLANNER_RESPONSE（照本機紀錄的格式，
-不是官方文件寫的契約，待驗證），也不偵測 .done。Codex 的 .done 偵測照 rollout 的 *call 項目找，未實測。
+不是官方文件寫的契約，待驗證），也不偵測 .done。寫檔與 git commit 從 PLANNER_RESPONSE.tool_calls[] 讀（同樣照本機紀錄）。Codex 的 .done 偵測照 rollout 的 *call 項目找，未實測。
 
 註冊：claude_allow.py 的 HOOKS（Stop、SubagentStop；薄 plugin 與 settings.json 備案都從這裡產生）、
 codex_hooks.py（Stop）、sync.py 的 Antigravity 薄 plugin（Stop）。
@@ -115,6 +115,10 @@ CMD_TOKEN = re.compile(r"""[^\s"'`<>|;&()]+""")
 DONE_END = re.compile(r"\.done(?![\w.\-])")
 WRITE_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
 SHELL_TOOLS = {"Bash", "PowerShell"}
+# Antigravity 的寫檔工具與放路徑的參數（2026-11-28 查本機 804 份紀錄的 PLANNER_RESPONSE.tool_calls[]）
+AGY_WRITE_TOOLS = {"write_file": "Path", "edit_file": "Path", "write_to_file": "TargetFile",
+                   "replace_file_content": "TargetFile", "multi_replace_file_content": "TargetFile"}
+AGY_SHELL_TOOLS = {"run_command"}
 
 RECEIPT_FORMAT = ("## 完工回執\n"
                   "| 需求項 | 驗證層級 | 驗證指令或觀察 | 結果 | 證據位置 |\n"
@@ -523,8 +527,20 @@ class SessionScan:
     committed: bool = False  # 整個對話執行過 git commit 這類指令
     # 整個對話最後一次在 cwd 裡改檔（.md 這類文件以外，含測試檔與設定檔）的時間（epoch）；改法 4 拿它判 evidence-stale
     last_code_write: float | None = None
-    sees_writes: bool = False  # 這種對話紀錄看得到寫檔（Claude Code）；Antigravity、Codex 看不到，evidence-stale 退回對話開始時間
+    sees_writes: bool = False  # 這種對話紀錄看得到寫檔（Claude Code、Antigravity）；Codex 看不到，evidence-stale 退回對話開始時間
     turn_started: float | None = None  # 這一回合（最後一則使用者訊息）的時間；改法 1.2 拿它判 .done 是不是這一回合寫的
+
+
+def _agy_arg(v) -> str:
+    """Antigravity 的工具參數值：本機紀錄約一半是 JSON 字串（前後帶引號、反斜線跳脫），一半是原字串。"""
+    s = v if isinstance(v, str) else ("" if v is None else str(v))
+    if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+        try:
+            loaded = json.loads(s)
+        except ValueError:
+            return s
+        return loaded if isinstance(loaded, str) else s
+    return s
 
 
 def session_edit_summary(path: str | None, cwd: str | None = None, subagent: bool = False) -> tuple[bool, bool, set[str], bool]:
@@ -536,9 +552,9 @@ def session_edit_summary(path: str | None, cwd: str | None = None, subagent: boo
 def session_scan(path: str | None, cwd: str | None = None, subagent: bool = False) -> SessionScan:
     """讀對話紀錄尾端，整理這段對話寫過哪些檔、有沒有 commit、最後一次改檔的時間。
     寫檔時間取發出工具呼叫那一筆的時間（Claude 的 timestamp），會比真正寫入早一點，判斷偏寬。
-    只看 Claude Code 的 Write／Edit 這類工具；用 shell 改檔（sed、腳本）看不到。
-    Antigravity 的工具呼叫實際放在 PLANNER_RESPONSE.tool_calls[]（2026-11-28 查本機 60 份紀錄，沒有頂層 TOOL_CALL），
-    下面的 TOOL_CALL 分支讀不到東西，所以 sees_writes 只對 Claude Code 為真。"""
+    只看 Claude Code 的 Write／Edit 這類工具與 Antigravity 的 write_file 這類工具；用 shell 改檔（sed、腳本）看不到。
+    Antigravity 的工具呼叫放在 PLANNER_RESPONSE.tool_calls[]（2026-11-28 查本機紀錄，沒有頂層 TOOL_CALL），
+    參數值約一半是 JSON 字串（帶引號），用 _agy_arg 解開；回合從最後一則 USER_INPUT 算。Codex 的 rollout 看不到寫檔。"""
     if not path or not Path(path).is_file():
         return SessionScan()
     try:
@@ -599,20 +615,31 @@ def session_scan(path: str | None, cwd: str | None = None, subagent: bool = Fals
                     cmd_s = str(inp.get("command") or "")
                     if GIT_COMMIT_CMD_RE.search(cmd_s):
                         session_committed = True
-        elif e.get("source") == "MODEL" and e.get("type") == "TOOL_CALL":
+        elif e.get("type") == "PLANNER_RESPONSE":
+            for tc in e.get("tool_calls") or []:
+                if not isinstance(tc, dict):
+                    continue
+                args_d = tc.get("args") if isinstance(tc.get("args"), dict) else {}
+                name = tc.get("name")
+                if name in AGY_WRITE_TOOLS:
+                    _record_fp(_agy_arg(args_d.get(AGY_WRITE_TOOLS[name])), in_this_turn=in_turn, ts=e.get("created_at"))
+                elif name in AGY_SHELL_TOOLS and GIT_COMMIT_CMD_RE.search(_agy_arg(args_d.get("CommandLine"))):
+                    session_committed = True
+        elif e.get("source") == "MODEL" and e.get("type") == "TOOL_CALL":  # 舊格式（本機紀錄沒看過，留著相容）
             args_d = e.get("args") if isinstance(e.get("args"), dict) else {}
             if args_d.get("Path"):
-                _record_fp(str(args_d.get("Path") or ""), in_this_turn=in_turn, ts=e.get("created_at"))
-            cmd_line = str(args_d.get("CommandLine") or "")
-            if GIT_COMMIT_CMD_RE.search(cmd_line):
+                _record_fp(_agy_arg(args_d.get("Path")), in_this_turn=in_turn, ts=e.get("created_at"))
+            if GIT_COMMIT_CMD_RE.search(_agy_arg(args_d.get("CommandLine"))):
                 session_committed = True
         elif e.get("type") == "response_item":
             p = e.get("payload") if isinstance(e.get("payload"), dict) else {}
             raw_c = str(p.get("arguments") or p.get("input") or "")
             if GIT_COMMIT_CMD_RE.search(raw_c):
                 session_committed = True
-    sees_writes = any(e.get("type") in ("assistant", "user") and isinstance(e.get("message"), dict) for e in entries)
-    turn_started = _epoch(entries[turn_start - 1].get("timestamp")) if turn_start > 0 else None
+    sees_writes = any((e.get("type") in ("assistant", "user") and isinstance(e.get("message"), dict))
+                      or e.get("type") == "PLANNER_RESPONSE" for e in entries)
+    turn_entry = entries[turn_start - 1] if turn_start > 0 else {}
+    turn_started = _epoch(turn_entry.get("timestamp") or turn_entry.get("created_at")) if turn_start > 0 else None
     return SessionScan(True, turn_changed_app_code, session_touched, session_committed,
                        last_code_write if sees_writes else None, sees_writes, turn_started)
 
@@ -722,10 +749,10 @@ def check(
         in_file = where != "這則回覆"
         bases = [Path(where).parent, base] if in_file else [base]
         receipt_elsewhere = in_file and not _is_under(Path(where), base)
-        # 新鮮度（改法 4）：看得到寫檔（Claude Code）時，跟這段對話最後一次在 cwd 改檔的時間比，沒改過就不判；
+        # 新鮮度（改法 4）：看得到寫檔（Claude Code、Antigravity）時，跟這段對話最後一次在 cwd 改檔的時間比，沒改過就不判；
         # 只看實跑觀察、截圖這類層級的列，裡面量得到時間的證據檔至少一項不早於它就過。
         # 量不到時間的（第幾次工具呼叫、程式碼行號、git 追蹤的檔）算中性，不掩護舊截圖（PR #13 審查 P1-2）。
-        # 看不到寫檔（Antigravity、Codex）或沒有對話紀錄（--check、直接呼叫）時，沿用對話開始時間逐項比（審查 P0-1）。
+        # 看不到寫檔（Codex）或沒有對話紀錄（--check、直接呼叫）時，沿用對話開始時間逐項比（審查 P0-1）。
         judge_ts = last_code_write if track_writes else session_start
         missing, unverifiable, stale, old = [], [], [], []
         fresh = False
@@ -920,6 +947,8 @@ def _tail_entries(path: str) -> list:
 
 
 def _is_prompt(e: dict, subagent: bool) -> bool:
+    if e.get("type") == "USER_INPUT":
+        return True  # Antigravity 的使用者訊息（source USER_EXPLICIT）
     if e.get("type") != "user" or e.get("isMeta") or (e.get("isSidechain") and not subagent):
         return False
     content = (e.get("message") or {}).get("content")
