@@ -4,13 +4,13 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
 接上的 agent 是偵測到的 Claude Code、Codex 與 Antigravity。全部由 OmniKit 自己的 Python 腳本接，
 不經過 skillshare：公司電腦的防毒會擋下 skillshare（允許的通知要剛好盯著畫面才按得到）。
 
-這台是同事版（預設）還是維護者版，見 engine/scripts/edition.py；兩版只差第 5 步的免問核准與第 6、7 步。
+預設為標準安裝（鎖定最新穩定發行 tag、乾淨參照副本、不設 git hook）；開發 OmniKit 本身或 fork 自建名冊時請加 -Dev。
 
 0. 安裝前檢查（engine/scripts/preflight.ps1）：git、連得到 GitHub、npm、PyPI、proxy、防毒、PowerShell 執行原則。
    任一項不通過就停下來、列出處理方式，什麼都不下載、不寫入。結果只印在這台，不上傳。
-1. 安裝固定版本的 uv、gh 與 gitleaks（gitleaks 只有維護者版裝，給 pre-commit 用）：從 GitHub release
+1. 安裝固定版本的 uv、gh 與 gitleaks：從 GitHub release
    下載 zip，比對寫死的 SHA256 後解壓；不改 PATH。這台已經有 uv 或 gh 就沿用。
-2. fork 出來的 repo：把 data/omnikit.yaml 的 repo、owner、marketplace 改成 origin 指向的
+2. 開發模式（-Dev）下若為 fork 出來的 repo：把 data/omnikit.yaml 的 repo、owner、marketplace 改成 origin 指向的
    GitHub repo、profile 改回 default，並重新產生 marketplace 清單，避免跟原作者的 marketplace 撞名。
 3. 依 data/mcp/packages.txt 全域安裝 MCP 用的 npm 套件（固定版本）。
 4. 舊版把訪談產生的 profile 存在 repo 裡（data/profiles/<名稱>，有 answers.json、沒進版本控制）的話，
@@ -18,7 +18,7 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
    不能互動時什麼都不改，只列出來（FR-38）。
    sync.py connect：
    - 規則 = 安全底線（data/rules/baseline.md）+ 分派共用層（data/rules/dispatch.md）+ profile 的 AGENTS.md。訪談產生的 profile 在
-     ~/.omnikit/profiles/<名稱>（不在 repo 裡），default 與維護者手寫的在 data/profiles/<名稱>；同名時 repo 外的優先。
+     ~/.omnikit/profiles/<名稱>（不在 repo 裡），default 與隨 repo 維護的在 data/profiles/<名稱>；同名時 repo 外的優先。
      Claude 在 ~/.claude/CLAUDE.md 用受管區塊 import；Codex 的 ~/.codex/AGENTS.md 與 Antigravity 的
      ~/.gemini/AGENTS.md（共用）、GEMINI.md（個人）在開頭加受管區塊（原地改寫，硬連結不會斷），原本的規則留在區塊外照常生效，
      也先備份成 .pre-omnikit。沒指定也沒選過 profile 就用 default（下載、安裝前會先問）。
@@ -31,7 +31,7 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
      T3 Code 的 Antigravity 實例：T3 會原生同步 ~/.gemini 的規則與 skills.json；OmniKit 會在 ~/.gemini 與各 T3 實例
      放置 config/plugins/omnikit/ 薄 plugin（護欄與 MCP），並自動清理舊版停用的 ACP 轉接程式（~/.omnikit/acp/）。
    - skills：Claude Code（~/.claude/skills）與 Codex（~/.codex/skills）以 Directory Junction 連結至
-     ~/.omnikit/current/engine/skills（防穿透保護乾淨副本，零檔案複製與零雜湊帳本）；Antigravity 透過
+     ~/.omnikit/current/engine/skills（-Dev 開發模式直連本地開發倉庫，零檔案複製與零雜湊帳本）；Antigravity 透過
      ~/.gemini/config/skills.json 原生參照實體 skills 路徑（T3 自動同步至全部實例），並自動清理舊版複製品。
    - MCP 與護欄 hooks：無帳本對帳 data/mcp/servers.yaml。Claude Code 透過本地薄 plugin（~/.omnikit/claude-marketplace
      內的 omnikit@omnikit-local）掛載 hooks 與 MCP（不動頂層 ~/.claude.json，找不到 claude CLI 時才退回 settings.json hooks 備案）；
@@ -39,13 +39,13 @@ OmniKit 安裝：把這台 Windows 電腦接上 OmniKit，可以重複執行。
      config/plugins/omnikit/ 三檔薄宣告（不動頂層 mcp_config.json，保留 T3 自動標題生成）。
    - 舊版用 skillshare 接的，改由 OmniKit 接手，並拿掉 skillshare 設定裡 OmniKit 的部分（skillshare 本身不刪）。
 5. 免問核准與護欄 hooks：Claude Code 的權限規則（data/harness/claude-allow.txt 現行＋墓碑清單，只增不刪使用者自訂規則）
-   與 Codex 的 default_tools_approval_mode。維護者版照 data 寫入；同事版每個工具先問，本人同意了才寫入（預設否）。
+   與 Codex 的 default_tools_approval_mode 統一由本人同意紀錄（consent.json）或本機控制面板工作台開關決定（預設否）。
    護欄與提醒 hooks（確定性護欄 harness_hooks.py、開新對話提醒 session_nudge.py、說做不到查證 claim_check.py、
    完工宣稱檢查 done_check.py（預設只記錄）、設定目錄檢查 home_watch.py、T3 MCP 斷線防護 t3_watch.py）：Claude 經由薄 plugin 掛載並寫入 statusLine；
    Codex 寫進 config.toml（需在 /hooks 信任才會執行）；Antigravity 經由薄 plugin hooks.json 掛載確定性護欄與完工宣稱檢查。
-6. git hook，只有維護者版：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、skills、MCP 或權限規則時，
-   自動同步。同事版不設 git hook，pull 不會改任何設定；要套用更新就重跑 install.ps1（先用 -WhatIf 預覽）。
-7. 檢查 OmniKit repo 的 git 身分，只有維護者版。
+6. git hook（僅 -Dev 開發模式）：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、skills、MCP 或權限規則時，
+   自動同步。標準安裝不設 git hook，pull 不會改任何設定；要套用更新就重跑 install.ps1（先用 -WhatIf 預覽）。
+7. 檢查 OmniKit repo 的 git 身分（僅 -Dev 開發模式）。
 
 每一步用 uv 跑 Python 腳本時，防毒短暫鎖住 uv 剛建好的暫存執行檔的話，等 3 秒重試一次（engine/scripts/uv-run.ps1，FR-34）。
 
@@ -61,23 +61,24 @@ AppData 底下新建的檔會被轉存到那個 app 自己的位置，終端機�
 參數：
   -ProfileName <名稱>  用這個 profile 的個人規則，並記下來；之後重跑不用再指定。先找 repo 外的
                        ~/.omnikit/profiles/<名稱>（訪談產生的），再找 data/profiles/<名稱>。
-  -Edition <版本>      colleague（同事版）或 maintainer（維護者版），記下來；之後重跑不用再指定。
-                       沒指定也沒記過：分版之前就裝過的電腦是維護者版，其他都是同事版。
-  -Tag <發行標籤>      同事版指定要安裝／升級到的發行 tag（例如 v0.1.0）；未指定時，同事版若偵測到
-                       v* 發行 tag 會自動鎖定最新穩定 tag（維護者推 main 不會影響你）。
+  -Dev                 開發／維護模式（開發 OmniKit 本身或 fork 自建名冊時使用）：直連本地工作區、
+                       啟用 .githooks 自動同步、不自動切換發行 tag，並檢查 repo git 身分。
+  -Edition <模式>      向後相容別名（standard / dev，亦相容舊名 colleague / maintainer）；建議改用 -Dev。
+  -Tag <發行標籤>      指定要安裝／升級到的穩定發行 tag（例如 v0.2.1）；未指定時，標準安裝若偵測到
+                       v* 發行 tag 會自動鎖定最新穩定 tag。
   -Fresh               這台第一次接上 OmniKit 時使用：把 ~/.claude/CLAUDE.md 受管區塊以外的舊規則
                        備份後移除，避免新舊規則同時生效。
   -WhatIf              預覽：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不寫檔）；也會跑安裝前檢查。
   -NoBrowser           安裝完成後不自動彈開瀏覽器（背景伺服器仍可按需啟動，或搭配 -NoLaunch 都不啟動）。
   -NoLaunch            安裝完成後不啟動本機控制面板伺服器（CI 或無頭部署用；環境變數 OMNIKIT_NO_LAUNCH=1 同效）。
   -SkipCheck <名稱>    安裝前檢查要略過的項目（已經自己處理好，例如防毒已請 IT 放行：-SkipCheck antivirus）。
-  -SelfTest            自我測試：在暫存資料夾與暫存 git repo 測版本判斷、git hook 設定與 profile 的位置，
+  -SelfTest            自我測試：在暫存資料夾與暫存 git repo 測模式判斷、git hook 設定與 profile 的位置，
                        以及 uv 被防毒鎖住時的重試（用假的鎖檔），不動這台的設定。
 
 用法（Windows PowerShell 5.1 或 PowerShell 7）：
-  powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Edition colleague|maintainer] [-Tag <版本>] [-Fresh] [-NoBrowser] [-NoLaunch] [-WhatIf]
+  powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1 [-ProfileName <名稱>] [-Tag <版本>] [-Dev] [-Fresh] [-NoBrowser] [-NoLaunch] [-WhatIf]
 #>
-param([string]$ProfileName, [ValidateSet('colleague', 'maintainer')][string]$Edition, [string]$Tag, [switch]$Fresh, [switch]$WhatIf,
+param([string]$ProfileName, [switch]$Dev, [ValidateSet('standard', 'dev', 'colleague', 'maintainer')][string]$Edition, [string]$Tag, [switch]$Fresh, [switch]$WhatIf,
   [switch]$NoBrowser, [switch]$NoLaunch, [switch]$SelfTest, [string[]]$SkipCheck = @())
 
 $ErrorActionPreference = 'Stop'
@@ -110,7 +111,15 @@ $StatusPy = Join-Path $Repo 'engine\scripts\status.py'
 $KitPy = Join-Path $Repo 'engine\scripts\kit.py'
 $CockpitPy = Join-Path $Repo 'scripts\cockpit.py'
 $PreflightPs1 = Join-Path $Repo 'engine\scripts\preflight.ps1'
-$EditionNames = @{ 'colleague' = '同事版'; 'maintainer' = '維護者版' }
+$EditionNames = @{ 'standard' = '標準安裝'; 'dev' = '開發模式' }
+$EditionAliases = @{ 'standard' = 'standard'; 'dev' = 'dev'; 'colleague' = 'standard'; 'maintainer' = 'dev' }
+function Get-NormalizedEdition($raw, [switch]$DevSwitch) {
+  if ($DevSwitch) { return 'dev' }
+  if (-not $raw) { return '' }
+  $k = "$raw".Trim().ToLower()
+  if ($EditionAliases.ContainsKey($k)) { return $EditionAliases[$k] }
+  return ''
+}
 $Arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
 $UvDir = Join-Path $env:LOCALAPPDATA 'Programs\uv'
 $UvExe = Join-Path $UvDir 'uv.exe'
@@ -293,30 +302,32 @@ function Install-McpPackages {
   Write-Host "已安裝 MCP 套件：$($missing -join ', ')"
 }
 
-# 這台是同事版還是維護者版（engine/scripts/edition.py）：-Edition 指定的記下來；
-# 沒指定就照記錄或判斷，也記下來，之後重跑結果一樣
+# 這台是標準安裝還是開發模式（engine/scripts/edition.py）：-Dev 指定的記下來；
+# 標準安裝不額外顯示「版本名稱」，僅開發模式提示直連本地工作區與 .githooks
 function Resolve-Edition($wanted) {
-  # 整個包在 @() 裡：只有一個元素時 if 會回傳字串，不是陣列
-  $editionArgs = @(if ($wanted) { '--set', $wanted } else { '--save' })
-  # 只接 ASCII 的值（maintainer 或 colleague）
-  $r = Invoke-UvRun (Get-Uv) (@('run', '--quiet', $EditionPy) + $editionArgs + '--show') -Capture
+  $norm = Get-NormalizedEdition $wanted
+  $editionArgs = @(if ($norm) { '--set', $norm } else { '--save' })
+  $r = Invoke-UvRun (Get-Uv) (@('run', '--quiet', $EditionPy, '--migrate-consent') + $editionArgs + '--show') -Capture
   $value = $r.Output.Trim()
   if ($r.Code -ne 0 -or $value -notin $EditionNames.Keys) { throw "edition.py 失敗（exit $($r.Code)）" }
-  Write-Host "OmniKit 版本：$($EditionNames[$value])"
+  if ($value -eq 'dev') {
+    Write-Host 'OmniKit 開發模式（-Dev）：直連本地工作區並啟用 .githooks'
+  }
   return $value
 }
 
-# -WhatIf 用：只判斷不記錄；還沒有 uv 的電腦一定還沒裝過，就是同事版
+# -WhatIf 用：只判斷不記錄；還沒有 uv 的電腦一定還沒裝過，就是標準安裝
 function Get-EditionPreview($wanted) {
-  if ($wanted) { return $wanted }
+  $norm = Get-NormalizedEdition $wanted
+  if ($norm) { return $norm }
   if ((Get-Command uv -ErrorAction SilentlyContinue) -or (Test-Path $UvExe)) {
     $value = (Invoke-UvRun (Get-Uv) @('run', '--quiet', $EditionPy, '--show') -Capture).Output.Trim()
     if ($value -in $EditionNames.Keys) { return $value }
   }
-  return 'colleague'
+  return 'standard'
 }
 
-# 同事版：免問核准每個工具先問，本人同意了才寫入（預設否）；不能互動時一個都不寫
+# 免問核准：標準安裝與開發模式統一逐一詢問，本人同意才寫入（預設否；亦可於控制面板工作台開關）
 function Request-AutoApprove {
   $r = Invoke-UvRun (Get-Uv) @('run', '--quiet', $AgentsPy, 'approvals', '--ask')
   if ($r.Code -ne 0) { throw "sync.py approvals 失敗（exit $($r.Code)）" }
@@ -378,11 +389,12 @@ function Move-LegacyProfiles {
   if ($r.Code -ne 0) { throw "profiles.py --migrate 失敗（exit $($r.Code)）" }
 }
 
-# 規則、skills、hooks 與 MCP 都交給無帳本同步器 sync.py（維護者版的 git hook 也用它同步）。
+# 規則、skills、hooks 與 MCP 都交給無帳本同步器 sync.py（開發模式的 git hook 也用它同步）。
 # sync.py 會依各設定目錄的薄 plugin 實際安裝狀態決定寫入權限或備案 hooks，不需額外無條件清掉備案 hooks。
-function Connect-Agents {
+function Connect-Agents($mode = 'standard') {
   $profileArgs = @(if ($ProfileName) { '--profile', $ProfileName })
-  $r = Invoke-UvRun (Get-Uv) (@('run', '--quiet', $AgentsPy, 'connect') + $profileArgs + '--ask')
+  $devArgs = @(if ($mode -eq 'dev') { '--dev' })
+  $r = Invoke-UvRun (Get-Uv) (@('run', '--quiet', $AgentsPy, 'connect') + $profileArgs + $devArgs + '--ask')
   if ($r.Code -ne 0) { throw "sync.py connect 失敗（exit $($r.Code)）" }
 }
 
@@ -396,7 +408,7 @@ function Clear-OldClaudeRules {
   Write-Host "已移除 CLAUDE.md 受管區塊以外的舊規則，備份在 $backup"
 }
 
-# 同事版版本鎖定（KIT-A-06）：只用穩定發行 tag（v*），不跟著維護者的 main HEAD 浮動。
+# 標準安裝鎖定穩定發行 tag（v*），不跟著 main 開發中 commit 浮動；-Dev 開發模式維持目前工作分支。
 # 不用 2>$null：PowerShell 5.1 在 Stop 模式下會把原生指令的 stderr 當成錯誤丟出。
 function Get-LatestReleaseTag($repoPath) {
   $tags = @(git -C $repoPath tag -l 'v*' --sort=-v:refname | Where-Object { $_ -and $_.Trim() })
@@ -410,15 +422,15 @@ function Get-CurrentTag($repoPath) {
   return $null
 }
 
-function Switch-ColleagueTag($edition, $requestedTag) {
-  if ($edition -eq 'maintainer') { return $null }
+function Switch-ReleaseTag($mode, $requestedTag) {
+  if ($mode -eq 'dev') { return $null }
   $curTag = Get-CurrentTag $Repo
   $target = if ($requestedTag) { $requestedTag.Trim() } else { $null }
   if ($target) {
     $matched = @(git -C $Repo tag -l -- $target | Where-Object { $_.Trim() -eq $target })
     if (-not $matched) { throw "找不到發行 tag「$target」，請先執行 git fetch --tags 並確認版本名稱" }
   } elseif ($curTag) {
-    Write-Host "同事版穩定發行版本：$curTag"
+    Write-Host "OmniKit 穩定發行版本：$curTag"
     return $curTag
   } else {
     $target = Get-LatestReleaseTag $Repo
@@ -428,7 +440,7 @@ function Switch-ColleagueTag($edition, $requestedTag) {
     }
   }
   if ($curTag -eq $target) {
-    Write-Host "同事版已在穩定發行版本：$target"
+    Write-Host "OmniKit 已在穩定發行版本：$target"
     return $target
   }
   $dirty = @(git -C $Repo status --porcelain | Where-Object { $_ -and $_.Trim() })
@@ -437,18 +449,18 @@ function Switch-ColleagueTag($edition, $requestedTag) {
   }
   git -C $Repo -c advice.detachedHead=false checkout --quiet $target
   if ($LASTEXITCODE -ne 0) { throw "切換到發行 tag「$target」失敗（exit $LASTEXITCODE）" }
-  Write-Host "同事版已切換至穩定發行版本：$target（維護者推 main 不會影響你）"
+  Write-Host "OmniKit 已切換至穩定發行版本：$target"
   return $target
 }
 
-# 維護者版：commit 前掃金鑰、驗證名冊，commit 或 pull 後自動同步。
-# 同事版不設 git hook，pull 不會改任何設定；以前設過的拿掉
-function Set-GitHooks($edition) {
-  if ($edition -eq 'maintainer') {
+# 開發模式（-Dev）：commit 前掃金鑰、驗證名冊，commit 或 pull 後自動同步。
+# 標準安裝不設 git hook，pull 不會改任何設定；以前設過的拿掉
+function Set-GitHooks($mode) {
+  if ($mode -eq 'dev') {
     git -C $Repo config core.hooksPath .githooks
   } elseif ((git -C $Repo config --get core.hooksPath) -eq '.githooks') {
     git -C $Repo config --unset core.hooksPath
-    Write-Host '同事版：這個 repo 不再使用 .githooks，pull 不會自動改設定'
+    Write-Host '已停用這個 repo 的 .githooks，pull 不會自動改設定'
   }
 }
 
@@ -558,12 +570,12 @@ function Start-ControlPanelIfAllowed {
 
 # -WhatIf：依這台目前的狀態列出會改動的地方，什麼都不做（不下載、不寫檔）
 function Show-InstallPlan {
-  $edition = Get-EditionPreview $Edition
+  $requested = Get-NormalizedEdition $Edition -DevSwitch:$Dev
+  $mode = Get-EditionPreview $requested
   $plan = @()
-  if ($edition -eq 'maintainer') {
-    $plan += '版本：維護者版（commit 或 pull 後 git hook 自動同步；免問核准照 data 寫入）'
+  if ($mode -eq 'dev') {
+    $plan += '模式：開發模式（-Dev，直連本地工作區、commit 或 pull 後由 .githooks 自動同步）'
   } else {
-    $plan += '版本：同事版（不設 git hook，pull 不會自動改設定；免問核准每個工具先問你）'
     $curTag = Get-CurrentTag $Repo
     $latestTag = Get-LatestReleaseTag $Repo
     if ($Tag) {
@@ -571,7 +583,7 @@ function Show-InstallPlan {
     } elseif ($curTag) {
       $plan += "發行版本：維持目前的穩定 tag「$curTag」"
     } elseif ($latestTag) {
-      $plan += "發行版本：自動切換至最新穩定 tag「$latestTag」（不追蹤 main HEAD）"
+      $plan += "發行版本：自動切換至最新穩定 tag「$latestTag」"
     } else {
       $plan += '發行版本：repo 尚未建立 v* 發行 tag，暫以目前版本安裝'
     }
@@ -588,7 +600,7 @@ function Show-InstallPlan {
     }
   }
 
-  if ($edition -eq 'maintainer') {
+  if ($mode -eq 'dev') {
     $url = git -C $Repo remote get-url origin
     $config = [IO.File]::ReadAllText((Join-Path $Repo 'data\omnikit.yaml'), [Text.Encoding]::UTF8)
     if ($url -match 'github\.com[:/]([^/]+)/([^/]+?)(\.git)?/?$' -and $config -notmatch "(?m)^repo: $([regex]::Escape("$($Matches[1])/$($Matches[2])"))\s*$") {
@@ -691,12 +703,10 @@ function Show-InstallPlan {
 
   $allow = @(Get-Content -Encoding UTF8 (Join-Path $Repo 'data\harness\claude-allow.txt') |
     ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
-  if ($edition -eq 'maintainer') {
-    if ($allow) { $plan += "~/.claude/settings.json：權限免問清單補上 $($allow -join '、')（現行＋墓碑管理，只增不刪自訂項目）；Codex 照 servers.yaml 設 default_tools_approval_mode" }
-  } elseif ($allow) {
+  if ($allow) {
     # 跟 edition.py 的 tool_of 一樣：mcp__<server>（__<工具>）算在那個 server
     $approveTools = @($allow | ForEach-Object { $_ -replace '^mcp__(.+?)(__.+)?$', '$1' } | Select-Object -Unique)
-    $plan += "免問核准（$($approveTools -join '、')）：安裝時逐一問你，同意了才寫進 ~/.claude/settings.json 與 ~/.codex/config.toml（預設否）"
+    $plan += "免問核准（$($approveTools -join '、')）：安裝時逐一問你或於控制面板工作台調整，同意了才寫進 ~/.claude/settings.json 與 ~/.codex/config.toml（預設否）"
   }
   if ($agents -contains 'claude-code') {
     $plan += 'Claude 護欄與提醒 hooks：透過本地薄 plugin（omnikit@omnikit-local）掛載確定性護欄、開新對話提醒、說做不到查證、設定目錄檢查與 T3 MCP 防護（找不到 claude CLI 時退回 settings.json hooks 備案），並寫入 statusLine；其他 Claude 設定目錄一併同步'
@@ -708,11 +718,11 @@ function Show-InstallPlan {
     $plan += 'Antigravity 護欄 hooks：透過 ~/.gemini/config/plugins/omnikit/hooks.json（與各 T3 實例）掛載確定性護欄'
   }
   $hooksOn = (git -C $Repo config --get core.hooksPath) -eq '.githooks'
-  if ($edition -eq 'maintainer' -and -not $hooksOn) {
+  if ($mode -eq 'dev' -and -not $hooksOn) {
     $plan += '這個 repo 改用 .githooks：commit 前掃金鑰、驗證名冊；改到規則、skills、MCP 等檔案時自動同步'
-  } elseif ($edition -ne 'maintainer' -and $hooksOn) {
-    $plan += '這個 repo 不再使用 .githooks：同事版不設 git hook，pull 不會自動改設定'
-  } elseif ($edition -ne 'maintainer') {
+  } elseif ($mode -ne 'dev' -and $hooksOn) {
+    $plan += '這個 repo 不再使用 .githooks：標準安裝不設 git hook，pull 不會自動改設定'
+  } elseif ($mode -ne 'dev') {
     $plan += '不設 git hook：pull 不會自動改設定；要套用更新就重跑 install.ps1（先用 -WhatIf 預覽）'
   }
 
@@ -730,7 +740,7 @@ function Show-InstallPlan {
 }
 
 # 安裝完成後提示本機控制面板入口、零帳號狀態板與日常指令
-function Show-NextSteps($edition, $panelUrl = $null) {
+function Show-NextSteps($mode, $panelUrl = $null) {
   $text = [IO.File]::ReadAllText((Join-Path $Repo 'data\rules\baseline.md'), [Text.Encoding]::UTF8)
   $version = if ($text -match '規則版本：(\S+)') { $Matches[1] } else { 'data/rules/baseline.md 開頭的版本' }
   $name = (Invoke-UvRun (Get-Uv) @('run', '--quiet', $ProfilesPy, '--show') -Capture).Output.Trim()
@@ -751,8 +761,8 @@ function Show-NextSteps($edition, $panelUrl = $null) {
   Write-Host '  - 開啟面板或查看狀態：在對話輸入 /ok（或 /ok 面板）'
   Write-Host '  - 防假完工實體驗收：在對話輸入 /ok 驗收（自動檢查假綠燈並真開服務／瀏覽器確認 0 錯誤）'
   Write-Host "  - 確認連線版本：問「OmniKit 規則版本與 profile 是什麼？」，應回答 $version 與 $name"
-  if ($edition -ne 'maintainer') {
-    Write-Host '  - 版本更新：預設鎖定穩定發行 tag；升級時先 git fetch --tags，再跑 install.ps1 -Tag <新版本>'
+  if ($mode -ne 'dev') {
+    Write-Host '  - 版本更新：預設鎖定穩定發行 tag；升級時先 git fetch --tags && git checkout <新版本>，再跑 install.ps1 -Tag <新版本>'
   }
 }
 
@@ -774,24 +784,24 @@ function Invoke-SelfTest {
     $env:OMNIKIT_STATE_DIR = Join-Path $tmp 'state'
     $script:StateDir = $env:OMNIKIT_STATE_DIR
     $editionFile = Join-Path $script:StateDir 'edition.json'
-    Check 'Get-EditionPreview：沒有記錄是同事版，而且不寫檔' ((Get-EditionPreview '') -eq 'colleague' -and -not (Test-Path $editionFile))
-    Check 'Resolve-Edition：沒指定就照判斷（同事版）並記下來' ((Resolve-Edition '') -eq 'colleague' -and (Get-FileText $editionFile) -match '"colleague"')
-    Check 'Resolve-Edition：-Edition maintainer 記成維護者版' ((Resolve-Edition 'maintainer') -eq 'maintainer' -and (Get-FileText $editionFile) -match '"maintainer"')
-    Check 'Resolve-Edition：之後沒指定就沿用記錄' ((Resolve-Edition '') -eq 'maintainer')
-    Check 'Get-EditionPreview：照記錄' ((Get-EditionPreview '') -eq 'maintainer')
-    Check 'Get-EditionPreview：有指定就用指定的' ((Get-EditionPreview 'colleague') -eq 'colleague')
+    Check 'Get-EditionPreview：沒有記錄是標準安裝（standard），而且不寫檔' ((Get-EditionPreview '') -eq 'standard' -and -not (Test-Path $editionFile))
+    Check 'Resolve-Edition：沒指定就照判斷（standard）並記下來' ((Resolve-Edition '') -eq 'standard' -and (Get-FileText $editionFile) -match '"standard"')
+    Check 'Resolve-Edition：-Dev 記成開發模式（dev）' ((Resolve-Edition 'dev') -eq 'dev' -and (Get-FileText $editionFile) -match '"dev"')
+    Check 'Resolve-Edition：之後沒指定就沿用記錄' ((Resolve-Edition '') -eq 'dev')
+    Check 'Get-EditionPreview：照記錄' ((Get-EditionPreview '') -eq 'dev')
+    Check 'Get-EditionPreview：支援舊別名 colleague / maintainer 正規化' ((Get-EditionPreview 'colleague') -eq 'standard' -and (Get-EditionPreview 'maintainer') -eq 'dev')
 
     $script:Repo = Join-Path $tmp 'repo'
     git init --quiet $script:Repo
     git -C $script:Repo config core.hooksPath .githooks
-    Set-GitHooks 'colleague'
-    Check 'Set-GitHooks colleague：拿掉以前設的 .githooks，pull 不會自動同步' (-not (git -C $script:Repo config --get core.hooksPath))
-    Set-GitHooks 'colleague'
-    Check 'Set-GitHooks colleague：本來就沒設，不出錯' (-not (git -C $script:Repo config --get core.hooksPath))
-    Set-GitHooks 'maintainer'
-    Check 'Set-GitHooks maintainer：設成 .githooks' ((git -C $script:Repo config --get core.hooksPath) -eq '.githooks')
+    Set-GitHooks 'standard'
+    Check 'Set-GitHooks standard：拿掉以前設的 .githooks，pull 不會自動同步' (-not (git -C $script:Repo config --get core.hooksPath))
+    Set-GitHooks 'standard'
+    Check 'Set-GitHooks standard：本來就沒設，不出錯' (-not (git -C $script:Repo config --get core.hooksPath))
+    Set-GitHooks 'dev'
+    Check 'Set-GitHooks dev：設成 .githooks' ((git -C $script:Repo config --get core.hooksPath) -eq '.githooks')
 
-    # 同事版發行 tag 鎖定（KIT-A-06）：自然版本排序、同事自動切到最新 tag、指定 -Tag、維護者不動分支、髒工作區拒絕切換
+    # 標準安裝發行 tag 鎖定：自然版本排序、自動切到最新 tag、指定 -Tag、開發模式不動分支、髒工作區拒絕切換
     $tagRepo = Join-Path $tmp 'tr'
     git -c core.longpaths=true init --quiet $tagRepo
     git -C $tagRepo config core.longpaths true
@@ -804,7 +814,7 @@ function Invoke-SelfTest {
       [IO.File]::WriteAllText((Join-Path $tagRepo 'f.txt'), "v1`n", (New-Object Text.UTF8Encoding($false)))
       git -C $tagRepo add f.txt
       git -C $tagRepo commit --quiet -m 'c1'
-      Check 'Get-LatestReleaseTag：無 tag 時回 $null，同事版不報錯' ($null -eq (Get-LatestReleaseTag $tagRepo) -and $null -eq (Switch-ColleagueTag 'colleague' ''))
+      Check 'Get-LatestReleaseTag：無 tag 時回 $null，標準安裝不報錯' ($null -eq (Get-LatestReleaseTag $tagRepo) -and $null -eq (Switch-ReleaseTag 'standard' ''))
       git -C $tagRepo tag v0.1.0
       [IO.File]::WriteAllText((Join-Path $tagRepo 'f.txt'), "v2`n", (New-Object Text.UTF8Encoding($false)))
       git -C $tagRepo commit --quiet -am 'c2'
@@ -816,16 +826,16 @@ function Invoke-SelfTest {
       git -C $tagRepo commit --quiet -am 'c4-dev'
       $devBranch = (git -C $tagRepo branch --show-current).Trim()
       Check 'Get-LatestReleaseTag：語意版本自然排序 v0.10.0 > v0.2.0' ((Get-LatestReleaseTag $tagRepo) -eq 'v0.10.0')
-      $mRes = Switch-ColleagueTag 'maintainer' ''
-      Check 'Switch-ColleagueTag maintainer：維持原分支不切換' ($null -eq $mRes -and (git -C $tagRepo branch --show-current).Trim() -eq $devBranch)
-      $cRes = Switch-ColleagueTag 'colleague' ''
-      Check 'Switch-ColleagueTag colleague：未指定 -Tag 時自動切換到最新穩定 tag（略過未發版 commit）' ($cRes -eq 'v0.10.0' -and (Get-CurrentTag $tagRepo) -eq 'v0.10.0')
-      $pRes = Switch-ColleagueTag 'colleague' 'v0.1.0'
-      Check 'Switch-ColleagueTag colleague -Tag v0.1.0：切換到指定發行 tag' ($pRes -eq 'v0.1.0' -and (Get-CurrentTag $tagRepo) -eq 'v0.1.0')
+      $mRes = Switch-ReleaseTag 'dev' ''
+      Check 'Switch-ReleaseTag dev：維持原分支不切換' ($null -eq $mRes -and (git -C $tagRepo branch --show-current).Trim() -eq $devBranch)
+      $cRes = Switch-ReleaseTag 'standard' ''
+      Check 'Switch-ReleaseTag standard：未指定 -Tag 時自動切換到最新穩定 tag（略過未發版 commit）' ($cRes -eq 'v0.10.0' -and (Get-CurrentTag $tagRepo) -eq 'v0.10.0')
+      $pRes = Switch-ReleaseTag 'standard' 'v0.1.0'
+      Check 'Switch-ReleaseTag standard -Tag v0.1.0：切換到指定發行 tag' ($pRes -eq 'v0.1.0' -and (Get-CurrentTag $tagRepo) -eq 'v0.1.0')
       [IO.File]::WriteAllText((Join-Path $tagRepo 'f.txt'), "dirty`n", (New-Object Text.UTF8Encoding($false)))
       $dirtyBlocked = $false
-      try { [void](Switch-ColleagueTag 'colleague' 'v0.10.0') } catch { $dirtyBlocked = $_.Exception.Message -match '尚未提交' }
-      Check 'Switch-ColleagueTag：工作區有未提交變更時拒絕切換' $dirtyBlocked
+      try { [void](Switch-ReleaseTag 'standard' 'v0.10.0') } catch { $dirtyBlocked = $_.Exception.Message -match '尚未提交' }
+      Check 'Switch-ReleaseTag：工作區有未提交變更時拒絕切換' $dirtyBlocked
     } finally {
       $script:Repo = $savedTagRepo
     }
@@ -983,18 +993,19 @@ if (-not $PreflightOk) {
 Install-Uv
 Merge-LegacyState
 Install-Gh
-$CurrentEdition = Resolve-Edition $Edition
-[void](Switch-ColleagueTag $CurrentEdition $Tag)
+$RequestedMode = Get-NormalizedEdition $Edition -DevSwitch:$Dev
+$CurrentMode = Resolve-Edition $RequestedMode
+[void](Switch-ReleaseTag $CurrentMode $Tag)
 Install-Gitleaks
-if ($CurrentEdition -eq 'maintainer') { Sync-RepoConfig }
+if ($CurrentMode -eq 'dev') { Sync-RepoConfig }
 Install-McpPackages
-if ($CurrentEdition -ne 'maintainer') { Request-AutoApprove }
+Request-AutoApprove
 Move-LegacyProfiles
-Connect-Agents
+Connect-Agents $CurrentMode
 Initialize-LocalWorkbench
 New-ControlPanelShortcut
 if ($Fresh) { Clear-OldClaudeRules }
-Set-GitHooks $CurrentEdition
-if ($CurrentEdition -eq 'maintainer') { Test-GitIdentity }
+Set-GitHooks $CurrentMode
+if ($CurrentMode -eq 'dev') { Test-GitIdentity }
 $PanelUrl = Start-ControlPanelIfAllowed
-Show-NextSteps $CurrentEdition $PanelUrl
+Show-NextSteps $CurrentMode $PanelUrl

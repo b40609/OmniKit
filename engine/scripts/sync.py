@@ -1316,7 +1316,7 @@ def approvals_cmd(env: Env, ask_fn=None, grant=(), revoke=()) -> list[str]:
     for name in revoke:
         edition.record(env.state, name, False)
         lines.append(f"已撤回免問核准：{name}")
-    if ask_fn and edition.resolve(env.state, env.repo)[0] != "maintainer":
+    if ask_fn:
         for t in tools:
             if edition.decided(env.state, t) is None:
                 ans = ask_fn(t)
@@ -1326,7 +1326,7 @@ def approvals_cmd(env: Env, ask_fn=None, grant=(), revoke=()) -> list[str]:
         lines.extend(slines)
     if not lines:
         ed, _ = edition.resolve(env.state, env.repo)
-        lines.append(f"目前版本：{ed}；可管免問工具：{', '.join(tools) or '無'}")
+        lines.append(f"目前模式：{edition.LABELS.get(ed, ed)}（{ed}）；可管免問工具：{', '.join(tools) or '無'}")
     return lines
 
 
@@ -1394,7 +1394,8 @@ def selftest() -> int:
             "    options:\n      codex:\n        default_tools_approval_mode: approve\n",
             encoding="utf-8",
         )
-        edition.set_edition(state, "maintainer")
+        edition.set_edition(state, "dev")
+        edition.record(state, "devtools", True)
 
         cli_calls = []
         installed_plugins: dict[str, dict] = {}
@@ -1464,8 +1465,7 @@ def selftest() -> int:
               is_link(home / ".codex" / "skills" / "omnikit-handoff")
               and codex_cfg["mcp_servers"]["devtools"].get("default_tools_approval_mode") == "approve")
 
-        # 測試同事版撤回核准時，B6 能乾淨移除 default_tools_approval_mode 且不產生重複鍵
-        edition.set_edition(state, "colleague")
+        # 測試撤回與重開個人免問核准時，B6 能乾淨移除 default_tools_approval_mode 且不產生重複鍵
         approvals_cmd(env, revoke=["devtools"])
         codex_cfg_revoked = tomllib.loads((home / ".codex" / "config.toml").read_text("utf-8"))
         approvals_cmd(env, grant=["devtools"])
@@ -1473,7 +1473,6 @@ def selftest() -> int:
         check("B6 撤回與重開核准：default_tools_approval_mode 原地刪除與加回皆通過 tomllib 驗證",
               "default_tools_approval_mode" not in codex_cfg_revoked["mcp_servers"]["devtools"]
               and codex_cfg_granted["mcp_servers"]["devtools"].get("default_tools_approval_mode") == "approve")
-        edition.set_edition(state, "maintainer")
 
         # B5 防護：模擬從 ~/.omnikit/current 觸發 sync，config.json["repo"] 不會被覆寫成 current
         cur_fake = state / "current"
@@ -1618,7 +1617,7 @@ def main(argv=None) -> int:
         interactive = sys.stdin.isatty()
         ask_fn = (lambda t: input(f"同意 {t} 免問核准嗎？(y/N)：").strip().lower() in ("y", "yes")) if args.ask and interactive else None
         lines = approvals_cmd(env, ask_fn=ask_fn, grant=args.grant, revoke=args.revoke)
-        if args.ask and not interactive and edition.resolve(env.state, env.repo)[0] != "maintainer":
+        if args.ask and not interactive:
             lines.append(f"沒辦法詢問（不能互動）：還沒問的免問核准先不寫入；要同意就執行 {claude_allow.GRANT}")
         rc = 0
     elif args.command == "disconnect":

@@ -11,7 +11,7 @@ OmniKit 移除：把 install.ps1 對這台電腦做的改動還原，可以重�
    刪掉 ~/.omnikit/acp 裡的轉接程式；刪掉 config.json（及舊 agents.json）。
    同名但不是 OmniKit 的 skill 與 MCP server 不碰。
 4. 刪掉 ~/.omnikit 裡接好的規則（rules\AGENTS.md）、乾淨參照副本（current）、本地薄 plugin 來源（claude-marketplace）、
-   profile 選擇（profile.json）、版本（edition.json）與免問核准的同意紀錄（consent.json）。
+   profile 選擇（profile.json）、安裝模式（edition.json）與免問核准的同意紀錄（consent.json）。
 5. 權限與 hook：從 ~/.claude/settings.json（與其他 Claude 設定目錄的）拿掉安裝紀錄裡、由 OmniKit 加的規則、
    Stop hook 與 SessionStart hook；
    從 ~/.codex/config.toml 拿掉 OmniKit 加的 Stop hook。
@@ -69,7 +69,7 @@ $CockpitDir = Join-Path $StateDir 'cockpit'
 $CockpitPy = Join-Path $Repo 'scripts\cockpit.py'
 $PanelShortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\OmniKit 控制面板.lnk'
 $AutostartShortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\OmniKit Cockpit 自動啟動.lnk'
-# edition.py 記的：這台是哪一版，以及免問核准的同意
+# edition.py 記的：這台的安裝模式（standard / dev），以及免問核准的個人同意
 $EditionFile = Join-Path $StateDir 'edition.json'
 $ConsentFile = Join-Path $StateDir 'consent.json'
 # 訪談產生的 profile：個人資料，不刪（FR-38）

@@ -599,7 +599,8 @@ def selftest() -> int:
         (inst_d / "config").mkdir(parents=True)
         sync.make_dir_link(home / ".gemini" / "config" / "skills", inst_d / "config" / "skills")
 
-        edition.set_edition(state, "maintainer")
+        edition.set_edition(state, "dev")
+        edition.record(state, "devtools", True)
         plugin_enabled = [True]
 
         def fake_runner(cmd, env_map):

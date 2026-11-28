@@ -44,17 +44,17 @@ OmniKit 規則版本與 profile 是什麼？
 
 | 項目 | 會有什麼不同 | 三個 agent 的差別 |
 |---|---|---|
-| 規則（`data/rules/baseline.md` + `data/rules/dispatch.md` + profile 的 `AGENTS.md`） | 安全底線與分派原則所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問。完整分派政策在 `dispatch-policy.md`、個人帳號對應在 `dispatch.md`、行動端前端底線在 `omnikit-mobile-web` skill，都不常駐載入，需要時才讀 | Claude Code 直接 import 來源檔，改完開新 session 就生效；Codex 讀合併後的 `~/.codex/AGENTS.md` 受管區塊（<= 32 KiB）；Antigravity 拆成 `~/.gemini/AGENTS.md`（共用層）與 `~/.gemini/GEMINI.md`（個人層），單檔限制 <= 24,000 bytes 避免靜默截斷。改了 profile 跑 `uv run engine/scripts/profiles.py` 重新接上（維護者版 commit 時 git hook 自動同步） |
+| 規則（`data/rules/baseline.md` + `data/rules/dispatch.md` + profile 的 `AGENTS.md`） | 安全底線與分派原則所有人都一樣；回覆用什麼語言、寫多詳細、哪些事可以直接做，照你選的 profile。`default` 是繁體中文、下載安裝前先問。完整分派政策在 `dispatch-policy.md`、個人帳號對應在 `dispatch.md`、行動端前端底線在 `omnikit-mobile-web` skill，都不常駐載入，需要時才讀 | Claude Code 直接 import 來源檔，改完開新 session 就生效；Codex 讀合併後的 `~/.codex/AGENTS.md` 受管區塊（<= 32 KiB）；Antigravity 拆成 `~/.gemini/AGENTS.md`（共用層）與 `~/.gemini/GEMINI.md`（個人層），單檔限制 <= 24,000 bytes 避免靜默截斷。改了 profile 跑 `uv run engine/scripts/profiles.py` 重新接上（開發模式 `-Dev` 下 commit 時由 git hook 自動同步） |
 | `ok` 總入口 | 唯一簡短手動入口：不知用哪個就打 `/ok`（Codex 打 `$ok`），後面可直接講白話或選 1 到 5 號主選單（交接、調研、分派、設定、清點） | Claude Code 與 Antigravity 輸入 `/ok`（如 `/ok 交接`），Codex 輸入 `$ok` |
 | `omnikit-setup` skill | 說「幫我設定 OmniKit」，agent 先掃描這台的環境，再問最多 6 題，產生你自己的 profile 並接上。見[建立自己的 profile](#建立自己的-profile) | 三邊說「幫我設定 OmniKit」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-setup` 或 `/ok 設定`，Codex 輸入 `$omnikit-setup` 或 `$ok 設定` |
 | `omnikit-handoff` skill | 說「交接」，agent 把做到一半的工作 commit、push，寫一份交接檔到你的狀態 repo，再開新對話接著做；新對話說「讀 <交接檔路徑> 接著做」就照交接檔接手。狀態 repo 的位置寫在你的 profile，沒寫 agent 會先問 | 三邊說「交接」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-handoff` 或 `/ok 交接`，Codex 輸入 `$omnikit-handoff` 或 `$ok 交接` |
 | `omnikit-dispatch` skill | 派子任務、開子對話時照分派政策選模型與思考程度，收完結果後記一行委派紀錄（存在這台，不上傳）；也能看 Sonnet 試行的比較與本週 Claude 用量。見[子任務分派](dispatch.md) | 三邊說「委派紀錄」「分派統計」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-dispatch` 或 `/ok 分派`，Codex 輸入 `$omnikit-dispatch` 或 `$ok 分派`。本週用量的快照只有 Claude Code 的狀態列存得到 |
 | `omnikit-research` skill | 說「先查業界做法」「找同類工具」「比較方案」，agent 每個管道都查（網頁中英文、GitHub topic 與星數、fork 與競品、skill／MCP 目錄、Hacker News、Product Hunt），關鍵字從結果擴展，連續 3 組沒有新名字才停（長尾題目改看 ★1,000 以上的名字，標「長尾未飽和」；12 組還沒停先回報）；報告附查了哪些管道與關鍵字、第幾組停、哪裡查不到，星數與授權用 `gh api` 實測並寫日期。安全底線有一行要求調研照這個 skill 做 | 三邊說「找同類工具」「調研」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-research` 或 `/ok 調研`，Codex 輸入 `$omnikit-research` 或 `$ok 調研`。GitHub 的管道要先 `gh auth login` |
 | `omnikit-capabilities` skill | agent 要說「做不到」「沒有工具」「請你手動做」之前，先清點這台能用的 CLI（標出 Git Bash 找不到、只有 PowerShell 找得到的，例如只有 `t3.cmd` 的 T3）、各 agent 登記的 MCP server、本機 MCP 端點（開著沒、要不要登入、哪個 agent 還沒接），列出最省事的做法，再對照 `--help` 與最新官方文件。只看檔案、PATH 與本機連線，不印金鑰。安全底線的「說做不到之前」要求先照這個 skill 查完 | 三邊要說做不到、或使用者問「你能不能…」「有沒有辦法派給…」時觸發；要手動叫，Claude Code 輸入 `/omnikit-capabilities`，Codex 輸入 `$omnikit-capabilities`。也能直接跑 `uv run engine/scripts/capabilities.py` |
-| `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡；「每週彙整」是維護者評估工具用的 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval` 或 `/ok 評估`，Codex 輸入 `$omnikit-eval` 或 `$ok 評估`。三邊皆透過無複製參照指向 `~/.omnikit/current/engine/skills`（維護者版 commit 時由 git hook 自動更新，同事版重跑 `install.ps1`） |
-| `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 由薄 plugin 掛載並可加進免問清單，Codex 設成自動核准（同事版皆需本人同意），Antigravity 由薄 plugin 掛載並照它自己的權限設定 |
+| `omnikit-eval` skill | 貼 GitHub 連結說「幫我評估」，agent 會查 GitHub 現況、對照槽位情境，寫成 `data/tools/` 裡的工具卡；「每週彙整」供維護名冊時整理評估漏斗用 | 三邊說「幫我評估」都會觸發；要手動叫，Claude Code 輸入 `/omnikit-eval` 或 `/ok 評估`，Codex 輸入 `$omnikit-eval` 或 `$ok 評估`。三邊皆透過無複製參照指向 `~/.omnikit/current/engine/skills`（開發模式 `-Dev` commit 時由 git hook 自動更新，標準安裝重跑 `install.ps1`） |
+| `chrome_devtools` MCP | agent 能自己開瀏覽器：開網頁、截圖、看 console 與網路請求。每次用暫時的瀏覽器設定檔，碰不到你的登入狀態 | Claude Code 由薄 plugin 掛載並可加進免問清單，Codex 可設自動核准（統一由本人同意或控制面板開關決定），Antigravity 由薄 plugin 掛載並照它自己的權限設定 |
 | 護欄與提醒 hooks | 包含確定性護欄（`harness_hooks.py`，擋常見繞過捷徑與敏感檔讀取，不是沙箱）、開新對話提醒（`session_nudge.py`，含每日最多一則用法小提示）、說做不到查證（`claim_check.py`，未附查證擋回一次；設 `OMNIKIT_CLAIM_CHECK=off` 可暫關）、完工宣稱檢查（`done_check.py`，【完成待收尾】或寫 `.done` 時檢查完工回執、證據檔與 git 是否已 push；預設只記錄到 `tripwire-hits.jsonl`，設 `OMNIKIT_DONE_CHECK=block` 才擋、`off` 關掉）、設定目錄檢查（`home_watch.py`）與 T3 MCP 斷線防護（`t3_watch.py`） | Claude Code 透過本地薄 plugin `omnikit@omnikit-local` 掛載（所有 Claude 設定目錄皆接）；Codex 只接開新對話提醒、說做不到查證、完工宣稱檢查與 T3 MCP 斷線防護，寫進 `config.toml`（需在 `/hooks` 信任才會跑），確定性護欄目前沒有接 Codex；Antigravity 於薄 plugin `config/plugins/omnikit/hooks.json` 掛載確定性護欄與完工宣稱檢查 |
-| git hooks（只有維護者版） | 只作用在 OmniKit repo：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、MCP、權限時自動同步。同事版不設 | 跟 agent 無關 |
+| git hooks（僅開發模式 `-Dev`） | 只作用在 OmniKit repo：commit 前掃金鑰、驗證名冊；commit 或 pull 動到規則、profile、MCP、權限時自動同步。標準安裝不設 | 跟 agent 無關 |
 
 ## 建立自己的 profile
 
@@ -148,6 +148,6 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 <details>
 <summary><b>Antigravity 看不到 OmniKit 的 skill？</b></summary>
 
-Antigravity 的全域 skill 不跟隨資料夾連結，因此 OmniKit 改透過 `~/.gemini/config/skills.json` 原生參照實體 skills 目錄（T3 Code 也會自動同步到所有 Antigravity 實例）。更新 OmniKit 後跑一次 `uv run engine/scripts/sync.py sync`（維護者版 commit 或 pull 時 git hook 會自動跑，同事版重跑 `install.ps1`）就會補齊並清掉舊版複製品。
+Antigravity 的全域 skill 不跟隨資料夾連結，因此 OmniKit 改透過 `~/.gemini/config/skills.json` 原生參照實體 skills 目錄（T3 Code 也會自動同步到所有 Antigravity 實例）。更新 OmniKit 後跑一次 `uv run engine/scripts/sync.py sync`（開發模式 `-Dev` 下 commit 或 pull 時 git hook 會自動跑，標準安裝重跑 `install.ps1`）就會補齊並清掉舊版複製品。
 
 </details>

@@ -32,9 +32,9 @@ OmniKit 把這些收成一套**本機網頁控制面板 ＋ 開箱即用精選�
 幫我安裝 OmniKit：https://github.com/b40609/OmniKit
 ```
 
-> **給 agent：** 照[安裝說明](docs/install.md#直接安裝同事用不用-fork不用-github-帳號)執行 `install.ps1`。裝完會自動啟動本機控制面板（`http://127.0.0.1:3780/`），使用者在網頁勾選即可一鍵完成個人化與精選工作台設定；若在無頭環境也可讀 `engine/skills/omnikit-setup/SKILL.md` 在對話內設定。
+> **給 agent：** 照[安裝說明](docs/install.md#直接安裝不用-fork不用-github-帳號)執行 `install.ps1`（若本機已有舊 OmniKit 目錄，先 `git fetch --tags --force` 並 `git checkout <最新 tag>` 再執行，勿沿用過期副本）。裝完會自動啟動本機控制面板（`http://127.0.0.1:3780/`），使用者在網頁勾選即可一鍵完成個人化與精選工作台設定；若在無頭環境也可讀 `engine/skills/omnikit-setup/SKILL.md` 在對話內設定。
 
-想自己來，在 PowerShell 跑（同事版預設鎖定最新穩定發行 tag，維護者推 `main` 不會影響你；也可加上 `-Tag <版本>` 指定版本）：
+想自己來，在 PowerShell 跑（預設鎖定最新穩定發行 tag，不受開發分支變動影響；也可加上 `-Tag <版本>` 指定版本）：
 
 ```powershell
 git clone https://github.com/b40609/OmniKit.git "$env:USERPROFILE\OmniKit"
@@ -52,7 +52,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 | AI 老是只跑假測試就說完工怎麼辦 | 內建防假完工護欄（`done_check` 記錄並可切強制攔截 `.skip` 假綠燈與無實測宣稱）＋ `/ok 驗收` 真機瀏覽器驗收 |
 | 不想用了怎麼辦 | `engine\scripts\uninstall.ps1` 停止面板並只拿掉 OmniKit 加的東西，備份放回原位 |
 
-之後要更新到新發行版：`git fetch --tags`，再跑 `install.ps1 -Tag <版本> -WhatIf` 預覽、`install.ps1 -Tag <版本>` 套用。fork 一份自己維護與每一處改動的完整清單，見[安裝說明](docs/install.md)。
+之後要更新到新發行版：`git fetch --tags --force && git checkout <版本>`，再跑 `install.ps1 -Tag <版本> -WhatIf` 預覽、`install.ps1 -Tag <版本>` 套用。fork 一份自己維護與每一處改動的完整清單，見[安裝說明](docs/install.md)。
 
 ## 裝好之後
 
@@ -120,7 +120,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 
 | 文件 | 內容 |
 |---|---|
-| [安裝說明](docs/install.md) | 直接安裝、fork 自己維護、只裝預設 plugin、安裝會改動哪些地方、維護者版與同事版、移除 |
+| [安裝說明](docs/install.md) | 直接安裝、fork 自己維護、只裝預設 plugin、安裝會改動哪些地方、標準安裝與開發模式（`-Dev`）、移除 |
 | [使用指南](docs/usage.md) | 確認接上了、安裝前後差在哪、建立 profile、`/ok` 與簡短指令、評估新工具、診斷 |
 | [子任務分派](docs/dispatch.md) | 每一級用什麼模型、設定自己的帳號、選配模型 Fable 5.2、委派紀錄 |
 | [運作方式](docs/architecture.md) | 設計原則、資料怎麼流、無帳本對帳、互動架構地圖、目錄結構 |

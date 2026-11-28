@@ -8,7 +8,7 @@
 #   sync.py、homes.py、t3_acp.py、acp_shim.py：skills、hooks 與 MCP 都重新同步（新找到的設定目錄也一起接上）
 #   data/harness/、claude_allow.py、codex_hooks.py、session_nudge.py、claim_check.py、done_check.py、t3_watch.py、home_watch.py、harness_hooks.py：
 #     透過 sync.py sync --mcp 依各目錄薄 plugin 實際狀態更新快取版本、權限清單、狀態列與備案 hooks（不會無條件誤刪備案 hooks）
-# 只有維護者版會自動同步。同事版不設 git hook；萬一還是跑到這裡，也只提醒、不改任何設定（edition.py）
+# 只有開發模式（-Dev）會自動同步。標準安裝不設 git hook；萬一還是跑到這裡，也只提醒、不改任何設定（edition.py）
 # linked worktree（例如 .claude/worktrees/ 底下）也不同步：worktree 共用主 repo 的 core.hooksPath，
 # 在這裡同步會把 skills 連結與複製品改指向 worktree，worktree 清掉後就斷了。合進 main 後由主 checkout 同步。
 changed=$(cat)
@@ -20,18 +20,18 @@ syncable='^(data/(rules|profiles|mcp|harness)/|engine/(skills/|scripts/))'
 git_dir=$(cd "$(git rev-parse --git-dir 2>/dev/null)" 2>/dev/null && pwd -P)
 common_dir=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd -P)
 
-# 狀態檔改放 ~/.omnikit（statedir.py）：判斷版本之前，先把舊位置（%LOCALAPPDATA%\omnikit 與封裝的 app 轉存的副本）
-# 合併過來，不然 edition.json 還在舊位置，會誤判成同事版而不同步。只在主 checkout、而且有要同步的檔案時做
+# 狀態檔改放 ~/.omnikit（statedir.py）：判斷模式之前，先把舊位置（%LOCALAPPDATA%\omnikit 與封裝的 app 轉存的副本）
+# 合併過來，不然 edition.json 還在舊位置，會誤判成標準安裝而不同步。只在主 checkout、而且有要同步的檔案時做
 if [ "$git_dir" = "$common_dir" ] && printf '%s\n' "$changed" | grep -qE "$syncable"; then
   moved=$("$uv" run --quiet engine/scripts/statedir.py migrate --quiet 2>/dev/null | tr -d '\r')
   [ -n "$moved" ] && printf '%s\n' "$moved" | sed 's/^/OmniKit：/'
 fi
 
-# Windows 的 Python 印出來是 CRLF，比對前拿掉 \r；判斷失敗就當成同事版，不自動套用
+# Windows 的 Python 印出來是 CRLF，比對前拿掉 \r；判斷失敗就當成標準安裝，不自動套用
 edition=$("$uv" run --quiet engine/scripts/edition.py --show 2>/dev/null | tr -d '\r')
-if [ "$edition" != "maintainer" ]; then
+if [ "$edition" != "dev" ] && [ "$edition" != "maintainer" ]; then
   if printf '%s\n' "$changed" | grep -qE "$syncable"; then
-    echo "OmniKit：這台不是維護者版，這次的更新沒有自動套用；要套用就先跑 install.ps1 -WhatIf 預覽，再跑 install.ps1"
+    echo "OmniKit：這台不是開發模式（-Dev），這次的更新沒有自動套用；要套用請先跑 install.ps1 -WhatIf 預覽，再跑 install.ps1"
   fi
   exit 0
 fi

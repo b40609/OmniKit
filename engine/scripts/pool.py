@@ -937,7 +937,7 @@ def selftest():
         opened = {s["slot"]: s["agents"] for s in open_slots(roster)}
         check("要找的槽位：沒有答案、名冊也沒有預設或試用的卡才找；記了內建功能的不找；分 agent",
               opened == {"open": ["claude", "codex"], "builtin": ["codex"], "half": ["codex"]})
-        check("要找的槽位：同事版不看只給維護者的模組，維護者版才看",
+        check("要找的槽位：一般使用者不看只給維護者的模組，指定 maintainer 才看",
               "hidden" in {s["slot"] for s in open_slots(roster, "maintainer")})
 
         # GitHub 現況
