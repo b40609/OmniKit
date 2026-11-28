@@ -1,0 +1,20 @@
+id: day-trader-skill
+name: day-trader-skill（Jake Schincariol）
+kind: collection
+slots:
+- quant-data
+status: assess
+ring: assess
+url: https://github.com/Jakeschincariol/day-trader-skill
+works_with:
+- claude
+- codex
+- antigravity
+trust: community
+context_cost: 0
+decided_at: '2026-11-28'
+reason: 一手查證（2026-11-28 gh api：★9,941，MIT，v2.0.0，最後 push 2026-10-20）：純 Python 標準庫實作 11 個美股當沖技能（含盤中 5m 分時槽位萬次重播 timemachine.py 與事前風控檢查 check.py），「減倉永遠放行、批次委託依序模擬防組合超限」與「同根雙觸先判停損」具參考價值；但寫死美股 NYSE 時段與 Alpaca 規則、禁加密貨幣且跳空跌破停損仍算 -1R，不直接導入，列觀察參考。
+sources:
+- OmniKeep 2026-11-27 收錄（jakeschincariol/day-trader-skill）
+notes: 一手原始碼反例（2026-11-28 檢視 trader-timemachine/timemachine.py 與 trader-risk/check.py）：(1) 跳空穿價失真：timemachine.py:133 明寫跳空穿過停損仍計為 -1R（A gap through the stop still counts -1R here; a real fill can be worse），且未計滑價與手續費，低估極端尾部風險；(2) 美股硬編碼：綁定 NYSE 09:30–16:00（78 根 5m bar）、Yahoo Finance v8 chart 公開端點（高頻掃描易 429）與 Alpaca 委託規則，check.py:161 明確封鎖加密貨幣，不適用台股（漲跌停／證交稅）與 24/7 加密永續合約 Decimal 核心；(3) 整包掛載 11 個技能會污染日常開發路由。改判條件：未來若開發美股日內當沖模擬模組時，再單獨借鏡其分時段槽位重播與 ASCII 扇形圖呈現。
+added: '2026-11-28'

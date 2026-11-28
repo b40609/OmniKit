@@ -1,0 +1,21 @@
+id: diagram-design
+name: diagram-design（Cathryn Lavery）
+kind: skill
+slots:
+- figures-reports
+status: on_demand
+ring: trial
+url: https://github.com/cathrynlavery/diagram-design
+works_with:
+- claude
+- codex
+- antigravity
+trust: community
+context_cost: 0
+trigger_when: 需要將自然語言或既有 Mermaid／.drawio／Excalidraw／PlantUML 圖檔，轉換為符合品牌配色與字體、零外部依賴的單一 HTML + inline SVG 架構圖、流程圖、Sankey、甘特圖或爆炸軸測圖時按需載入（建議待專案品牌視覺或 DESIGN.md 定案後使用）。
+decided_at: '2026-11-28'
+reason: 一手查證（2026-11-28 gh api：★74,602，MIT，v2.6.181，最後 push 2026-11-26）：內建 52 種圖表型別，產出零陰影、單檔自包含 HTML + SVG，並支援 .drawio／Mermaid／Excalidraw 匯入；但 skills/diagram-design/SKILL.md 長達 387 行（33.4 KB）且 frontmatter description 長達 1,110 字元（超過 1,024 字元規範），常駐安裝會大幅擠壓開場 Context 預算，列為按需備案。
+sources:
+- OmniKeep 2026-11-27 收錄（cathrynlavery/diagram-design）
+notes: 一手原始碼反例（2026-11-28 檢視 skills/diagram-design/SKILL.md 與 .claude-plugin/plugin.json）：(1) SKILL.md 的 description 塞入全部 52 種圖表名稱共 1,110 字元，超過 <= 1,024 字元門檻且常駐成本過高；(2) 第 0 節設有 First-time setup — style guide gate，在品牌樣式尚未定案的專案會阻擋出圖並要求先設定樣式檔；(3) PNG／PDF 匯出腳本需額外瀏覽器渲染依賴。改判條件：待專案品牌視覺與 DESIGN.md 定案後，若高頻產出架構圖／技術報告圖表實測顯著優於裸模型 SVG，再評估裁剪描述轉 trial。
+added: '2026-11-28'
