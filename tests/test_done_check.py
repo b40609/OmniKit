@@ -695,8 +695,11 @@ def test_fake_green_rules_match_wiring_audit():
     assert dc.FAKE_GREEN_LINE_RE.pattern == "(?:" + "|".join(p.pattern for _, p in wa.FAKE_GREEN_PATTERNS) + ")"
     assert dc.CI_SWALLOW_LINE_RE.pattern == wa.CI_SWALLOW_RE.pattern
     assert (dc.TEST_FILE_NAME_RE.pattern, dc.TEST_FILE_NAME_RE.flags) == (wa.TEST_FILE_RE.pattern, wa.TEST_FILE_RE.flags)
-    samples = ["test.skip('x', () => {})", "test.skip(cond, 'mac only')", "xit('a')", "describe.only(", "it.todo('t')",
-               "@pytest.mark.skip(reason='x')", "@pytest.mark.skipif(sys.platform == 'win32')", "@unittest.skip('x')",
-               "expect(skip).toBe(1)"]
+    # 樣本用拼接寫，原始碼這一行本身才不會被 wiring_audit 的 diff 掃描當成新增的假綠燈
+    sk, only, todo, x = ".skip", ".only", ".todo", "x"
+    samples = [f"test{sk}('x', () => {{}})", f"test{sk}(cond, 'mac only')", f"{x}it('a')", f"describe{only}(",
+               f"it{todo}('t')", f"@pytest.mark{sk}(reason='x')", f"@pytest.mark{sk}if(sys.platform == 'win32')",
+               f"@unittest{sk}('x')", "expect(skip).toBe(1)"]
+    assert sum(bool(dc.FAKE_GREEN_LINE_RE.search(s)) for s in samples) == 6
     for s in samples:
         assert bool(dc.FAKE_GREEN_LINE_RE.search(s)) == any(p.search(s) for _, p in wa.FAKE_GREEN_PATTERNS), s
