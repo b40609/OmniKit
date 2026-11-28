@@ -7,9 +7,9 @@ updated_at: '2026-11-28'
 limits:
   # Antigravity ~/.gemini/AGENTS.md 共用受管區塊上限（2026-11-28 補 D10 完工回執與唯讀 fs_guard 定義後實測 5,955 bytes）
   antigravity_shared_max_bytes: 6050
-  # Antigravity ~/.gemini/GEMINI.md 個人受管區塊上限（個人層第二波瘦身：8,605 -> 7,545 -> 7,677 bytes；平台硬上限 24,000 bytes）
-  antigravity_personal_max_bytes: 7800
-  # Codex ~/.codex/AGENTS.md 合併受管區塊上限（2026-11-28 補 D10 兩項定義後實測 13,578 bytes；平台硬上限 32,768 bytes）
-  codex_combined_max_bytes: 13700
+  # Antigravity ~/.gemini/GEMINI.md 個人受管區塊上限（2026-11-28 加入 ryan 架構與工具決策四步鐵律後實測 8,234 bytes；平台硬上限 24,000 bytes）
+  antigravity_personal_max_bytes: 8300
+  # Codex ~/.codex/AGENTS.md 合併受管區塊上限（2026-11-28 加入 ryan 架構與工具決策四步鐵律後實測 14,091 bytes；平台硬上限 32,768 bytes）
+  codex_combined_max_bytes: 14150
   # 所有未設 disable-model-invocation: true 的 engine/skills/*/SKILL.md 之 description 總 UTF-8 bytes（2026-11-28 解鎖第 9 個自動觸發技能 omnikit-watch 供三家自然語言巡檢 OmniKeep）
   auto_skill_desc_max_bytes: 4400
