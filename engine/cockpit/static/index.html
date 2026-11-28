@@ -62,6 +62,12 @@
       <span>唯讀檢視（經 Tailscale 連線）：修改設定、啟停工具與建立專案請在這台電腦本機開啟面板</span>
     </div>
 
+    <!-- 防陳舊綠燈：面板連不上或背景巡檢的快照停住時示警（純前端判斷，不擋操作） -->
+    <div id="stale-banner" class="reconcile-banner stale-banner" role="alert" hidden>
+      <b>控制平面失聯或快照過期</b>
+      <span id="stale-banner-detail"></span>
+    </div>
+
     <!-- 外部手改漂移橫幅 -->
     <div id="drift-banner" class="drift-stack" hidden></div>
 

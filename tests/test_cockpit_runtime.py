@@ -210,6 +210,8 @@ def test_runtime_api_local_write_and_tailscale_read_only(served):
     box, _app, base, _system = served
     st, body = http_json(f"{base}/api/runtime")
     assert st == 200 and body["summary"]["services"] == 0 and body["poller"]["running"] is False and body["watchdog"]["installed"] is False
+    # server_time：前端拿它當時間基準判斷快照過期，不靠看面板那台裝置的時鐘
+    assert abs((datetime.fromisoformat(body["server_time"]) - datetime.now(UTC)).total_seconds()) < 30
 
     add = {"op": "add_probe", "service": {"name": "API"}, "probe": {"type": "tcp", "port": 9100}}
     st, body = http_json(f"{base}/api/projects/Demo/probes", method="POST", payload=add)
@@ -531,3 +533,36 @@ def test_watchdog_task_registration_uses_injected_scheduler_only(box, monkeypatc
 
     assert cli.watchdog_task_name(collector.default_state_dir()) == "OmniKit Cockpit Watchdog"
     assert cli.watchdog_task_name(box / "other") != cli.watchdog_task_name(state)
+
+
+# ---------- 面板 UI 的接線（真瀏覽器實測另外跑；這裡擋的是有人把接點改掉卻沒發現） ----------
+
+def test_panel_ui_wires_three_axes_probe_form_and_stale_banner():
+    static = ROOT / "engine" / "cockpit" / "static"
+    html = (static / "index.html").read_text(encoding="utf-8")
+    js = (static / "app.js").read_text(encoding="utf-8")
+    css = (static / "style.css").read_text(encoding="utf-8")
+    sw = (static / "sw.js").read_text(encoding="utf-8")
+
+    # 快照過期橫幅：純前端判斷，連續 2 輪失聯或 generated_at 凍結超過 5 分鐘
+    assert 'id="stale-banner"' in html and 'role="alert"' in html and "控制平面失聯或快照過期" in html
+    assert html.index('id="stale-banner"') < html.index('id="home-root"')
+    assert "const RT_FROZEN_MS = 5 * 60 * 1000;" in js and "state.rtFails >= 2" in js and "frozenMs > RT_FROZEN_MS" in js
+    assert "data.server_time" in js
+
+    # 三軸：三個問題各自一顆燈，五種長相都有文字
+    for needle in ('["alive", "活著嗎"], ["sync", "版本對嗎"], ["fresh", "資料新嗎"]', "在跑，已證實有產出", "在跑，只證實活著",
+                   "版本漂移", "資料沒更新", "/api/runtime/refresh", 'op: "add_probe"', 'op: "set_enabled"'):
+        assert needle in js, needle
+    for cls in (".rt-dot.rt-solid", ".rt-dot.rt-hollow", ".rt-dot.rt-amber", ".rt-dot.rt-red", ".rt-dot.rt-gray", ".stale-banner"):
+        assert cls in css, cls
+
+    # 會寫入的控制項一律掛 data-write-only：經 Tailscale 開啟（body.is-readonly）時整個藏起來
+    assert "body.is-readonly [data-write-only]" in css
+    for control in ('data-rt-probe-form="${esc(p.id)}" data-write-only', "data-rt-refresh data-write-only",
+                    'class="rt-add" data-write-only'):
+        assert control in js, control
+    assert js.count("data-rt-enable=") == js.count('data-name="${esc(s.name)}" data-write-only') + js.count('data-name="${esc(svc.name)}" data-write-only') == 2
+
+    # 靜態外殼有改就要換快取名，舊的 service worker 快取才會被清掉
+    assert 'CACHE_NAME = "omnikit-cockpit-v6"' in sw

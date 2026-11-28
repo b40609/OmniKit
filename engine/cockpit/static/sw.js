@@ -1,5 +1,5 @@
-// OmniKit 個人控制面板 Service Worker（v5）：API 永遠直連，靜態外殼以去 query 網址當快取鍵（防網址參數殘留快取）
-const CACHE_NAME = "omnikit-cockpit-v5";
+// OmniKit 個人控制面板 Service Worker（v6）：API 永遠直連，靜態外殼以去 query 網址當快取鍵（防網址參數殘留快取）
+const CACHE_NAME = "omnikit-cockpit-v6";
 const SHELL_ASSETS = ["/", "/style.css", "/app.js", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {

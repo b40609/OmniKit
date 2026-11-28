@@ -491,7 +491,13 @@ class CockpitApp:
         return out
 
     def runtime_payload(self) -> dict[str, Any]:
-        return {**self.current_runtime(), "poller": self.poller_status(), "watchdog": self.watchdog_status()}
+        # server_time：前端拿它當時間基準判斷快照有沒有過期，手機時鐘不準也不會誤報
+        return {
+            **self.current_runtime(),
+            "poller": self.poller_status(),
+            "watchdog": self.watchdog_status(),
+            "server_time": datetime.now(UTC).isoformat(timespec="seconds"),
+        }
 
     def _project_entry(self, project_id: str) -> tuple[str, Path | None]:
         pid = collector.validate_project_id(project_id)

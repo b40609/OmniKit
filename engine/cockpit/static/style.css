@@ -329,6 +329,13 @@ svg { flex: 0 0 auto; }
   font-size: 13px;
 }
 .reconcile-banner b { color: var(--text); font-weight: 500; }
+.stale-banner {
+  flex-wrap: wrap;
+  background: var(--danger-soft);
+  border-bottom-color: var(--danger);
+  color: var(--text);
+}
+.stale-banner b { color: var(--danger); font-weight: 600; }
 
 .drift-stack {
   flex: 0 0 auto;
@@ -718,6 +725,7 @@ body.is-readonly [data-toggle-critique] { pointer-events: none; opacity: 0.55; c
 }
 .row-tag.t-warn { color: var(--warn); font-weight: 500; }
 .row-tag.t-accent { color: var(--accent); font-weight: 500; }
+.row-tag.t-danger { color: var(--danger); font-weight: 500; }
 .row-preview {
   font-size: 13px;
   line-height: 1.55;
@@ -1229,6 +1237,185 @@ a.tool-name:hover { text-decoration: underline; text-underline-offset: 3px; }
   box-shadow: var(--shadow-sheet);
 }
 
+
+/* ---------- 運行態三軸（活著嗎｜版本對嗎｜資料新嗎） ----------
+   燈號只用既有語意色：實心綠＝已證實、空心綠＝只證實活著、琥珀＝漂移、紅＝異常、灰虛線＝暫停或無資料。
+   每個燈號旁邊一定有文字，不靠顏色單獨傳達狀態。 */
+.rt-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  display: inline-block;
+}
+.rt-dot.rt-solid { background: var(--accent); }
+.rt-dot.rt-hollow { border: 2px solid var(--accent); background: transparent; }
+.rt-dot.rt-amber { background: var(--warn); }
+.rt-dot.rt-red { background: var(--danger); }
+.rt-dot.rt-gray { border: 1.5px dashed var(--text-3); background: transparent; }
+body.is-stale .rt-dot { opacity: 0.35; }
+
+.rt-strip {
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  overflow: hidden;
+}
+.rt-strip-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-2);
+  min-width: 0;
+}
+.rt-strip-line b { color: var(--text); font-weight: 500; }
+.rt-strip-line > .rt-dot { margin-top: 6px; }
+.rt-strip-line > span { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
+.rt-strip-line > .tag { flex: 0 0 auto; }
+.rt-muted { color: var(--text-3); }
+.rt-alert-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.rt-alert-row:hover { background: var(--hover); }
+.rt-alert-name { flex: 0 1 auto; min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
+.rt-alert-text {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--text-2);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rt-alert-row svg { flex: 0 0 auto; color: var(--text-3); }
+.rt-strip-more { padding: 8px 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--text-3); }
+
+.rt-head { flex-wrap: wrap; }
+/* 手機詳情頁頂部有黏住的返回列：跳到這一段時留出它的高度，標題才不會被蓋住 */
+.rt-section { scroll-margin-top: 72px; }
+.rt-svc {
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.rt-svc[data-level="bad"] { border-color: var(--danger); }
+.rt-svc-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px 10px 16px;
+  min-width: 0;
+}
+.rt-svc-name { font-size: 14px; font-weight: 500; color: var(--text); min-width: 0; overflow-wrap: anywhere; }
+.rt-svc-off { margin-left: auto; }
+.rt-axes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border-top: 1px solid var(--line);
+}
+.rt-axis {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 10px 16px;
+  border: 0;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rt-axis:hover, .rt-axis[aria-expanded="true"] { background: var(--surface-2); }
+.rt-axis-q { font-size: 12px; color: var(--text-3); }
+.rt-axis-v { display: flex; align-items: center; gap: 8px; font-size: 14px; min-width: 0; }
+.rt-axis-v > span { min-width: 0; overflow-wrap: anywhere; }
+
+.rt-detail {
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+  font-size: 13px;
+  color: var(--text-2);
+  min-width: 0;
+}
+.rt-detail code {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 1px 6px;
+  border-radius: var(--r-tag);
+  background: var(--surface-2);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.rt-reason { margin: 0 0 10px; color: var(--text); line-height: 1.6; overflow-wrap: anywhere; }
+.rt-reason code { margin-right: 8px; }
+.rt-facts {
+  display: grid;
+  grid-template-columns: minmax(96px, max-content) minmax(0, 1fr);
+  gap: 4px 16px;
+  margin: 0 0 10px;
+}
+.rt-facts dt { color: var(--text-3); }
+.rt-facts dd { margin: 0; color: var(--text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.rt-src { margin: 0 0 8px; color: var(--text-3); overflow-wrap: anywhere; }
+.rt-src:last-child { margin-bottom: 0; }
+.rt-sub { margin: 12px 0 6px; font-size: 12px; color: var(--text-3); }
+.rt-probes { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
+.rt-probes li { display: grid; gap: 2px; padding-left: 10px; border-left: 2px solid var(--line-strong); min-width: 0; }
+.rt-probe-label { color: var(--text); font-weight: 500; overflow-wrap: anywhere; }
+.rt-probe-sum { overflow-wrap: anywhere; }
+.rt-probe-meta { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+.rt-errors { margin: 0 0 12px; padding-left: 18px; font-size: 13px; color: var(--warn); overflow-wrap: anywhere; }
+.rt-disabled { display: grid; gap: 4px; margin-bottom: 12px; }
+.rt-disabled-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-3);
+  min-width: 0;
+}
+.rt-disabled-row > span { min-width: 0; overflow-wrap: anywhere; }
+.rt-add { margin-top: 4px; }
+.rt-section .empty-muted { margin-bottom: 12px; line-height: 1.6; }
+.rt-form {
+  margin-top: 4px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  min-width: 0;
+}
+.rt-form .field-hint { margin: 0; }
+.rt-form > .field-hint { display: block; margin: 0 0 12px; }
+
 .mobile-nav { display: none; }
 
 /* ---------- 平板與手機（< 920px） ---------- */
@@ -1350,6 +1537,24 @@ a.tool-name:hover { text-decoration: underline; text-underline-offset: 3px; }
   .seg-btn { padding: 0 10px; }
   .insp-actions .btn { flex: 1 1 auto; }
   .field-row, .sidebar-head-actions { grid-template-columns: minmax(0, 1fr); }
+  .rt-axes { grid-template-columns: minmax(0, 1fr); }
+  .rt-axis { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+  .rt-axis-q { flex: 0 0 auto; }
+  .rt-axis-v { justify-content: flex-end; text-align: right; }
+  .rt-facts { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .rt-facts dd { margin-bottom: 6px; }
+  .rt-alert-row { flex-wrap: wrap; }
+  .rt-alert-text {
+    flex-basis: 100%;
+    padding-left: 18px;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow-wrap: anywhere;
+  }
+  .rt-alert-row svg { display: none; }
   .profile-dl, .tool-card, .acct-reco, .budget-panel { padding: 16px; }
   .prompt-copy-row, .cand-row { flex-direction: column; align-items: stretch; }
 }
