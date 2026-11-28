@@ -48,6 +48,34 @@ def receipt(evidence: str = "本回合第 5 次工具呼叫", scope: str | None 
     return "\n".join(lines) + "\n"
 
 
+def file_receipt(*evidence: str, scope: str = "沒驗的範圍：無") -> str:
+    """每一列的證據都是檔案的回執（沒有「第幾次工具呼叫」這種量不到時間的證據）。"""
+    rows = [f"| 項目 {i} | 實跑觀察 | 跑過 | 通過 | {ev} |" for i, ev in enumerate(evidence, 1)]
+    return "\n".join(["【完成待收尾】改好了。", "", "## 完工回執",
+                      "| 需求項 | 驗證層級 | 驗證指令或觀察 | 結果 | 證據位置 |", "|---|---|---|---|---|",
+                      *rows, scope]) + "\n"
+
+
+def _iso(t: float) -> str:
+    return datetime.fromtimestamp(t, UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+
+def transcript_with_writes(tmp_path: Path, start: float, writes: list, name: str = "t.jsonl",
+                           final: str | None = None, cwd: str | None = None) -> Path:
+    """造一份 Claude Code 對話紀錄：start 開工，依序用 Write 寫 writes（[(路徑, 時間)]），final 是最後一則回覆。"""
+    rows = [{"type": "user", "timestamp": _iso(start), "message": {"content": "開工"}}]
+    for i, (fp, t) in enumerate(writes):
+        rows.append({"type": "assistant", "timestamp": _iso(t), "message": {"id": f"m{i}", "content": [
+            {"type": "tool_use", "id": f"t{i}", "name": "Write", "input": {"file_path": fp, "content": "x"}}]}})
+    if final is not None:
+        rows.append({"type": "assistant", "timestamp": _iso(start + 1), "cwd": cwd,
+                     "message": {"id": "final", "content": [{"type": "text", "text": final}]}})
+    tr = tmp_path / name
+    tr.parent.mkdir(parents=True, exist_ok=True)
+    tr.write_text("\n".join(json.dumps(x, ensure_ascii=False) for x in rows) + "\n", encoding="utf-8")
+    return tr
+
+
 def stop(msg: str, **extra) -> dict:
     return {"hook_event_name": "Stop", "session_id": "s-test", "last_assistant_message": msg, **extra}
 
@@ -218,14 +246,14 @@ def test_evidence_older_than_session_is_stale(tmp_path):
 
 
 def test_session_start_comes_from_transcript(tmp_path):
+    """時間從對話紀錄讀。2026-11-28 照改法 4：要這段對話寫過程式碼，才拿最後一次寫程式碼的時間比。"""
     shot = tmp_path / "old.png"
     shot.write_bytes(b"png")
     old = time.time() - 3600
     os.utime(shot, (old, old))
-    tr = tmp_path / "t.jsonl"
-    started = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(time.time() - 60))
-    tr.write_text(json.dumps({"type": "user", "timestamp": started, "message": {"content": "開工"}}) + "\n", encoding="utf-8")
-    out = dc.handle(stop(receipt("old.png"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK)
+    now = time.time()
+    tr = transcript_with_writes(tmp_path, now - 60, [(str(tmp_path / "app.py"), now - 30)])
+    out = dc.handle(stop(file_receipt("old.png"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK)
     assert out["decision"] == "block" and "old.png" in out["reason"]
 
 
@@ -271,6 +299,7 @@ def test_done_file_written_this_turn_triggers(tmp_path):
             {"type": "tool_use", "id": "t1", "name": "Write", "input": {"file_path": str(done), "content": "ok"}}]}},
     ]
     tr.write_text("\n".join(json.dumps(x) for x in lines) + "\n", encoding="utf-8")
+    done.write_text("ok", encoding="utf-8")  # 改法 1.2：.done 要真的寫出來才算
     data = stop("寫好了。", cwd=str(tmp_path), transcript_path=str(tr))
     out = dc.handle(data, env=BLOCK)
     assert out["decision"] == "block" and "完工回執" in out["reason"]
@@ -482,6 +511,7 @@ def test_malformed_commands_do_not_raise(tmp_path, command):
 def test_replay_cli_without_limit_and_per_path_line_anchor(tmp_path):
     """回歸測試（PR #12 跨家複審 P2-1 / P2-4）：--replay 不帶 --limit 不丟 ValueError；網址埠號不掩蓋同列過期截圖。"""
     env = {**os.environ, "OMNIKIT_STATE_DIR": str(tmp_path / "st"), "USERPROFILE": str(tmp_path / "empty_home"), "HOME": str(tmp_path / "empty_home")}
+    env.pop("CLAUDE_CONFIG_DIR", None)  # 跑測試的這台若有設，--replay 會去掃真的設定資料夾
     proc = subprocess.run(
         [sys.executable, str(SCRIPTS / "done_check.py"), "--replay", "--json"],
         capture_output=True,
@@ -519,3 +549,329 @@ def test_replay_cli_without_limit_and_per_path_line_anchor(tmp_path):
         runner=lambda _args: (1, ""),
     )
     assert "evidence-stale" not in rules(res_anchor)
+
+
+# ---- 2026-11-28 照完工閘誤擋三方比對報告第 5 節補的缺口 ----
+
+@pytest.mark.parametrize("scope", [
+    "沒驗的範圍：\n- 系統匣圖示（沒有開實機看）\n- 手機寬度",
+    "**沒驗的範圍**：\n\n1. 系統匣圖示",
+    "沒驗的範圍：\n  * 手機寬度",
+])
+def test_scope_header_followed_by_list_counts(tmp_path, scope):
+    """「沒驗的範圍：」換行用條列寫（628166ec 實例）算有寫，不判 no-scope。"""
+    assert "no-scope" not in rules(dc.check(receipt(scope=scope), cwd=str(tmp_path)))
+
+
+@pytest.mark.parametrize("scope", [
+    "沒驗的範圍：",
+    "沒驗的範圍：\n\n## 下一步\n先等 CI",
+    "沒驗的範圍：\n- \n",
+    "沒驗的範圍：\n- …（沒有就寫「無」）",
+])
+def test_scope_header_without_content_is_still_no_scope(tmp_path, scope):
+    assert "no-scope" in rules(dc.check(receipt(scope=scope), cwd=str(tmp_path)))
+
+
+def test_old_reference_files_are_not_stale_when_session_wrote_no_code(tmp_path):
+    """改法 4（4a6d9b12 實例）：這段對話沒寫過程式碼，引用對話開始前就有的檔案（同步 log、資料表）不判 evidence-stale。"""
+    log = tmp_path / "sync.log"
+    log.write_text("ok", encoding="utf-8")
+    old = time.time() - 3600
+    os.utime(log, (old, old))
+    tr = transcript_with_writes(tmp_path, time.time() - 60, [])
+    assert dc.handle(stop(file_receipt("sync.log"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK) is None
+
+
+def test_old_reference_files_not_stale_when_session_wrote_only_docs(tmp_path):
+    """只寫了文件（.md）不算寫程式碼，不拿來當新鮮度的基準。"""
+    log = tmp_path / "sync.log"
+    log.write_text("ok", encoding="utf-8")
+    old = time.time() - 3600
+    os.utime(log, (old, old))
+    now = time.time()
+    tr = transcript_with_writes(tmp_path, now - 60, [(str(tmp_path / "NOW.md"), now - 30)])
+    assert dc.handle(stop(file_receipt("sync.log"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK) is None
+
+
+def test_evidence_older_than_last_code_write_is_stale(tmp_path):
+    """改法 4：寫過程式碼後，證據全都早於最後一次寫程式碼（就算晚於對話開始）判 evidence-stale。"""
+    now = time.time()
+    shot = tmp_path / "before_fix.png"
+    shot.write_bytes(b"png")
+    os.utime(shot, (now - 300, now - 300))
+    tr = transcript_with_writes(tmp_path, now - 600, [(str(tmp_path / "app.py"), now - 60)])
+    out = dc.handle(stop(file_receipt("before_fix.png"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK)
+    assert out["decision"] == "block" and "before_fix.png" in out["reason"]
+
+
+def test_one_fresh_evidence_after_last_code_write_is_enough(tmp_path):
+    """改法 4：至少一項證據不早於最後一次寫程式碼就通過，其餘的舊檔當參考。"""
+    now = time.time()
+    ref = tmp_path / "spec.md"
+    ref.write_text("spec", encoding="utf-8")
+    os.utime(ref, (now - 3600, now - 3600))
+    fresh = tmp_path / "pytest.txt"
+    fresh.write_text("3 passed", encoding="utf-8")
+    tr = transcript_with_writes(tmp_path, now - 600, [(str(tmp_path / "app.py"), now - 60)])
+    out = dc.handle(stop(file_receipt("spec.md", "pytest.txt"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK)
+    assert out is None
+
+
+def test_tool_call_row_does_not_hide_old_runtime_evidence(tmp_path):
+    """PR #13 審查 P1-2：量不到時間的列（第幾次工具呼叫）算中性，不能讓改碼前拍的截圖一起過關。"""
+    now = time.time()
+    shot = tmp_path / "old.png"
+    shot.write_bytes(b"png")
+    os.utime(shot, (now - 300, now - 300))
+    tr = transcript_with_writes(tmp_path, now - 600, [(str(tmp_path / "app.py"), now - 60)])
+    out = dc.handle(stop(receipt("old.png"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK)
+    assert out["decision"] == "block" and "old.png" in out["reason"]
+
+
+def test_old_reference_in_static_row_is_not_runtime_evidence(tmp_path):
+    """只看實跑觀察、截圖這類層級的列：靜態列引用舊規格檔、實跑列是工具呼叫，不判 evidence-stale。"""
+    now = time.time()
+    spec = tmp_path / "spec.md"
+    spec.write_text("spec", encoding="utf-8")
+    os.utime(spec, (now - 3600, now - 3600))
+    msg = ("【完成待收尾】改好了。\n\n## 完工回執\n| 需求項 | 驗證層級 | 驗證指令或觀察 | 結果 | 證據位置 |\n|---|---|---|---|---|\n"
+           "| 符合規格 | 靜態 | 對照規格 | 符合 | spec.md |\n| 畫面正確 | 實跑觀察 | 開面板 | 正確 | 本回合第 9 次工具呼叫 |\n沒驗的範圍：無\n")
+    tr = transcript_with_writes(tmp_path, now - 600, [(str(tmp_path / "app.py"), now - 60)])
+    assert dc.handle(stop(msg, cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK) is None
+
+
+def test_writes_outside_cwd_do_not_count_as_code_change(tmp_path):
+    """PR #13 審查 P1-1：在 cwd 外寫暫存腳本或 HTML 摘要，不算這段對話改了程式碼，引用稍早的報告不判 evidence-stale。"""
+    now = time.time()
+    cwd = tmp_path / "repo"
+    cwd.mkdir()
+    report = cwd / "sub-report.md"
+    report.write_text("ok", encoding="utf-8")
+    os.utime(report, (now - 600, now - 600))
+    tr = transcript_with_writes(tmp_path, now - 7200, [(str(tmp_path / "scratch" / "repro.py"), now - 60),
+                                                       (str(tmp_path / "scratch" / "summary.html"), now - 30)])
+    assert dc.handle(stop(file_receipt("sub-report.md"), cwd=str(cwd), transcript_path=str(tr)), env=BLOCK) is None
+
+
+@pytest.mark.parametrize("name", ["main.go", "lib.rs", "config.yaml", "settings.json", "schema.sql"])
+def test_non_doc_file_writes_count_as_change(tmp_path, name):
+    """PR #13 審查 P1-3：改法 4 寫的是「修改過檔案」，不限 CODE_EXTS；只有文件（.md 這類）不算。"""
+    now = time.time()
+    shot = tmp_path / "old.png"
+    shot.write_bytes(b"png")
+    os.utime(shot, (now - 300, now - 300))
+    tr = transcript_with_writes(tmp_path, now - 600, [(str(tmp_path / name), now - 60)])
+    out = dc.handle(stop(file_receipt("old.png"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK)
+    assert out["decision"] == "block" and "old.png" in out["reason"]
+
+
+def test_session_scan_reads_last_change(tmp_path):
+    now = time.time()
+    tr = transcript_with_writes(tmp_path, now - 600, [(str(tmp_path / "a.py"), now - 300),
+                                                      (str(tmp_path / "test_a.py"), now - 200),
+                                                      (str(tmp_path / "NOW.md"), now - 100),
+                                                      (str(tmp_path.parent / "elsewhere.py"), now - 50)])
+    scan = dc.session_scan(str(tr), str(tmp_path))
+    assert scan.has_transcript and scan.sees_writes
+    assert scan.last_code_write == pytest.approx(now - 200, abs=1)
+    assert dc.session_scan(None).last_code_write is None
+
+
+def _agy_transcript(tmp_path: Path, start: float, final: str) -> Path:
+    """照本機 Antigravity 紀錄的真實形狀：工具呼叫放在 PLANNER_RESPONSE.tool_calls[]，沒有頂層 TOOL_CALL。"""
+    rows = [{"source": "USER_EXPLICIT", "type": "USER_INPUT", "created_at": _iso(start), "content": "開工"},
+            {"source": "MODEL", "type": "PLANNER_RESPONSE", "created_at": _iso(time.time() - 60),
+             "tool_calls": [{"name": "write_file", "args": {"Path": str(tmp_path / "app.py"), "Content": "x"}}]},
+            {"source": "MODEL", "type": "PLANNER_RESPONSE", "created_at": _iso(time.time() - 1), "content": final}]
+    tr = tmp_path / "agy.jsonl"
+    tr.write_text("\n".join(json.dumps(x, ensure_ascii=False) for x in rows) + "\n", encoding="utf-8")
+    return tr
+
+
+def test_antigravity_falls_back_to_session_start_for_stale(tmp_path):
+    """PR #13 審查 P0-1：看不到寫檔紀錄的 agent（Antigravity）退回修前行為，拿對話開始時間逐項比。"""
+    now = time.time()
+    shot = tmp_path / "old.png"
+    shot.write_bytes(b"png")
+    os.utime(shot, (now - 86400, now - 86400))
+    tr = _agy_transcript(tmp_path, now - 7200, file_receipt("old.png"))
+    assert dc.session_scan(str(tr), str(tmp_path)).sees_writes is False
+    out = dc.handle({"hookEventName": "Stop", "conversationId": "c", "transcriptPath": str(tr), "cwd": str(tmp_path),
+                     "terminationReason": "NO_TOOL_CALL"}, env=BLOCK)
+    assert out["decision"] == "continue" and "old.png" in out["reason"]
+
+
+def test_codex_falls_back_to_session_start_for_stale(tmp_path):
+    """PR #13 審查 P0-1：Codex rollout 也看不到寫檔，退回對話開始時間逐項比。"""
+    now = time.time()
+    shot = tmp_path / "old.png"
+    shot.write_bytes(b"png")
+    os.utime(shot, (now - 86400, now - 86400))
+    tr = tmp_path / "rollout.jsonl"
+    rows = [{"timestamp": _iso(now - 7200), "type": "session_meta", "payload": {"timestamp": _iso(now - 7200)}},
+            {"timestamp": _iso(now - 60), "type": "response_item",
+             "payload": {"type": "custom_tool_call", "name": "apply_patch", "input": "*** Update File: app.py"}}]
+    tr.write_text("\n".join(json.dumps(x) for x in rows) + "\n", encoding="utf-8")
+    out = dc.handle(stop(file_receipt("old.png"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK)
+    assert out["decision"] == "block" and "old.png" in out["reason"]
+
+
+@pytest.mark.parametrize("scope", [
+    "## 沒驗的範圍\n- 手機寬度",
+    "### 沒驗的範圍：\n- 手機寬度",
+    "## 沒驗的範圍\n\n無",
+    "**沒驗的範圍**\n- 手機寬度",
+    "沒驗的範圍：\n無",
+    "沒驗的範圍：\n1、手機寬度",
+    "沒驗的範圍：\n（1）手機寬度",
+    "沒驗的範圍：\n- [ ] 手機寬度",
+])
+def test_scope_heading_and_newline_forms_count(tmp_path, scope):
+    """PR #13 審查 P1-4（改法 3.4）：標題式、粗體不加冒號、換行寫「無」、頓號與括號編號都算有寫。"""
+    assert "no-scope" not in rules(dc.check(receipt(scope=scope), cwd=str(tmp_path)))
+
+
+@pytest.mark.parametrize("scope", [
+    "沒驗的範圍：\n- - -",
+    "沒驗的範圍：\n- [ ]",
+    "沒驗的範圍：\n\n\n\n- 下一步：等 CI 跑完再 merge",
+    "## 沒驗的範圍\n\n## 下一步\n- 等 CI",
+])
+def test_scope_false_positives_are_still_no_scope(tmp_path, scope):
+    assert "no-scope" in rules(dc.check(receipt(scope=scope), cwd=str(tmp_path)))
+
+
+def test_table_row_mentioning_level_and_evidence_is_not_a_receipt(tmp_path):
+    """改法 3.3：一般表格的資料列剛好提到「層級」與「證據」，下一列不是分隔列，不能當成回執表頭。"""
+    msg = ("【完成待收尾】改好了。\n\n| 欄位 | 說明 |\n|---|---|\n| 驗證層級 | 證據位置要寫路徑 |\n| a | b |\n"
+           "沒驗的範圍：無\n")
+    assert "no-receipt" in rules(dc.check(msg, cwd=str(tmp_path)))
+
+
+def test_cross_repo_relative_evidence_resolves_from_deliverable(tmp_path):
+    """PR #13 審查 P1-5（改法 4.2）：回執在別的資料夾的交付檔裡，相對證據先照交付檔所在資料夾解析；
+    解不到的降成提示，不判 evidence-missing。"""
+    cwd = tmp_path / "repo"
+    cwd.mkdir()
+    other = tmp_path / "status" / "reports"
+    other.mkdir(parents=True)
+    (other / "evidence.txt").write_text("3 passed", encoding="utf-8")
+    deliverable = other / "r.md"
+    done = other / "r.md.done"
+    tr = transcript_with_writes(tmp_path, time.time() - 600, [(str(done), time.time() - 5)])
+    done.write_text("", encoding="utf-8")
+    deliverable.write_text(file_receipt("evidence.txt"), encoding="utf-8")
+    assert dc.handle(stop("寫好了。", cwd=str(cwd), transcript_path=str(tr)), env=BLOCK) is None
+    deliverable.write_text(file_receipt("not-here.txt"), encoding="utf-8")
+    r = dc.check("寫好了。", cwd=str(cwd), done_paths=[str(done)])
+    assert "evidence-missing" not in rules(r) and any(rule == "evidence-unverifiable" for rule, _ in r.hints)
+
+
+def test_done_only_mentioned_in_command_does_not_trigger(tmp_path):
+    """PR #13 審查 P1-6（改法 1.2）：指令文字裡提到 .done、檔案其實沒寫出來，不算這一回合寫了 .done。"""
+    command = 'cat > repro.py <<EOF\n(rep / "r.md.done").write_text("")\nEOF'
+    tr = transcript_with_command(tmp_path, command)
+    assert dc.handle(stop("寫好了。", cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK) is None
+
+
+def test_done_written_before_this_turn_does_not_trigger(tmp_path):
+    old = tmp_path / "old.md.done"
+    old.write_text("", encoding="utf-8")
+    past = time.time() - 86400 * 365 * 10  # transcript_with_command 的回合開在 2026-01-01，比它更早
+    os.utime(old, (past, past))
+    tr = transcript_with_command(tmp_path, f"echo ok > {old}")
+    assert dc.handle(stop("寫好了。", cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK) is None
+
+
+@pytest.mark.parametrize("args", [["--since", "yesterday"], ["--since", "2026/11/28"], ["--limit", "abc"], ["--since"],
+                                  ["--since", "--json"]])
+def test_replay_cli_rejects_bad_arguments_without_traceback(tmp_path, args):
+    env = {**os.environ, "OMNIKIT_STATE_DIR": str(tmp_path / "st"), "USERPROFILE": str(tmp_path), "HOME": str(tmp_path)}
+    env.pop("CLAUDE_CONFIG_DIR", None)
+    proc = subprocess.run([sys.executable, str(SCRIPTS / "done_check.py"), "--replay", *args],
+                          capture_output=True, text=True, encoding="utf-8", env=env, check=False)
+    assert proc.returncode == 2 and "Traceback" not in proc.stderr and proc.stderr.strip()
+
+
+def test_replay_limit_counts_replayed_not_skipped_and_reports_triggered(tmp_path):
+    home, other, st = _replay_home(tmp_path)
+    for i in range(3):  # 最新的 3 份都找不到 cwd
+        tp = transcript_with_writes(home / ".claude" / "projects" / "p", time.time() - 60, [], f"nocwd{i}.jsonl",
+                                    NO_RECEIPT)
+        os.utime(tp, (time.time() + 10 + i, time.time() + 10 + i))
+    rep = dc.replay_history(state_dir=st, home_dir=home, limit=3, extra_dirs=[other])
+    assert rep["replayed_transcripts"] == 3 and rep["triggered"] == 3
+
+
+def test_replay_labels_same_named_config_dirs_apart(tmp_path):
+    home, _, st = _replay_home(tmp_path)
+    twin = tmp_path / "elsewhere" / ".claude"
+    transcript_with_writes(twin / "projects" / "p", time.time() - 60, [], "e.jsonl", NO_RECEIPT,
+                           str(tmp_path / "work"))
+    rep = dc.replay_history(state_dir=st, home_dir=home, limit=50, extra_dirs=[twin])
+    assert sum(rep["by_config_dir"].values()) == 3 and len(rep["by_config_dir"]) == 3
+
+
+def _replay_home(tmp_path: Path):
+    home = tmp_path / "home"
+    work = tmp_path / "work"
+    work.mkdir()
+    st = tmp_path / "replay-state"
+    cwd = str(work)
+    transcript_with_writes(home / ".claude" / "projects" / "p", time.time() - 60, [], "a.jsonl", NO_RECEIPT, cwd)
+    transcript_with_writes(home / ".claude-kai" / "projects" / "p", time.time() - 60, [], "b.jsonl",
+                           receipt(scope=None), cwd)
+    transcript_with_writes(home / ".claude-kai" / "projects" / "p" / "s1" / "subagents", time.time() - 60, [],
+                           "c.jsonl", NO_RECEIPT, cwd)
+    other = tmp_path / "custom-config"
+    transcript_with_writes(other / "projects" / "p", time.time() - 60, [], "d.jsonl", NO_RECEIPT, cwd)
+    transcript_with_writes(home / ".claude" / "projects" / "p", time.time() - 60, [], "nocwd.jsonl", NO_RECEIPT)
+    return home, other, st
+
+
+def test_replay_scans_every_claude_config_dir_and_counts_rule_codes(tmp_path):
+    """改法 5：回放掃所有 ~/.claude*/projects 與 CLAUDE_CONFIG_DIR，排除子代理；規則用代號統計（no-scope 這類文字比對抓不到）。"""
+    home, other, st = _replay_home(tmp_path)
+    rep = dc.replay_history(state_dir=st, home_dir=home, limit=50, extra_dirs=[other])
+    assert rep["replayed_transcripts"] == 3
+    assert rep["skipped_no_cwd"] == 1
+    assert rep["would_block"] == 3
+    assert rep["by_rule"] == {"no-receipt": 2, "no-scope": 1}
+    assert rep["by_config_dir"] == {".claude": 1, ".claude-kai": 1, "custom-config": 1}
+
+
+def test_replay_since_filters_old_transcripts(tmp_path):
+    home, other, st = _replay_home(tmp_path)
+    old = datetime(2026, 1, 1, tzinfo=UTC).timestamp()
+    a = home / ".claude" / "projects" / "p" / "a.jsonl"
+    os.utime(a, (old, old))
+    rep = dc.replay_history(state_dir=st, home_dir=home, limit=50, extra_dirs=[other], since="2026-11-01")
+    assert rep["replayed_transcripts"] == 2 and rep["by_rule"] == {"no-receipt": 1, "no-scope": 1}
+
+
+def test_replay_cli_reads_claude_config_dir_and_since(tmp_path):
+    home, other, st = _replay_home(tmp_path)
+    env = {**os.environ, "OMNIKIT_STATE_DIR": str(st), "USERPROFILE": str(home), "HOME": str(home),
+           "CLAUDE_CONFIG_DIR": str(other)}
+    proc = subprocess.run([sys.executable, str(SCRIPTS / "done_check.py"), "--replay", "--json", "--since", "2026-01-01"],
+                          capture_output=True, text=True, encoding="utf-8", env=env, check=False)
+    assert proc.returncode == 0, proc.stderr
+    assert json.loads(proc.stdout)["by_config_dir"] == {".claude": 1, ".claude-kai": 1, "custom-config": 1}
+
+
+def test_fake_green_rules_match_wiring_audit():
+    """E：done_check 的 skip 規則跟 wiring_audit 共用同一組，兩邊改一邊沒改要在這裡紅。"""
+    import wiring_audit as wa
+
+    assert dc.FAKE_GREEN_LINE_RE.pattern == "(?:" + "|".join(p.pattern for _, p in wa.FAKE_GREEN_PATTERNS) + ")"
+    assert dc.CI_SWALLOW_LINE_RE.pattern == wa.CI_SWALLOW_RE.pattern
+    assert (dc.TEST_FILE_NAME_RE.pattern, dc.TEST_FILE_NAME_RE.flags) == (wa.TEST_FILE_RE.pattern, wa.TEST_FILE_RE.flags)
+    # 樣本用拼接寫，原始碼這一行本身才不會被 wiring_audit 的 diff 掃描當成新增的假綠燈
+    sk, only, todo, x = ".skip", ".only", ".todo", "x"
+    samples = [f"test{sk}('x', () => {{}})", f"test{sk}(cond, 'mac only')", f"{x}it('a')", f"describe{only}(",
+               f"it{todo}('t')", f"@pytest.mark{sk}(reason='x')", f"@pytest.mark{sk}if(sys.platform == 'win32')",
+               f"@unittest{sk}('x')", "expect(skip).toBe(1)"]
+    assert sum(bool(dc.FAKE_GREEN_LINE_RE.search(s)) for s in samples) == 6
+    for s in samples:
+        assert bool(dc.FAKE_GREEN_LINE_RE.search(s)) == any(p.search(s) for _, p in wa.FAKE_GREEN_PATTERNS), s
