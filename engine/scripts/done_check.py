@@ -623,8 +623,8 @@ def check(
             r.problems.append(("no-scope", "完工回執沒有「沒驗的範圍：」這一行（沒有也要寫「無」）"))
         missing, stale = [], []
         for row in rc.rows:
-            has_line_anchor = bool(re.search(r"(?::\d+|#L\d+)", row.evidence))
             for raw in cell_paths(row.evidence, base):
+                has_line_anchor = bool(re.search(re.escape(raw) + r"(?::\d+|#L\d+)", row.evidence))
                 p = resolve(raw, base)
                 try:
                     if not p.exists():
@@ -1182,6 +1182,8 @@ def replay_history(state_dir: Path | None = None, home_dir: Path | None = None, 
 
 
 def arg_after(flag: str, default=None):
+    if flag not in sys.argv:
+        return default
     i = sys.argv.index(flag)
     return sys.argv[i + 1] if len(sys.argv) > i + 1 and not sys.argv[i + 1].startswith("--") else default
 

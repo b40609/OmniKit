@@ -37,6 +37,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -191,10 +192,36 @@ def applied_path(state: Path | None = None) -> Path:
     return base / "state" / "applied.json"
 
 
+def _kit_lock_held() -> dict[str, int]:
+    """回傳全行程共用的同執行緒鎖計數表（跨 `import kit` 與 `engine.scripts.kit` 雙載入路徑皆共用同一份）。"""
+    tl = getattr(sys, "_omnikit_kit_lock_local", None)
+    if tl is None:
+        tl = threading.local()
+        setattr(sys, "_omnikit_kit_lock_local", tl)
+    held = getattr(tl, "held", None)
+    if held is None:
+        held = {}
+        tl.held = held
+    return held
+
+
 @contextlib.contextmanager
 def kit_lock(state: Path | None = None):
+    """跨行程與跨執行緒排他鎖；同一執行緒內具備可重入保護，防止 resolve_drift -> profiles.apply -> sync_profile_choice 自死結（修 PR #12 P1-B）。"""
     base = state if state is not None else statedir.state_dir()
     lock_file = base / "locks" / "kit.lock"
+    key = os.path.normcase(os.path.abspath(str(lock_file)))
+    held = _kit_lock_held()
+    if held.get(key, 0) > 0:
+        held[key] += 1
+        try:
+            yield
+        finally:
+            held[key] -= 1
+            if held[key] <= 0:
+                held.pop(key, None)
+        return
+
     lock_file.parent.mkdir(parents=True, exist_ok=True)
     if not lock_file.is_file() or lock_file.stat().st_size == 0:
         lock_file.write_bytes(b"0")
@@ -212,9 +239,11 @@ def kit_lock(state: Path | None = None):
                     time.sleep(0.05)
             else:
                 msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
+            held[key] = 1
             try:
                 yield
             finally:
+                held.pop(key, None)
                 try:
                     f.seek(0)
                     msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
@@ -224,9 +253,11 @@ def kit_lock(state: Path | None = None):
             import fcntl
 
             fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            held[key] = 1
             try:
                 yield
             finally:
+                held.pop(key, None)
                 fcntl.flock(f.fileno(), fcntl.LOCK_UN)
     finally:
         f.close()
@@ -852,6 +883,15 @@ def apply_tool_toggle(
             }
 
     mech = resolve_install_mechanism(tool_id, tdoc)
+    prev_doc = load(base)
+    prev_act = str(prev_doc.get("active_profile") or "default")
+    prev_tools = ((prev_doc.get("profiles") or {}).get(prev_act) or {}).get("tools") or {}
+    prev_choice = prev_tools.get(tool_id)
+    prev_tier = (
+        str(prev_choice["tier"])
+        if isinstance(prev_choice, dict) and prev_choice.get("tier")
+        else ("resident" if tool_id in DEFAULT_ENABLED_TOOLS and tool_id not in NEEDS_API_KEY else "disabled")
+    )
     updated_kit = patch(base, profile_patch={"tools": {tool_id: {"tier": tier}}})
     enable = tier in ("resident", "on_demand")
     actions: list[str] = []
@@ -923,9 +963,11 @@ def apply_tool_toggle(
                     else:
                         warnings.append(f"Claude（{cdir.name}）暫無法安裝 {plugin_id}（待連網或稍後重試）：{err_i.strip()[:120]}")
                 else:
-                    rc_d, _, _ = _exec([claude_exe, "plugin", "disable", plugin_id, "--scope", "user"], cenv)
+                    rc_d, _, err_d = _exec([claude_exe, "plugin", "disable", plugin_id, "--scope", "user"], cenv)
                     if rc_d == 0:
                         actions.append(f"Claude（{cdir.name}）已停用 {plugin_id}")
+                    else:
+                        warnings.append(f"Claude（{cdir.name}）停用 {plugin_id} 回傳非 0：{err_d.strip()[:120]}")
 
     if "codex" in plug_spec and tdoc.get("status") == "default":
         codex_exe = shutil.which("codex") or ("codex" if runner is not None else None)
@@ -945,19 +987,23 @@ def apply_tool_toggle(
                     else:
                         warnings.append(f"Codex（{xdir.name}）略過遠端安裝（{err_x.strip()[:100] or '待連網'}）")
                 else:
-                    rc_rx, _, _ = _exec([codex_exe, "plugin", "remove", plugin_id], xenv)
+                    rc_rx, _, err_rx = _exec([codex_exe, "plugin", "remove", plugin_id], xenv)
                     if rc_rx == 0:
                         actions.append(f"Codex（{xdir.name}）已停用 {plugin_id}")
+                    else:
+                        warnings.append(f"Codex（{xdir.name}）移除 {plugin_id} 回傳非 0：{err_rx.strip()[:100]}")
 
     if mech["mode"] == "manual" and enable:
         actions.append(f"已在設定檔記錄偏好：{tdoc.get('name', tool_id)}（手動安裝指令：{mech['manual_hint']}）")
 
-    cli_all_failed = bool(mech["mode"] == "auto_plugin" and attempted_cli > 0 and not actions and warnings)
+    cli_all_failed = bool(mech["mode"] == "auto_plugin" and enable and attempted_cli > 0 and not actions and warnings)
+    if cli_all_failed:
+        updated_kit = patch(base, profile_patch={"tools": {tool_id: {"tier": prev_tier}}})
     return {
         "ok": not cli_all_failed,
         "deferred": bool(warnings and not actions),
         "tool_id": tool_id,
-        "tier": tier,
+        "tier": prev_tier if cli_all_failed else tier,
         "install_mode": mech["mode"],
         "manual_hint": mech["manual_hint"],
         "rev": updated_kit.get("rev", 0),

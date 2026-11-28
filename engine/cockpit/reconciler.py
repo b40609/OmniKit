@@ -179,7 +179,8 @@ def _fallback_local_git_reconcile(
     last_hash = git_info.get("last_hash") or ""
     dirty = int(git_info.get("dirty_count") or 0)
 
-    old_raw = collector.read_utf8(now_path) if now_path.is_file() else ""
+    orig_stat = now_path.stat() if now_path.is_file() else None
+    old_raw = collector.read_utf8(now_path) if orig_stat is not None else ""
     parsed = collector.parse_now_md(old_raw) if old_raw.strip() else None
 
     if not old_raw.strip():
@@ -231,6 +232,11 @@ def _fallback_local_git_reconcile(
         body = "\n".join(lines).rstrip("\n") + "\n"
 
     collector.write_utf8_atomic(now_path, body)
+    if orig_stat is not None and parsed is not None and parsed.get("updated_source") != "header":
+        try:
+            os.utime(now_path, (orig_stat.st_atime, orig_stat.st_mtime))
+        except OSError:
+            pass
     sdir = state_dir if state_dir is not None else collector.default_state_dir()
     collector._maybe_git_commit_status(sdir, now_path, f"reconcile({project_id}): 本機 Git 狀態同步")
     suffix = f"（{reason_note}；僅同步 Git 摘要，未刷新對帳時間戳）" if reason_note else "（僅同步 Git 摘要）"

@@ -477,3 +477,45 @@ def test_malformed_markdown_does_not_raise(tmp_path, msg):
 def test_malformed_commands_do_not_raise(tmp_path, command):
     tr = transcript_with_command(tmp_path, command)
     assert isinstance(dc.done_paths_this_turn(str(tr)), list)
+
+
+def test_replay_cli_without_limit_and_per_path_line_anchor(tmp_path):
+    """回歸測試（PR #12 跨家複審 P2-1 / P2-4）：--replay 不帶 --limit 不丟 ValueError；網址埠號不掩蓋同列過期截圖。"""
+    env = {**os.environ, "OMNIKIT_STATE_DIR": str(tmp_path / "st"), "USERPROFILE": str(tmp_path / "empty_home"), "HOME": str(tmp_path / "empty_home")}
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPTS / "done_check.py"), "--replay", "--json"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    rep = json.loads(proc.stdout)
+    assert rep["replayed_transcripts"] == 0
+
+    old_shot = tmp_path / "old_screen.png"
+    old_shot.write_bytes(b"png")
+    old_code = tmp_path / "module.py"
+    old_code.write_text("x = 1\n", encoding="utf-8")
+    past = time.time() - 3600
+    os.utime(old_shot, (past, past))
+    os.utime(old_code, (past, past))
+
+    # 同列寫了 http://127.0.0.1:3780 與時間 11:38，不得把 :3780 / :38 當成 old_screen.png 的行號錨點
+    res_stale = dc.check(
+        receipt("http://127.0.0.1:3780 (11:38) old_screen.png"),
+        cwd=str(tmp_path),
+        session_start=time.time(),
+        runner=lambda _args: (1, ""),
+    )
+    assert "evidence-stale" in rules(res_stale)
+
+    # 真實寫出 module.py:1 行號錨點時，既有程式碼檔不誤判 evidence-stale
+    res_anchor = dc.check(
+        receipt("module.py:1"),
+        cwd=str(tmp_path),
+        session_start=time.time(),
+        runner=lambda _args: (1, ""),
+    )
+    assert "evidence-stale" not in rules(res_anchor)
