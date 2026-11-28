@@ -510,6 +510,7 @@ def test_malformed_commands_do_not_raise(tmp_path, command):
 def test_replay_cli_without_limit_and_per_path_line_anchor(tmp_path):
     """回歸測試（PR #12 跨家複審 P2-1 / P2-4）：--replay 不帶 --limit 不丟 ValueError；網址埠號不掩蓋同列過期截圖。"""
     env = {**os.environ, "OMNIKIT_STATE_DIR": str(tmp_path / "st"), "USERPROFILE": str(tmp_path / "empty_home"), "HOME": str(tmp_path / "empty_home")}
+    env.pop("CLAUDE_CONFIG_DIR", None)  # 跑測試的這台若有設，--replay 會去掃真的設定資料夾
     proc = subprocess.run(
         [sys.executable, str(SCRIPTS / "done_check.py"), "--replay", "--json"],
         capture_output=True,

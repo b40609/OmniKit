@@ -42,6 +42,8 @@ codex_hooks.py（Stop）、sync.py 的 Antigravity 薄 plugin（Stop）。
 用法：uv run engine/scripts/done_check.py                      從 stdin 讀 hook 輸入（hook 用）
       uv run engine/scripts/done_check.py --check <檔案> [--cwd <資料夾>]  檢查一段文字（- 是 stdin），印出判斷
       uv run engine/scripts/done_check.py --selftest
+      uv run engine/scripts/done_check.py --replay [--limit N] [--since 2026-11-28] [--json]
+                                            回放 ~/.claude*/projects 與 CLAUDE_CONFIG_DIR 的對話紀錄，算擋下模式的攔截率
 """
 import json
 import os
@@ -68,6 +70,8 @@ NON_DONE_LABEL_LINE = re.compile(r"(?m)^[ \t]*(?:#{1,6}[ \t]+|[-*+][ \t]+)?(?:\*
 FENCE = re.compile(r"```[\s\S]*?(?:```|$)")
 SCOPE = re.compile(r"(?m)^[ \t>*\-]*(?:\*\*)?(?:沒驗的範圍|沒有驗的範圍|未驗證的範圍|未驗的範圍)(?:\*\*)?[ \t]*[:：]"
                    r"[ \t]*(?:\*\*)?[ \t]*(\S.*)?$")
+SCOPE_LIST_ITEM = re.compile(r"^[ \t>]*(?:[-*+•]|\d{1,3}[.)、])[ \t]+(\S.*)$")  # 「沒驗的範圍：」下一行的條列
+TOOL_CALL_REF = re.compile(r"工具呼叫|tool[ _-]?call", re.IGNORECASE)  # 「第幾次工具呼叫」：量不到時間的證據
 LOCAL_ONLY = re.compile(r"只在這台")
 NEGATIONS = ("不是", "並非", "不", "非", "沒有", "未必")  # 「不是只在這台」「不只在這台」不算宣告
 FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})")
@@ -213,6 +217,23 @@ def _scope_filled(value) -> bool:
     return bool(v.strip("….。 ")) and v != SCOPE_PLACEHOLDER
 
 
+def _has_scope(text: str) -> bool:
+    """「沒驗的範圍：」同一行有寫，或冒號後換行、下一個非空行是有內容的條列項目（628166ec 實例）。"""
+    for m in SCOPE.finditer(text):
+        if _scope_filled(m.group(1)):
+            return True
+        if m.group(1):
+            continue
+        for ln in text[m.end():].split("\n")[1:]:
+            if not ln.strip():
+                continue
+            item = SCOPE_LIST_ITEM.match(ln)
+            if item and _scope_filled(item.group(1)):
+                return True
+            break
+    return False
+
+
 def parse_receipt(text: str) -> Receipt | None:
     """找表頭含「層級」與「證據」的表格；沒有就回傳 None。
     程式碼區塊裡的不算（貼出來的範本或例子不能自己通過），範本的佔位列也不算一列。"""
@@ -241,7 +262,7 @@ def parse_receipt(text: str) -> Receipt | None:
         i += 1
     if not found:
         return None
-    return Receipt(rows, any(_scope_filled(m.group(1)) for m in SCOPE.finditer(text)))
+    return Receipt(rows, _has_scope(text))
 
 
 def evidence_paths(cell: str) -> list:
@@ -469,10 +490,27 @@ def fakegreen_problems(
     return []
 
 
+@dataclass
+class SessionScan:
+    has_transcript: bool = False  # 有讀到對話紀錄
+    changed_code: bool = False  # 本回合改過應用程式碼（不含測試檔）
+    touched: set = field(default_factory=set)  # 整個對話在 cwd 內寫過的相對路徑
+    committed: bool = False  # 整個對話執行過 git commit 這類指令
+    last_code_write: float | None = None  # 整個對話最後一次寫程式碼（含測試檔）的時間（epoch）；改法 4 拿它判 evidence-stale
+
+
 def session_edit_summary(path: str | None, cwd: str | None = None, subagent: bool = False) -> tuple[bool, bool, set[str], bool]:
     """回傳（是否有讀到對話紀錄, 本回合是否改過應用程式碼, 整個對話在 cwd 內碰過的相對路徑集合, 整個對話是否執行過 git commit）。"""
+    s = session_scan(path, cwd, subagent)
+    return s.has_transcript, s.changed_code, s.touched, s.committed
+
+
+def session_scan(path: str | None, cwd: str | None = None, subagent: bool = False) -> SessionScan:
+    """讀對話紀錄尾端，整理這段對話寫過哪些檔、有沒有 commit、最後一次寫程式碼的時間。
+    寫檔時間取發出工具呼叫那一筆的時間（Claude 的 timestamp、Antigravity 的 created_at），會比真正寫入早一點，判斷偏寬。
+    只看 Write／Edit 這類工具與 Antigravity 的 Path 參數；用 shell 改檔（sed、腳本）看不到。"""
     if not path or not Path(path).is_file():
-        return False, False, set(), False
+        return SessionScan()
     try:
         with open(path, "rb") as f:
             f.seek(0, 2)
@@ -480,7 +518,7 @@ def session_edit_summary(path: str | None, cwd: str | None = None, subagent: boo
             f.seek(max(0, size - TAIL * 2))
             raw = f.read()
     except OSError:
-        return False, False, set(), False
+        return SessionScan()
     lines = raw.decode("utf-8", errors="replace").splitlines()
     entries = []
     for ln in lines:
@@ -495,15 +533,19 @@ def session_edit_summary(path: str | None, cwd: str | None = None, subagent: boo
     turn_changed_app_code = False
     session_touched: set[str] = set()
     session_committed = False
+    last_code_write: float | None = None
 
-    def _record_fp(raw_fp: str, *, in_this_turn: bool) -> None:
-        nonlocal turn_changed_app_code
+    def _record_fp(raw_fp: str, *, in_this_turn: bool, ts=None) -> None:
+        nonlocal turn_changed_app_code, last_code_write
         if not raw_fp:
             return
         fp = Path(raw_fp)
         name_low = fp.name.lower()
-        if in_this_turn and fp.suffix.lower() in CODE_EXTS and not TEST_FILE_NAME_RE.search(name_low):
+        is_code = fp.suffix.lower() in CODE_EXTS
+        if in_this_turn and is_code and not TEST_FILE_NAME_RE.search(name_low):
             turn_changed_app_code = True
+        if is_code and (t := _epoch(ts)) is not None and (last_code_write is None or t > last_code_write):
+            last_code_write = t
         if base_res is not None:
             try:
                 resolved = fp.resolve() if fp.is_absolute() else (base_res / fp).resolve()
@@ -519,7 +561,8 @@ def session_edit_summary(path: str | None, cwd: str | None = None, subagent: boo
                     continue
                 inp = b.get("input") if isinstance(b.get("input"), dict) else {}
                 if b.get("name") in WRITE_TOOLS:
-                    _record_fp(str(inp.get("file_path") or inp.get("notebook_path") or ""), in_this_turn=in_turn)
+                    _record_fp(str(inp.get("file_path") or inp.get("notebook_path") or ""), in_this_turn=in_turn,
+                               ts=e.get("timestamp"))
                 elif b.get("name") in SHELL_TOOLS:
                     cmd_s = str(inp.get("command") or "")
                     if GIT_COMMIT_CMD_RE.search(cmd_s):
@@ -527,7 +570,7 @@ def session_edit_summary(path: str | None, cwd: str | None = None, subagent: boo
         elif e.get("source") == "MODEL" and e.get("type") == "TOOL_CALL":
             args_d = e.get("args") if isinstance(e.get("args"), dict) else {}
             if args_d.get("Path"):
-                _record_fp(str(args_d.get("Path") or ""), in_this_turn=in_turn)
+                _record_fp(str(args_d.get("Path") or ""), in_this_turn=in_turn, ts=e.get("created_at"))
             cmd_line = str(args_d.get("CommandLine") or "")
             if GIT_COMMIT_CMD_RE.search(cmd_line):
                 session_committed = True
@@ -536,7 +579,7 @@ def session_edit_summary(path: str | None, cwd: str | None = None, subagent: boo
             raw_c = str(p.get("arguments") or p.get("input") or "")
             if GIT_COMMIT_CMD_RE.search(raw_c):
                 session_committed = True
-    return True, turn_changed_app_code, session_touched, session_committed
+    return SessionScan(True, turn_changed_app_code, session_touched, session_committed, last_code_write)
 
 
 def turn_edit_summary(path: str | None, cwd: str | None = None, subagent: bool = False) -> tuple[bool, set[str]]:
@@ -572,6 +615,7 @@ def check(
     *,
     session_scoped: bool = False,
     session_committed: bool = False,
+    last_code_write: float | None = None,
 ) -> Result:
     stripped_msg = strip_fences(message or "")
     has_non_done_status = bool(NON_DONE_LABEL_LINE.search(stripped_msg)) and not bool(LABEL_LINE.search(stripped_msg))
@@ -621,28 +665,42 @@ def check(
             r.problems.append(("receipt-empty", "完工回執的表格沒有任何一列"))
         if not rc.has_scope:
             r.problems.append(("no-scope", "完工回執沒有「沒驗的範圍：」這一行（沒有也要寫「無」）"))
-        missing, stale = [], []
+        # 新鮮度的基準：有對話紀錄時照改法 4 用這段對話最後一次寫程式碼的時間（沒寫過程式碼就不判），
+        # 至少一項證據不早於它就過；沒有對話紀錄（--check、直接呼叫）沿用對話開始時間逐項比。
+        judge_ts = last_code_write if session_scoped else session_start
+        missing, stale, old = [], [], []
+        maybe_fresh = False
         for row in rc.rows:
+            row_judged = False
             for raw in cell_paths(row.evidence, base):
                 has_line_anchor = bool(re.search(re.escape(raw) + r"(?::\d+|#L\d+)", row.evidence))
                 p = resolve(raw, base)
                 try:
                     if not p.exists():
                         missing.append(raw)
-                    elif (
-                        session_start
-                        and p.is_file()
-                        and p.stat().st_mtime < session_start - SLACK
-                        and not has_line_anchor
-                        and not _is_git_tracked_file(cwd, p, runner=runner)
-                    ):
-                        stale.append(raw)
+                        continue
+                    if (not judge_ts or not p.is_file() or has_line_anchor
+                            or _is_git_tracked_file(cwd, p, runner=runner)):
+                        continue  # 程式碼行號、git 追蹤的檔是引用的出處，不是這次產生的證據
+                    is_old = p.stat().st_mtime < judge_ts - SLACK
                 except OSError:
                     continue
+                row_judged = True
+                if not is_old:
+                    maybe_fresh = True
+                elif session_scoped:
+                    old.append(raw)
+                else:
+                    stale.append(raw)
+            if not row_judged or TOOL_CALL_REF.search(row.evidence):
+                maybe_fresh = True  # 這列的證據量不到時間（第幾次工具呼叫、文字），寧可當成新的
         if missing:
             r.problems.append(("evidence-missing", f"證據位置的檔案不存在：{'、'.join(missing[:5])}"))
         if stale:
             r.problems.append(("evidence-stale", f"證據檔的修改時間早於這段對話開始，不是這次產生的：{'、'.join(stale[:5])}"))
+        elif session_scoped and old and not maybe_fresh:
+            r.problems.append(("evidence-stale", ("這段對話最後一次改程式碼之後，回執沒有任何一項新產生的證據"
+                                                  f"（證據檔都早於最後一次改程式碼）：{'、'.join(old[:5])}")))
         if rc.rows and all(row.static for row in rc.rows):
             r.hints.append(("static-only", STATIC_HINT))
         elif changed_code and rc.rows and not any(row.has_runtime for row in rc.rows):
@@ -942,45 +1000,63 @@ def record_tripwire(rule: str, session_id: str, agy: bool, mode: str, event: str
         pass
 
 
-def handle(data: dict, env=None, runner=None):
-    """回傳要印的 JSON（dict），或 None（不印）。Antigravity 一律要回 JSON，放行時回 {}。"""
+@dataclass
+class Evaluation:
+    result: Result | None  # None：關掉、已擋過一次、Antigravity 不是正常收尾，不檢查
+    agy: bool
+    mode: str
+    event: str
+    session_id: str
+
+
+def evaluate(data: dict, env=None, runner=None) -> Evaluation:
+    """判斷一次收尾，不寫 tripwire、不決定要印什麼（handle 與 --replay 共用）。"""
     env = os.environ if env is None else env
     data, agy = normalize(data)
-    allow = {} if agy else None
     mode = mode_of(env)
-    if mode == "off" or data.get("stop_hook_active"):
-        return allow  # 關掉，或已經擋過一次、agent 重新收尾了：放行
-    if agy and data.get("termination_reason") not in ("", "NO_TOOL_CALL"):
-        return allow  # 出錯、使用者取消、到上限：不是正常收尾
     event = data.get("hook_event_name") or "Stop"
+    ev = Evaluation(None, agy, mode, event, str(data.get("session_id") or ""))
+    if mode == "off" or data.get("stop_hook_active"):
+        return ev  # 關掉，或已經擋過一次、agent 重新收尾了：放行
+    if agy and data.get("termination_reason") not in ("", "NO_TOOL_CALL"):
+        return ev  # 出錯、使用者取消、到上限：不是正常收尾
     cwd = data.get("cwd") or os.getcwd()
     if agy:
         transcript = data.get("agy_transcript")
         message, done = agy_last_message(transcript), []
-        has_tr, changed_code, touched_files, sess_committed = session_edit_summary(transcript, cwd, False)
+        scan = session_scan(transcript, cwd, False)
     else:
         subagent = event == "SubagentStop"
         transcript = (data.get("agent_transcript_path") if subagent else None) or data.get("transcript_path")
         msg = data.get("last_assistant_message")
         message = msg if isinstance(msg, str) else ("" if subagent else last_message(data))
         done = done_paths_this_turn(transcript, subagent)
-        has_tr, changed_code, touched_files, sess_committed = session_edit_summary(transcript, cwd, subagent)
-    r = check(
+        scan = session_scan(transcript, cwd, subagent)
+    ev.result = check(
         message,
         cwd=cwd,
         session_start=session_start(transcript),
         done_paths=done,
         runner=runner,
-        changed_code=changed_code,
-        touched_files=touched_files if has_tr else None,
-        session_scoped=has_tr,
-        session_committed=sess_committed,
+        changed_code=scan.changed_code,
+        touched_files=scan.touched if scan.has_transcript else None,
+        session_scoped=scan.has_transcript,
+        session_committed=scan.committed,
+        last_code_write=scan.last_code_write,
     )
-    if not r.triggered:
+    return ev
+
+
+def handle(data: dict, env=None, runner=None):
+    """回傳要印的 JSON（dict），或 None（不印）。Antigravity 一律要回 JSON，放行時回 {}。"""
+    env = os.environ if env is None else env
+    ev = evaluate(data, env, runner)
+    r, agy, mode, event = ev.result, ev.agy, ev.mode, ev.event
+    allow = {} if agy else None
+    if r is None or not r.triggered:
         return allow
-    sid = str(data.get("session_id") or "")
     for rule, _ in r.problems + r.hints:
-        record_tripwire(rule, sid, agy, mode, event, env)
+        record_tripwire(rule, ev.session_id, agy, mode, event, env)
     if mode != "block":
         return allow
     if r.problems:
@@ -1140,43 +1216,100 @@ def selftest() -> int:
     return 1 if failures else 0
 
 
-def replay_history(state_dir: Path | None = None, home_dir: Path | None = None, *, limit: int = 50) -> dict:
-    """回放本機歷史 Claude Code 對話紀錄，評估目前 done_check 規則的觸發與攔截分布（供 12-11 結算誤擋率用）。"""
+REPLAY_LIMITS = "git 狀態用的是現在的工作樹，不是當時的；每份對話只看最後一則回覆；不含子代理與 Antigravity 的紀錄"
+
+
+def _replay_roots(home: Path, extra_dirs=()) -> list[Path]:
+    """要回放的 Claude Code 設定資料夾：~/.claude*（多帳號各一個）加 CLAUDE_CONFIG_DIR，重複的只算一次。"""
+    roots, seen = [], set()
+    for d in [*sorted(home.glob(".claude*")), *(Path(x) for x in extra_dirs if x)]:
+        try:
+            key = d.resolve()
+        except OSError:
+            continue
+        if key not in seen and (d / "projects").is_dir():
+            seen.add(key)
+            roots.append(d)
+    return roots
+
+
+def _since_epoch(since) -> float | None:
+    if not since:
+        return None
+    dt = datetime.fromisoformat(str(since))
+    return dt.timestamp()  # 沒帶時區當本機時間
+
+
+def _transcript_cwd(tp: Path) -> str:
+    cwd = ""
+    for ln in tp.read_text(encoding="utf-8", errors="replace").splitlines()[-40:]:
+        try:
+            obj = json.loads(ln)
+        except ValueError:
+            continue
+        if isinstance(obj, dict) and obj.get("cwd"):
+            cwd = str(obj["cwd"])
+    return cwd
+
+
+def replay_history(state_dir: Path | None = None, home_dir: Path | None = None, *, limit: int = 50,
+                   since=None, extra_dirs=()) -> dict:
+    """回放本機歷史 Claude Code 對話紀錄（擋下模式模擬、不寫 tripwire），評估規則的攔截分布（供 12-11 結算誤擋率用）。
+    掃所有 ~/.claude*/projects 與 extra_dirs（CLAUDE_CONFIG_DIR），排除子代理；since 只看這天以後改過的紀錄。"""
     st = state_dir if state_dir is not None else (Path.home() / ".omnikit")
     hm = home_dir if home_dir is not None else Path.home()
-    proj_root = hm / ".claude" / "projects"
-    transcripts: list[Path] = []
-    if proj_root.is_dir():
-        transcripts = sorted(proj_root.rglob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)[: max(1, limit)]
+    since_ts = _since_epoch(since)
+    found: list[tuple[float, Path, str]] = []
+    for root in _replay_roots(hm, extra_dirs):
+        for tp in (root / "projects").rglob("*.jsonl"):
+            if "subagents" in tp.parts:
+                continue
+            try:
+                mt = tp.stat().st_mtime
+            except OSError:
+                continue
+            if since_ts is None or mt >= since_ts:
+                found.append((mt, tp, root.name))
+    found.sort(key=lambda x: x[0], reverse=True)
     env_sim = {"OMNIKIT_DONE_CHECK": "block", "OMNIKIT_TRIPWIRE_LOG": "off", "OMNIKIT_STATE_DIR": str(st)}
-    total = 0
-    blocked = 0
+    total = blocked = skipped = 0
     by_rule: dict[str, int] = {}
+    by_dir: dict[str, int] = {}
+    blocked_by_dir: dict[str, int] = {}
     samples: list[dict] = []
-    for tp in transcripts:
-        total += 1
-        cwd_guess = ""
+    for _, tp, label in found[: max(1, limit)]:
         try:
-            for ln in tp.read_text(encoding="utf-8", errors="replace").splitlines()[-40:]:
-                obj = json.loads(ln)
-                if isinstance(obj, dict) and obj.get("cwd"):
-                    cwd_guess = str(obj["cwd"])
-        except (OSError, ValueError):
+            cwd = _transcript_cwd(tp)
+        except OSError:
+            cwd = ""
+        if not cwd or not Path(cwd).is_dir():
+            skipped += 1  # 找不到當時的 cwd：拿現在的資料夾去查 git 會亂判，跳過
             continue
-        res = handle({"hook_event_name": "Stop", "session_id": tp.stem, "transcript_path": str(tp), "cwd": cwd_guess}, env=env_sim)
-        if isinstance(res, dict) and res.get("decision") == "block":
-            blocked += 1
-            reason_txt = str(res.get("reason") or "")
-            for tag in ("no-receipt", "git-dirty", "git-unpushed", "evidence-stale", "evidence-missing", "fake-green", "no-runtime-proof"):
-                if tag in reason_txt or (tag == "no-receipt" and "沒有完工回執" in reason_txt) or (tag == "git-dirty" and "未提交的變更" in reason_txt):
-                    by_rule[tag] = by_rule.get(tag, 0) + 1
-            if len(samples) < 8:
-                samples.append({"transcript": tp.name, "cwd": cwd_guess, "reason_head": reason_txt.splitlines()[1] if len(reason_txt.splitlines()) > 1 else reason_txt[:120]})
+        total += 1
+        by_dir[label] = by_dir.get(label, 0) + 1
+        ev = evaluate({"hook_event_name": "Stop", "session_id": tp.stem, "transcript_path": str(tp), "cwd": cwd},
+                      env=env_sim)
+        r = ev.result
+        if r is None or not r.triggered or not r.problems:
+            continue
+        blocked += 1
+        blocked_by_dir[label] = blocked_by_dir.get(label, 0) + 1
+        codes = sorted({rule for rule, _ in r.problems})
+        for code in codes:
+            by_rule[code] = by_rule.get(code, 0) + 1
+        if len(samples) < 8:
+            samples.append({"transcript": tp.name, "config_dir": label, "cwd": cwd, "rules": codes,
+                            "first_problem": r.problems[0][1][:160]})
     return {
         "replayed_transcripts": total,
+        "skipped_no_cwd": skipped,
         "would_block": blocked,
         "block_rate_pct": round((blocked / total) * 100, 2) if total else 0.0,
         "by_rule": by_rule,
+        "by_config_dir": by_dir,
+        "blocked_by_config_dir": blocked_by_dir,
+        "since": str(since) if since else None,
+        "limitations": REPLAY_LIMITS,
         "samples": samples,
     }
 
@@ -1194,11 +1327,14 @@ if __name__ == "__main__":
     if "--replay" in sys.argv:
         sys.stdout.reconfigure(encoding="utf-8")
         lim = int(arg_after("--limit", "60") or 60)
-        rep = replay_history(limit=lim)
+        rep = replay_history(limit=lim, since=arg_after("--since"),
+                             extra_dirs=[os.environ.get("CLAUDE_CONFIG_DIR") or ""])
         if "--json" in sys.argv:
             print(json.dumps(rep, ensure_ascii=False, indent=2))
         else:
-            print(f"回放近期 {rep['replayed_transcripts']} 份對話紀錄：將攔截 {rep['would_block']} 筆（{rep['block_rate_pct']}%），規則分布：{rep['by_rule']}")
+            print(f"回放近期 {rep['replayed_transcripts']} 份對話紀錄（另有 {rep['skipped_no_cwd']} 份找不到 cwd 跳過）："
+                  f"將攔截 {rep['would_block']} 份（{rep['block_rate_pct']}%），規則分布：{rep['by_rule']}，"
+                  f"各設定資料夾：{rep['by_config_dir']}\n限制：{rep['limitations']}")
         sys.exit(0)
     if "--check" in sys.argv:
         sys.stdout.reconfigure(encoding="utf-8")
