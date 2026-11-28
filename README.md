@@ -49,14 +49,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 |---|---|
 | 原本的設定會不會被蓋掉 | 規則只加一段受管區塊，第一次接上先備份；若你外部手動改過受管區塊，背景同步自動保留並在面板提示三選一 |
 | 裝了什麼、吃多少額度看得到嗎 | 控制面板即時顯示每個工具佔用的開場 Context token 數；`-WhatIf` 預覽零寫入副作用 |
-| AI 老是只跑假測試就說完工怎麼辦 | 內建防假完工護欄（`done_check` 預設攔截 `.skip` 假綠燈與無實測宣稱）＋ `/ok 驗收` 真機瀏覽器驗收 |
+| AI 老是只跑假測試就說完工怎麼辦 | 內建防假完工護欄（`done_check` 記錄並可切強制攔截 `.skip` 假綠燈與無實測宣稱）＋ `/ok 驗收` 真機瀏覽器驗收 |
 | 不想用了怎麼辦 | `engine\scripts\uninstall.ps1` 停止面板並只拿掉 OmniKit 加的東西，備份放回原位 |
 
 之後要更新到新發行版：`git fetch --tags`，再跑 `install.ps1 -Tag <版本> -WhatIf` 預覽、`install.ps1 -Tag <版本>` 套用。fork 一份自己維護與每一處改動的完整清單，見[安裝說明](docs/install.md)。
 
 ## 裝好之後
 
-安裝完成會自動開啟本機控制面板（隨時可在對話打 `/ok 面板` 或執行 `uv run scripts/cockpit.py open` 叫出來，預設按需啟動不常駐吃資源），並在對話裡提供 `/ok` 總入口：
+安裝完成會自動開啟本機控制面板（隨時可在對話打 `/ok 面板` 或執行 `uv run ~/.omnikit/current/scripts/cockpit.py open` 叫出來，預設按需啟動不常駐吃資源），並在對話裡提供 `/ok` 總入口：
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/session-dark.svg">
@@ -69,16 +69,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 <tr>
 <td width="50%" valign="top">
 
-### 本機控制面板與一鍵精選工作台
+### 本機控制面板與精選工作台
 
-不用背指令、不用手改 YAML：在瀏覽器一頁勾選目標套餐、個人習慣與精選工具（`chrome-devtools-mcp`、`gitleaks`、`frontend-design`、`skill-creator`、`claude-code-setup` 等免金鑰套件開箱預選），即時預覽三家 Agent 開場 Context 預算，一鍵同步到位。
+不用背指令、不用手改 YAML：在瀏覽器一頁勾選目標套餐、個人習慣與精選工具（外掛與內建 MCP 一鍵同步啟停，外部 CLI 記錄偏好並附安裝指令），即時預覽三家 Agent 開場 Context 預算估算。
 
 </td>
 <td width="50%" valign="top">
 
 ### 防假完工護欄與 `/ok 驗收`
 
-根治「AI 寫一堆 Mock 單測全綠就宣稱完工，真人一打開就白屏報錯」：`done_check` 預設強制攔截偷加 `.skip` 的假綠燈與無實測證據的完工宣稱；搭配 `/ok 驗收`（`omnikit-verify`）自動掃描斷頭引用、真開服務與桌機／手機寬度瀏覽器確認 0 錯誤。
+根治「AI 寫一堆 Mock 單測全綠就宣稱完工，真人一打開就白屏報錯」：`done_check` 追蹤偷加 `.skip` 的假綠燈與無實測證據的完工宣稱（預設記錄模式，面板可隨時切換強制攔截）；搭配 `/ok 驗收`（`omnikit-verify`）自動掃描斷頭引用、真開服務與桌機／手機寬度瀏覽器確認 0 錯誤。
 
 </td>
 </tr>
@@ -147,7 +147,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 <details>
 <summary><b>裝好了，要去哪裡調整設定或開關工具？</b></summary>
 
-安裝完成會自動打開本機控制面板（`http://127.0.0.1:3780/`）；平常關閉瀏覽器後，隨時可在對話輸入 `/ok 面板`、從 Windows 開始功能表點「OmniKit 控制面板」，或在終端機執行 `uv run scripts/cockpit.py open` 重新開啟。改完規則與工具後，新開的 Agent 對話即生效。
+安裝完成會自動打開本機控制面板（`http://127.0.0.1:3780/`）；平常關閉瀏覽器後，隨時可在對話輸入 `/ok 面板`、從 Windows 開始功能表點「OmniKit 控制面板」，或在任意資料夾執行 `uv run ~/.omnikit/current/scripts/cockpit.py open` 重新開啟。改完規則與工具後，新開的 Agent 對話即生效。
 
 </details>
 

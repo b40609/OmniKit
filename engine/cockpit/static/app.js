@@ -203,8 +203,15 @@
   }
 
   // ---------- 預算與草稿計算 ----------
+  function normalizeAgentKey(raw) {
+    const k = String(raw || "").trim().toLowerCase();
+    if (k === "claude" || k === "claude-code") return "claude-code";
+    if (k === "agy" || k === "antigravity") return "antigravity";
+    return k;
+  }
+
   function filterCompatibleTools(toolIds, boot) {
-    const installed = boot?.installed_agents || [];
+    const installed = (boot?.installed_agents || []).map(normalizeAgentKey).filter(Boolean);
     if (!installed.length) return new Set(toolIds);
     const byId = new Map((boot?.workbench?.items || []).map((it) => [it.id, it]));
     const out = new Set();
@@ -212,7 +219,7 @@
       const item = byId.get(tid);
       if (!item) continue;
       if (item.needs_key) continue;
-      const works = item.works_with || [];
+      const works = (item.compatible_agents || item.works_with || []).map(normalizeAgentKey).filter(Boolean);
       if (!works.length || works.some((w) => installed.includes(w))) {
         out.add(tid);
       }
@@ -234,11 +241,15 @@
     state.setupDraft = {
       profileName: defaultProfName,
       preset: "fullstack-app",
+      doneCheck: boot.done_check || "log",
       language: prev.language || "zh-TW",
       verbosity: prev.verbosity || "concise",
       autonomy: prev.autonomy || "balanced",
       domains: new Set(prev.domains?.length ? prev.domains : ["software-dev"]),
       pains: new Set(prev.pains?.length ? prev.pains : ["anti-fake-done", "no-verification", "guesses", "scope-creep", "manual-steps"]),
+      evaluateTools: Boolean(prev.evaluate_tools),
+      background: prev.background || "",
+      projects: prev.projects || null,
       tools: enabledTools,
       importCandidates: new Set((boot.candidate_projects || []).slice(0, 3).map((c) => c.path)),
     };
@@ -342,12 +353,13 @@
       const quickToolsHtml = quickTools.map((it) => {
         const on = d.tools.has(it.id);
         const lockedKey = it.needs_key ? `（需環境變數 ${it.needs_key}）` : "";
+        const modeTag = it.install_badge || (it.install_mode === "manual" ? "記錄偏好" : "一鍵啟停");
         return `
           <div class="quick-tool-row ${on ? "is-on" : ""}">
             <div class="qt-main">
               <div class="qt-title">
                 <span>${esc(it.name)}</span>
-                <span class="tag">${esc(it.trust?.label || "精選")}</span>
+                <span class="tag">${esc(modeTag)}</span>
                 ${it.recommended_reason ? `<span class="tag tag-accent">推薦</span>` : ""}
               </div>
               <div class="qt-desc">${esc(it.summary)}${esc(lockedKey)}</div>
@@ -438,6 +450,14 @@
               </select>
             </label>
             <label class="opt-group">
+              <span>完工檢查護欄（done_check）</span>
+              <select id="wiz-done-check" class="select-field">
+                <option value="log" ${d.doneCheck === "log" ? "selected" : ""}>僅記錄，不阻斷對話（推薦預設）</option>
+                <option value="block" ${d.doneCheck === "block" ? "selected" : ""}>強制攔截未驗證收尾</option>
+                <option value="off" ${d.doneCheck === "off" ? "selected" : ""}>關閉檢查</option>
+              </select>
+            </label>
+            <label class="opt-group">
               <span>${boot.is_handwritten_profile ? "另存新設定檔代號（保留原手寫 AGENTS.md）" : "個人設定檔代號（小寫英數）"}</span>
               <input id="wiz-prof-name" type="text" class="composer-input" value="${esc(d.profileName)}" style="min-height:38px;">
             </label>
@@ -508,7 +528,7 @@
         </div>
         <div class="head-btn-row" data-write-only>
           <button type="button" class="btn btn-sm" id="btn-reopen-wizard">快速設定精靈</button>
-          <button type="button" class="btn btn-sm btn-primary" id="btn-home-new-proj">建立第一個新專案</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btn-home-new-proj">${projTotal > 0 ? "建立新專案" : "建立第一個新專案"}</button>
         </div>
       </div>
 
@@ -521,12 +541,12 @@
         <button type="button" class="stat-box" data-goto-tab="tools">
           <span class="stat-label">精選工作台套件</span>
           <span class="stat-value">已啟用 ${enabledCount} 項</span>
-          <span class="stat-note">Claude 開場約 ${(boot.workbench?.budget?.["claude-code"]?.percent_of_200k ?? 1.1)}% · 點此一鍵開關</span>
+          <span class="stat-note">Claude 開場約 ${(boot.workbench?.budget?.["claude-code"]?.percent_of_200k ?? 1.1)}% · 點此管理</span>
         </button>
         <button type="button" class="stat-box" data-goto-tab="settings">
           <span class="stat-label">防假完工護欄（done_check）</span>
           <span class="stat-value">${esc(dcLabel)}</span>
-          <span class="stat-note">近 30 天攔截假綠燈／未驗證 ${trip30} 次</span>
+          <span class="stat-note">近 30 天擋下 ${boot.tripwire?.blocked_30d ?? 0} 次 · 記錄 ${boot.tripwire?.logged_30d ?? trip30} 次</span>
         </button>
         <button type="button" class="stat-box" data-goto-tab="accounts">
           <span class="stat-label">本機 Agent 與額度</span>
@@ -1055,6 +1075,10 @@
         const nameEl = safeItUrl
           ? `<a class="tool-name" href="${esc(safeItUrl)}" target="_blank" rel="noopener">${esc(it.name)}${ICON.ext}</a>`
           : `<span class="tool-name">${esc(it.name)}</span>`;
+        const installBadge = it.install_badge || (it.install_mode === "manual" ? "記錄偏好（需手動裝）" : "一鍵啟停");
+        const manualBlock = it.install_mode === "manual" && it.manual_hint
+          ? `<div class="tool-desc" style="margin-top:6px;"><b>安裝方式</b>　<code class="mono">${esc(it.manual_hint)}</code></div>`
+          : "";
         return `
           <article class="tool-card ${it.enabled ? "is-enabled" : ""}">
             <div class="tool-head">
@@ -1062,6 +1086,7 @@
                 ${nameEl}
                 <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">
                   <span class="tag ${it.enabled ? "tag-accent" : ""}">${esc(it.trust?.label || "實測精選")}</span>
+                  <span class="tag tag-outline">${esc(installBadge)}</span>
                   ${it.recommended_reason ? `<span class="tag tag-outline" title="${esc(it.recommended_reason)}">專案推薦</span>` : ""}
                   ${it.needs_key ? `<span class="tag tag-warn">需 ${esc(it.needs_key)}</span>` : ""}
                 </div>
@@ -1070,6 +1095,7 @@
             </div>
             ${it.summary ? `<p class="tool-desc">${esc(it.summary)}</p>` : ""}
             ${it.trigger_when ? `<p class="tool-desc"><b>使用時機</b>　${esc(it.trigger_when)}</p>` : ""}
+            ${manualBlock}
             <div class="tool-tags">
               <span>支援：${esc(works)}</span>
               <span>·</span>
@@ -1096,15 +1122,21 @@
         method: "POST",
         body: JSON.stringify({ tool_id: toolId, tier: nextTier }),
       });
-      if (res.deferred && !res.ok) {
-        showToast(res.message || "需要設定環境變數金鑰");
+      if (!res.ok) {
+        showToast(res.message || (res.warnings || [])[0] || "切換失敗，請檢查環境設定");
       } else {
         if (state.bootstrap && res.workbench) {
           state.bootstrap.workbench = res.workbench;
           state.bootstrap.rev = res.workbench.rev;
         }
         const warnTxt = (res.warnings || [])[0];
-        showToast(warnTxt ? `已更新設定（${warnTxt}）` : (currentlyEnabled ? `已停用 ${toolId}` : `已啟用 ${toolId}`));
+        if (warnTxt) {
+          showToast(`已更新設定（${warnTxt}）`);
+        } else if (res.install_mode === "manual") {
+          showToast(currentlyEnabled ? `已停用 ${toolId} 偏好記錄` : `已記錄 ${toolId} 偏好（請依卡片指令手動安裝）`);
+        } else {
+          showToast(currentlyEnabled ? `已停用 ${toolId}` : `已啟用 ${toolId}`);
+        }
       }
       renderWorkbenchTab();
       renderHome();
@@ -1231,17 +1263,23 @@
   }
 
   async function fixDoctor() {
+    const hasDrifts = (state.bootstrap?.drifts || []).length > 0;
+    if (hasDrifts) {
+      if (!window.confirm("目前有偵測到外部手改的規則區塊。按「確定」將修復遺失的技能連結、外掛與 MCP，並自動保護保留你的手改區塊不被覆寫。要繼續嗎？")) {
+        return;
+      }
+    }
     const btn = $("#btn-fix-doctor");
     if (btn) {
       btn.disabled = true;
       btn.textContent = "修復同步中…";
     }
     try {
-      const res = await api("/api/doctor/fix", { method: "POST", body: JSON.stringify({}) });
+      const res = await api("/api/doctor/fix", { method: "POST", body: JSON.stringify({ force_overwrite: false }) });
       state.doctor = res.doctor;
       renderDoctor();
       await loadBootstrap(true);
-      showToast(res.ok ? "已完成同步修復，健康檢查全數通過" : "已執行同步，請查看剩餘提醒項目");
+      showToast(res.ok ? "已完成同步修復（手改區塊已保護保留）" : "已執行同步，請查看剩餘提醒項目");
     } catch (err) {
       showToast(err.message);
     } finally {
@@ -1398,7 +1436,7 @@
 
     const srcName = { statusline: "Claude Code 狀態列", t3_cache: "T3", manual: "手動登記" };
     const claudeRows = (data.claude || []).map((c) => {
-      const sub = [c.source ? `來自 ${srcName[c.source] || c.source}` : "尚無用量快照", fmtAge(c.age_hours)].filter(Boolean);
+      const sub = [c.source ? `來自 ${esc(srcName[c.source] || c.source)}` : "尚無用量快照", fmtAge(c.age_hours)].filter(Boolean);
       if (c.status === "stale") sub.push(`<span class="is-warn">資料較舊</span>`);
       return `
         <div class="acct-row">
@@ -1804,24 +1842,29 @@
           const d = state.setupDraft;
           const lv = ($("#wiz-lang-verb")?.value || "zh-TW:concise").split(":");
           const autonomy = $("#wiz-autonomy")?.value || "balanced";
+          const wizDoneCheck = $("#wiz-done-check")?.value || d.doneCheck || "log";
           const profName = ($("#wiz-prof-name")?.value || d.profileName || "personal").trim().toLowerCase();
+
+          const ansPayload = {
+            name: profName,
+            language: lv[0],
+            verbosity: lv[1],
+            autonomy,
+            domains: [...d.domains],
+            pains: [...d.pains],
+            evaluate_tools: Boolean(d.evaluateTools),
+          };
+          if (d.background) ansPayload.background = d.background;
+          if (d.projects) ansPayload.projects = d.projects;
 
           const res = await api("/api/kit/apply", {
             method: "POST",
             body: JSON.stringify({
               expected_rev: state.bootstrap?.rev,
               preset: [d.preset],
-              done_check: "block",
+              done_check: wizDoneCheck,
               tools: [...d.tools],
-              answers: {
-                name: profName,
-                language: lv[0],
-                verbosity: lv[1],
-                autonomy,
-                domains: [...d.domains],
-                pains: [...d.pains],
-                evaluate_tools: false,
-              },
+              answers: ansPayload,
             }),
           });
           if (res.rev && state.bootstrap) state.bootstrap.rev = res.rev;
@@ -1865,6 +1908,7 @@
         state.setupDraft.verbosity = v;
       }
       if (e.target.id === "wiz-autonomy") state.setupDraft.autonomy = e.target.value;
+      if (e.target.id === "wiz-done-check") state.setupDraft.doneCheck = e.target.value;
       if (e.target.id === "wiz-prof-name") state.setupDraft.profileName = e.target.value;
     });
 
@@ -2042,6 +2086,8 @@
           await loadOverview(false, true);
         } catch (err) {
           showToast(err.message);
+        } finally {
+          togBtn.disabled = false;
         }
         return;
       }

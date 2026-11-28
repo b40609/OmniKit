@@ -195,7 +195,7 @@ def build_autostart_ps1(
         f"$Port = {int(port)}\n"
         "try {\n"
         "  $h = Invoke-RestMethod -Uri \"http://${HostAddr}:${Port}/api/health\" -TimeoutSec 2 -ErrorAction Stop\n"
-        "  if ($h.service -eq 'omnikit-cockpit') { exit 0 }\n"
+        f"  if ($h.service -eq 'omnikit-cockpit' -and $h.version -eq '{_ps_sq(server.SERVER_VERSION)}') {{ exit 0 }}\n"
         "} catch {}\n"
         f"$LogDir = '{_ps_sq(log_file.parent)}'\n"
         "New-Item -ItemType Directory -Force -Path $LogDir | Out-Null\n"
@@ -236,6 +236,47 @@ def _spawn_detached_windows(ps_exe: str, ps1_path: Path, repo_root: Path) -> Non
         subprocess.Popen(cmd_auto, creationflags=base_flags, **popen_kw)
 
 
+def _terminate_verified_cockpit_pid(host: str, port: int, recorded_pid: int | None = None) -> bool:
+    """僅在已透過 /api/health 確認目標埠是 omnikit-cockpit、但舊版無 /api/server/stop 時，安全終止該伺服器行程。"""
+    candidate_pids: list[int] = []
+    if isinstance(recorded_pid, int) and recorded_pid > 0 and recorded_pid != os.getpid():
+        candidate_pids.append(recorded_pid)
+    if os.name == "nt":
+        ps_find = (
+            f"Get-NetTCPConnection -LocalAddress '{host}' -LocalPort {int(port)} -State Listen -ErrorAction SilentlyContinue "
+            "| Select-Object -ExpandProperty OwningProcess -Unique"
+        )
+        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps_find], capture_output=True, text=True, check=False)
+        for ln in (r.stdout or "").splitlines():
+            if ln.strip().isdigit():
+                p = int(ln.strip())
+                if p > 0 and p != os.getpid() and p not in candidate_pids:
+                    candidate_pids.append(p)
+    for pid in candidate_pids:
+        try:
+            if os.name == "nt":
+                chk = subprocess.run(
+                    ["powershell", "-NoProfile", "-Command", f"(Get-Process -Id {pid} -ErrorAction SilentlyContinue).ProcessName"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                pname = (chk.stdout or "").strip().lower()
+                if pname and any(tag in pname for tag in ("python", "uv", "pwsh", "powershell")):
+                    subprocess.run(["powershell", "-NoProfile", "-Command", f"Stop-Process -Id {pid} -Force -ErrorAction SilentlyContinue"], capture_output=True, check=False)
+            else:
+                import signal
+
+                os.kill(pid, signal.SIGTERM)
+        except OSError:
+            continue
+    for _ in range(15):
+        if not probe_cockpit_health(host, port, timeout=0.5)[0]:
+            return True
+        time.sleep(0.15)
+    return not probe_cockpit_health(host, port, timeout=0.5)[0]
+
+
 def launch_on_demand(
     state_dir: Path,
     *,
@@ -245,35 +286,47 @@ def launch_on_demand(
     open_browser: bool = False,
     wait_seconds: float = 15.0,
 ) -> dict[str, Any]:
-    """按需背景啟動控制面板（零常駐預設）：已啟動則直接重用，未啟動則分離背景啟動並等 /api/health 就緒。"""
+    """按需背景啟動控制面板：已啟動且版本一致則重用；若為升級前舊版實例則自動停舊換新（修 M-P1-6）。"""
+    expected_ver = server.SERVER_VERSION
     recorded = read_server_info(state_dir)
     if recorded and isinstance(recorded.get("port"), int):
         r_host = str(recorded.get("host") or host)
         r_port = int(recorded["port"])
         alive, hdoc = probe_cockpit_health(r_host, r_port)
         if alive:
-            url = f"http://{r_host}:{r_port}/"
+            if hdoc.get("version") == expected_ver and (not recorded.get("instance") or hdoc.get("instance") == recorded.get("instance")):
+                url = f"http://{r_host}:{r_port}/"
+                opened = False
+                if open_browser:
+                    try:
+                        opened = bool(webbrowser.open(url))
+                    except Exception:  # noqa: BLE001
+                        opened = False
+                return {"ok": True, "reused": True, "version": hdoc.get("version"), "url": url, "port": r_port, "instance": hdoc.get("instance"), "opened": opened}
+            stop_running_server(state_dir, default_host=r_host, default_port=r_port)
+
+    alive_pref, hdoc_pref = probe_cockpit_health(host, preferred_port)
+    if alive_pref:
+        if hdoc_pref.get("version") == expected_ver:
+            url = f"http://{host}:{preferred_port}/"
             opened = False
             if open_browser:
                 try:
                     opened = bool(webbrowser.open(url))
                 except Exception:  # noqa: BLE001
                     opened = False
-            return {"ok": True, "reused": True, "url": url, "port": r_port, "instance": hdoc.get("instance"), "opened": opened}
-
-    alive_pref, hdoc_pref = probe_cockpit_health(host, preferred_port)
-    if alive_pref:
-        url = f"http://{host}:{preferred_port}/"
-        opened = False
-        if open_browser:
-            try:
-                opened = bool(webbrowser.open(url))
-            except Exception:  # noqa: BLE001
-                opened = False
-        return {"ok": True, "reused": True, "url": url, "port": preferred_port, "instance": hdoc_pref.get("instance"), "opened": opened}
+            return {"ok": True, "reused": True, "version": hdoc_pref.get("version"), "url": url, "port": preferred_port, "instance": hdoc_pref.get("instance"), "opened": opened}
+        stop_running_server(state_dir, default_host=host, default_port=preferred_port)
 
     cockpit_dir = state_dir / "cockpit"
     cockpit_dir.mkdir(parents=True, exist_ok=True)
+    # 若已有舊版登入自啟腳本，順手刷新為新版腳本內容
+    auto_ps1 = cockpit_dir / "autostart-cockpit.ps1"
+    if auto_ps1.is_file():
+        try:
+            auto_ps1.write_text(build_autostart_ps1(repo_root, state_dir, host=host, port=preferred_port, strict_port=True), encoding="utf-8")
+        except OSError:
+            pass
     if os.name == "nt":
         ps1_path = cockpit_dir / "launch-on-demand.ps1"
         ps1_path.write_text(
@@ -303,7 +356,7 @@ def launch_on_demand(
         check_ports = [int(info["port"])] if info and isinstance(info.get("port"), int) else [preferred_port]
         for p in check_ports:
             alive, hdoc = probe_cockpit_health(host, p, timeout=1.2)
-            if alive:
+            if alive and hdoc.get("version") == expected_ver:
                 url = f"http://{host}:{p}/"
                 opened = False
                 if open_browser:
@@ -311,7 +364,7 @@ def launch_on_demand(
                         opened = bool(webbrowser.open(url))
                     except Exception:  # noqa: BLE001
                         opened = False
-                return {"ok": True, "reused": False, "url": url, "port": p, "instance": hdoc.get("instance"), "opened": opened}
+                return {"ok": True, "reused": False, "version": hdoc.get("version"), "url": url, "port": p, "instance": hdoc.get("instance"), "opened": opened}
         time.sleep(0.25)
 
     return {
@@ -322,32 +375,47 @@ def launch_on_demand(
     }
 
 
-def stop_running_server(state_dir: Path, *, default_host: str = "127.0.0.1", default_port: int = 3780) -> dict[str, Any]:
+def stop_running_server(
+    state_dir: Path,
+    *,
+    default_host: str = "127.0.0.1",
+    default_port: int = 3780,
+    explicit_port: int | None = None,
+) -> dict[str, Any]:
     info = read_server_info(state_dir)
     host = str((info or {}).get("host") or default_host)
-    port = int((info or {}).get("port") or default_port)
+    port = int(explicit_port) if explicit_port is not None else int((info or {}).get("port") or default_port)
+    rec_pid = int(info["pid"]) if info and isinstance(info.get("pid"), int) else None
     alive, _ = probe_cockpit_health(host, port)
     if not alive:
-        server_info_path(state_dir).unlink(missing_ok=True)
-        return {"ok": True, "stopped": False, "note": "目前沒有執行中的控制面板伺服器"}
+        if explicit_port is None:
+            server_info_path(state_dir).unlink(missing_ok=True)
+        return {"ok": True, "stopped": False, "port": port, "note": "目前沒有執行中的控制面板伺服器"}
+    stop_http_ok = False
     try:
         st_s, ses = _http_json(f"http://{host}:{port}/api/session", timeout=2.0)
         tok = ses.get("token") if st_s == 200 and isinstance(ses, dict) else None
         if tok:
-            _http_json(
+            st_stop, _ = _http_json(
                 f"http://{host}:{port}/api/server/stop",
                 method="POST",
                 payload={},
                 headers={"X-OmniKit-Token": str(tok)},
                 timeout=2.0,
             )
+            stop_http_ok = st_stop == 200
     except OSError:
         pass
-    for _ in range(20):
-        if not probe_cockpit_health(host, port, timeout=0.6)[0]:
-            server_info_path(state_dir).unlink(missing_ok=True)
-            return {"ok": True, "stopped": True, "port": port}
-        time.sleep(0.15)
+    if stop_http_ok:
+        for _ in range(20):
+            if not probe_cockpit_health(host, port, timeout=0.6)[0]:
+                server_info_path(state_dir).unlink(missing_ok=True)
+                return {"ok": True, "stopped": True, "port": port}
+            time.sleep(0.15)
+    # 舊版無 /api/server/stop（404）或優雅關閉逾時：透過已驗證之 PID 後備終止
+    if _terminate_verified_cockpit_pid(host, port, recorded_pid=rec_pid):
+        server_info_path(state_dir).unlink(missing_ok=True)
+        return {"ok": True, "stopped": True, "port": port, "fallback_killed": True}
     return {"ok": False, "stopped": False, "port": port, "error": "伺服器未在預期時間內結束"}
 
 
@@ -374,18 +442,38 @@ def manage_autostart(
         ps1_path.parent.mkdir(parents=True, exist_ok=True)
         ps1_path.write_text(build_autostart_ps1(repo_root, state_dir, host=host, port=port, strict_port=True), encoding="utf-8")
         if os.name == "nt":
+            import base64
+            import uuid
+
             lnk_path.parent.mkdir(parents=True, exist_ok=True)
             ps_exe = str(Path(os.environ.get("SystemRoot") or r"C:\Windows") / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe")
+            save_target = lnk_path
+            short_stage: Path | None = None
+            if len(str(lnk_path)) >= 240:
+                for anc in lnk_path.parents:
+                    cand = anc / f".ok-lnk-{uuid.uuid4().hex[:8]}.lnk"
+                    if len(str(cand)) < 220 and os.access(anc, os.W_OK):
+                        short_stage = cand
+                        save_target = cand
+                        break
+            esc_ps1_dq = str(ps1_path).replace('"', '`"').replace("'", "''")
             ps_cmd = (
                 "$sh = New-Object -ComObject WScript.Shell; "
-                f"$s = $sh.CreateShortcut('{str(lnk_path).replace(chr(39), chr(39)*2)}'); "
+                f"$s = $sh.CreateShortcut('{str(save_target).replace(chr(39), chr(39)*2)}'); "
                 f"$s.TargetPath = '{ps_exe.replace(chr(39), chr(39)*2)}'; "
-                f"$s.Arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{ps1_path}\"'; "
+                f"$s.Arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{esc_ps1_dq}\"'; "
                 f"$s.WorkingDirectory = '{str(repo_root).replace(chr(39), chr(39)*2)}'; "
                 "$s.WindowStyle = 7; "
                 "$s.Save()"
             )
-            subprocess.run([ps_exe, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd], check=True, capture_output=True)
+            encoded = base64.b64encode(ps_cmd.encode("utf-16-le")).decode("ascii")
+            try:
+                subprocess.run([ps_exe, "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded], check=True, capture_output=True)
+                if short_stage is not None and short_stage.is_file():
+                    collector.fs_retry(os.replace, short_stage, lnk_path)
+            finally:
+                if short_stage is not None and short_stage.exists():
+                    short_stage.unlink(missing_ok=True)
             if start_now and not probe_cockpit_health(host, port)[0]:
                 _spawn_detached_windows(ps_exe, ps1_path, repo_root)
                 for _ in range(40):
@@ -415,16 +503,20 @@ def selftest() -> int:
         if not cond:
             fails.append(label)
 
-    with tempfile.TemporaryDirectory(prefix="omnikit-cockpit-test-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="ok-cp-") as tmp:
         root = Path(tmp)
         state = root / "state"
         repo_a = root / "Alpha 專案"
         repo_a.mkdir(parents=True)
 
         def git(*args: str) -> None:
-            subprocess.run(["git", *args], cwd=str(repo_a), check=True, capture_output=True)
+            flags = ["-c", "core.longpaths=true", "-c", "commit.gpgsign=false"]
+            if args and args[0] != "init":
+                flags.extend(["--git-dir=.git", "--work-tree=."])
+            subprocess.run(["git", *flags, *args], cwd=str(repo_a), check=True, capture_output=True)
 
-        git("init")
+        git("init", "--quiet", ".")
+        git("config", "core.longpaths", "true")
         git("config", "user.name", "Test")
         git("config", "user.email", "test@example.com")
         (repo_a / "README.md").write_text("hello\n", encoding="utf-8")
@@ -639,6 +731,8 @@ def main() -> int:
     p_open.add_argument("--port", type=int, default=3780, help="首選埠號（預設 3780）")
 
     p_stop = sub.add_parser("stop", help="停止目前背景執行中的控制面板伺服器")
+    p_stop.add_argument("--host", default="127.0.0.1", help="監聽位址（預設 127.0.0.1）")
+    p_stop.add_argument("--port", type=int, default=None, help="指定連接埠（不指定則讀 server.json 或預設 3780）")
     p_stop.add_argument("--json", action="store_true", help="輸出 JSON 結果")
 
     p_serve = sub.add_parser("serve", help="前景啟動本機控制面板伺服器")
@@ -687,7 +781,7 @@ def main() -> int:
         return 0 if res.get("ok") else 1
 
     if args.cmd == "stop":
-        res = stop_running_server(sdir)
+        res = stop_running_server(sdir, default_host=args.host, explicit_port=args.port)
         if args.json:
             print(json.dumps(res, ensure_ascii=False))
         else:

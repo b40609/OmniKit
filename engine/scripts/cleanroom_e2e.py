@@ -113,20 +113,25 @@ def run_browser_journey(base_url: str, desktop_dir: Path) -> dict[str, Any]:
         metrics["starter_prompts_rendered"] = starter_count
         page.click("#dlg-starter [data-close]")
 
-        # 巡檢全部五個分頁並實測工作台開關
+        # 巡檢全部五個分頁並等待各頁真實內容渲染完成（修 Fable P1-8）
         for tab_name in ("cockpit", "tools", "accounts", "settings", "home"):
             page.click(f'.desk-nav [data-tab="{tab_name}"]')
-            page.wait_for_timeout(150)
-            if tab_name == "tools":
+            if tab_name == "cockpit":
+                page.wait_for_selector("[data-select-project]", timeout=10000)
+            elif tab_name == "tools":
                 page.wait_for_selector("[data-toggle-tool]", timeout=8000)
             elif tab_name == "accounts":
                 page.wait_for_selector("#doctor-panel .panel-head", timeout=10000)
+            elif tab_name == "settings":
+                page.wait_for_selector("#set-done-check", timeout=8000)
+            else:
+                page.wait_for_selector(".stat-strip", timeout=8000)
 
         desk_overflow = page.evaluate("document.documentElement.scrollWidth > window.innerWidth")
         metrics["desktop_horizontal_overflow"] = bool(desk_overflow)
         browser.close()
 
-        # 2. 手機 WebKit 390x844（iPhone 15 視口）：驗證 WebKit 渲染、0 橫向溢位、底部導覽 >= 44px、輸入框 >= 16px
+        # 2. 手機 WebKit 390x844（iPhone 15 視口）：驗證 WebKit 渲染、逐元素 0 裁切溢位、觸控目標 >= 44px、輸入框 >= 16px
         wk_engine = pw.webkit
         wk_browser = wk_engine.launch(headless=True)
         wk_ctx = wk_browser.new_context(
@@ -146,7 +151,15 @@ def run_browser_journey(base_url: str, desktop_dir: Path) -> dict[str, Any]:
         )
         metrics["mobile_nav_min_height"] = min(mobile_nav_heights) if mobile_nav_heights else 0
 
-        # 切到設定頁與專案頁檢查所有可見輸入框字級 >= 16px 且無橫向捲軸
+        # 切到工作台頁檢查手機開關觸控高度 >= 44px
+        wk_page.click('.mobile-nav [data-tab="tools"]')
+        wk_page.wait_for_selector("[data-toggle-tool]", timeout=8000)
+        switch_heights = wk_page.evaluate(
+            "Array.from(document.querySelectorAll('#tab-tools .switch-btn')).filter(el => el.offsetParent !== null).map(el => el.getBoundingClientRect().height)"
+        )
+        metrics["mobile_switch_min_height"] = min(switch_heights) if switch_heights else 44.0
+
+        # 切到設定頁與專案頁檢查所有可見輸入框字級 >= 16px，且逐元素檢查無超出視口寬度被 overflow:hidden 裁切（修 Fable P1-8、P2-1）
         wk_page.click('.mobile-nav [data-tab="settings"]')
         wk_page.wait_for_selector("#set-done-check", timeout=5000)
         settings_font_sizes = wk_page.evaluate(
@@ -154,14 +167,20 @@ def run_browser_journey(base_url: str, desktop_dir: Path) -> dict[str, Any]:
               .filter(el => el.offsetParent !== null)
               .map(el => parseFloat(getComputedStyle(el).fontSize))"""
         )
+        settings_clipped = wk_page.evaluate(
+            """() => Array.from(document.querySelectorAll('#tab-settings .field, #tab-settings select, #tab-settings input, #tab-settings .panel-card'))
+              .filter(el => el.offsetParent !== null && el.getBoundingClientRect().right > window.innerWidth + 1.5)
+              .map(el => el.tagName + (el.id ? '#' + el.id : ''))"""
+        )
         wk_page.click('.mobile-nav [data-tab="cockpit"]')
         wk_page.wait_for_selector("#project-search", timeout=5000)
         search_font = wk_page.evaluate("parseFloat(getComputedStyle(document.querySelector('#project-search')).fontSize)")
-        mobile_overflow = wk_page.evaluate("document.documentElement.scrollWidth > window.innerWidth")
+        mobile_overflow = wk_page.evaluate("document.documentElement.scrollWidth > window.innerWidth") or bool(settings_clipped)
 
         all_fonts = [*settings_font_sizes, search_font]
         metrics["mobile_min_input_font_px"] = min(all_fonts) if all_fonts else 16.0
         metrics["mobile_horizontal_overflow"] = bool(mobile_overflow)
+        metrics["mobile_clipped_elements"] = settings_clipped
         wk_browser.close()
 
     return {
@@ -269,10 +288,38 @@ def run_cleanroom(*, require_browser: bool = False) -> tuple[int, dict[str, Any]
 
             st_boot, boot = _http_json(f"{base_url}/api/bootstrap")
             by_agent = {a["id"]: a for a in boot.get("agents") or []}
+            rec_marked = [it["id"] for it in (boot.get("workbench", {}).get("items") or []) if it.get("recommended_reason")]
             check(
                 "J1-clean-codex-only",
-                "無 Claude 環境下 /api/bootstrap 正確識別 Codex 並預選前端專案推薦工具",
-                st_boot == 200 and by_agent["codex"]["found"] is True and boot["onboarding_completed"] is False,
+                "無 Claude 環境下 /api/bootstrap 正確識別 Codex 並標出前端專案推薦工具",
+                st_boot == 200 and by_agent["codex"]["found"] is True and boot["onboarding_completed"] is False and len(rec_marked) >= 2,
+                f"recommended={rec_marked}",
+            )
+
+            # J1b：純 Claude Code 環境預選回歸測試（修 Opus P0-1：claude-code 與 claude 代號對齊）
+            claude_home = base / "純Claude環境"
+            (claude_home / ".claude").mkdir(parents=True)
+            claude_app = server.CockpitApp(
+                state_dir=claude_home / ".omnikit",
+                home_dir=claude_home,
+                default_repo_root=None,
+                t3_runner=None,
+                cli_runner=lambda *_a, **_kw: (0, "[]", ""),
+                cache_ttl=0,
+                allowed_hosts=set(),
+            )
+            claude_boot = claude_app.get_bootstrap()
+            c_installed = set(claude_boot.get("installed_agents") or [])
+            c_preselected = [
+                it["id"]
+                for it in (claude_boot.get("workbench", {}).get("items") or [])
+                if it.get("enabled") and not it.get("needs_key") and any(a in c_installed for a in (it.get("compatible_agents") or []))
+            ]
+            check(
+                "J1b-clean-claude-only",
+                "純 Claude Code 環境正確對齊 compatible_agents 並預選全部 5 項免金鑰套件（含 claude-code-setup）",
+                c_installed == {"claude-code"} and len(c_preselected) >= 5 and "claude-code-setup" in c_preselected,
+                f"preselected={c_preselected}",
             )
 
             st_acc, acc = _http_json(f"{base_url}/api/accounts")
@@ -339,17 +386,19 @@ def run_cleanroom(*, require_browser: bool = False) -> tuple[int, dict[str, Any]
                 )
                 check(
                     "J4-five-tabs-and-mobile-webkit",
-                    "桌機與手機 WebKit 皆 0 橫向溢位，且手機輸入框字級 >= 16px、底部導覽 >= 44px",
+                    "桌機與手機 WebKit 逐元素 0 裁切溢位，且手機輸入框 >= 16px、底部導覽與開關觸控目標 >= 44px",
                     not m["desktop_horizontal_overflow"]
                     and not m["mobile_horizontal_overflow"]
                     and m["mobile_min_input_font_px"] >= 16.0
-                    and m["mobile_nav_min_height"] >= 44.0,
-                    f"minFont={m['mobile_min_input_font_px']}px, navH={m['mobile_nav_min_height']}px",
+                    and m["mobile_nav_min_height"] >= 44.0
+                    and m.get("mobile_switch_min_height", 44.0) >= 44.0,
+                    f"minFont={m['mobile_min_input_font_px']}px, navH={m['mobile_nav_min_height']}px, swH={m.get('mobile_switch_min_height')}px, clipped={m.get('mobile_clipped_elements')}",
                 )
             else:
                 if require_browser:
                     check("J4-five-tabs-and-mobile-webkit", "需要真實瀏覽器但未安裝 Playwright", False)
                 else:
+                    print("[略過] (J4-five-tabs-and-mobile-webkit) 未啟用真瀏覽器（CI 契約模式；交付前必跑 --require-browser）")
                     # 無瀏覽器二進位檔環境（如輕量 Linux runner）以真實 HTTP API 走完 J2 + J3
                     st_ap, ap = _http_json(
                         f"{base_url}/api/kit/apply",
@@ -357,7 +406,7 @@ def run_cleanroom(*, require_browser: bool = False) -> tuple[int, dict[str, Any]
                         token=token,
                         payload={
                             "preset": ["fullstack-app"],
-                            "done_check": "block",
+                            "done_check": "log",
                             "tools": ["chrome-devtools-mcp", "gitleaks", "frontend-design", "skill-creator"],
                             "answers": {
                                 "name": "personal",

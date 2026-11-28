@@ -130,7 +130,10 @@ def test_unpushed_commit_blocks_in_block_mode(pushed_repo):
 # ---- 模式與放行 ----
 
 def test_log_mode_records_but_does_not_block(tmp_path, state):
-    assert dc.handle(stop(NO_RECEIPT, cwd=str(tmp_path)), env={})["decision"] == "block"
+    assert dc.handle(stop(NO_RECEIPT, cwd=str(tmp_path)), env={}) is None
+    default_rows = hits(state)
+    assert default_rows and {r["mode"] for r in default_rows} == {"log"}
+    assert dc.handle(stop(NO_RECEIPT, cwd=str(tmp_path)), env=BLOCK)["decision"] == "block"
     state_log = tmp_path / "state-log"
     assert dc.handle(
         stop(NO_RECEIPT, cwd=str(tmp_path)),
@@ -304,9 +307,26 @@ def test_antigravity_stop_payload(tmp_path):
             "terminationReason": "NO_TOOL_CALL", "continuationActive": False}
     out = dc.handle(data, env=BLOCK)
     assert out["decision"] == "continue" and "完工回執" in out["reason"]
-    assert dc.handle(data, env={})["decision"] == "continue"
+    assert dc.handle(data, env={}) == {}
     assert dc.handle({**data, "continuationActive": True}, env=BLOCK) == {}
     assert dc.handle(data, env={"OMNIKIT_DONE_CHECK": "log"}) == {}
+
+
+def test_git_add_done_and_readonly_session_do_not_false_block(pushed_repo, tmp_path):
+    """三方比對誤擋根因 A、B：git add *.done 與【進行中】不誤觸發；唯讀子對話不連坐主線未提交變更。"""
+    (pushed_repo / "a.txt").write_text("mainline dirty\n", encoding="utf-8")
+    tr_ro = tmp_path / "readonly.jsonl"
+    tr_ro.write_text(
+        json.dumps({"type": "user", "timestamp": "2026-11-28T00:00:00Z", "message": {"content": "請唯讀審查"}}) + "\n",
+        encoding="utf-8",
+    )
+    out_ro = dc.handle(stop(receipt(), cwd=str(pushed_repo), transcript_path=str(tr_ro)), env=BLOCK)
+    assert out_ro is None
+
+    tr_git_add = transcript_with_command(tmp_path, 'git add -- "OmniKit/reports/review.md.done" && git commit -m "docs"')
+    assert dc.done_paths_this_turn(str(tr_git_add)) == []
+    out_prog = dc.handle(stop("【進行中】已歸檔報告，等待下一階段。", cwd=str(tmp_path), transcript_path=str(tr_git_add)), env=BLOCK)
+    assert out_prog is None
 
 
 def test_selftest_passes():

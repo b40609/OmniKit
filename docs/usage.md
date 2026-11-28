@@ -14,7 +14,7 @@
 安裝完成後會自動開啟**本機網頁控制面板**（`http://127.0.0.1:3780/`，包含首頁開箱精靈、專案 `NOW.md` 狀態板、精選工作台商店、Agent 健康檢查與額度、偏好設定五個分頁），同時為你電腦上的 Agent 接上安全底線與防假完工護欄、七個核心 skill（`omnikit-setup`、`omnikit-verify`、`omnikit-handoff`、`omnikit-dispatch`、`omnikit-research`、`omnikit-capabilities`、`omnikit-eval`，搭配唯一的 `/ok` 簡短總入口）、按需讀取的行動端前端底線 skill（`omnikit-mobile-web`），以及免金鑰精選工作台套件。**已經開著的對話不會重讀規則，新開的對話立即生效。**
 
 - **最省事的設定方式**：直接在瀏覽器的控制面板首頁勾選目標套餐、AI 工作習慣（全部 9 項自由複選，預設開啟防假完工）與精選套件，按「一鍵套用」即可寫入單一事實來源 `~/.omnikit/kit.yaml` 並同步到所有已安裝的 Agent。若還沒有任何專案，也能在面板裡一鍵建立第一個專案與 3 句破冰提示詞，完全免建 GitHub 帳號即可使用本機 `NOW.md` 狀態板。
-- **對話內指令**：關閉面板後，隨時可在對話輸入 `/ok 面板`（或執行 `uv run scripts/cockpit.py open`）重新打開；功能做完準備收尾前，輸入 `/ok 驗收` 執行防假完工真機與真瀏覽器檢查。
+- **對話內指令**：關閉面板後，隨時可在對話輸入 `/ok 面板`（或在任意目錄執行 `uv run ~/.omnikit/current/scripts/cockpit.py open`）重新打開；功能做完準備收尾前，輸入 `/ok 驗收` 執行防假完工真機與真瀏覽器檢查。
 
 設定完開新的對話試試看：
 
@@ -134,7 +134,7 @@ uv run engine/scripts/profiles.py --migrate       # 舊版存在 repo 裡的 pro
 <details>
 <summary><b>裝好了，要去哪裡調整設定或開關工具？</b></summary>
 
-隨時在對話輸入 `/ok 面板`，或在終端機執行 `uv run scripts/cockpit.py open` 打開本機控制面板，就能在網頁上檢視專案進度、一鍵啟停精選工具、調整習慣與防假完工攔截強度。修改後開新的對話即生效。
+隨時在對話輸入 `/ok 面板`，或在任意目錄執行 `uv run ~/.omnikit/current/scripts/cockpit.py open` 打開本機控制面板，就能在網頁上檢視專案進度、啟停精選外掛與 MCP、調整習慣與防假完工攔截強度。修改後開新的對話即生效。
 
 </details>
 

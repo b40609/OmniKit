@@ -7,7 +7,7 @@
 - **寫的與審的不同家，審查者不比作者弱**：有第二家模型時，重要結果換一家、用那家可用的最強同級模型唯讀審查；具體對應（含額度到期改判）照 `run.py show`，它只會列你方案裡有的模型（Fable 這類選配模型要在個人 `dispatch.md` 宣告才會用）。只有一家就不做跨家審查，也不讓同一個模型審自己。
 - **重大架構兩階段防迎合盲審**：重大架構決策採用兩階段盲審（Stage 1 不看既有提案，先將零錨定獨立設計寫入磁碟；Stage 2 才讀提案正面對決並列出改判條件）。**盲審與工具評測子對話必須隔離跨對話記憶注入**（如中性目錄、停用記憶 hook 或排除本專案觀察注入），嚴防記憶系統提前洩漏前輪結論。
 - **看不看得到過程是個人偏好**：派給 Antigravity 的子任務要開在 T3 看得到的對話（visible），還是走 agy 無頭模式只看結果（headless），照自己 profile `dispatch.md` 的 `visibility`；沒寫用政策的預設，`run.py show` 會印出這次該用的管道。
-- **派之前**：先跑 `run.py show` 選級別、模型與思考程度（Claude 設 `effort`，Antigravity 設 `thought_level`），寫進任務說明；不要沿用主線的設定，也不要靠預設值。
+- **派之前**：先跑 `run.py show` 選級別、模型與思考程度（Claude 設 `effort`，Antigravity 設 `thought_level`），寫進任務說明；不要沿用主線的設定，也不要靠預設值。任務標唯讀時，「唯讀」指交付物以外的檔案前後雜湊不變；要跑測試就包在 `fs_guard run`（`uv run engine/scripts/fs_guard.py run --watch <根目錄…> --allow <交付檔> -- <指令>`）裡，根目錄要含被 .gitignore 的資料夾與專案宣告的家目錄路徑；有允許清單外的變動就停下回報，不算違規，但不能宣稱沒改檔。
 - **派之後**：結果由主控驗收（讀它改的檔、跑測試），不只看它的回覆。收完、settle 之前用 `run.py log` 記一行；驗收不過照 `show` 印的順序升級，升級也記。
 - **不在 T3 裡也能派給 T3**：主控是 Claude Code、Codex 或 Antigravity 時，用 T3 Code 的本機 CLI `t3 thread start`（PowerShell 打 `t3`；Git Bash 要打 `t3.cmd`）開 T3 對話、指定帳號實例與模型；接了 T3 的 MCP（`t3_thread_launch`）優先用它。用法在政策的 `t3_thread_launch` 與 `t3_cli` 管道。
 - 專案規則對模型分工或驗收另有規定時，照專案規則。

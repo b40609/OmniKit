@@ -172,7 +172,16 @@ def _run_cmd(args: list[str], cwd: Path | None = None, timeout: int = 8) -> tupl
     if os.name == "nt":
         kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         if args and args[0] == "git" and "core.longpaths=true" not in args:
-            args = ["git", "-c", "core.longpaths=true", *args[1:]]
+            extra_git_flags = ["-c", "core.longpaths=true"]
+            subcmd = next((a for a in args[1:] if not a.startswith("-")), "")
+            if (
+                cwd is not None
+                and subcmd not in ("init", "clone")
+                and not any(a.startswith(("--git-dir", "--work-tree")) for a in args[1:])
+                and (cwd / ".git").exists()
+            ):
+                extra_git_flags.extend(["--git-dir=.git", "--work-tree=."])
+            args = ["git", *extra_git_flags, *args[1:]]
     try:
         proc = subprocess.run(args, check=False, **kwargs)
         return proc.returncode, proc.stdout or "", proc.stderr or ""
@@ -219,18 +228,19 @@ def validate_project_id(project_id: str) -> str:
     pid = str(project_id or "").strip()
     if (
         not pid
+        or pid.startswith(".")
         or pid.strip(".") == ""
         or pid.endswith(".")
         or pid.split(".")[0].upper() in WIN_RESERVED_NAMES
         or not SAFE_PROJECT_ID.match(pid)
     ):
-        raise ValueError("專案代號不可為空白、純句點或系統保留字，且只允許中英數字、點、底線與連字號")
+        raise ValueError("專案代號不可為空白、句點開頭、純句點或系統保留字，且只允許中英數字、點、底線與連字號")
     return pid
 
 
 def _slug_project_id(name: str) -> str:
     cleaned = re.sub(r"[^\w.-]+", "-", str(name or "").strip()).strip("-.")
-    if not cleaned or cleaned.strip(".") == "" or cleaned.split(".")[0].upper() in WIN_RESERVED_NAMES:
+    if not cleaned or cleaned.startswith(".") or cleaned.strip(".") == "" or cleaned.split(".")[0].upper() in WIN_RESERVED_NAMES:
         digest = hashlib.sha1(str(name or "").encode("utf-8")).hexdigest()[:6]
         return f"proj-{digest}"
     return cleaned
@@ -238,11 +248,23 @@ def _slug_project_id(name: str) -> str:
 
 def _default_desktop_dir(home: Path | None = None) -> Path:
     h = home if home is not None else Path.home()
+    is_real_home = os.path.normcase(str(h.resolve())) == os.path.normcase(str(Path.home().resolve()))
     candidates: list[Path] = []
-    if home is None:
-        od_env = os.environ.get("OneDrive", "").strip()
-        if od_env:
-            candidates.append(Path(od_env) / "Desktop")
+    if is_real_home:
+        if os.name == "nt":
+            try:
+                import winreg
+
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders") as k:
+                    raw_desk, _ = winreg.QueryValueEx(k, "Desktop")
+                    if isinstance(raw_desk, str) and raw_desk.strip():
+                        candidates.append(Path(os.path.expandvars(raw_desk.strip())))
+            except OSError:
+                pass
+        for env_key in ("OneDrive", "OneDriveCommercial", "OneDriveConsumer"):
+            od_env = os.environ.get(env_key, "").strip()
+            if od_env:
+                candidates.append(Path(od_env) / "Desktop")
     candidates.extend([h / "OneDrive" / "Desktop", h / "Desktop"])
     for cand in candidates:
         if cand.is_dir():
@@ -1113,6 +1135,13 @@ def create_starter_project(
     target_dir = (base_resolved / clean_name).resolve()
     if target_dir == base_resolved or target_dir.parent != base_resolved:
         raise ValueError("不合法的專案目錄名稱（解析路徑脫離上層資料夾）")
+
+    cfg = load_config(state_dir)
+    for existing_p in cfg.get("projects") or []:
+        if isinstance(existing_p, dict) and str(existing_p.get("id") or "").lower() == pid.lower():
+            raise FileExistsError(f"專案代號「{pid}」已存在，請換一個名稱或使用「登記既有資料夾」")
+    if target_dir.exists() and any(target_dir.iterdir()):
+        raise FileExistsError(f"目標資料夾「{target_dir}」已存在且非空白，為保護既有檔案不直接覆寫；請換個名稱或改用「登記既有資料夾」")
 
     target_dir.mkdir(parents=True, exist_ok=True)
     readme = target_dir / "README.md"

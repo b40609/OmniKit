@@ -20,6 +20,7 @@ jobs:
       - run: uv run engine/scripts/wiring_audit.py
       - run: uv run engine/scripts/kit.py --selftest
       - run: uv run engine/scripts/status.py --selftest
+      - run: uv run scripts/cockpit.py --selftest
       - run: uv run engine/scripts/cleanroom_e2e.py --selftest
       # marketplace 清單是由名冊產生的，commit 進來的版本要跟名冊一致
       - run: uv run engine/scripts/build.py --check

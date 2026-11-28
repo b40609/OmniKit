@@ -23,11 +23,11 @@
    （使用者規則對【完成待收尾】的定義：不能 push 的寫明只在這台）；程式碼區塊、行內程式碼與否定句（不是只在這台）不算。
 5. 回執每一列都是「靜態」層級：不擋，只提示把標籤降為【等你決定】並寫明「只有靜態檢查」。
 
-模式（環境變數 OMNIKIT_DONE_CHECK，未設時讀 ~/.omnikit/kit.yaml 的 done_check，預設為 block）：
-- block（預設）：有第 1 到 4 條、反假綠燈作弊（fake-green）或改程式卻無實跑證據（no-runtime-proof）的缺口就擋一次
-  （Claude Code／Codex 印 decision: block，Antigravity 印 decision: continue），只有第 5 條時印 systemMessage 提示。
-- log：只把命中寫進 ~/.omnikit/harness/tripwire-hits.jsonl（格式同 claim_check.py，多記 mode 與 event），
+模式（環境變數 OMNIKIT_DONE_CHECK，未設時讀 ~/.omnikit/kit.yaml 的 done_check，預設為 log）：
+- log（預設，12-11 結算前維持記錄模式）：只把命中寫進 ~/.omnikit/harness/tripwire-hits.jsonl（格式同 claim_check.py，多記 mode 與 event），
   不擋、不印任何東西。
+- block：有第 1 到 4 條、反假綠燈作弊（fake-green）或改程式卻無實跑證據（no-runtime-proof）的缺口就擋一次
+  （Claude Code／Codex 印 decision: block，Antigravity 印 decision: continue），只有第 5 條時印 systemMessage 提示。
 - off（或 0、false、no）：整個關掉。tripwire 紀錄另外可用 OMNIKIT_TRIPWIRE_LOG=off 關掉（同 claim_check.py）。
 stop_hook_active（Antigravity 是 continuationActive）為真一定放行，擋一次就好，不會無限迴圈。
 任何錯誤都安靜結束（exit 0）；git 每個指令有逾時，逾時就跳過。檢查壞掉不能卡住對話。
@@ -64,6 +64,7 @@ MAX_READ = 512 * 1024  # 交付檔最多讀這麼多字
 
 LABEL = "【完成待收尾】"
 LABEL_LINE = re.compile(r"(?m)^[ \t]*(?:#{1,6}[ \t]+|[-*+][ \t]+)?(?:\*\*)?【完成待收尾】")
+NON_DONE_LABEL_LINE = re.compile(r"(?m)^[ \t]*(?:#{1,6}[ \t]+|[-*+][ \t]+)?(?:\*\*)?【(?:進行中|等你決定|卡住)】")
 FENCE = re.compile(r"```[\s\S]*?(?:```|$)")
 SCOPE = re.compile(r"(?m)^[ \t>*\-]*(?:\*\*)?(?:沒驗的範圍|沒有驗的範圍|未驗證的範圍|未驗的範圍)(?:\*\*)?[ \t]*[:：]"
                    r"[ \t]*(?:\*\*)?[ \t]*(\S.*)?$")
@@ -76,9 +77,18 @@ RUNTIME_PROOF = re.compile(r"整合|integration|實跑|觀察|端到端|e2e|瀏�
 CODE_EXTS = {".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".vue", ".svelte", ".html", ".css", ".ps1", ".sh"}
 DONE_CLAIM_TEXT = re.compile(r"(?:已完成|已經完成|修好了|已經幫你.*修好|全部通過|測試全過|改好了|done\b|all tests pass)", re.IGNORECASE)
 FAKE_GREEN_LINE_RE = re.compile(
-    r"(?:\b(?:it|test|describe)\.skip\s*\(\s*['\"`]|\b(?:xit|xdescribe|xtest)\s*\(|@pytest\.mark\.skip\b(?!if)|@unittest\.skip\s*\()"
+    r"(?:\b(?:it|test|describe)\.skip\s*\(\s*['\"`]|\b(?:xit|xdescribe|xtest)\s*\("
+    r"|\b(?:it|test|describe)\.only\s*\(|\b(?:it|test)\.todo\s*\("
+    r"|@pytest\.mark\.skip\b(?!if)|@unittest\.skip\s*\()"
 )
+CI_SWALLOW_LINE_RE = re.compile(r"(?:\|\|\s*true\b|^\s*continue-on-error\s*:\s*true\b)")
 TEST_FILE_NAME_RE = re.compile(r"(?:^test_|_test\.py$|\.(?:test|spec)\.[A-Za-z0-9]+$)", re.IGNORECASE)
+SHELL_WRITE_RE = re.compile(r"(?:>|>>|\b(?:tee|Set-Content|Out-File|Add-Content|New-Item)\b)", re.IGNORECASE)
+SHELL_NON_WRITE_FIRST_RE = re.compile(
+    r"^(?:git|ls|dir|cat|type|rm|del|head|tail|stat|wc|grep|rg|Get-ChildItem|Get-Content|Test-Path|Remove-Item|Get-Item)\b",
+    re.IGNORECASE,
+)
+GIT_COMMIT_CMD_RE = re.compile(r"\bgit\b[^\n;&|]*\b(?:commit|merge|cherry-pick|am)\b")
 
 PATH_EXT = re.compile(r"\.[A-Za-z][A-Za-z0-9]{1,7}$")
 LINE_SUFFIX = re.compile(r"(?::\d+(?:[-:]\d+)?|#L\d+(?:-L?\d+)?)$")
@@ -315,18 +325,45 @@ def local_only(message: str) -> bool:
     return False
 
 
-def git_problems(cwd: str, message: str = "", runner=None) -> list:
+def _porcelain_rel_paths(line: str) -> list[str]:
+    body = line[3:].strip()
+    if " -> " in body:
+        parts = [p.strip().strip('"') for p in body.split(" -> ", 1)]
+        return [p.replace("\\", "/") for p in parts if p]
+    return [body.strip('"').replace("\\", "/")] if body else []
+
+
+def git_problems(
+    cwd: str,
+    message: str = "",
+    runner=None,
+    *,
+    session_scoped: bool = False,
+    session_touched: set[str] | None = None,
+    session_committed: bool = False,
+) -> list:
+    if session_scoped and not session_touched and not session_committed:
+        return []  # 唯讀／純討論對話未修改此 repo 任何檔案，不連坐別條對話的未提交變更（修誤擋根因 B）
     run = runner or _git(cwd)
     rc, out = run(["rev-parse", "--is-inside-work-tree"])
     if rc != 0 or out.strip() != "true":
         return []  # 不是 git repo：跳過
     problems = []
     rc, out = run(["status", "--porcelain"])
-    changed = [line for line in out.splitlines() if line.strip()] if rc == 0 else []
+    raw_changed = [line for line in out.splitlines() if line.strip()] if rc == 0 else []
+    if session_scoped and session_touched is not None:
+        changed = [
+            line for line in raw_changed
+            if any(rp in session_touched or any(rp.startswith(t.rstrip("/") + "/") for t in session_touched) for rp in _porcelain_rel_paths(line))
+        ]
+    else:
+        changed = raw_changed
     if changed:
         sample = "、".join(line[3:].strip() for line in changed[:3])
         problems.append(("git-dirty", f"cwd 的 git 有 {len(changed)} 個未提交的變更（git status --porcelain），例如 {sample}"))
     if local_only(message):
+        return problems
+    if session_scoped and not session_committed:
         return problems
     rc, out = run(["rev-list", "--count", "@{u}..HEAD"])
     if rc == 0:
@@ -352,28 +389,56 @@ def _is_test_or_ci_rel(rel_path: str) -> bool:
     return bool(TEST_FILE_NAME_RE.search(name)) or (norm.startswith(".github/workflows/") and norm.endswith((".yml", ".yaml")))
 
 
-def fakegreen_problems(cwd: str, runner=None, only_files: set[str] | None = None) -> list:
-    """掃描工作區 git diff HEAD 與新建未追蹤測試檔是否偷加無條件假綠燈跳過標記（排除條件式 test.skip(cond, reason)）。"""
+def _scan_diff_for_fakegreen(diff_out: str, exempt: set[str], only_files: set[str] | None) -> list:
+    cur_file = ""
+    for line in diff_out.splitlines():
+        if line.startswith("+++ b/"):
+            cur_file = line[6:].strip()
+            continue
+        if not line.startswith("+") or line.startswith("+++"):
+            continue
+        if cur_file in exempt or cur_file.endswith(".md"):
+            continue
+        if only_files is not None and cur_file not in only_files:
+            continue
+        added = line[1:]
+        stripped = added.strip()
+        if not stripped or stripped.startswith(("#", "//", "/*", "*")):
+            continue
+        if FAKE_GREEN_LINE_RE.search(added):
+            return [("fake-green", f"偵測到新增假綠燈跳過標記（{cur_file}：{stripped[:90]}），請修好測試而非跳過")]
+        if cur_file.startswith(".github/workflows/") and cur_file.endswith((".yml", ".yaml")):
+            if CI_SWALLOW_LINE_RE.search(added) and "fakegreen-allow" not in added:
+                return [("fake-green", f"偵測到 CI workflow 吞錯設定（{cur_file}：{stripped[:90]}）")]
+    return []
+
+
+def fakegreen_problems(
+    cwd: str,
+    runner=None,
+    only_files: set[str] | None = None,
+    *,
+    session_start: float | None = None,
+    include_committed: bool = False,
+) -> list:
+    """掃描工作區變更、本對話新提交與新建未追蹤測試檔是否偷加無條件假綠燈跳過標記（修根因 E 與 F）。"""
+    if only_files is not None and len(only_files) == 0 and not include_committed:
+        return []
     run = runner or _git(cwd)
-    exempt = {"engine/scripts/wiring_audit.py", "engine/scripts/done_check.py", "engine/scripts/cleanroom_e2e.py"}
+    exempt = {"engine/scripts/wiring_audit.py", "engine/scripts/done_check.py", "engine/scripts/cleanroom_e2e.py", "engine/scripts/harness_hooks.py"}
     rc, out = run(["diff", "HEAD", "--unified=0"])
     if rc == 0 and out.strip():
-        cur_file = ""
-        for line in out.splitlines():
-            if line.startswith("+++ b/"):
-                cur_file = line[6:].strip()
-                continue
-            if not line.startswith("+") or line.startswith("+++"):
-                continue
-            if cur_file in exempt or cur_file.endswith(".md"):
-                continue
-            if only_files is not None and cur_file not in only_files:
-                continue
-            added = line[1:].strip()
-            if not added or added.startswith(("#", "//", "/*", "*")):
-                continue
-            if FAKE_GREEN_LINE_RE.search(added):
-                return [("fake-green", f"偵測到新增假綠燈跳過標記（{cur_file}：{added[:90]}），請修好測試而非跳過")]
+        hits = _scan_diff_for_fakegreen(out, exempt, only_files)
+        if hits:
+            return hits
+
+    if include_committed and session_start is not None:
+        since_epoch = max(0, int(session_start) - 2)
+        rc_c, out_c = run(["log", f"--since=@{since_epoch}", "-p", "--unified=0"])
+        if rc_c == 0 and out_c.strip():
+            hits_c = _scan_diff_for_fakegreen(out_c, exempt, only_files if only_files else None)
+            if hits_c:
+                return hits_c
 
     # 補掃新建尚未 git add 的 untracked 測試檔（堵住漏網）
     rc_u, untracked_out = run(["ls-files", "--others", "--exclude-standard"])
@@ -392,27 +457,30 @@ def fakegreen_problems(cwd: str, runner=None, only_files: set[str] | None = None
                 content = fp.read_text(encoding="utf-8", errors="replace")[:MAX_READ]
             except OSError:
                 continue
+            is_wf = rel.startswith(".github/workflows/") and rel.endswith((".yml", ".yaml"))
             for raw_ln in content.splitlines():
                 s = raw_ln.strip()
                 if not s or s.startswith(("#", "//", "/*", "*")):
                     continue
-                if FAKE_GREEN_LINE_RE.search(s):
+                if FAKE_GREEN_LINE_RE.search(raw_ln):
                     return [("fake-green", f"新建測試檔含有假綠燈跳過標記（{rel}：{s[:90]}），請修好測試而非跳過")]
+                if is_wf and CI_SWALLOW_LINE_RE.search(raw_ln) and "fakegreen-allow" not in raw_ln:
+                    return [("fake-green", f"新建 CI workflow 含吞錯設定（{rel}：{s[:90]}）")]
     return []
 
 
-def turn_edit_summary(path: str | None, cwd: str | None = None, subagent: bool = False) -> tuple[bool, set[str]]:
-    """回傳（這一回合是否改過非測試程式碼/前端檔, 這一回合寫入過的相對路徑集合）。"""
+def session_edit_summary(path: str | None, cwd: str | None = None, subagent: bool = False) -> tuple[bool, bool, set[str], bool]:
+    """回傳（是否有讀到對話紀錄, 本回合是否改過應用程式碼, 整個對話在 cwd 內碰過的相對路徑集合, 整個對話是否執行過 git commit）。"""
     if not path or not Path(path).is_file():
-        return False, set()
+        return False, False, set(), False
     try:
         with open(path, "rb") as f:
             f.seek(0, 2)
             size = f.tell()
-            f.seek(max(0, size - TAIL))
+            f.seek(max(0, size - TAIL * 2))
             raw = f.read()
     except OSError:
-        return False, set()
+        return False, False, set(), False
     lines = raw.decode("utf-8", errors="replace").splitlines()
     entries = []
     for ln in lines:
@@ -422,34 +490,58 @@ def turn_edit_summary(path: str | None, cwd: str | None = None, subagent: bool =
                 entries.append(e)
         except ValueError:
             continue
-    start = max((i + 1 for i, e in enumerate(entries) if _is_prompt(e, subagent)), default=0)
+    turn_start = max((i + 1 for i, e in enumerate(entries) if _is_prompt(e, subagent)), default=0)
     base_res = Path(cwd).resolve() if cwd else None
-    changed_app_code = False
-    rel_touched: set[str] = set()
+    turn_changed_app_code = False
+    session_touched: set[str] = set()
+    session_committed = False
 
-    def _record_fp(raw_fp: str) -> None:
-        nonlocal changed_app_code
+    def _record_fp(raw_fp: str, *, in_this_turn: bool) -> None:
+        nonlocal turn_changed_app_code
         if not raw_fp:
             return
         fp = Path(raw_fp)
         name_low = fp.name.lower()
-        if fp.suffix.lower() in CODE_EXTS and not TEST_FILE_NAME_RE.search(name_low):
-            changed_app_code = True
+        if in_this_turn and fp.suffix.lower() in CODE_EXTS and not TEST_FILE_NAME_RE.search(name_low):
+            turn_changed_app_code = True
         if base_res is not None:
             try:
-                rel_touched.add(fp.resolve().relative_to(base_res).as_posix())
+                resolved = fp.resolve() if fp.is_absolute() else (base_res / fp).resolve()
+                session_touched.add(resolved.relative_to(base_res).as_posix())
             except (OSError, ValueError):
                 pass
 
-    for e in entries[start:]:
+    for idx, e in enumerate(entries):
+        in_turn = idx >= turn_start
         if e.get("type") == "assistant":
             for b in (e.get("message") or {}).get("content") or []:
-                if isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") in WRITE_TOOLS:
-                    inp = b.get("input") if isinstance(b.get("input"), dict) else {}
-                    _record_fp(str(inp.get("file_path") or ""))
+                if not isinstance(b, dict) or b.get("type") != "tool_use":
+                    continue
+                inp = b.get("input") if isinstance(b.get("input"), dict) else {}
+                if b.get("name") in WRITE_TOOLS:
+                    _record_fp(str(inp.get("file_path") or inp.get("notebook_path") or ""), in_this_turn=in_turn)
+                elif b.get("name") in SHELL_TOOLS:
+                    cmd_s = str(inp.get("command") or "")
+                    if GIT_COMMIT_CMD_RE.search(cmd_s):
+                        session_committed = True
         elif e.get("source") == "MODEL" and e.get("type") == "TOOL_CALL":
-            _record_fp(str((e.get("args") or {}).get("Path") or ""))
-    return changed_app_code, rel_touched
+            args_d = e.get("args") if isinstance(e.get("args"), dict) else {}
+            if args_d.get("Path"):
+                _record_fp(str(args_d.get("Path") or ""), in_this_turn=in_turn)
+            cmd_line = str(args_d.get("CommandLine") or "")
+            if GIT_COMMIT_CMD_RE.search(cmd_line):
+                session_committed = True
+        elif e.get("type") == "response_item":
+            p = e.get("payload") if isinstance(e.get("payload"), dict) else {}
+            raw_c = str(p.get("arguments") or p.get("input") or "")
+            if GIT_COMMIT_CMD_RE.search(raw_c):
+                session_committed = True
+    return True, turn_changed_app_code, session_touched, session_committed
+
+
+def turn_edit_summary(path: str | None, cwd: str | None = None, subagent: bool = False) -> tuple[bool, set[str]]:
+    _, changed_code, touched, _ = session_edit_summary(path, cwd, subagent)
+    return changed_code, touched
 
 
 def edited_code_this_turn(path: str | None, subagent: bool = False) -> bool:
@@ -458,14 +550,47 @@ def edited_code_this_turn(path: str | None, subagent: bool = False) -> bool:
 
 # ---- 判斷 ----
 
-def check(message: str, cwd: str | None = None, session_start: float | None = None, done_paths=(),
-          runner=None, changed_code: bool = False, touched_files: set[str] | None = None) -> Result:
-    r = Result(label=has_label(message), done_paths=list(done_paths))
-    claims_done_plain = bool(DONE_CLAIM_TEXT.search(strip_fences(message or "")))
+def _is_git_tracked_file(cwd: str | None, p: Path, runner=None) -> bool:
+    if not cwd or runner is not None:
+        return False
+    try:
+        rel = p.resolve().relative_to(Path(cwd).resolve()).as_posix()
+    except (OSError, ValueError):
+        return False
+    rc, out = _git(cwd)(["ls-files", "--", rel])
+    return rc == 0 and bool(out.strip())
+
+
+def check(
+    message: str,
+    cwd: str | None = None,
+    session_start: float | None = None,
+    done_paths=(),
+    runner=None,
+    changed_code: bool = False,
+    touched_files: set[str] | None = None,
+    *,
+    session_scoped: bool = False,
+    session_committed: bool = False,
+) -> Result:
+    stripped_msg = strip_fences(message or "")
+    has_non_done_status = bool(NON_DONE_LABEL_LINE.search(stripped_msg)) and not bool(LABEL_LINE.search(stripped_msg))
+    effective_done_paths = [] if has_non_done_status else list(done_paths)
+    r = Result(label=has_label(message), done_paths=effective_done_paths)
+    claims_done_plain = (not has_non_done_status) and bool(DONE_CLAIM_TEXT.search(stripped_msg))
     fg_hits = []
     if cwd and (r.label or r.done_paths or claims_done_plain or touched_files):
-        scope_files = None if (r.label or r.done_paths or claims_done_plain) else touched_files
-        fg_hits = fakegreen_problems(str(Path(cwd)), runner, only_files=scope_files)
+        if session_scoped:
+            scope_files = touched_files if touched_files is not None else set()
+        else:
+            scope_files = None if (r.label or r.done_paths or claims_done_plain) else touched_files
+        fg_hits = fakegreen_problems(
+            str(Path(cwd)),
+            runner,
+            only_files=scope_files,
+            session_start=session_start,
+            include_committed=session_committed,
+        )
     r.triggered = r.label or bool(r.done_paths) or (bool(fg_hits) and bool((message or "").strip()))
     if not r.triggered:
         return r
@@ -498,12 +623,19 @@ def check(message: str, cwd: str | None = None, session_start: float | None = No
             r.problems.append(("no-scope", "完工回執沒有「沒驗的範圍：」這一行（沒有也要寫「無」）"))
         missing, stale = [], []
         for row in rc.rows:
+            has_line_anchor = bool(re.search(r"(?::\d+|#L\d+)", row.evidence))
             for raw in cell_paths(row.evidence, base):
                 p = resolve(raw, base)
                 try:
                     if not p.exists():
                         missing.append(raw)
-                    elif session_start and p.is_file() and p.stat().st_mtime < session_start - SLACK:
+                    elif (
+                        session_start
+                        and p.is_file()
+                        and p.stat().st_mtime < session_start - SLACK
+                        and not has_line_anchor
+                        and not _is_git_tracked_file(cwd, p, runner=runner)
+                    ):
                         stale.append(raw)
                 except OSError:
                     continue
@@ -519,7 +651,14 @@ def check(message: str, cwd: str | None = None, session_start: float | None = No
                 "這一回合修改了程式、前端或腳本，但完工回執只有靜態或離線單元測試，缺少「實跑觀察／整合／端到端／瀏覽器」驗證證據（防假完工閘門）",
             ))
     if r.label and cwd:
-        r.problems += git_problems(str(base), message, runner)
+        r.problems += git_problems(
+            str(base),
+            message,
+            runner,
+            session_scoped=session_scoped,
+            session_touched=touched_files,
+            session_committed=session_committed,
+        )
     return r
 
 
@@ -582,20 +721,67 @@ def session_start(path: str | None) -> float | None:
     return None
 
 
+def _split_shell_clauses(cmd: str) -> list[str]:
+    """依引號外的 ;、&&、|| 與換行切開子指令（線性時間，不會在超長字串回溯）。"""
+    clauses: list[str] = []
+    cur: list[str] = []
+    quote: str | None = None
+    i = 0
+    n = len(cmd)
+    while i < n:
+        ch = cmd[i]
+        if quote:
+            cur.append(ch)
+            if ch == quote:
+                quote = None
+            elif ch == "\\" and quote == '"' and i + 1 < n:
+                i += 1
+                cur.append(cmd[i])
+            i += 1
+            continue
+        if ch in ('"', "'"):
+            quote = ch
+            cur.append(ch)
+            i += 1
+            continue
+        if ch in (";", "\n"):
+            clauses.append("".join(cur))
+            cur = []
+            i += 1
+            continue
+        if ch in ("&", "|") and i + 1 < n and cmd[i + 1] == ch:
+            clauses.append("".join(cur))
+            cur = []
+            i += 2
+            continue
+        cur.append(ch)
+        i += 1
+    if cur:
+        clauses.append("".join(cur))
+    return clauses
+
+
 def done_in_cmd(cmd: str) -> list:
-    """shell 指令裡寫到的 *.done 路徑，照出現順序。先找引號包住的（可以含空白，例如 "…/my reports/out.md.done"），
-    其餘照沒有空白的一段找、取那段裡最後一個 .done。都是線性時間：很長、沒有空白的指令也不會二次方回溯。"""
-    found, masked, pos = [], [], 0
-    for m in DONE_QUOTED.finditer(cmd):
-        found.append((m.start(), m.group(1) or m.group(2)))
-        masked += [cmd[pos:m.start()], " " * (m.end() - m.start())]
-        pos = m.end()
-    masked.append(cmd[pos:])
-    for m in CMD_TOKEN.finditer("".join(masked)):
-        ends = [d.end() for d in DONE_END.finditer(m.group()) if d.start() > 0]
-        if ends:
-            found.append((m.start(), m.group()[:ends[-1]]))
-    return [path for _, path in sorted(found)]
+    """shell 指令裡實際寫入的 *.done 路徑，排除純 git add／status／diff／rm／ls／cat 等非寫檔指令（修誤擋根因 A）。"""
+    results: list[str] = []
+    for clause in _split_shell_clauses(cmd):
+        stripped = clause.strip()
+        if not stripped or ".done" not in stripped:
+            continue
+        if SHELL_NON_WRITE_FIRST_RE.match(stripped) and not SHELL_WRITE_RE.search(stripped):
+            continue
+        found, masked, pos = [], [], 0
+        for m in DONE_QUOTED.finditer(clause):
+            found.append((m.start(), m.group(1) or m.group(2)))
+            masked += [clause[pos:m.start()], " " * (m.end() - m.start())]
+            pos = m.end()
+        masked.append(clause[pos:])
+        for m in CMD_TOKEN.finditer("".join(masked)):
+            ends = [d.end() for d in DONE_END.finditer(m.group()) if d.start() > 0]
+            if ends:
+                found.append((m.start(), m.group()[:ends[-1]]))
+        results.extend(path for _, path in sorted(found))
+    return list(dict.fromkeys(results))
 
 
 def _tail_entries(path: str) -> list:
@@ -686,7 +872,7 @@ def normalize(data: dict):
 
 
 def _parse_kit_done_check(txt: str) -> str | None:
-    """精準解析 kit.yaml 內 active_profile 對應段落的 done_check 值（零外部相依，修盲審 P0-1）。"""
+    """精準解析 kit.yaml 內 active_profile 對應段落的 done_check 值（零外部相依，修盲審 P0-1 與無引號 off 布林值）。"""
     active = "default"
     for line in txt.splitlines():
         m_act = re.match(r"^active_profile:\s*(\S+)", line)
@@ -711,7 +897,8 @@ def _parse_kit_done_check(txt: str) -> str | None:
         if in_profiles and in_target_prof and indent == 4:
             m_dc = re.match(r"^done_check:\s*(\S+)", stripped)
             if m_dc:
-                return m_dc.group(1).strip("'\"").lower()
+                val = m_dc.group(1).strip("'\"").lower()
+                return "off" if val in OFF else val
     return None
 
 
@@ -721,7 +908,7 @@ def mode_of(env) -> str:
         return "off"
     if v in ("log", "block"):
         return v
-    # 未指定環境變數時，讀取 ~/.omnikit/kit.yaml 中目前 active_profile 的 done_check 設定；預設為 block
+    # 未指定環境變數時，讀取 ~/.omnikit/kit.yaml 中目前 active_profile 的 done_check 設定；預設為 log（12-11 結算前維持記錄模式）
     try:
         raw_st = env.get("OMNIKIT_STATE_DIR") or env.get("OMNIKIT_STATE") or os.environ.get("OMNIKIT_STATE_DIR")
         st_dir = Path(raw_st) if raw_st else Path.home() / ".omnikit"
@@ -736,7 +923,7 @@ def mode_of(env) -> str:
                 return "block"
     except OSError:
         pass
-    return "block"
+    return "log"
 
 
 def record_tripwire(rule: str, session_id: str, agy: bool, mode: str, event: str, env) -> None:
@@ -770,16 +957,25 @@ def handle(data: dict, env=None, runner=None):
     if agy:
         transcript = data.get("agy_transcript")
         message, done = agy_last_message(transcript), []
-        changed_code, touched_files = turn_edit_summary(transcript, cwd, False)
+        has_tr, changed_code, touched_files, sess_committed = session_edit_summary(transcript, cwd, False)
     else:
         subagent = event == "SubagentStop"
         transcript = (data.get("agent_transcript_path") if subagent else None) or data.get("transcript_path")
         msg = data.get("last_assistant_message")
         message = msg if isinstance(msg, str) else ("" if subagent else last_message(data))
         done = done_paths_this_turn(transcript, subagent)
-        changed_code, touched_files = turn_edit_summary(transcript, cwd, subagent)
-    r = check(message, cwd=cwd, session_start=session_start(transcript), done_paths=done, runner=runner,
-              changed_code=changed_code, touched_files=touched_files)
+        has_tr, changed_code, touched_files, sess_committed = session_edit_summary(transcript, cwd, subagent)
+    r = check(
+        message,
+        cwd=cwd,
+        session_start=session_start(transcript),
+        done_paths=done,
+        runner=runner,
+        changed_code=changed_code,
+        touched_files=touched_files if has_tr else None,
+        session_scoped=has_tr,
+        session_committed=sess_committed,
+    )
     if not r.triggered:
         return allow
     sid = str(data.get("session_id") or "")
@@ -880,11 +1076,20 @@ def selftest() -> int:
            and _epoch("2026-01-01T00:00:00Z") is not None)
         bad = {"hook_event_name": "Stop", "session_id": "s", "cwd": tmp,
                "last_assistant_message": "【完成待收尾】已驗證，errors=0"}
-        ok("預設模式為 block（防假完工硬攔截）：沒設環境變數時直接印 decision block",
-           handle(bad, env={"OMNIKIT_STATE_DIR": str(base / "st")})["decision"] == "block")
-        ok("記錄模式（OMNIKIT_DONE_CHECK=log）：不擋，寫一筆 tripwire",
-           handle(bad, env={"OMNIKIT_DONE_CHECK": "log", "OMNIKIT_STATE_DIR": str(base / "st")}) is None
-           and '"done_check"' in (base / "st" / "harness" / "tripwire-hits.jsonl").read_text(encoding="utf-8"))
+        ok("預設模式為 log（12-11 結算前只記錄不硬擋）：沒設環境變數時回傳 None 並寫一筆 tripwire",
+           handle(bad, env={"OMNIKIT_STATE_DIR": str(base / "st")}) is None
+           and '"mode": "log"' in (base / "st" / "harness" / "tripwire-hits.jsonl").read_text(encoding="utf-8"))
+        ok("強制攔截模式（OMNIKIT_DONE_CHECK=block）：直接印 decision block",
+           handle(bad, env=env_block)["decision"] == "block")
+        ok("git add *.done 等非寫檔指令不誤判為寫入 .done（修誤擋根因 A）",
+           done_in_cmd('git add -- "OmniKit/reports/a.md.done" && git commit -m "docs"') == []
+           and done_in_cmd('ls -la out/a.done; cat out/a.done') == [])
+        dirty_runner = lambda a: (0, "true\n") if tuple(a) == ("rev-parse", "--is-inside-work-tree") else (
+            (0, " M other_file.py\n") if tuple(a) == ("status", "--porcelain") else (1, "")
+        )
+        ok("唯讀對話（session_scoped 且未寫過 repo 檔）不連坐別人的 git-dirty（修誤擋根因 B）",
+           not rules(check(RECEIPT_OK, cwd=tmp, runner=dirty_runner, touched_files=set(), session_scoped=True, session_committed=False))
+           and "git-dirty" in rules(check(RECEIPT_OK, cwd=tmp, runner=dirty_runner, touched_files={"other_file.py"}, session_scoped=True)))
         unit_only = RECEIPT_OK.replace("| 實跑觀察 |", "| 單元 |")
         ok("改程式碼卻只有單元測試無實跑證據：判定 no-runtime-proof 擋回",
            "no-runtime-proof" in rules(check(unit_only, cwd=tmp, changed_code=True))
@@ -935,6 +1140,47 @@ def selftest() -> int:
     return 1 if failures else 0
 
 
+def replay_history(state_dir: Path | None = None, home_dir: Path | None = None, *, limit: int = 50) -> dict:
+    """回放本機歷史 Claude Code 對話紀錄，評估目前 done_check 規則的觸發與攔截分布（供 12-11 結算誤擋率用）。"""
+    st = state_dir if state_dir is not None else (Path.home() / ".omnikit")
+    hm = home_dir if home_dir is not None else Path.home()
+    proj_root = hm / ".claude" / "projects"
+    transcripts: list[Path] = []
+    if proj_root.is_dir():
+        transcripts = sorted(proj_root.rglob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)[: max(1, limit)]
+    env_sim = {"OMNIKIT_DONE_CHECK": "block", "OMNIKIT_TRIPWIRE_LOG": "off", "OMNIKIT_STATE_DIR": str(st)}
+    total = 0
+    blocked = 0
+    by_rule: dict[str, int] = {}
+    samples: list[dict] = []
+    for tp in transcripts:
+        total += 1
+        cwd_guess = ""
+        try:
+            for ln in tp.read_text(encoding="utf-8", errors="replace").splitlines()[-40:]:
+                obj = json.loads(ln)
+                if isinstance(obj, dict) and obj.get("cwd"):
+                    cwd_guess = str(obj["cwd"])
+        except (OSError, ValueError):
+            continue
+        res = handle({"hook_event_name": "Stop", "session_id": tp.stem, "transcript_path": str(tp), "cwd": cwd_guess}, env=env_sim)
+        if isinstance(res, dict) and res.get("decision") == "block":
+            blocked += 1
+            reason_txt = str(res.get("reason") or "")
+            for tag in ("no-receipt", "git-dirty", "git-unpushed", "evidence-stale", "evidence-missing", "fake-green", "no-runtime-proof"):
+                if tag in reason_txt or (tag == "no-receipt" and "沒有完工回執" in reason_txt) or (tag == "git-dirty" and "未提交的變更" in reason_txt):
+                    by_rule[tag] = by_rule.get(tag, 0) + 1
+            if len(samples) < 8:
+                samples.append({"transcript": tp.name, "cwd": cwd_guess, "reason_head": reason_txt.splitlines()[1] if len(reason_txt.splitlines()) > 1 else reason_txt[:120]})
+    return {
+        "replayed_transcripts": total,
+        "would_block": blocked,
+        "block_rate_pct": round((blocked / total) * 100, 2) if total else 0.0,
+        "by_rule": by_rule,
+        "samples": samples,
+    }
+
+
 def arg_after(flag: str, default=None):
     i = sys.argv.index(flag)
     return sys.argv[i + 1] if len(sys.argv) > i + 1 and not sys.argv[i + 1].startswith("--") else default
@@ -943,6 +1189,15 @@ def arg_after(flag: str, default=None):
 if __name__ == "__main__":
     if "--selftest" in sys.argv:
         sys.exit(selftest())
+    if "--replay" in sys.argv:
+        sys.stdout.reconfigure(encoding="utf-8")
+        lim = int(arg_after("--limit", "60") or 60)
+        rep = replay_history(limit=lim)
+        if "--json" in sys.argv:
+            print(json.dumps(rep, ensure_ascii=False, indent=2))
+        else:
+            print(f"回放近期 {rep['replayed_transcripts']} 份對話紀錄：將攔截 {rep['would_block']} 筆（{rep['block_rate_pct']}%），規則分布：{rep['by_rule']}")
+        sys.exit(0)
     if "--check" in sys.argv:
         sys.stdout.reconfigure(encoding="utf-8")
         arg = arg_after("--check", "-")

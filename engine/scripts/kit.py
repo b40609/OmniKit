@@ -95,6 +95,56 @@ DEFAULT_ENABLED_TOOLS = (
 
 NEEDS_API_KEY = {"exa": "EXA_API_KEY"}
 
+MANUAL_INSTALL_HINTS: dict[str, str] = {
+    "gitleaks": "winget install Gitleaks.Gitleaks",
+    "impeccable": "npx skills add pbakaus/impeccable",
+    "bmad": "npx bmad-method install",
+    "deja-vu": "gh release download -R vshulcz/deja-vu",
+    "t3-code": "前往 https://t3.codes 下載安裝桌面版",
+    "exa": "設定環境變數 EXA_API_KEY 後於終端機登記 MCP",
+}
+
+
+def normalize_done_check(val: Any) -> str:
+    """正規化 done_check 設定值（處理 YAML 無引號 off 被讀成 False 的情況，預設為 log）。"""
+    if val is False:
+        return "off"
+    if val is True or val is None:
+        return "log"
+    s = str(val).strip().lower()
+    if s in ("0", "off", "false", "no"):
+        return "off"
+    if s == "block":
+        return "block"
+    return "log"
+
+
+def normalize_agent_ids(works_with: list[str] | None) -> list[str]:
+    """將工具卡的 works_with（如 claude）統一對齊為 installed_agents 代號（claude-code、codex、antigravity），修 P0-1。"""
+    mapping = {
+        "claude": "claude-code",
+        "claude-code": "claude-code",
+        "codex": "codex",
+        "antigravity": "antigravity",
+        "agy": "antigravity",
+    }
+    out: list[str] = []
+    for raw in works_with or ["claude-code", "codex", "antigravity"]:
+        mapped = mapping.get(str(raw).strip().lower(), str(raw).strip().lower())
+        if mapped and mapped not in out:
+            out.append(mapped)
+    return out
+
+
+def resolve_install_mechanism(tid: str, tool_doc: dict[str, Any]) -> dict[str, str]:
+    """回傳工作台工具的真實安裝機制分類（auto_mcp / auto_plugin / manual），杜絕假啟用誤導（修 M-P1-2）。"""
+    if tid == "chrome-devtools-mcp":
+        return {"mode": "auto_mcp", "badge": "一鍵啟停 MCP", "manual_hint": ""}
+    if str(tool_doc.get("status") or "") == "default" and bool(tool_doc.get("plugin")):
+        return {"mode": "auto_plugin", "badge": "一鍵安裝外掛", "manual_hint": ""}
+    hint = MANUAL_INSTALL_HINTS.get(tid) or f"請參閱 {tool_doc.get('url') or '工具官方文件'} 手動安裝"
+    return {"mode": "manual", "badge": "記錄偏好（需手動裝）", "manual_hint": hint}
+
 GOAL_PRESETS: dict[str, dict[str, Any]] = {
     "fullstack-app": {
         "id": "fullstack-app",
@@ -205,7 +255,7 @@ def default_profile_spec() -> dict[str, Any]:
     return {
         "preset": ["fullstack-app"],
         "tools": {tid: {"tier": "resident"} for tid in DEFAULT_ENABLED_TOOLS},
-        "done_check": "block",
+        "done_check": "log",
         "overrides": {},
         "notes": "",
     }
@@ -243,10 +293,12 @@ def load(state: Path | None = None) -> dict[str, Any]:
     except (OSError, UnicodeError, yaml.YAMLError):
         doc = _default_doc(legacy_prof)
         doc["_exists"] = False
+        doc["_corrupt"] = True
         return doc
     if not isinstance(parsed, dict):
         doc = _default_doc(legacy_prof)
         doc["_exists"] = False
+        doc["_corrupt"] = True
         return doc
 
     base_def = _default_doc(str(parsed.get("active_profile") or legacy_prof))
@@ -265,7 +317,7 @@ def load(state: Path | None = None) -> dict[str, Any]:
         pspec.setdefault("preset", ["fullstack-app"])
         if not isinstance(pspec.get("tools"), dict):
             pspec["tools"] = {tid: {"tier": "resident"} for tid in DEFAULT_ENABLED_TOOLS}
-        pspec.setdefault("done_check", "block")
+        pspec["done_check"] = normalize_done_check(pspec.get("done_check", "log"))
         pspec.setdefault("overrides", {})
         pspec.setdefault("notes", "")
 
@@ -284,8 +336,15 @@ def load(state: Path | None = None) -> dict[str, Any]:
 
 def save_unlocked(state: Path, doc: dict[str, Any], *, expected_rev: int | None = None,
                   mirror_profile: bool = True) -> dict[str, Any]:
-    """在已持有 kit_lock 的情況下寫入 kit.yaml 並鏡像更新 profile.json（保留未知鍵）。"""
+    """在已持有 kit_lock 的情況下寫入 kit.yaml 並鏡像更新 profile.json（保留未知鍵；原檔損壞時自動先備份 .bak）。"""
     cur = load(state)
+    kp = kit_path(state)
+    if cur.get("_corrupt") and kp.is_file():
+        bak_path = Path(f"{kp}.bak")
+        try:
+            _atomic_write_bytes(bak_path, retry(kp.read_bytes))
+        except OSError:
+            pass
     cur_schema = int(cur.get("schema") or SCHEMA_VERSION)
     if cur_schema > SCHEMA_VERSION:
         raise ValueError(f"kit.yaml 的 schema 版本（{cur_schema}）比目前程式（{SCHEMA_VERSION}）新，拒絕覆寫以免遺失設定")
@@ -300,14 +359,60 @@ def save_unlocked(state: Path, doc: dict[str, Any], *, expected_rev: int | None 
     clean["active_profile"] = active
 
     dumped = KIT_HEADER + yaml.safe_dump(clean, allow_unicode=True, sort_keys=False, width=120)
-    _atomic_write_bytes(kit_path(state), dumped.replace("\r\n", "\n").encode("utf-8"))
+    _atomic_write_bytes(kp, dumped.replace("\r\n", "\n").encode("utf-8"))
 
     if mirror_profile:
-        prof_bytes = (json.dumps({"profile": active}, ensure_ascii=False) + "\n").encode("utf-8")
-        _atomic_write_bytes(state / "profile.json", prof_bytes)
+        prof_file = state / "profile.json"
+        if active != "default" or clean.get("onboarding_completed") or prof_file.exists():
+            prof_bytes = (json.dumps({"profile": active}, ensure_ascii=False) + "\n").encode("utf-8")
+            _atomic_write_bytes(prof_file, prof_bytes)
 
     clean["_exists"] = True
     return clean
+
+
+def _patch_in_lock(
+    base: Path,
+    *,
+    active_profile: str | None = None,
+    onboarding_completed: bool | None = None,
+    profile_patch: dict[str, Any] | None = None,
+    machine_patch: dict[str, Any] | None = None,
+    expected_rev: int | None = None,
+    mirror_profile: bool = True,
+) -> dict[str, Any]:
+    doc = load(base)
+    if active_profile is not None:
+        if not profiles.NAME.match(active_profile):
+            raise ValueError(f"profile 名稱只能用小寫英數與 -：{active_profile}")
+        doc["active_profile"] = active_profile
+    act = str(doc["active_profile"])
+    if act not in doc["profiles"] or not isinstance(doc["profiles"][act], dict):
+        doc["profiles"][act] = default_profile_spec()
+    if onboarding_completed is not None:
+        doc["onboarding_completed"] = bool(onboarding_completed)
+    if profile_patch:
+        target_p = doc["profiles"][act]
+        for k, v in profile_patch.items():
+            if k == "tools" and isinstance(v, dict) and isinstance(target_p.get("tools"), dict):
+                merged_t = dict(target_p["tools"])
+                for tid, tspec in v.items():
+                    if tspec is None:
+                        merged_t.pop(tid, None)
+                    elif isinstance(tspec, dict):
+                        merged_t[tid] = {**(merged_t.get(tid) or {}), **tspec}
+                target_p["tools"] = merged_t
+            elif k == "done_check":
+                target_p["done_check"] = normalize_done_check(v)
+            else:
+                target_p[k] = copy.deepcopy(v)
+    if machine_patch:
+        for mk, mv in machine_patch.items():
+            if isinstance(mv, dict) and isinstance(doc["machine"].get(mk), dict):
+                doc["machine"][mk].update(copy.deepcopy(mv))
+            else:
+                doc["machine"][mk] = copy.deepcopy(mv)
+    return save_unlocked(base, doc, expected_rev=expected_rev, mirror_profile=mirror_profile)
 
 
 def patch(
@@ -323,36 +428,15 @@ def patch(
     """執行緒與跨行程安全的宣告式局部更新（保留所有未知鍵，同步鏡像 profile.json）。"""
     base = state if state is not None else statedir.state_dir()
     with kit_lock(base):
-        doc = load(base)
-        if active_profile is not None:
-            if not profiles.NAME.match(active_profile):
-                raise ValueError(f"profile 名稱只能用小寫英數與 -：{active_profile}")
-            doc["active_profile"] = active_profile
-        act = str(doc["active_profile"])
-        if act not in doc["profiles"] or not isinstance(doc["profiles"][act], dict):
-            doc["profiles"][act] = default_profile_spec()
-        if onboarding_completed is not None:
-            doc["onboarding_completed"] = bool(onboarding_completed)
-        if profile_patch:
-            target_p = doc["profiles"][act]
-            for k, v in profile_patch.items():
-                if k == "tools" and isinstance(v, dict) and isinstance(target_p.get("tools"), dict):
-                    merged_t = dict(target_p["tools"])
-                    for tid, tspec in v.items():
-                        if tspec is None:
-                            merged_t.pop(tid, None)
-                        elif isinstance(tspec, dict):
-                            merged_t[tid] = {**(merged_t.get(tid) or {}), **tspec}
-                    target_p["tools"] = merged_t
-                else:
-                    target_p[k] = copy.deepcopy(v)
-        if machine_patch:
-            for mk, mv in machine_patch.items():
-                if isinstance(mv, dict) and isinstance(doc["machine"].get(mk), dict):
-                    doc["machine"][mk].update(copy.deepcopy(mv))
-                else:
-                    doc["machine"][mk] = copy.deepcopy(mv)
-        return save_unlocked(base, doc, expected_rev=expected_rev, mirror_profile=mirror_profile)
+        return _patch_in_lock(
+            base,
+            active_profile=active_profile,
+            onboarding_completed=onboarding_completed,
+            profile_patch=profile_patch,
+            machine_patch=machine_patch,
+            expected_rev=expected_rev,
+            mirror_profile=mirror_profile,
+        )
 
 
 def sync_profile_choice(state: Path, profile_name: str) -> None:
@@ -534,66 +618,67 @@ def resolve_drift(
     if action not in ("adopt", "restore", "snooze"):
         raise ValueError(f"不支援的漂移處理動作：{action}")
 
-    app = load_applied(base)
-    if action == "snooze":
-        until = (datetime.now().date() + timedelta(days=7)).isoformat()
-        app.setdefault("snoozed", {})[drift_id] = until
-        save_applied(base, app)
-        return {"ok": True, "id": drift_id, "action": "snooze", "snoozed_until": until}
+    with kit_lock(base):
+        app = load_applied(base)
+        if action == "snooze":
+            until = (datetime.now().date() + timedelta(days=7)).isoformat()
+            app.setdefault("snoozed", {})[drift_id] = until
+            save_applied(base, app)
+            return {"ok": True, "id": drift_id, "action": "snooze", "snoozed_until": until}
 
-    if drift_id == "profile:active":
-        pfile_choice = profiles.chosen(base) or "default"
-        if action == "adopt":
-            patch(base, active_profile=pfile_choice)
+        if drift_id == "profile:active":
+            pfile_choice = profiles.chosen(base) or "default"
+            if action == "adopt":
+                _patch_in_lock(base, active_profile=pfile_choice)
+                record_applied_snapshot(base, h, preserve_keys=drifted_rule_keys(base, h))
+                return {"ok": True, "id": drift_id, "action": "adopt", "active_profile": pfile_choice}
+            kdoc = load(base)
+            want_p = str(kdoc.get("active_profile") or "default")
+            _patch_in_lock(base, active_profile=want_p)
+            profiles.apply(repo_root / "data", base, wanted=want_p)
             record_applied_snapshot(base, h, preserve_keys=drifted_rule_keys(base, h))
-            return {"ok": True, "id": drift_id, "action": "adopt", "active_profile": pfile_choice}
-        kdoc = load(base)
-        want_p = str(kdoc.get("active_profile") or "default")
-        patch(base, active_profile=want_p)
-        profiles.apply(repo_root / "data", base, wanted=want_p)
-        record_applied_snapshot(base, h, preserve_keys=drifted_rule_keys(base, h))
-        return {"ok": True, "id": drift_id, "action": "restore", "active_profile": want_p}
+            return {"ok": True, "id": drift_id, "action": "restore", "active_profile": want_p}
 
-    if drift_id.startswith("rule:"):
-        targets = {k: p for k, _, p in managed_rule_targets(h, base)}
-        target_path = targets.get(drift_id)
-        if action == "adopt":
+        if drift_id.startswith("rule:"):
+            targets = {k: p for k, _, p in managed_rule_targets(h, base)}
+            target_path = targets.get(drift_id)
+            if action == "adopt":
+                if target_path:
+                    bh = _block_hash(target_path)
+                    if bh:
+                        app.setdefault("files", {})[drift_id] = bh
+                adopted_set = set(app.get("adopted") or [])
+                adopted_set.add(drift_id)
+                app["adopted"] = sorted(adopted_set)
+                app.get("snoozed", {}).pop(drift_id, None)
+                save_applied(base, app)
+                return {"ok": True, "id": drift_id, "action": "adopt"}
+
+            # restore：僅單獨還原指定的這一個 Agent 規則檔，不連坐改寫其他家的手改區塊（修盲審 P1-2）
+            kdoc = load(base)
+            want_p = str(kdoc.get("active_profile") or "default")
+            agent_for_key = {
+                "rule:claude-code": "claude-code",
+                "rule:codex": "codex",
+                "rule:antigravity-shared": "antigravity",
+                "rule:antigravity-personal": "antigravity",
+            }.get(drift_id)
+            if not agent_for_key:
+                raise ValueError(f"未知的規則目標：{drift_id}")
+            paths = {
+                "claude-code": h / ".claude" / "CLAUDE.md",
+                "codex": h / ".codex" / "AGENTS.md",
+                "antigravity": h / ".gemini" / "GEMINI.md",
+            }
+            profiles.apply(repo_root / "data", base, paths=paths, wanted=want_p, agents=[agent_for_key], take_over=True)
+            app["adopted"] = [x for x in (app.get("adopted") or []) if x != drift_id]
+            app.get("snoozed", {}).pop(drift_id, None)
             if target_path:
                 bh = _block_hash(target_path)
                 if bh:
                     app.setdefault("files", {})[drift_id] = bh
-            adopted_set = set(app.get("adopted") or [])
-            adopted_set.add(drift_id)
-            app["adopted"] = sorted(adopted_set)
-            app.get("snoozed", {}).pop(drift_id, None)
             save_applied(base, app)
-            return {"ok": True, "id": drift_id, "action": "adopt"}
-
-        # restore：僅單獨還原指定的這一個 Agent 規則檔，不連坐改寫其他家的手改區塊（修盲審 P1-2）
-        kdoc = load(base)
-        want_p = str(kdoc.get("active_profile") or "default")
-        agent_for_key = {
-            "rule:claude-code": "claude-code",
-            "rule:codex": "codex",
-            "rule:antigravity-shared": "antigravity",
-            "rule:antigravity-personal": "antigravity",
-        }.get(drift_id)
-        if not agent_for_key:
-            raise ValueError(f"未知的規則目標：{drift_id}")
-        paths = {
-            "claude-code": h / ".claude" / "CLAUDE.md",
-            "codex": h / ".codex" / "AGENTS.md",
-            "antigravity": h / ".gemini" / "GEMINI.md",
-        }
-        profiles.apply(repo_root / "data", base, paths=paths, wanted=want_p, agents=[agent_for_key], take_over=True)
-        app["adopted"] = [x for x in (app.get("adopted") or []) if x != drift_id]
-        app.get("snoozed", {}).pop(drift_id, None)
-        if target_path:
-            bh = _block_hash(target_path)
-            if bh:
-                app.setdefault("files", {})[drift_id] = bh
-        save_applied(base, app)
-        return {"ok": True, "id": drift_id, "action": "restore"}
+            return {"ok": True, "id": drift_id, "action": "restore"}
 
     raise ValueError(f"找不到漂移項目：{drift_id}")
 
@@ -692,6 +777,8 @@ def build_workbench_catalog(
             rec_reason = "偵測到程式碼專案，建議啟用"
 
         costs = TOOL_COSTS.get(tid) or {"claude-code": 0, "codex": 0, "antigravity": 0}
+        mech = resolve_install_mechanism(tid, doc)
+        raw_works = doc.get("works_with") or ["claude", "codex", "antigravity"]
         items.append({
             "id": tid,
             "name": doc.get("name") or tid,
@@ -703,8 +790,12 @@ def build_workbench_catalog(
             "default_checked": tid in DEFAULT_ENABLED_TOOLS and tid not in NEEDS_API_KEY,
             "needs_key": NEEDS_API_KEY.get(tid),
             "trust": infer_trust_badge(doc),
-            "works_with": doc.get("works_with") or ["claude", "codex", "antigravity"],
+            "works_with": raw_works,
+            "compatible_agents": normalize_agent_ids(raw_works),
             "has_plugin": bool(doc.get("plugin")),
+            "install_mode": mech["mode"],
+            "install_badge": mech["badge"],
+            "manual_hint": mech["manual_hint"],
             "slot_names": [slots_by_id[s]["name"] for s in (doc.get("slots") or []) if s in slots_by_id],
             "summary": doc.get("reason") or "",
             "trigger_when": doc.get("trigger_when") or "",
@@ -720,7 +811,7 @@ def build_workbench_catalog(
         "active_profile": act,
         "rev": kdoc.get("rev", 0),
         "onboarding_completed": bool(kdoc.get("onboarding_completed")),
-        "done_check": pspec.get("done_check") or "block",
+        "done_check": normalize_done_check(pspec.get("done_check", "log")),
         "presets": list(GOAL_PRESETS.values()),
         "items": items,
         "budget": compute_context_budget(enabled_ids),
@@ -760,23 +851,11 @@ def apply_tool_toggle(
                 "message": f"{tdoc.get('name', tool_id)} 需要先設定環境變數 {key_env}（安全底線禁止明文寫入設定檔），已先維持關閉。",
             }
 
+    mech = resolve_install_mechanism(tool_id, tdoc)
     updated_kit = patch(base, profile_patch={"tools": {tool_id: {"tier": tier}}})
     enable = tier in ("resident", "on_demand")
     actions: list[str] = []
     warnings: list[str] = []
-
-    # 1. 若是 servers.yaml 管理的內建 MCP（如 chrome-devtools-mcp -> chrome_devtools），同步免問核准與 MCP
-    if tool_id == "chrome-devtools-mcp":
-        edition.record(base, "chrome_devtools", enable)
-        actions.append(f"chrome_devtools 免問核准已設為 {'開啟' if enable else '關閉'}")
-
-    # 2. 若工具卡帶有 plugin 宣告，透過本機鎖定版本目錄（~/.omnikit/current 或 repo_root）對全部設定目錄啟停
-    plug_spec = tdoc.get("plugin") or {}
-    cfg_doc = yaml.safe_load((ddir / "omnikit.yaml").read_text(encoding="utf-8")) or {}
-    mkt_name = str(cfg_doc.get("marketplace") or "omnikit-b40609")
-    plug_name = str(plug_spec.get("name") or tool_id)
-    plugin_id = f"{plug_name}@{mkt_name}"
-    local_mkt = (base / "current") if ((base / "current" / ".claude-plugin" / "marketplace.json").is_file()) else repo_root
 
     def _exec(cmd: list[str], env_extra: dict[str, str] | None = None, timeout: int = 180) -> tuple[int, str, str]:
         if runner is not None:
@@ -804,6 +883,27 @@ def apply_tool_toggle(
         except (OSError, subprocess.SubprocessError) as exc:
             return 127, "", str(exc)
 
+    # 1. 若是 servers.yaml 管理的內建 MCP（如 chrome-devtools-mcp -> chrome_devtools），同步免問核准與實際 MCP server 啟停
+    if tool_id == "chrome-devtools-mcp":
+        edition.record(base, "chrome_devtools", enable)
+        actions.append(f"chrome_devtools 免問核准與 MCP 狀態已設為 {'開啟' if enable else '停用並移除'}")
+        if not enable:
+            codex_exe_m = shutil.which("codex") or ("codex" if runner is not None else None)
+            if codex_exe_m:
+                found_homes_m = homes.discover(h)
+                for xdir in [h / ".codex", *[f.path for f in found_homes_m if f.agent == "codex" and f.writable]]:
+                    if xdir.is_dir():
+                        _exec([codex_exe_m, "mcp", "remove", "chrome_devtools"], {"CODEX_HOME": str(xdir)})
+
+    # 2. 若工具卡帶有 plugin 宣告，透過本機鎖定版本目錄（~/.omnikit/current 或 repo_root）對全部設定目錄啟停
+    plug_spec = tdoc.get("plugin") or {}
+    cfg_doc = yaml.safe_load((ddir / "omnikit.yaml").read_text(encoding="utf-8")) or {}
+    mkt_name = str(cfg_doc.get("marketplace") or "omnikit-b40609")
+    plug_name = str(plug_spec.get("name") or tool_id)
+    plugin_id = f"{plug_name}@{mkt_name}"
+    local_mkt = (base / "current") if ((base / "current" / ".claude-plugin" / "marketplace.json").is_file()) else repo_root
+
+    attempted_cli = 0
     if "claude" in plug_spec and tdoc.get("status") == "default":
         claude_exe = shutil.which("claude") or ("claude" if runner is not None else None)
         if claude_exe:
@@ -812,6 +912,7 @@ def apply_tool_toggle(
             for cdir in cdirs:
                 if not cdir.is_dir():
                     continue
+                attempted_cli += 1
                 cenv = {} if os.path.normcase(str(cdir.resolve())) == os.path.normcase(str((h / ".claude").resolve())) else {"CLAUDE_CONFIG_DIR": str(cdir)}
                 if enable:
                     _exec([claude_exe, "plugin", "marketplace", "add", str(local_mkt), "--scope", "user"], cenv)
@@ -834,6 +935,7 @@ def apply_tool_toggle(
             for xdir in xdirs:
                 if not xdir.is_dir():
                     continue
+                attempted_cli += 1
                 xenv = {"CODEX_HOME": str(xdir)}
                 if enable:
                     _exec([codex_exe, "plugin", "marketplace", "add", str(local_mkt)], xenv)
@@ -847,15 +949,39 @@ def apply_tool_toggle(
                     if rc_rx == 0:
                         actions.append(f"Codex（{xdir.name}）已停用 {plugin_id}")
 
+    if mech["mode"] == "manual" and enable:
+        actions.append(f"已在設定檔記錄偏好：{tdoc.get('name', tool_id)}（手動安裝指令：{mech['manual_hint']}）")
+
+    cli_all_failed = bool(mech["mode"] == "auto_plugin" and attempted_cli > 0 and not actions and warnings)
     return {
-        "ok": True,
+        "ok": not cli_all_failed,
         "deferred": bool(warnings and not actions),
         "tool_id": tool_id,
         "tier": tier,
+        "install_mode": mech["mode"],
+        "manual_hint": mech["manual_hint"],
         "rev": updated_kit.get("rev", 0),
         "actions": actions,
         "warnings": warnings,
+        **({"message": warnings[0]} if cli_all_failed else {}),
     }
+
+
+def init_workbench(state: Path | None = None, *, repo_root: Path = ROOT) -> list[str]:
+    """安裝時初始化或刷新 kit.yaml 與預設免金鑰精選工具，且在未選 profile 時保留首次破冰引導狀態。"""
+    base = state if state is not None else statedir.state_dir()
+    warns: list[str] = []
+    if not kit_path(base).is_file():
+        prof = profiles.chosen(base) or "default"
+        patch(base, active_profile=prof, onboarding_completed=(prof != "default"))
+        for tid in DEFAULT_ENABLED_TOOLS:
+            try:
+                res = apply_tool_toggle(tid, "resident", state=base, repo_root=repo_root)
+                warns.extend(res.get("warnings") or [])
+            except Exception as exc:  # noqa: BLE001
+                warns.append(f"{tid}: {exc}")
+    record_applied_snapshot(base)
+    return warns
 
 
 def export_bundle(state: Path | None = None) -> dict[str, Any]:
@@ -873,7 +999,7 @@ def export_bundle(state: Path | None = None) -> dict[str, Any]:
         "omnikit_bundle": 1,
         "exported_at": datetime.now().astimezone().strftime("%Y-%m-%d"),
         "preset": [p for p in (pspec.get("preset") or []) if isinstance(p, str)],
-        "done_check": str(pspec.get("done_check") or "block"),
+        "done_check": normalize_done_check(pspec.get("done_check", "log")),
         "tools": safe_tools,
     }
 
@@ -903,6 +1029,18 @@ def selftest() -> int:
         d0 = load(state)
         check("load() 在 kit.yaml 不存在時純讀取不寫檔、rev=0",
               not kit_path(state).exists() and d0["rev"] == 0 and d0["active_profile"] == "default")
+
+        # 1b. init_workbench 在全新環境建立 kit.yaml 但不誤寫 profile.json，確保首次破冰引導不被鎖死
+        init_state = root / "init_state"
+        init_state.mkdir(parents=True)
+        (init_state / "config.json").write_text(json.dumps({"agents": []}), encoding="utf-8")
+        init_workbench(init_state, repo_root=ROOT)
+        d_init = load(init_state)
+        check("init_workbench 建立預設 kit.yaml（onboarding_completed=False）且不誤寫 profile.json",
+              kit_path(init_state).is_file()
+              and d_init["onboarding_completed"] is False
+              and not (init_state / "profile.json").exists()
+              and profiles.onboarding_active(init_state, "default") is True)
 
         # 2. patch 寫入、鏡像 profile.json、保留未知鍵與樂觀鎖
         d1 = patch(state, active_profile="alice", onboarding_completed=True, profile_patch={"custom_unknown_flag": 42})
@@ -967,6 +1105,15 @@ def selftest() -> int:
               and any(i["recommended_reason"] for i in cat["items"])
               and "url" not in json.dumps(bundle))
 
+        # 6. kit.yaml 損壞時寫入前自動備份 .bak，且無引號 done_check: off 解析為 "off"（修 M-P1-11、Opus P2-7）
+        kit_path(state).write_text("active_profile: alice\nprofiles:\n  alice:\n    done_check: off\n", encoding="utf-8")
+        check("無引號 done_check: off（YAML False）正規化為 'off'", load(state)["profiles"]["alice"]["done_check"] == "off")
+
+        kit_path(state).write_text("active_profile: [\n", encoding="utf-8")
+        patch(state, active_profile="alice")
+        bak = Path(f"{kit_path(state)}.bak")
+        check("損壞的 kit.yaml 在下次寫入前自動備份為 kit.yaml.bak", bak.is_file() and "active_profile: [" in bak.read_text(encoding="utf-8"))
+
     print(f"\n{'kit.py selftest：全部通過' if not fails else f'kit.py selftest：{len(fails)} 項失敗'}")
     return 1 if fails else 0
 
@@ -976,6 +1123,8 @@ def main(argv: list[str] | None = None) -> int:
     sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="OmniKit 單一事實來源（kit.yaml）與工作台套件管理")
     parser.add_argument("--selftest", action="store_true")
+    parser.add_argument("--state-dir", help="覆寫狀態資料夾路徑")
+    parser.add_argument("--repo-root", help="覆寫 repo 根目錄路徑")
     sub = parser.add_subparsers(dest="cmd")
 
     p_show = sub.add_parser("show")
@@ -1000,11 +1149,20 @@ def main(argv: list[str] | None = None) -> int:
     p_dm = sub.add_parser("dump")
     p_dm.add_argument("--out")
 
+    sub.add_parser("init-workbench")
+
     args = parser.parse_args(argv)
     if args.selftest:
         return selftest()
 
-    state = statedir.state_dir()
+    state = Path(args.state_dir) if args.state_dir else statedir.state_dir()
+    repo_root = Path(args.repo_root) if args.repo_root else ROOT
+
+    if args.cmd == "init-workbench":
+        warns = init_workbench(state, repo_root=repo_root)
+        for w in warns[:5]:
+            print(f"[提示] {w}", file=sys.stderr)
+        return 0
     if args.cmd == "show":
         cat = build_workbench_catalog(state, ROOT / "data")
         if args.json:

@@ -681,7 +681,108 @@ def test_adopted_drift_preserved_across_foreground_apply_kit(short_tmp: Path):
     # 再次透過面板前台 apply_kit 切換工具，手改內容必須被完整保留
     res2 = app.apply_kit({"tools": ["gitleaks", "frontend-design", "exa"], "done_check": "log"})
     assert custom_marker in codex_rules.read_text(encoding="utf-8")
+    # 一鍵修復同步（fix_doctor 預設 force_overwrite=False）同樣不得洗掉使用者 adopted 手改區塊（修 M-P1-5）
+    app.fix_doctor()
+    assert custom_marker in codex_rules.read_text(encoding="utf-8")
     # 未設 EXA_API_KEY 時 exa 應自動維持 disabled 並附帶清楚提醒
     assert any("EXA_API_KEY" in w for w in res2.get("warnings") or [])
     kdoc = kit_mod.load(state)
     assert kdoc["profiles"][kdoc["active_profile"]]["tools"]["exa"]["tier"] == "disabled"
+
+
+def test_v021_review_regressions_anti_framing_collision_and_answer_merge(short_tmp: Path):
+    """回歸測試（v0.2.1 雙跨家審查修復）：X-Frame-Options 防嵌、新專案撞名 409、精靈保留訪談欄位、無 T3 對帳不消紅燈。"""
+    state = short_tmp / "state"
+    home = short_tmp / "home"
+    (home / ".claude").mkdir(parents=True)
+    desktop = home / "Desktop"
+    desktop.mkdir(parents=True)
+
+    app = server.CockpitApp(
+        state_dir=state,
+        home_dir=home,
+        default_repo_root=None,
+        t3_runner=lambda _: [],
+        cli_runner=lambda *_a, **_kw: (0, "[]", ""),
+        cache_ttl=0,
+        allowed_hosts=set(),
+        token=TOKEN,
+    )
+    httpd = server.create_server("127.0.0.1", 0, app=app)
+    port = httpd.server_address[1]
+    th = threading.Thread(target=httpd.serve_forever, daemon=True)
+    th.start()
+    try:
+        base = f"http://127.0.0.1:{port}"
+        with urllib.request.urlopen(f"{base}/", timeout=5) as resp:
+            assert resp.headers.get("X-Frame-Options") == "DENY"
+            assert "frame-ancestors 'none'" in (resp.headers.get("Content-Security-Policy") or "")
+
+        # 純 Claude 環境 compatible_agents 對齊預選 5 項免金鑰套件（修 M-P0-1）
+        _, boot = _http_json(f"{base}/api/bootstrap")
+        assert boot["installed_agents"] == ["claude-code"]
+        assert boot["done_check"] == "log"
+        compat_default = [
+            it["id"]
+            for it in boot["workbench"]["items"]
+            if it["enabled"] and "claude-code" in (it.get("compatible_agents") or [])
+        ]
+        assert len(compat_default) >= 5 and "claude-code-setup" in compat_default
+
+        # 訪談欄位合併保留（修 M-P1-12）
+        _http_json(
+            f"{base}/api/kit/apply",
+            method="POST",
+            payload={
+                "answers": {
+                    "name": "alice",
+                    "language": "zh-TW",
+                    "verbosity": "concise",
+                    "autonomy": "balanced",
+                    "domains": ["software-dev"],
+                    "pains": ["anti-fake-done"],
+                    "evaluate_tools": True,
+                    "background": "嵌入式韌體開發",
+                    "projects": {"main": "FWCore", "frontend": "Panel"},
+                }
+            },
+        )
+        # 再次送不含 background / evaluate_tools 的局部 answers，不得洗掉既有值
+        _http_json(
+            f"{base}/api/kit/apply",
+            method="POST",
+            payload={
+                "answers": {
+                    "name": "alice",
+                    "language": "zh-TW",
+                    "verbosity": "detailed",
+                    "autonomy": "hands-off",
+                    "domains": ["software-dev"],
+                    "pains": ["anti-fake-done"],
+                }
+            },
+        )
+        saved_ans = json.loads((state / "profiles" / "alice" / "answers.json").read_text(encoding="utf-8"))
+        assert saved_ans["evaluate_tools"] is True
+        assert saved_ans["background"] == "嵌入式韌體開發"
+
+        # 建立新專案後同名第二次建立必須回 409 Conflict（修 M-P1-10）
+        st_c1, _ = _http_json(f"{base}/api/projects/create", method="POST", payload={"name": "UniqueApp", "parent_dir": str(desktop)})
+        assert st_c1 == 201
+        st_c2, _ = _http_json(f"{base}/api/projects/create", method="POST", payload={"name": "UniqueApp", "parent_dir": str(desktop)})
+        assert st_c2 == 409
+
+        # 無 T3 本機退路對帳不得覆寫舊更新時間戳（修 M-P1-13）
+        now_f = state / "status" / "UniqueApp" / "NOW.md"
+        now_f.write_text("# UniqueApp\n\n- 更新時間：2020-01-01 00:00\n\n## 目前結論\n- 舊結論\n", encoding="utf-8")
+        reconciler._fallback_local_git_reconcile(
+            project_id="UniqueApp",
+            project_name="UniqueApp",
+            project_path=desktop / "UniqueApp",
+            now_path=now_f,
+            state_dir=state,
+        )
+        assert "2020-01-01 00:00" in now_f.read_text(encoding="utf-8")
+    finally:
+        httpd.shutdown()
+        httpd.server_close()

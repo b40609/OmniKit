@@ -105,7 +105,7 @@
 
 ### 控制面板一鍵啟停精選套件
 
-完整安裝 OmniKit 時，`install.ps1` 會預先初始化免金鑰精選工具（寫入 `~/.omnikit/kit.yaml` 並從本機鎖定版本目錄 `~/.omnikit/current` 掛載對應 plugin），之後隨時可在**本機控制面板 → 工作台**分頁一鍵開啟或停用任何工具。若你只想單獨從遠端裝某一個 plugin 而不裝整套 OmniKit，可照上方表格指令手動安裝；用自己的 fork 時：
+完整安裝 OmniKit 時，`install.ps1` 會預先初始化免金鑰精選工具（寫入 `~/.omnikit/kit.yaml` 並從本機鎖定版本目錄 `~/.omnikit/current` 掛載對應外掛與內建 MCP），之後隨時可在**本機控制面板 → 工作台**分頁開啟或停用外掛與 MCP（外部命令列工具則記錄偏好並提供安裝指令）。若你只想單獨從遠端裝某一個 plugin 而不裝整套 OmniKit，可照上方表格指令手動安裝；用自己的 fork 時：
 
 - 把指令裡的 `b40609/OmniKit` 換成你的 fork。
 - `@` 後面的 marketplace 名稱換成你 `data/omnikit.yaml` 的 `marketplace`，例如 `omnikit-<你的帳號小寫>`。
