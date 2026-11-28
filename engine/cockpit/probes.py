@@ -556,7 +556,7 @@ def resolve_local_path(raw: str, *, project_root: Path | None, home: Path, layer
 _WIN_TASK_PS = r"""
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
-$names = @($env:OMNIKIT_PROBE_TASKS | ConvertFrom-Json)
+$names = @(($env:OMNIKIT_PROBE_TASKS | ConvertFrom-Json) | ForEach-Object { $_ })
 $out = @()
 foreach ($n in $names) {
   $full = [string]$n

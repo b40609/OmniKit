@@ -864,3 +864,15 @@ def test_poll_interval_and_timezones():
     assert probes.tz_for("+08:00")[0].utcoffset(None) == timedelta(hours=8)
     tz, note = probes.tz_for("Not/AZone")
     assert tz is not None and "找不到時區" in note
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows PowerShell 5.1 真機排程查詢回歸測試")
+def test_win_task_ps51_unrolls_multiple_names():
+    """回歸測試：Windows PowerShell 5.1 的 ConvertFrom-Json 回傳陣列不可被 @(...) 包成二維並拼成單一字串。"""
+    names = ["__omnikit_nonexistent_task_a__", "__omnikit_nonexistent_task_b__"]
+    res = probes.System().query_win_tasks(names)
+    assert set(res.keys()) == set(names)
+    for name in names:
+        assert res[name]["found"] is False
+        assert res[name].get("error") != "沒有回傳這個工作"
+        assert " ".join(names) not in str(res[name].get("error") or "")
