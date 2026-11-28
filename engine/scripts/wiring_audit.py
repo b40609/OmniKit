@@ -37,14 +37,16 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# 假綠燈作弊特徵（只比對無條件跳過標記，排除 Playwright `test.skip(cond, reason)` 條件式跳過）
+# 假綠燈作弊特徵（只比對無條件跳過與獨佔標記，排除 Playwright `test.skip(cond, reason)` 與 `@pytest.mark.skipif` 條件式跳過）
 FAKE_GREEN_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("test-skip-js", re.compile(r"\b(?:it|test|describe)\.skip\s*\(\s*['\"`]")),
     ("xit-js", re.compile(r"\b(?:xit|xdescribe|xtest)\s*\(")),
-    ("pytest-skip-unconditional", re.compile(r"@pytest\.mark\.skip\s*(?:\(\s*(?:reason\s*=\s*['\"][^'\"]*['\"])?\s*\))?\s*$")),
+    ("test-only-js", re.compile(r"\b(?:it|test|describe)\.only\s*\(")),
+    ("test-todo-js", re.compile(r"\b(?:it|test)\.todo\s*\(")),
+    ("pytest-skip-unconditional", re.compile(r"@pytest\.mark\.skip\b(?!if)")),
     ("unittest-skip", re.compile(r"@unittest\.skip\s*\(")),
 )
-CI_SWALLOW_RE = re.compile(r"\|\|\s*true\b")
+CI_SWALLOW_RE = re.compile(r"(?:\|\|\s*true\b|^\s*continue-on-error\s*:\s*true\b)")
 TEST_FILE_RE = re.compile(r"(?:^test_|_test\.py$|\.(?:test|spec)\.[A-Za-z0-9]+$)", re.IGNORECASE)
 
 OMNIKIT_PATH_REF_RE = re.compile(
@@ -82,18 +84,46 @@ def _run_git(cwd: Path, args: list[str]) -> tuple[int, str]:
         return 1, ""
 
 
-def scan_fakegreen_diff(project_dir: Path, *, diff_text: str | None = None, staged_only: bool = False) -> list[dict[str, Any]]:
-    """掃描 git diff 新增行與新建未追蹤測試檔是否偷加假綠燈跳過標記或 CI 吞錯。"""
+def scan_fakegreen_diff(
+    project_dir: Path,
+    *,
+    diff_text: str | None = None,
+    staged_only: bool = False,
+    base_ref: str | None = None,
+) -> list[dict[str, Any]]:
+    """掃描 git diff 新增行、基準分支提交差異與新建未追蹤測試檔是否偷加假綠燈跳過標記或 CI 吞錯。"""
     findings: list[dict[str, Any]] = []
     explicit_diff = diff_text is not None
     if diff_text is None:
+        chunks: list[str] = []
         if staged_only:
             rc, out = _run_git(project_dir, ["diff", "--cached", "--unified=0", "--", "."])
+            if rc == 0 and out.strip():
+                chunks.append(out)
         else:
             rc, out = _run_git(project_dir, ["diff", "HEAD", "--unified=0", "--", "."])
             if rc != 0:
                 rc, out = _run_git(project_dir, ["diff", "--cached", "--unified=0", "--", "."])
-        diff_text = out if rc == 0 else ""
+            if rc == 0 and out.strip():
+                chunks.append(out)
+
+            # 補齊 commit 後與 CI 乾淨 checkout 的變更範圍掃描（修 Fable P1-7）
+            resolved_base = base_ref
+            if not resolved_base:
+                gh_base = os.environ.get("GITHUB_BASE_REF", "").strip()
+                if gh_base:
+                    rc_b, _ = _run_git(project_dir, ["rev-parse", "--verify", "-q", f"origin/{gh_base}"])
+                    if rc_b == 0:
+                        resolved_base = f"origin/{gh_base}"
+            if resolved_base:
+                rc_r, out_r = _run_git(project_dir, ["diff", f"{resolved_base}...HEAD", "--unified=0", "--", "."])
+                if rc_r == 0 and out_r.strip():
+                    chunks.append(out_r)
+            elif not chunks:
+                rc_h, out_h = _run_git(project_dir, ["diff", "HEAD~1..HEAD", "--unified=0", "--", "."])
+                if rc_h == 0 and out_h.strip():
+                    chunks.append(out_h)
+        diff_text = "\n".join(chunks)
 
     if diff_text.strip():
         cur_file = ""
@@ -167,11 +197,11 @@ def scan_fakegreen_diff(project_dir: Path, *, diff_text: str | None = None, stag
     return findings
 
 
-def audit_omnikit_repo(repo_root: Path = ROOT, *, staged_only: bool = False) -> dict[str, Any]:
+def audit_omnikit_repo(repo_root: Path = ROOT, *, staged_only: bool = False, base_ref: str | None = None) -> dict[str, Any]:
     """稽核 OmniKit repo 的工具名冊接線、活躍文件／腳本孤兒引用與工作區假綠燈。"""
     problems: list[dict[str, Any]] = []
 
-    # 1. 檢查 default / trial 工具卡是否皆納入工作台目錄（kit.py TOOL_COSTS）
+    # 1. 檢查 default / trial 工具卡是否皆納入工作台目錄（kit.py TOOL_COSTS）且具備明確安裝／引導機制
     sys.path.insert(0, str(repo_root / "engine" / "scripts"))
     import kit as kit_mod
 
@@ -181,12 +211,21 @@ def audit_omnikit_repo(repo_root: Path = ROOT, *, staged_only: bool = False) -> 
             tdoc = yaml.safe_load(tf.read_text(encoding="utf-8")) or {}
             st = tdoc.get("status")
             tid = tdoc.get("id") or tf.stem
-            if st in ("default", "trial") and tid not in kit_mod.TOOL_COSTS:
-                problems.append({
-                    "kind": "unwired_tool",
-                    "file": f"data/tools/{tf.name}",
-                    "detail": f"工具「{tid}」（狀態 {st}）未在 engine/scripts/kit.py 的 TOOL_COSTS 登記工作台與 Context 成本接線",
-                })
+            if st in ("default", "trial"):
+                if tid not in kit_mod.TOOL_COSTS:
+                    problems.append({
+                        "kind": "unwired_tool",
+                        "file": f"data/tools/{tf.name}",
+                        "detail": f"工具「{tid}」（狀態 {st}）未在 engine/scripts/kit.py 的 TOOL_COSTS 登記工作台與 Context 成本接線",
+                    })
+                elif hasattr(kit_mod, "resolve_install_mechanism"):
+                    mech = kit_mod.resolve_install_mechanism(tid, tdoc)
+                    if mech.get("mode") == "manual" and not mech.get("manual_hint"):
+                        problems.append({
+                            "kind": "missing_install_hint",
+                            "file": f"data/tools/{tf.name}",
+                            "detail": f"工具「{tid}」無自動外掛安裝器，必須在 kit.py 提供明確的手動／按需安裝說明（manual_hint）",
+                        })
 
     # 2. 掃描活躍文件、SKILL.md、腳本與 CI workflow 引用的內部路徑是否真實存在
     scan_targets: list[Path] = []
@@ -233,7 +272,7 @@ def audit_omnikit_repo(repo_root: Path = ROOT, *, staged_only: bool = False) -> 
                 })
 
     # 3. 反假綠燈 diff 掃描
-    problems.extend(scan_fakegreen_diff(repo_root, staged_only=staged_only))
+    problems.extend(scan_fakegreen_diff(repo_root, staged_only=staged_only, base_ref=base_ref))
 
     return {
         "ok": len(problems) == 0,
@@ -244,14 +283,14 @@ def audit_omnikit_repo(repo_root: Path = ROOT, *, staged_only: bool = False) -> 
     }
 
 
-def audit_user_project(project_dir: Path, *, staged_only: bool = False) -> dict[str, Any]:
+def audit_user_project(project_dir: Path, *, staged_only: bool = False, base_ref: str | None = None) -> dict[str, Any]:
     """稽核任意外部用戶專案：抓假綠燈作弊、package.json / workflow 斷頭腳本引用與未提交衝突標記。"""
     pdir = project_dir.resolve()
     if not pdir.is_dir():
         return {"ok": False, "target": str(pdir), "mode": "project", "problems": [{"kind": "missing_dir", "file": "", "detail": f"找不到目錄：{pdir}"}]}
 
     problems: list[dict[str, Any]] = []
-    problems.extend(scan_fakegreen_diff(pdir, staged_only=staged_only))
+    problems.extend(scan_fakegreen_diff(pdir, staged_only=staged_only, base_ref=base_ref))
 
     # 1. 檢查 package.json 裡的本地檔案引用（如 node scripts/xxx.js）是否存在
     pkg_json = pdir / "package.json"
@@ -315,20 +354,28 @@ def selftest() -> int:
         if not cond:
             fails.append(label)
 
-    # 1. 假綠燈 diff 偵測測試
+    # 1. 假綠燈 diff 偵測測試（含位置參數 pytest skip、.only、continue-on-error 與 commit 後 HEAD~1..HEAD 偵測）
     fake_diff = (
         "diff --git a/tests/app.test.ts b/tests/app.test.ts\n"
         "+++ b/tests/app.test.ts\n"
         "+  test.skip('login broken', () => {});\n"
+        "+  describe.only('focus', () => {});\n"
+        "diff --git a/tests/test_api.py b/tests/test_api.py\n"
+        "+++ b/tests/test_api.py\n"
+        '+@pytest.mark.skip("之後再修")\n'
         "diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml\n"
         "+++ b/.github/workflows/ci.yml\n"
         "+      - run: pytest || true\n"
+        "+      continue-on-error: true\n"
     )
     hits = scan_fakegreen_diff(ROOT, diff_text=fake_diff)
-    check("scan_fakegreen_diff 能同時抓出 test.skip 與 CI `|| true` 吞錯",
-          len(hits) == 2 and {h["rule"] for h in hits} == {"test-skip-js", "ci-swallow-error"})
+    check(
+        "scan_fakegreen_diff 能同時抓出 test.skip、describe.only、@pytest.mark.skip(\"...\") 與 CI 吞錯",
+        len(hits) == 5
+        and {h["rule"] for h in hits} == {"test-skip-js", "test-only-js", "pytest-skip-unconditional", "ci-swallow-error"},
+    )
 
-    # 2. 外部用戶專案斷頭腳本與合併衝突測試
+    # 2. 外部用戶專案斷頭腳本、合併衝突與 commit 後假綠燈測試
     with tempfile.TemporaryDirectory() as tmp:
         proj = Path(tmp) / "demo"
         proj.mkdir()
@@ -344,6 +391,21 @@ def selftest() -> int:
         res_good = audit_user_project(proj)
         check("修好後 audit_user_project 通過（0 問題）", res_good["ok"])
 
+        if shutil.which("git"):
+            git_proj = Path(tmp) / "git_demo"
+            git_proj.mkdir()
+            env_g = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
+            rc_init = subprocess.run(["git", "-c", "core.longpaths=true", "init", "-q", "-b", "main", str(git_proj)], env=env_g, check=False).returncode
+            if rc_init == 0 and subprocess.run(["git", "-C", str(git_proj), "rev-parse", "--is-inside-work-tree"], env=env_g, capture_output=True, check=False).returncode == 0:
+                (git_proj / "test_ok.py").write_text("def test_a(): assert True\n", encoding="utf-8")
+                subprocess.run(["git", "-C", str(git_proj), "-c", "user.name=t", "-c", "user.email=t@x", "add", "."], env=env_g, check=True)
+                subprocess.run(["git", "-C", str(git_proj), "-c", "user.name=t", "-c", "user.email=t@x", "commit", "-q", "-m", "c1"], env=env_g, check=True)
+                (git_proj / "test_ok.py").write_text('@pytest.mark.skip("hide failure")\ndef test_a(): assert False\n', encoding="utf-8")
+                subprocess.run(["git", "-C", str(git_proj), "-c", "user.name=t", "-c", "user.email=t@x", "add", "."], env=env_g, check=True)
+                subprocess.run(["git", "-C", str(git_proj), "-c", "user.name=t", "-c", "user.email=t@x", "commit", "-q", "-m", "c2"], env=env_g, check=True)
+                committed_hits = scan_fakegreen_diff(git_proj)
+                check("commit 後乾淨工作區仍能透過 HEAD~1..HEAD 抓出假綠燈跳過標記", len(committed_hits) == 1)
+
     print(f"\n{'wiring_audit.py selftest：全部通過' if not fails else f'wiring_audit.py selftest：{len(fails)} 項失敗'}")
     return 1 if fails else 0
 
@@ -354,6 +416,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="OmniKit 入口接線、孤兒引用與反假綠燈稽核器")
     parser.add_argument("--project", help="指定要檢查的外部專案目錄（不指定則檢查 OmniKit repo 自身）")
     parser.add_argument("--staged", action="store_true", help="只掃描 git staged 變更（pre-commit hook 用）")
+    parser.add_argument("--base", default=None, help="比對的基準分支或 commit（例如 origin/main）")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args(argv)
@@ -361,7 +424,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.selftest:
         return selftest()
 
-    res = audit_user_project(Path(args.project), staged_only=args.staged) if args.project else audit_omnikit_repo(ROOT, staged_only=args.staged)
+    res = (
+        audit_user_project(Path(args.project), staged_only=args.staged, base_ref=args.base)
+        if args.project
+        else audit_omnikit_repo(ROOT, staged_only=args.staged, base_ref=args.base)
+    )
     if args.json:
         print(json.dumps(res, ensure_ascii=False, indent=2))
     else:

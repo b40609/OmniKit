@@ -55,12 +55,13 @@ def validate_project_id(project_id: str) -> str:
     pid = str(project_id or "").strip()
     if (
         not pid
+        or pid.startswith(".")
         or pid.strip(".") == ""
         or pid.endswith((".", " "))
         or pid.split(".")[0].upper() in WIN_RESERVED
         or not SAFE_PROJECT_ID.match(pid)
     ):
-        raise ValueError(f"不合法的專案代號：{project_id!r}（只允許中英數字、底線、點與連字號，且不可全為點號）")
+        raise ValueError(f"不合法的專案代號：{project_id!r}（只允許中英數字、底線、點與連字號，且不可為句點開頭或全為點號）")
     return pid
 
 
@@ -123,7 +124,7 @@ def _git_env(sdir: Path, extra_env: dict[str, str] | None = None) -> dict[str, s
 
 
 def _run_git(sdir: Path, args: list[str], *, timeout: int = 15, extra_env: dict[str, str] | None = None,
-             use_git_dir: bool = True) -> tuple[int, str, str]:
+             use_git_dir: bool = True, strip_stdout: bool = True) -> tuple[int, str, str]:
     git_exe = shutil.which("git")
     if not git_exe:
         return 127, "", "找不到 git 執行檔"
@@ -146,7 +147,8 @@ def _run_git(sdir: Path, args: list[str], *, timeout: int = 15, extra_env: dict[
         kw["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     try:
         proc = subprocess.run(cmd, check=False, **kw)
-        return proc.returncode, (proc.stdout or "").strip(), (proc.stderr or "").strip()
+        out = (proc.stdout or "").strip() if strip_stdout else (proc.stdout or "")
+        return proc.returncode, out, (proc.stderr or "").strip()
     except (OSError, subprocess.SubprocessError) as exc:
         return 127, "", str(exc)
 
@@ -255,6 +257,15 @@ def sync_status(state: Path | None = None, *, extra_env: dict[str, str] | None =
                 "message": "本機狀態板就緒（免遠端帳號）",
                 "stale_lock": info["stale_lock"],
             }
+        rc_up, _, _ = _run_git(sdir, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], extra_env=extra_env)
+        if rc_up != 0:
+            rc_f, _, err_f = _run_git(sdir, ["fetch", "origin"], timeout=20, extra_env=extra_env)
+            if rc_f != 0:
+                return {"ok": False, "synced": False, "mode": "remote", "reason": err_f or "遠端連線 fetch 失敗"}
+            rc_rm, _, _ = _run_git(sdir, ["rev-parse", "--verify", "-q", "refs/remotes/origin/main"], extra_env=extra_env)
+            if rc_rm != 0:
+                return {"ok": True, "synced": True, "mode": "remote", "message": "遠端狀態庫目前為空（首次 save --push 時將自動建立分支）"}
+            _run_git(sdir, ["branch", "--set-upstream-to=origin/main", "main"], extra_env=extra_env)
         rc, out, err = _run_git(sdir, ["pull", "--ff-only"], timeout=20, extra_env=extra_env)
         if rc == 0:
             return {"ok": True, "synced": True, "mode": "remote", "message": out or "已同步遠端狀態庫"}
@@ -367,24 +378,50 @@ def save_status(
                 }
 
         pushed = False
+        push_failed = False
         note = "已儲存並記錄本機版本歷史"
         if push and info["mode"] == "remote":
-            rc_rb, _, err_rb = _run_git(sdir, ["pull", "--rebase"], timeout=20, extra_env=extra_env)
-            if rc_rb != 0:
-                _run_git(sdir, ["rebase", "--abort"], timeout=10, extra_env=extra_env)
-                note = f"已記錄本機歷史，但遠端同步衝突已自動中止 rebase（未推送）：{err_rb}"
-            else:
-                rc_p, _, err_p = _run_git(sdir, ["push"], timeout=20, extra_env=extra_env)
-                if rc_p == 0:
-                    pushed = True
-                    note = "已儲存並同步至遠端狀態庫"
+            rc_up, _, _ = _run_git(sdir, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], extra_env=extra_env)
+            if rc_up != 0:
+                rc_f, _, err_f = _run_git(sdir, ["fetch", "origin"], timeout=20, extra_env=extra_env)
+                if rc_f != 0:
+                    push_failed = True
+                    note = f"已記錄本機歷史，但無法連線至遠端狀態庫（未推送）：{err_f}"
                 else:
-                    note = f"已記錄本機歷史，但遠端推送未完成：{err_p}"
-        return {"ok": True, "committed": True, "pushed": pushed, "mode": info["mode"], "note": note}
+                    rc_rm, _, _ = _run_git(sdir, ["rev-parse", "--verify", "-q", "refs/remotes/origin/main"], extra_env=extra_env)
+                    if rc_rm != 0:
+                        rc_p0, _, err_p0 = _run_git(sdir, ["push", "-u", "origin", "main"], timeout=20, extra_env=extra_env)
+                        if rc_p0 == 0:
+                            pushed = True
+                            note = "已儲存並首次同步推送至遠端狀態庫（已綁定 origin/main）"
+                        else:
+                            push_failed = True
+                            note = f"已記錄本機歷史，但首次推送至遠端失敗：{err_p0}"
+                    else:
+                        _run_git(sdir, ["branch", "--set-upstream-to=origin/main", "main"], extra_env=extra_env)
+                        rc_up = 0
+            if rc_up == 0 and not pushed and not push_failed:
+                rc_rb, _, err_rb = _run_git(sdir, ["pull", "--rebase"], timeout=20, extra_env=extra_env)
+                if rc_rb != 0:
+                    _run_git(sdir, ["rebase", "--abort"], timeout=10, extra_env=extra_env)
+                    push_failed = True
+                    if "conflict" in err_rb.lower() or "could not apply" in err_rb.lower():
+                        note = f"已記錄本機歷史，但遠端同步衝突已自動中止 rebase（未推送）：{err_rb}"
+                    else:
+                        note = f"已記錄本機歷史，但遠端同步（pull --rebase）失敗（未推送）：{err_rb}"
+                else:
+                    rc_p, _, err_p = _run_git(sdir, ["push"], timeout=20, extra_env=extra_env)
+                    if rc_p == 0:
+                        pushed = True
+                        note = "已儲存並同步至遠端狀態庫"
+                    else:
+                        push_failed = True
+                        note = f"已記錄本機歷史，但遠端推送未完成：{err_p}"
+        return {"ok": not push_failed, "committed": True, "pushed": pushed, "mode": info["mode"], "note": note}
 
 
 def bind_remote(remote_url: str, *, state: Path | None = None, extra_env: dict[str, str] | None = None) -> dict[str, Any]:
-    """將已初始化的本機 ~/.omnikit/status 無縫綁定至遠端私人儲存庫（不需手動刪資料夾再 clone）。"""
+    """將已初始化的本機 ~/.omnikit/status 無縫綁定至遠端私人儲存庫，並完成上游追蹤與首次推送（修 M-P1-3）。"""
     url = str(remote_url or "").strip()
     if not url:
         raise ValueError("請提供遠端 Git 儲存庫網址")
@@ -392,6 +429,7 @@ def bind_remote(remote_url: str, *, state: Path | None = None, extra_env: dict[s
     init_status(base_state, extra_env=extra_env)
     sdir = status_dir(base_state)
     with status_lock(base_state):
+        _run_git(sdir, ["branch", "-M", "main"], extra_env=extra_env)
         rc_get, _, _ = _run_git(sdir, ["remote", "get-url", "origin"], extra_env=extra_env)
         if rc_get == 0:
             rc, _, err = _run_git(sdir, ["remote", "set-url", "origin", url], extra_env=extra_env)
@@ -399,7 +437,69 @@ def bind_remote(remote_url: str, *, state: Path | None = None, extra_env: dict[s
             rc, _, err = _run_git(sdir, ["remote", "add", "origin", url], extra_env=extra_env)
         if rc != 0:
             return {"ok": False, "error": err or "設定遠端 origin 失敗"}
-        return {"ok": True, "mode": "remote", "remote": url, "note": f"已綁定遠端狀態庫：{url}（可執行 status.py save --push 同步）"}
+
+        rc_f, _, err_f = _run_git(sdir, ["fetch", "origin"], timeout=25, extra_env=extra_env)
+        if rc_f != 0:
+            return {
+                "ok": False,
+                "mode": "remote",
+                "remote": url,
+                "pushed": False,
+                "error": f"已寫入遠端網址，但無法連線 fetch（請確認儲存庫存在與權限）：{err_f}",
+            }
+
+        rc_rm, _, _ = _run_git(sdir, ["rev-parse", "--verify", "-q", "refs/remotes/origin/main"], extra_env=extra_env)
+        if rc_rm != 0:
+            rc_p, _, err_p = _run_git(sdir, ["push", "-u", "origin", "main"], timeout=25, extra_env=extra_env)
+            if rc_p != 0:
+                return {"ok": False, "mode": "remote", "remote": url, "pushed": False, "error": f"首次推送至空遠端失敗：{err_p}"}
+            return {
+                "ok": True,
+                "mode": "remote",
+                "remote": url,
+                "pushed": True,
+                "note": f"已綁定並將本機狀態歷史推送至遠端：{url}",
+            }
+
+        # 遠端已有 origin/main：先打本機備份 tag 防遺失，再安全整合並綁定 upstream
+        bak_tag = f"backup-local-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        _run_git(sdir, ["tag", "-f", bak_tag, "HEAD"], extra_env=extra_env)
+        rc_anc, _, _ = _run_git(sdir, ["merge-base", "--is-ancestor", "refs/remotes/origin/main", "HEAD"], extra_env=extra_env)
+        if rc_anc != 0:
+            rc_m, _, err_m = _run_git(
+                sdir,
+                ["merge", "--no-edit", "--allow-unrelated-histories", "refs/remotes/origin/main"],
+                timeout=20,
+                extra_env=extra_env,
+            )
+            if rc_m != 0:
+                _run_git(sdir, ["merge", "--abort"], timeout=10, extra_env=extra_env)
+                return {
+                    "ok": False,
+                    "mode": "remote",
+                    "remote": url,
+                    "pushed": False,
+                    "backup_tag": bak_tag,
+                    "error": f"本機與遠端狀態庫有同名檔案衝突（已中止合併並建立本機備份標籤 {bak_tag}）：{err_m}",
+                }
+        rc_p2, _, err_p2 = _run_git(sdir, ["push", "-u", "origin", "main"], timeout=25, extra_env=extra_env)
+        if rc_p2 != 0:
+            return {
+                "ok": False,
+                "mode": "remote",
+                "remote": url,
+                "pushed": False,
+                "backup_tag": bak_tag,
+                "error": f"已完成本機整合（備份標籤 {bak_tag}），但推送遠端失敗：{err_p2}",
+            }
+        return {
+            "ok": True,
+            "mode": "remote",
+            "remote": url,
+            "pushed": True,
+            "backup_tag": bak_tag,
+            "note": f"已綁定並與遠端狀態庫完成同步推送：{url}",
+        }
 
 
 def project_history(
@@ -445,11 +545,11 @@ def restore_project_now(
     if not (sdir / ".git").exists():
         raise FileNotFoundError("此狀態板尚未建立版本紀錄")
     rel = f"{pid}/NOW.md"
-    rc, content, err = _run_git(sdir, ["show", f"{clean_rev}:{rel}"], extra_env=extra_env)
+    rc, content, err = _run_git(sdir, ["show", f"{clean_rev}:{rel}"], extra_env=extra_env, strip_stdout=False)
     if rc != 0:
         raise ValueError(f"找不到指定版本的狀態板內容：{err}")
     target = (sdir / pid / "NOW.md").resolve()
-    _write_text_lf(target, content + ("\n" if not content.endswith("\n") else ""))
+    _write_text_lf(target, content + ("\n" if content and not content.endswith("\n") else ""))
     save_res = save_status(
         state=base_state,
         message=f"status({pid}): 還原至版本 {clean_rev[:7]}",
@@ -483,7 +583,7 @@ def selftest() -> int:
         # 1. 上層目錄本身是 git repo 時，init/save 絕不污染上層 repo，且無全域 git 身分＋全域開 gpgsign 仍 100% 成功
         outer = root / "outer_home"
         outer.mkdir()
-        subprocess.run(["git", "init", "--quiet"], cwd=str(outer), check=True)
+        subprocess.run(["git", "-c", "core.longpaths=true", "init", "--template=", "--quiet", "."], cwd=str(outer), check=True)
         state = outer / ".omnikit"
 
         r_init = init_status(state, extra_env=isolated_env)
@@ -516,21 +616,54 @@ def selftest() -> int:
         rem_state = root / "remote_state"
         rem_sdir = rem_state / "status"
         rem_sdir.mkdir(parents=True)
-        subprocess.run(["git", "init", "--quiet"], cwd=str(rem_sdir), check=True)
-        subprocess.run(["git", "config", "--local", "user.email", "me@private.example"], cwd=str(rem_sdir), check=True)
-        subprocess.run(["git", "remote", "add", "origin", "https://example.com/me/status.git"], cwd=str(rem_sdir), check=True)
+        subprocess.run(["git", "-c", "core.longpaths=true", "init", "--template=", "--quiet", "."], cwd=str(rem_sdir), check=True)
+        subprocess.run(["git", "--git-dir=.git", "--work-tree=.", "config", "--local", "user.email", "me@private.example"], cwd=str(rem_sdir), check=True)
+        subprocess.run(["git", "--git-dir=.git", "--work-tree=.", "remote", "add", "origin", "https://example.com/me/status.git"], cwd=str(rem_sdir), check=True)
         r_rem = init_status(rem_state, extra_env=isolated_env)
         _, kept_email, _ = _run_git(rem_sdir, ["config", "--local", "--get", "user.email"], extra_env=isolated_env)
         check("既有遠端狀態庫識別為 remote 且完全保留使用者原 git 設定",
               r_rem["mode"] == "remote" and r_rem["created"] is False and kept_email == "me@private.example")
 
-        # 路徑穿越防禦
+        # 路徑穿越與隱藏目錄防禦（修 Fable P2-8：禁止 .git 當代號）
         blocked = False
         try:
             project_now_path("../evil", state=state)
         except ValueError:
             blocked = True
-        check("拒絕路徑穿越專案代號", blocked)
+        dot_blocked = False
+        try:
+            project_now_path(".git", state=state)
+        except ValueError:
+            dot_blocked = True
+        check("拒絕路徑穿越與 .git 句點開頭專案代號", blocked and dot_blocked)
+
+        # 遠端綁定、上游追蹤與推送完整測試（修 M-P1-3 / Fable P1-5 & Opus P1-2；相容 Windows >260 UTF-8 bytes 中文長路徑）
+        bare_remote = root / "rb.git"
+        bare_remote.mkdir(parents=True)
+        subprocess.run(["git", "-c", "core.longpaths=true", "init", "--bare", "--template=", "-b", "main", "--quiet", "."], cwd=str(bare_remote), check=True)
+        subprocess.run(["git", "--git-dir=.", "config", "core.longpaths", "true"], cwd=str(bare_remote), check=True)
+        rel_bare = os.path.relpath(bare_remote, status_dir(state))
+        r_bind = bind_remote(rel_bare, state=state, extra_env=isolated_env)
+        r_sync_rem = sync_status(state, extra_env=isolated_env)
+        _write_text_lf(now_f, now_f.read_text("utf-8") + "\n- 綁定遠端後新增紀錄\n")
+        r_push = save_status(state=state, message="status(DemoApp): 推送遠端", rel_paths=["DemoApp/NOW.md"], push=True, extra_env=isolated_env)
+        rem_cnt = subprocess.run(
+            ["git", "--git-dir=.", "rev-list", "--count", "main"],
+            cwd=str(bare_remote),
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        check(
+            "bind-remote 空遠端自動設 upstream 並首次推送，後續 sync 與 save --push 真實寫入遠端",
+            r_bind["ok"] is True
+            and r_bind.get("pushed") is True
+            and r_sync_rem["ok"] is True
+            and r_push["ok"] is True
+            and r_push["pushed"] is True
+            and int(rem_cnt) >= 4,
+            f"remote_commits={rem_cnt}",
+        )
 
     print(f"\n{'status.py selftest：全部通過' if not fails else f'status.py selftest：{len(fails)} 項失敗'}")
     return 1 if fails else 0

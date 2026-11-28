@@ -179,7 +179,8 @@ def _fallback_local_git_reconcile(
     last_hash = git_info.get("last_hash") or ""
     dirty = int(git_info.get("dirty_count") or 0)
 
-    old_raw = collector.read_utf8(now_path) if now_path.is_file() else ""
+    orig_stat = now_path.stat() if now_path.is_file() else None
+    old_raw = collector.read_utf8(now_path) if orig_stat is not None else ""
     parsed = collector.parse_now_md(old_raw) if old_raw.strip() else None
 
     if not old_raw.strip():
@@ -202,21 +203,14 @@ def _fallback_local_git_reconcile(
         )
     else:
         lines = old_raw.replace("\r\n", "\n").splitlines()
-        updated_hdr = False
         for i, ln in enumerate(lines[:12]):
-            if re.match(r"^\s*-\s*更新時間\s*[:：]", ln):
-                lines[i] = f"- 更新時間：{now_stamp}"
-                updated_hdr = True
-            elif re.match(r"^\s*-\s*分支\s*[:：]", ln) and last_hash:
+            if re.match(r"^\s*-\s*分支\s*[:：]", ln) and last_hash:
                 lines[i] = f"- 分支：{branch}（最新 `{last_hash}` {last_subj}）"
-        if not updated_hdr:
-            insert_pos = 1 if lines and lines[0].startswith("#") else 0
-            lines.insert(insert_pos, f"- 更新時間：{now_stamp}")
 
         if git_info.get("available"):
             short_stamp = now_stamp[-11:]
             commit_part = f"最新 `{last_hash}` {last_subj}" if last_hash else last_subj
-            sync_bullet = f"- 本機 Git 同步（{short_stamp}）：分支 `{branch}`，{commit_part}，未提交變更 {dirty} 檔"
+            sync_bullet = f"- 本機 Git 同步（{short_stamp}，未經對話對帳）：分支 `{branch}`，{commit_part}，未提交變更 {dirty} 檔"
             conc_start = None
             conc_end = len(lines)
             for idx, ln in enumerate(lines):
@@ -238,15 +232,20 @@ def _fallback_local_git_reconcile(
         body = "\n".join(lines).rstrip("\n") + "\n"
 
     collector.write_utf8_atomic(now_path, body)
+    if orig_stat is not None and parsed is not None and parsed.get("updated_source") != "header":
+        try:
+            os.utime(now_path, (orig_stat.st_atime, orig_stat.st_mtime))
+        except OSError:
+            pass
     sdir = state_dir if state_dir is not None else collector.default_state_dir()
     collector._maybe_git_commit_status(sdir, now_path, f"reconcile({project_id}): 本機 Git 狀態同步")
-    suffix = f"（{reason_note}，已用本機 Git 狀態直接更新）" if reason_note else ""
+    suffix = f"（{reason_note}；僅同步 Git 摘要，未刷新對帳時間戳）" if reason_note else "（僅同步 Git 摘要）"
     _ = parsed
     return {
         "thread_id": "",
         "thread_url": "",
         "mode": "local_git",
-        "message": f"{project_name} 已更新 NOW.md{suffix}",
+        "message": f"{project_name} 已更新 Git 摘要{suffix}",
     }
 
 

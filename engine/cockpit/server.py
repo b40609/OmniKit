@@ -26,6 +26,7 @@ import sys
 import tempfile
 import threading
 import time
+import traceback
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from http import HTTPStatus
@@ -55,7 +56,7 @@ FORWARD_HEADERS = (
 )
 TOKEN_HEADER = "X-OmniKit-Token"
 HOSTS_ENV = "OMNIKIT_COCKPIT_HOSTS"
-SERVER_VERSION = "0.2.0"
+SERVER_VERSION = "0.2.1"
 QUERY_IN_REQ_RE = re.compile(r'(\"[A-Z]+\s+[^\s?\"]+)\?[^\s\"]*(\s+HTTP/[^\"]+\")')
 
 HABIT_CATALOG = [
@@ -137,16 +138,18 @@ def tailnet_hosts(
 def _collect_tripwire_summary(state_dir: Path) -> dict[str, Any]:
     hits_file = state_dir / "harness" / "tripwire-hits.jsonl"
     if not hits_file.is_file():
-        return {"recent_30d": 0, "total": 0, "by_rule": {}, "recent_events": []}
+        return {"recent_30d": 0, "blocked_30d": 0, "logged_30d": 0, "total": 0, "by_rule": {}, "recent_events": []}
     cutoff = (datetime.now(UTC) - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
     by_rule: dict[str, int] = {}
     recent_30d = 0
+    blocked_30d = 0
+    logged_30d = 0
     total = 0
     events: list[dict[str, str]] = []
     try:
         lines = hits_file.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
-        return {"recent_30d": 0, "total": 0, "by_rule": {}, "recent_events": []}
+        return {"recent_30d": 0, "blocked_30d": 0, "logged_30d": 0, "total": 0, "by_rule": {}, "recent_events": []}
     for ln in lines:
         if not ln.strip():
             continue
@@ -159,20 +162,27 @@ def _collect_tripwire_summary(state_dir: Path) -> dict[str, Any]:
         hook = str(d.get("hook") or "guard")
         rule = str(d.get("rule") or "unknown")
         ts = str(d.get("ts") or "")
+        mode = str(d.get("mode") or d.get("action") or "block").lower()
         key = f"{hook}:{rule}"
         by_rule[key] = by_rule.get(key, 0) + 1
         total += 1
         if ts >= cutoff:
             recent_30d += 1
+            if mode == "log":
+                logged_30d += 1
+            else:
+                blocked_30d += 1
         events.append({
             "ts": ts,
             "hook": hook,
             "rule": rule,
             "agent": str(d.get("agent") or ""),
-            "action": str(d.get("action") or "block"),
+            "action": mode,
         })
     return {
         "recent_30d": recent_30d,
+        "blocked_30d": blocked_30d,
+        "logged_30d": logged_30d,
         "total": total,
         "by_rule": dict(sorted(by_rule.items(), key=lambda kv: (-kv[1], kv[0]))[:8]),
         "recent_events": list(reversed(events[-5:])),
@@ -242,6 +252,7 @@ class CockpitApp:
         self.instance = secrets.token_hex(8)
         self.version = SERVER_VERSION
         self._lock = threading.Lock()
+        self._mutate_lock = threading.Lock()
         self._cache: dict[str, tuple[float, Any]] = {}
         self.reconciler = reconciler.ReconcileManager(
             state_dir=self.state_dir,
@@ -497,6 +508,11 @@ class CockpitApp:
         expected_rev = body.get("expected_rev")
         if expected_rev is not None:
             expected_rev = int(expected_rev)
+            cur_rev = int(kdoc.get("rev") or 0)
+            if expected_rev != cur_rev:
+                raise kit_mod.RevConflictError(
+                    f"設定已被其他視窗或指令更新（目前 rev={cur_rev}，送出 rev={expected_rev}），請重新整理後再套用"
+                )
 
         answers_in = body.get("answers")
         target_profile = str(body.get("profile_name") or cur_profile).strip() or cur_profile
@@ -513,21 +529,28 @@ class CockpitApp:
                 target_profile = req_name
                 profile_notes.append(f"目前使用手寫規則檔「{req_name}」，保留原 AGENTS.md 不覆蓋；工作台與護欄設定已更新。")
             else:
+                existing_ans = profiles_mod.answers(self.data_dir, self.state_dir, req_name) or {}
+                eval_flag = (
+                    bool(answers_in["evaluate_tools"])
+                    if "evaluate_tools" in answers_in and answers_in["evaluate_tools"] is not None
+                    else bool(existing_ans.get("evaluate_tools", False))
+                )
                 payload = {
                     "name": req_name,
-                    "language": str(answers_in.get("language") or "zh-TW"),
-                    "verbosity": str(answers_in.get("verbosity") or "concise"),
-                    "autonomy": str(answers_in.get("autonomy") or "balanced"),
-                    "domains": list(answers_in.get("domains") or ["software-dev"]),
-                    "pains": list(answers_in.get("pains") or ["anti-fake-done", "no-verification"]),
-                    "evaluate_tools": bool(answers_in.get("evaluate_tools", False)),
+                    "language": str(answers_in.get("language") or existing_ans.get("language") or "zh-TW"),
+                    "verbosity": str(answers_in.get("verbosity") or existing_ans.get("verbosity") or "concise"),
+                    "autonomy": str(answers_in.get("autonomy") or existing_ans.get("autonomy") or "balanced"),
+                    "domains": list(answers_in.get("domains") or existing_ans.get("domains") or ["software-dev"]),
+                    "pains": list(answers_in.get("pains") if "pains" in answers_in else (existing_ans.get("pains") or ["anti-fake-done", "no-verification"])),
+                    "evaluate_tools": eval_flag,
                 }
                 if payload["verbosity"] == "detailed" and "too-long" in payload["pains"]:
                     payload["pains"] = [p for p in payload["pains"] if p != "too-long"]
-                if answers_in.get("background"):
-                    payload["background"] = str(answers_in["background"]).strip()
+                bg_val = answers_in.get("background") if "background" in answers_in else existing_ans.get("background")
+                if bg_val:
+                    payload["background"] = str(bg_val).strip()
                 if payload["evaluate_tools"]:
-                    projs = answers_in.get("projects")
+                    projs = answers_in.get("projects") if "projects" in answers_in else existing_ans.get("projects")
                     if isinstance(projs, dict) and projs.get("main"):
                         payload["projects"] = projs
                     else:
@@ -538,7 +561,7 @@ class CockpitApp:
                     tmp_ans = Path(tf.name)
                 buf = io.StringIO()
                 try:
-                    with contextlib.redirect_stdout(buf):
+                    with self._mutate_lock, contextlib.redirect_stdout(buf):
                         rc = pnew_mod.run(tmp_ans, self.data_dir, state=self.state_dir, write=True, apply=False, force=True)
                 finally:
                     tmp_ans.unlink(missing_ok=True)
@@ -623,7 +646,7 @@ class CockpitApp:
         if detected_agents or (self.state_dir / "config.json").is_file():
             try:
                 buf_s = io.StringIO()
-                with contextlib.redirect_stdout(buf_s), contextlib.redirect_stderr(buf_s):
+                with self._mutate_lock, contextlib.redirect_stdout(buf_s), contextlib.redirect_stderr(buf_s):
                     sync_mod.run_sync(
                         env,
                         profile=target_profile,
@@ -657,7 +680,7 @@ class CockpitApp:
         counts = {s: sum(1 for r in rows if r["status"] == s) for s in ("ok", "warn", "fail", "unknown")}
         return {"ok": counts["fail"] == 0, "counts": counts, "rows": rows}
 
-    def fix_doctor(self) -> dict[str, Any]:
+    def fix_doctor(self, *, force_overwrite: bool = False) -> dict[str, Any]:
         import kit as kit_mod  # type: ignore
         import status as status_mod  # type: ignore
         import sync as sync_mod  # type: ignore
@@ -665,14 +688,25 @@ class CockpitApp:
         env = self._make_sync_env()
         kdoc = kit_mod.load(self.state_dir)
         prof = str(kdoc.get("active_profile") or "default")
+        preserved = set() if force_overwrite else kit_mod.drifted_rule_keys(self.state_dir, self.home_dir)
         buf = io.StringIO()
-        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
-            sync_mod.run_sync(env, profile=prof, take_over=True)
+        with self._mutate_lock, contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            sync_mod.run_sync(env, profile=prof, take_over=True, respect_drift=not force_overwrite)
         status_mod.init_status(self.state_dir)
-        kit_mod.record_applied_snapshot(self.state_dir, self.home_dir, reset_adopted=True)
+        kit_mod.record_applied_snapshot(
+            self.state_dir,
+            self.home_dir,
+            preserve_keys=preserved,
+            reset_adopted=force_overwrite,
+        )
         self.invalidate()
         doc_after = self.get_doctor()
-        return {"ok": doc_after["ok"], "log": buf.getvalue().strip(), "doctor": doc_after}
+        return {
+            "ok": doc_after["ok"],
+            "preserved_drift_count": len(preserved),
+            "log": buf.getvalue().strip(),
+            "doctor": doc_after,
+        }
 
     def enqueue_reconcile(self, project_id: str) -> dict[str, Any]:
         ov = self.get_overview(force_sync=False)
@@ -731,6 +765,8 @@ def _make_handler(app: CockpitApp):
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", cache_control)
             self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("Content-Security-Policy", "frame-ancestors 'none'")
             self.send_header("Referrer-Policy", "no-referrer")
             if getattr(self, "close_connection", False):
                 self.send_header("Connection", "close")
@@ -837,6 +873,10 @@ def _make_handler(app: CockpitApp):
                     if sfs and sfs not in ("same-origin", "none"):
                         self._send_json(HTTPStatus.FORBIDDEN, {"error": "跨站請求不得讀取工作階段憑證"})
                         return
+                    origin = self.headers.get("Origin")
+                    if origin and not _origin_matches_server(origin, self.server.server_address[1]):
+                        self._send_json(HTTPStatus.FORBIDDEN, {"error": "跨來源請求不得讀取工作階段憑證"})
+                        return
                     _, remote = self._access()
                     self._send_json(
                         HTTPStatus.OK,
@@ -924,6 +964,7 @@ def _make_handler(app: CockpitApp):
             except (ValueError, TypeError) as exc:
                 self._send_json(HTTPStatus.BAD_REQUEST, {"error": collector.sanitize(exc)})
             except Exception as exc:  # noqa: BLE001
+                sys.stderr.write(f"[cockpit-error] GET {self.path}: {traceback.format_exc()}\n")
                 self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": collector.sanitize(exc)})
 
         def do_POST(self) -> None:
@@ -998,7 +1039,7 @@ def _make_handler(app: CockpitApp):
                         import sync as sync_mod  # type: ignore
 
                         if sync_mod.detect_agents(env) or (app.state_dir / "config.json").is_file():
-                            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                            with app._mutate_lock, contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                                 sync_mod.run_sync(env, take_over=True, respect_drift=True)
                     app.invalidate("bootstrap", "tools")
                     cat = kit_mod.build_workbench_catalog(app.state_dir, app.data_dir)
@@ -1006,7 +1047,7 @@ def _make_handler(app: CockpitApp):
                     return
 
                 if path == "/api/doctor/fix":
-                    self._send_json(HTTPStatus.OK, app.fix_doctor())
+                    self._send_json(HTTPStatus.OK, app.fix_doctor(force_overwrite=bool(body.get("force_overwrite", False))))
                     return
 
                 if path == "/api/reconcile-all":
@@ -1128,9 +1169,12 @@ def _make_handler(app: CockpitApp):
                 self._send_json(HTTPStatus.NOT_FOUND, {"error": "找不到 API 端點"})
             except (ValueError, TypeError) as exc:
                 self._send_json(HTTPStatus.BAD_REQUEST, {"error": collector.sanitize(exc)})
+            except FileExistsError as exc:
+                self._send_json(HTTPStatus.CONFLICT, {"error": collector.sanitize(exc)})
             except FileNotFoundError as exc:
                 self._send_json(HTTPStatus.NOT_FOUND, {"error": collector.sanitize(exc)})
             except Exception as exc:  # noqa: BLE001
+                sys.stderr.write(f"[cockpit-error] POST {self.path}: {traceback.format_exc()}\n")
                 self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": collector.sanitize(exc)})
 
         def do_PATCH(self) -> None:
@@ -1185,6 +1229,7 @@ def _make_handler(app: CockpitApp):
             except FileNotFoundError as exc:
                 self._send_json(HTTPStatus.NOT_FOUND, {"error": collector.sanitize(exc)})
             except Exception as exc:  # noqa: BLE001
+                sys.stderr.write(f"[cockpit-error] PATCH {self.path}: {traceback.format_exc()}\n")
                 self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": collector.sanitize(exc)})
 
     return Handler

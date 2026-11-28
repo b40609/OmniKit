@@ -61,6 +61,7 @@ $ComposedRules = Join-Path $StateDir 'rules'
 $CurrentClone = Join-Path $StateDir 'current'
 $ClaudeMarketplace = Join-Path $StateDir 'claude-marketplace'
 $ProfileFile = Join-Path $StateDir 'profile.json'
+$OnboardingFile = Join-Path $StateDir 'onboarding.json'
 $KitFile = Join-Path $StateDir 'kit.yaml'
 $AppliedStateDir = Join-Path $StateDir 'state'
 $LocksDir = Join-Path $StateDir 'locks'
@@ -165,8 +166,8 @@ if ($codexHasBlock) {
 if ($hasAgents) { $plan += '移除 OmniKit 的 skills 與 MCP server（Claude Code、Codex、Antigravity；不是 OmniKit 的、你改過的不碰）' }
 if ($geminiHasBlock) { $plan += '拿掉 ~/.gemini/GEMINI.md 的 OmniKit 區塊（原地改寫，硬連結不會斷）' }
 if ($legacySkillshare) { $plan += '拿掉舊版 skillshare 設定裡 OmniKit 的部分' }
-if ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile) -or (Test-Path $KitFile) -or (Test-Path $CockpitDir) -or $hasEditionState) {
-  $plan += "停止本機控制面板並刪除接好的規則、工作台狀態檔（kit.yaml）、profile 選擇、版本與同意紀錄（$StateDir）"
+if ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile) -or (Test-Path $OnboardingFile) -or (Test-Path $KitFile) -or (Test-Path $CockpitDir) -or $hasEditionState) {
+  $plan += "停止本機控制面板並刪除接好的規則、工作台狀態檔（kit.yaml）、profile 選擇與破冰暫緩紀錄、版本與同意紀錄（$StateDir；保留專案設定 cockpit/config.json）"
 }
 if ((Test-Path -LiteralPath $PanelShortcut) -or (Test-Path -LiteralPath $AutostartShortcut) -or $record['shortcuts']) {
   $plan += '移除開始功能表與登入自啟的控制面板捷徑'
@@ -268,7 +269,14 @@ function Disconnect-Agents {
 function Stop-CockpitAndShortcuts {
   $uv = Get-Uv
   if ($uv -and (Test-Path -LiteralPath $CockpitPy)) {
-    try { [void](Invoke-UvRun $uv @('run', '--quiet', $CockpitPy, '--state-dir', $StateDir, 'stop') -Capture) } catch { }
+    try {
+      $rStop = Invoke-UvRun $uv @('run', '--quiet', $CockpitPy, '--state-dir', $StateDir, 'stop') -Capture
+      if ($rStop.Code -ne 0) {
+        Write-Warning "停止本機控制面板伺服器回傳非 0（exit $($rStop.Code)）：$($rStop.Output) $($rStop.Error)"
+      }
+    } catch {
+      Write-Warning "停止本機控制面板伺服器時發生例外：$_"
+    }
   }
   foreach ($lnk in @($PanelShortcut, $AutostartShortcut) + @($record['shortcuts'] | Where-Object { $_ })) {
     if ($lnk -and (Test-Path -LiteralPath $lnk)) {
@@ -278,7 +286,7 @@ function Stop-CockpitAndShortcuts {
 }
 
 function Remove-ProfileState {
-  if (-not ((Test-Path $ComposedRules) -or (Test-Path $CurrentClone) -or (Test-Path $ClaudeMarketplace) -or (Test-Path $ProfileFile) -or (Test-Path $KitFile) -or (Test-Path $AppliedStateDir) -or (Test-Path $CockpitDir) -or $hasEditionState)) { return }
+  if (-not ((Test-Path $ComposedRules) -or (Test-Path $CurrentClone) -or (Test-Path $ClaudeMarketplace) -or (Test-Path $ProfileFile) -or (Test-Path $OnboardingFile) -or (Test-Path $KitFile) -or (Test-Path $AppliedStateDir) -or (Test-Path $CockpitDir) -or $hasEditionState)) { return }
   if (Test-Path -LiteralPath $CurrentClone) {
     $item = Get-Item -LiteralPath $CurrentClone -Force
     if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
@@ -287,9 +295,18 @@ function Remove-ProfileState {
       Remove-Item -Recurse -Force -LiteralPath $CurrentClone -ErrorAction SilentlyContinue
     }
   }
-  Remove-Item -Recurse -Force $ComposedRules, $ClaudeMarketplace, $AppliedStateDir, $LocksDir, $CockpitDir -ErrorAction SilentlyContinue
-  Remove-Item -Force $ProfileFile, $KitFile, $EditionFile, $ConsentFile -ErrorAction SilentlyContinue
-  Write-Host '已刪除接好的規則、乾淨參照副本、工作台設定檔、profile 選擇、版本與免問核准的同意紀錄'
+  Remove-Item -Recurse -Force $ComposedRules, $ClaudeMarketplace, $AppliedStateDir, $LocksDir -ErrorAction SilentlyContinue
+  if (Test-Path -LiteralPath $CockpitDir) {
+    foreach ($runtimeName in @('server.json', 'snapshot.json', 'launch-on-demand.ps1', 'autostart-cockpit.ps1', 'server.log', 'server.err.log')) {
+      $rtPath = Join-Path $CockpitDir $runtimeName
+      if (Test-Path -LiteralPath $rtPath) { Remove-Item -Force -LiteralPath $rtPath -ErrorAction SilentlyContinue }
+    }
+    if (-not @(Get-ChildItem -LiteralPath $CockpitDir -Force -ErrorAction SilentlyContinue).Count) {
+      Remove-Item -Force -LiteralPath $CockpitDir -ErrorAction SilentlyContinue
+    }
+  }
+  Remove-Item -Force $ProfileFile, $OnboardingFile, $KitFile, $EditionFile, $ConsentFile -ErrorAction SilentlyContinue
+  Write-Host '已刪除接好的規則、乾淨參照副本、工作台設定檔、profile 選擇與破冰暫緩紀錄、版本與免問核准同意紀錄（保留個人專案登記與狀態板）'
 }
 
 function Remove-ClaudePermissions {

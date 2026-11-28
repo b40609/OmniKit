@@ -130,7 +130,10 @@ def test_unpushed_commit_blocks_in_block_mode(pushed_repo):
 # ---- 模式與放行 ----
 
 def test_log_mode_records_but_does_not_block(tmp_path, state):
-    assert dc.handle(stop(NO_RECEIPT, cwd=str(tmp_path)), env={})["decision"] == "block"
+    assert dc.handle(stop(NO_RECEIPT, cwd=str(tmp_path)), env={}) is None
+    default_rows = hits(state)
+    assert default_rows and {r["mode"] for r in default_rows} == {"log"}
+    assert dc.handle(stop(NO_RECEIPT, cwd=str(tmp_path)), env=BLOCK)["decision"] == "block"
     state_log = tmp_path / "state-log"
     assert dc.handle(
         stop(NO_RECEIPT, cwd=str(tmp_path)),
@@ -304,9 +307,26 @@ def test_antigravity_stop_payload(tmp_path):
             "terminationReason": "NO_TOOL_CALL", "continuationActive": False}
     out = dc.handle(data, env=BLOCK)
     assert out["decision"] == "continue" and "完工回執" in out["reason"]
-    assert dc.handle(data, env={})["decision"] == "continue"
+    assert dc.handle(data, env={}) == {}
     assert dc.handle({**data, "continuationActive": True}, env=BLOCK) == {}
     assert dc.handle(data, env={"OMNIKIT_DONE_CHECK": "log"}) == {}
+
+
+def test_git_add_done_and_readonly_session_do_not_false_block(pushed_repo, tmp_path):
+    """三方比對誤擋根因 A、B：git add *.done 與【進行中】不誤觸發；唯讀子對話不連坐主線未提交變更。"""
+    (pushed_repo / "a.txt").write_text("mainline dirty\n", encoding="utf-8")
+    tr_ro = tmp_path / "readonly.jsonl"
+    tr_ro.write_text(
+        json.dumps({"type": "user", "timestamp": "2026-11-28T00:00:00Z", "message": {"content": "請唯讀審查"}}) + "\n",
+        encoding="utf-8",
+    )
+    out_ro = dc.handle(stop(receipt(), cwd=str(pushed_repo), transcript_path=str(tr_ro)), env=BLOCK)
+    assert out_ro is None
+
+    tr_git_add = transcript_with_command(tmp_path, 'git add -- "OmniKit/reports/review.md.done" && git commit -m "docs"')
+    assert dc.done_paths_this_turn(str(tr_git_add)) == []
+    out_prog = dc.handle(stop("【進行中】已歸檔報告，等待下一階段。", cwd=str(tmp_path), transcript_path=str(tr_git_add)), env=BLOCK)
+    assert out_prog is None
 
 
 def test_selftest_passes():
@@ -457,3 +477,45 @@ def test_malformed_markdown_does_not_raise(tmp_path, msg):
 def test_malformed_commands_do_not_raise(tmp_path, command):
     tr = transcript_with_command(tmp_path, command)
     assert isinstance(dc.done_paths_this_turn(str(tr)), list)
+
+
+def test_replay_cli_without_limit_and_per_path_line_anchor(tmp_path):
+    """回歸測試（PR #12 跨家複審 P2-1 / P2-4）：--replay 不帶 --limit 不丟 ValueError；網址埠號不掩蓋同列過期截圖。"""
+    env = {**os.environ, "OMNIKIT_STATE_DIR": str(tmp_path / "st"), "USERPROFILE": str(tmp_path / "empty_home"), "HOME": str(tmp_path / "empty_home")}
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPTS / "done_check.py"), "--replay", "--json"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    rep = json.loads(proc.stdout)
+    assert rep["replayed_transcripts"] == 0
+
+    old_shot = tmp_path / "old_screen.png"
+    old_shot.write_bytes(b"png")
+    old_code = tmp_path / "module.py"
+    old_code.write_text("x = 1\n", encoding="utf-8")
+    past = time.time() - 3600
+    os.utime(old_shot, (past, past))
+    os.utime(old_code, (past, past))
+
+    # 同列寫了 http://127.0.0.1:3780 與時間 11:38，不得把 :3780 / :38 當成 old_screen.png 的行號錨點
+    res_stale = dc.check(
+        receipt("http://127.0.0.1:3780 (11:38) old_screen.png"),
+        cwd=str(tmp_path),
+        session_start=time.time(),
+        runner=lambda _args: (1, ""),
+    )
+    assert "evidence-stale" in rules(res_stale)
+
+    # 真實寫出 module.py:1 行號錨點時，既有程式碼檔不誤判 evidence-stale
+    res_anchor = dc.check(
+        receipt("module.py:1"),
+        cwd=str(tmp_path),
+        session_start=time.time(),
+        runner=lambda _args: (1, ""),
+    )
+    assert "evidence-stale" not in rules(res_anchor)

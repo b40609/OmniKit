@@ -567,22 +567,45 @@ def _run_cli(env: Env, cmd: list[str], extra_env: dict[str, str | None] | None =
     return r.returncode, (r.stdout or "").strip(), (r.stderr or "").strip()
 
 
+def _normalize_cmd_exe_case(cmd_str: str) -> str:
+    """正規化簽章內指令開頭執行檔路徑大小寫（避免 Windows 上 uv.exe 與 uv.EXE 算出不同薄 plugin 雜湊造成面板假紅燈，修 M-P1-4）。"""
+    if os.name != "nt" or not cmd_str:
+        return cmd_str
+    s = cmd_str.lstrip()
+    if s.startswith('"'):
+        end_q = s.find('"', 1)
+        if end_q > 1:
+            return f'"{os.path.normcase(s[1:end_q])}"{s[end_q + 1:]}'
+    parts = s.split(" ", 1)
+    head = os.path.normcase(parts[0])
+    return f"{head} {parts[1]}" if len(parts) > 1 else head
+
+
 def claude_plugin_payloads(target_root: Path, servers: dict[str, dict]) -> tuple[str, dict, dict]:
     """回傳（帶內容雜湊的 SemVer 版本號, hooks 物件, mcpServers 物件），確保指令或路徑變動時更新 Claude 快取。"""
     scripts_root = target_root / "engine" / "scripts"
     hooks_obj: dict[str, list] = {}
+    sig_hooks: dict[str, list] = {}
     for event, script, timeout in claude_allow.HOOKS:
         cmd = claude_allow.hook_command(script, scripts_root=scripts_root)
         group: dict = {"hooks": [{"type": "command", "command": cmd, "timeout": timeout}]}
+        sig_group: dict = {"hooks": [{"type": "command", "command": _normalize_cmd_exe_case(cmd), "timeout": timeout}]}
         if claude_allow.MATCHERS.get((event, script)):
-            group = {"matcher": claude_allow.MATCHERS[(event, script)], **group}
+            m_val = claude_allow.MATCHERS[(event, script)]
+            group = {"matcher": m_val, **group}
+            sig_group = {"matcher": m_val, **sig_group}
         hooks_obj.setdefault(event, []).append(group)
+        sig_hooks.setdefault(event, []).append(sig_group)
     mcp_servers = {
         name: {"type": "stdio", "command": s["command"], "args": list(s.get("args") or []),
                **({"env": dict(s["env"])} if s.get("env") else {})}
         for name, s in servers.items() if "claude" in (s.get("targets") or [])
     }
-    raw_sig = json.dumps({"hooks": hooks_obj, "mcp": mcp_servers}, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    sig_mcp = {
+        name: {**spec, "command": os.path.normcase(str(spec["command"])) if os.name == "nt" else spec["command"]}
+        for name, spec in mcp_servers.items()
+    }
+    raw_sig = json.dumps({"hooks": sig_hooks, "mcp": sig_mcp}, sort_keys=True, ensure_ascii=False).encode("utf-8")
     ver = f"{PLUGIN_BASE_VERSION}-{hashlib.sha256(raw_sig).hexdigest()[:8]}"
     return ver, hooks_obj, mcp_servers
 
@@ -1166,7 +1189,15 @@ def run_sync(env: Env, *, profile: str | None = None, agents_override: list[str]
             diffs.extend(sync_antigravity_skills(env, src_skills, skipped, check_only=check_only))
 
     if do_mcp:
+        import kit as kit_mod
+
         servers, retired_mcp = load_mcp_manifest_full(target_root)
+        kdoc_mcp = kit_mod.load(env.state)
+        act_mcp = str(kdoc_mcp.get("active_profile") or "default")
+        t_mcp = (((kdoc_mcp.get("profiles") or {}).get(act_mcp) or {}).get("tools") or {}).get("chrome-devtools-mcp")
+        if isinstance(t_mcp, dict) and t_mcp.get("tier") == "disabled" and "chrome_devtools" in servers:
+            servers = {k: v for k, v in servers.items() if k != "chrome_devtools"}
+            retired_mcp = {*retired_mcp, "chrome_devtools"}
         if "claude-code" in agents:
             diffs.extend(sync_claude_plugin_and_settings(env, claude_dirs, target_root, servers, check_only=check_only))
             if do_user_plugins:
@@ -1195,6 +1226,24 @@ def disconnect(env: Env) -> list[str]:
 
     lines.extend(unmirror_user_claude_skills(env.home, claude_dirs, env.repo, env.state))
     servers, retired_mcp = load_mcp_manifest_full(env.repo)
+    # 取得工作台透過本機 marketplace 安裝的外掛清單，卸載時一併清乾淨（修 M-P1-13 / Opus P1-9）
+    omnikit_cfg = yaml.safe_load((env.repo / "data" / "omnikit.yaml").read_text(encoding="utf-8-sig")) if (env.repo / "data" / "omnikit.yaml").is_file() else {}
+    curated_mkt = str((omnikit_cfg or {}).get("marketplace") or "omnikit-b40609")
+    curated_claude_plugins: list[str] = []
+    curated_codex_plugins: list[str] = []
+    tools_dir_d = env.repo / "data" / "tools"
+    if tools_dir_d.is_dir():
+        for tf in sorted(tools_dir_d.glob("*.yaml")):
+            tdoc_d = yaml.safe_load(tf.read_text(encoding="utf-8-sig")) or {}
+            pspec_d = tdoc_d.get("plugin") or {}
+            if isinstance(pspec_d, dict) and pspec_d:
+                pname_d = str(pspec_d.get("name") or tdoc_d.get("id") or tf.stem)
+                pid_d = f"{pname_d}@{curated_mkt}"
+                if "claude" in pspec_d:
+                    curated_claude_plugins.append(pid_d)
+                if "codex" in pspec_d:
+                    curated_codex_plugins.append(pid_d)
+
     for d in [*claude_dirs, *codex_dirs, env.home / ".agents"]:
         sdir = d / "skills"
         if sdir.is_dir():
@@ -1210,17 +1259,25 @@ def disconnect(env: Env) -> list[str]:
                 if cleaned != txt:
                     codex_hooks.write(cfg_p, cleaned, nl)
             codex_cmd = codex_cli_cmd(env)
-            if codex_cmd:
+            if codex_cmd and d.is_dir():
                 for name in set(servers) | retired_mcp:
                     _run_cli(env, [*codex_cmd, "mcp", "remove", name], {"CODEX_HOME": str(d)})
+                for cpid in curated_codex_plugins:
+                    _run_cli(env, [*codex_cmd, "plugin", "remove", cpid], {"CODEX_HOME": str(d)})
+                _run_cli(env, [*codex_cmd, "plugin", "marketplace", "remove", curated_mkt], {"CODEX_HOME": str(d)})
 
     claude_exe = env.which("claude")
     if claude_exe or env.runner is not None:
         exe = claude_exe or "claude"
         for cdir in claude_dirs:
+            if not cdir.is_dir() and env.runner is None:
+                continue
             cenv = claude_cli_env(env.home, cdir)
             _run_cli(env, [exe, "plugin", "uninstall", PLUGIN_ID], cenv)
             _run_cli(env, [exe, "plugin", "marketplace", "remove", MARKETPLACE_NAME], cenv)
+            for cpid in curated_claude_plugins:
+                _run_cli(env, [exe, "plugin", "uninstall", cpid, "--scope", "user"], cenv)
+            _run_cli(env, [exe, "plugin", "marketplace", "remove", curated_mkt, "--scope", "user"], cenv)
     remove_claude_marketplace_dir(env.state)
 
     sj = env.home / ".gemini" / "config" / "skills.json"

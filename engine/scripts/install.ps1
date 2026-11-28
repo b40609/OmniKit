@@ -506,47 +506,11 @@ function Initialize-LocalWorkbench {
   if ($rSt.Code -ne 0) {
     Write-Warning "初始化本機狀態板略過（$($rSt.Error)）"
   }
-  $kitFile = Join-Path $StateDir 'kit.yaml'
-  if (-not (Test-Path -LiteralPath $kitFile)) {
-    $initPy = @'
-import sys
-from pathlib import Path
-repo = Path(sys.argv[1])
-state = Path(sys.argv[2])
-sys.path.insert(0, str(repo / "engine" / "scripts"))
-import kit, profiles
-prof = profiles.chosen(state) or "default"
-kit.patch(state, active_profile=prof, onboarding_completed=(prof != "default"))
-for tid in kit.DEFAULT_ENABLED_TOOLS:
-    try:
-        kit.apply_tool_toggle(tid, "resident", state=state, repo_root=repo)
-    except Exception:
-        pass
-kit.record_applied_snapshot(state)
-'@
-    $tmpInit = Join-Path ([IO.Path]::GetTempPath()) ('omnikit-kit-init-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.py')
-    try {
-      [IO.File]::WriteAllText($tmpInit, $initPy, (New-Object Text.UTF8Encoding($false)))
-      [void](Invoke-UvRun (Get-Uv) @('run', '--quiet', $tmpInit, $Repo, $StateDir) -Capture)
-    } finally {
-      Remove-Item -Force $tmpInit -ErrorAction SilentlyContinue
-    }
-  } else {
-    $snapPy = @'
-import sys
-from pathlib import Path
-repo, state = Path(sys.argv[1]), Path(sys.argv[2])
-sys.path.insert(0, str(repo / "engine" / "scripts"))
-import kit
-kit.record_applied_snapshot(state)
-'@
-    $tmpSnap = Join-Path ([IO.Path]::GetTempPath()) ('omnikit-kit-snap-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.py')
-    try {
-      [IO.File]::WriteAllText($tmpSnap, $snapPy, (New-Object Text.UTF8Encoding($false)))
-      [void](Invoke-UvRun (Get-Uv) @('run', '--quiet', $tmpSnap, $Repo, $StateDir) -Capture)
-    } finally {
-      Remove-Item -Force $tmpSnap -ErrorAction SilentlyContinue
-    }
+  $rKit = Invoke-UvRun (Get-Uv) @('run', '--quiet', $KitPy, '--state-dir', $StateDir, '--repo-root', $Repo, 'init-workbench') -Capture
+  if ($rKit.Code -ne 0) {
+    Write-Warning "初始化工作台設定略過（exit $($rKit.Code)：$($rKit.Error)）"
+  } elseif ($rKit.Error -and $rKit.Error.Trim()) {
+    $rKit.Error.Trim().Split("`n") | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkYellow }
   }
 }
 
@@ -559,10 +523,12 @@ function New-ControlPanelShortcut {
     $lnk = Join-Path $programsMenu 'OmniKit 控制面板.lnk'
     $psExe = Join-Path ($env:SystemRoot) 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $uvPath = Get-Uv
+    $escUv = "$uvPath".Replace("'", "''")
+    $escCockpit = "$CockpitPy".Replace("'", "''")
     $sh = New-Object -ComObject WScript.Shell
     $s = $sh.CreateShortcut($lnk)
     $s.TargetPath = $psExe
-    $s.Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -Command `"& '$uvPath' run '$CockpitPy' open`""
+    $s.Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -Command `"& '$escUv' run '$escCockpit' open`""
     $s.WorkingDirectory = $Repo
     $s.WindowStyle = 7
     $s.Description = '開啟 OmniKit 本機控制面板'
@@ -585,7 +551,7 @@ function Start-ControlPanelIfAllowed {
       }
     }
   } catch {
-    Write-Warning "本機控制面板自動啟動略過（可隨時執行 uv run scripts/cockpit.py open 開啟）"
+    Write-Warning "本機控制面板自動啟動略過（可隨時執行 uv run ~/.omnikit/current/scripts/cockpit.py open 開啟）"
   }
   return $null
 }
@@ -778,7 +744,7 @@ function Show-NextSteps($edition, $panelUrl = $null) {
     Write-Host "本機控制面板已啟動：$panelUrl" -ForegroundColor Cyan
     Write-Host '  - 直接在瀏覽器勾選偏好與精選套件，一鍵套用即可（免建 GitHub 私人 repo 即可使用本機 NOW.md 狀態板）' -ForegroundColor Cyan
   } else {
-    Write-Host '開啟本機控制面板：uv run scripts/cockpit.py open（或在對話輸入 /ok 面板）' -ForegroundColor Cyan
+    Write-Host '開啟本機控制面板：uv run ~/.omnikit/current/scripts/cockpit.py open（或在對話輸入 /ok 面板）' -ForegroundColor Cyan
   }
   Write-Host ''
   Write-Host '日常快捷指令：'

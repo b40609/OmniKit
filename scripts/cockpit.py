@@ -195,7 +195,7 @@ def build_autostart_ps1(
         f"$Port = {int(port)}\n"
         "try {\n"
         "  $h = Invoke-RestMethod -Uri \"http://${HostAddr}:${Port}/api/health\" -TimeoutSec 2 -ErrorAction Stop\n"
-        "  if ($h.service -eq 'omnikit-cockpit') { exit 0 }\n"
+        f"  if ($h.service -eq 'omnikit-cockpit' -and $h.version -eq '{_ps_sq(server.SERVER_VERSION)}') {{ exit 0 }}\n"
         "} catch {}\n"
         f"$LogDir = '{_ps_sq(log_file.parent)}'\n"
         "New-Item -ItemType Directory -Force -Path $LogDir | Out-Null\n"
@@ -236,6 +236,68 @@ def _spawn_detached_windows(ps_exe: str, ps1_path: Path, repo_root: Path) -> Non
         subprocess.Popen(cmd_auto, creationflags=base_flags, **popen_kw)
 
 
+def _terminate_verified_cockpit_pid(host: str, port: int, recorded_pid: int | None = None) -> bool:
+    """僅在已透過 /api/health 確認目標埠是 omnikit-cockpit、但舊版無 /api/server/stop 時，安全終止佔用該埠之伺服器行程。"""
+    listening_pids: set[int] = set()
+    if os.name == "nt":
+        ps_find = (
+            f"Get-NetTCPConnection -LocalAddress '{host}' -LocalPort {int(port)} -State Listen -ErrorAction SilentlyContinue "
+            "| Select-Object -ExpandProperty OwningProcess -Unique"
+        )
+        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps_find], capture_output=True, text=True, check=False)
+        for ln in (r.stdout or "").splitlines():
+            if ln.strip().isdigit():
+                p = int(ln.strip())
+                if p > 0 and p != os.getpid():
+                    listening_pids.add(p)
+
+    candidate_pids: list[int] = sorted(listening_pids)
+    if not candidate_pids and isinstance(recorded_pid, int) and recorded_pid > 0 and recorded_pid != os.getpid():
+        candidate_pids.append(recorded_pid)
+
+    for pid in candidate_pids:
+        try:
+            if os.name == "nt":
+                if pid in listening_pids:
+                    chk = subprocess.run(
+                        ["powershell", "-NoProfile", "-Command", f"(Get-Process -Id {pid} -ErrorAction SilentlyContinue).ProcessName"],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    pname = (chk.stdout or "").strip().lower()
+                    allow_kill = bool(pname and any(tag in pname for tag in ("python", "uv", "pwsh", "powershell")))
+                else:
+                    chk = subprocess.run(
+                        [
+                            "powershell",
+                            "-NoProfile",
+                            "-Command",
+                            f"(Get-CimInstance Win32_Process -Filter 'ProcessId = {pid}' -ErrorAction SilentlyContinue).CommandLine",
+                        ],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    cmdline = (chk.stdout or "").strip().lower()
+                    allow_kill = "cockpit.py" in cmdline
+                if allow_kill:
+                    subprocess.run(["powershell", "-NoProfile", "-Command", f"Stop-Process -Id {pid} -Force -ErrorAction SilentlyContinue"], capture_output=True, check=False)
+            else:
+                import signal
+
+                chk_ps = subprocess.run(["ps", "-p", str(pid), "-o", "args="], capture_output=True, text=True, check=False)
+                if "cockpit.py" in (chk_ps.stdout or ""):
+                    os.kill(pid, signal.SIGTERM)
+        except OSError:
+            continue
+    for _ in range(15):
+        if not probe_cockpit_health(host, port, timeout=0.5)[0]:
+            return True
+        time.sleep(0.15)
+    return not probe_cockpit_health(host, port, timeout=0.5)[0]
+
+
 def launch_on_demand(
     state_dir: Path,
     *,
@@ -245,35 +307,47 @@ def launch_on_demand(
     open_browser: bool = False,
     wait_seconds: float = 15.0,
 ) -> dict[str, Any]:
-    """按需背景啟動控制面板（零常駐預設）：已啟動則直接重用，未啟動則分離背景啟動並等 /api/health 就緒。"""
+    """按需背景啟動控制面板：已啟動且版本一致則重用；若為升級前舊版實例則自動停舊換新（修 M-P1-6）。"""
+    expected_ver = server.SERVER_VERSION
     recorded = read_server_info(state_dir)
     if recorded and isinstance(recorded.get("port"), int):
         r_host = str(recorded.get("host") or host)
         r_port = int(recorded["port"])
         alive, hdoc = probe_cockpit_health(r_host, r_port)
         if alive:
-            url = f"http://{r_host}:{r_port}/"
+            if hdoc.get("version") == expected_ver and (not recorded.get("instance") or hdoc.get("instance") == recorded.get("instance")):
+                url = f"http://{r_host}:{r_port}/"
+                opened = False
+                if open_browser:
+                    try:
+                        opened = bool(webbrowser.open(url))
+                    except Exception:  # noqa: BLE001
+                        opened = False
+                return {"ok": True, "reused": True, "version": hdoc.get("version"), "url": url, "port": r_port, "instance": hdoc.get("instance"), "opened": opened}
+            stop_running_server(state_dir, default_host=r_host, default_port=r_port)
+
+    alive_pref, hdoc_pref = probe_cockpit_health(host, preferred_port)
+    if alive_pref:
+        if hdoc_pref.get("version") == expected_ver:
+            url = f"http://{host}:{preferred_port}/"
             opened = False
             if open_browser:
                 try:
                     opened = bool(webbrowser.open(url))
                 except Exception:  # noqa: BLE001
                     opened = False
-            return {"ok": True, "reused": True, "url": url, "port": r_port, "instance": hdoc.get("instance"), "opened": opened}
-
-    alive_pref, hdoc_pref = probe_cockpit_health(host, preferred_port)
-    if alive_pref:
-        url = f"http://{host}:{preferred_port}/"
-        opened = False
-        if open_browser:
-            try:
-                opened = bool(webbrowser.open(url))
-            except Exception:  # noqa: BLE001
-                opened = False
-        return {"ok": True, "reused": True, "url": url, "port": preferred_port, "instance": hdoc_pref.get("instance"), "opened": opened}
+            return {"ok": True, "reused": True, "version": hdoc_pref.get("version"), "url": url, "port": preferred_port, "instance": hdoc_pref.get("instance"), "opened": opened}
+        stop_running_server(state_dir, default_host=host, default_port=preferred_port)
 
     cockpit_dir = state_dir / "cockpit"
     cockpit_dir.mkdir(parents=True, exist_ok=True)
+    # 若已有舊版登入自啟腳本，順手刷新為新版腳本內容
+    auto_ps1 = cockpit_dir / "autostart-cockpit.ps1"
+    if auto_ps1.is_file():
+        try:
+            auto_ps1.write_text(build_autostart_ps1(repo_root, state_dir, host=host, port=preferred_port, strict_port=True), encoding="utf-8")
+        except OSError:
+            pass
     if os.name == "nt":
         ps1_path = cockpit_dir / "launch-on-demand.ps1"
         ps1_path.write_text(
@@ -303,7 +377,7 @@ def launch_on_demand(
         check_ports = [int(info["port"])] if info and isinstance(info.get("port"), int) else [preferred_port]
         for p in check_ports:
             alive, hdoc = probe_cockpit_health(host, p, timeout=1.2)
-            if alive:
+            if alive and hdoc.get("version") == expected_ver:
                 url = f"http://{host}:{p}/"
                 opened = False
                 if open_browser:
@@ -311,7 +385,7 @@ def launch_on_demand(
                         opened = bool(webbrowser.open(url))
                     except Exception:  # noqa: BLE001
                         opened = False
-                return {"ok": True, "reused": False, "url": url, "port": p, "instance": hdoc.get("instance"), "opened": opened}
+                return {"ok": True, "reused": False, "version": hdoc.get("version"), "url": url, "port": p, "instance": hdoc.get("instance"), "opened": opened}
         time.sleep(0.25)
 
     return {
@@ -322,33 +396,252 @@ def launch_on_demand(
     }
 
 
-def stop_running_server(state_dir: Path, *, default_host: str = "127.0.0.1", default_port: int = 3780) -> dict[str, Any]:
+def stop_running_server(
+    state_dir: Path,
+    *,
+    default_host: str = "127.0.0.1",
+    default_port: int = 3780,
+    explicit_port: int | None = None,
+) -> dict[str, Any]:
     info = read_server_info(state_dir)
     host = str((info or {}).get("host") or default_host)
-    port = int((info or {}).get("port") or default_port)
+    port = int(explicit_port) if explicit_port is not None else int((info or {}).get("port") or default_port)
+    rec_pid = int(info["pid"]) if info and isinstance(info.get("pid"), int) else None
     alive, _ = probe_cockpit_health(host, port)
     if not alive:
-        server_info_path(state_dir).unlink(missing_ok=True)
-        return {"ok": True, "stopped": False, "note": "目前沒有執行中的控制面板伺服器"}
+        if explicit_port is None:
+            server_info_path(state_dir).unlink(missing_ok=True)
+        return {"ok": True, "stopped": False, "port": port, "note": "目前沒有執行中的控制面板伺服器"}
+    stop_http_ok = False
     try:
         st_s, ses = _http_json(f"http://{host}:{port}/api/session", timeout=2.0)
         tok = ses.get("token") if st_s == 200 and isinstance(ses, dict) else None
         if tok:
-            _http_json(
+            st_stop, _ = _http_json(
                 f"http://{host}:{port}/api/server/stop",
                 method="POST",
                 payload={},
                 headers={"X-OmniKit-Token": str(tok)},
                 timeout=2.0,
             )
+            stop_http_ok = st_stop == 200
     except OSError:
         pass
-    for _ in range(20):
-        if not probe_cockpit_health(host, port, timeout=0.6)[0]:
-            server_info_path(state_dir).unlink(missing_ok=True)
-            return {"ok": True, "stopped": True, "port": port}
-        time.sleep(0.15)
+    if stop_http_ok:
+        for _ in range(20):
+            if not probe_cockpit_health(host, port, timeout=0.6)[0]:
+                server_info_path(state_dir).unlink(missing_ok=True)
+                return {"ok": True, "stopped": True, "port": port}
+            time.sleep(0.15)
+    # 舊版無 /api/server/stop（404）或優雅關閉逾時：透過已驗證之 PID 後備終止
+    if _terminate_verified_cockpit_pid(host, port, recorded_pid=rec_pid):
+        server_info_path(state_dir).unlink(missing_ok=True)
+        return {"ok": True, "stopped": True, "port": port, "fallback_killed": True}
     return {"ok": False, "stopped": False, "port": port, "error": "伺服器未在預期時間內結束"}
+
+
+def _win_fs_path(path: Path) -> str:
+    s = os.path.abspath(str(path))
+    if os.name != "nt" or s.startswith("\\\\?\\"):
+        return s
+    if s.startswith("\\\\"):
+        return "\\\\?\\UNC\\" + s[2:]
+    return "\\\\?\\" + s
+
+
+def _build_windows_shortcut_bytes(
+    *,
+    target_path: str,
+    arguments: str,
+    working_dir: str,
+    window_style: int = 7,
+) -> bytes:
+    """透過原生 Unicode COM (IShellLinkW + IPersistStream) 於記憶體產生 .lnk 二進位資料。
+
+    徹底避開舊版 WScript.Shell 在英文版 Windows (cp1252) 將中文／Unicode 路徑轉成 `????`
+    以及超過 MAX_PATH 儲存路徑失敗的問題（修 PR #12 P1-A）。
+    """
+    import ctypes
+    from ctypes import wintypes
+
+    ole32 = ctypes.windll.ole32
+    kernel32 = ctypes.windll.kernel32
+
+    class _GUID(ctypes.Structure):
+        _fields_ = [
+            ("Data1", ctypes.c_ulong),
+            ("Data2", ctypes.c_ushort),
+            ("Data3", ctypes.c_ushort),
+            ("Data4", ctypes.c_ubyte * 8),
+        ]
+
+    ole32.CoInitializeEx.argtypes = [ctypes.c_void_p, wintypes.DWORD]
+    ole32.CoInitializeEx.restype = ctypes.c_long
+    ole32.CoUninitialize.argtypes = []
+    ole32.CoUninitialize.restype = None
+    ole32.CLSIDFromString.argtypes = [ctypes.c_wchar_p, ctypes.POINTER(_GUID)]
+    ole32.CLSIDFromString.restype = ctypes.c_long
+    ole32.CoCreateInstance.argtypes = [
+        ctypes.POINTER(_GUID),
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.POINTER(_GUID),
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    ole32.CoCreateInstance.restype = ctypes.c_long
+    ole32.CreateStreamOnHGlobal.argtypes = [wintypes.HANDLE, wintypes.BOOL, ctypes.POINTER(ctypes.c_void_p)]
+    ole32.CreateStreamOnHGlobal.restype = ctypes.c_long
+    ole32.GetHGlobalFromStream.argtypes = [ctypes.c_void_p, ctypes.POINTER(wintypes.HANDLE)]
+    ole32.GetHGlobalFromStream.restype = ctypes.c_long
+
+    kernel32.GlobalSize.argtypes = [wintypes.HANDLE]
+    kernel32.GlobalSize.restype = ctypes.c_size_t
+    kernel32.GlobalLock.argtypes = [wintypes.HANDLE]
+    kernel32.GlobalLock.restype = ctypes.c_void_p
+    kernel32.GlobalUnlock.argtypes = [wintypes.HANDLE]
+    kernel32.GlobalUnlock.restype = wintypes.BOOL
+
+    def _guid(text: str) -> _GUID:
+        g = _GUID()
+        hr_g = ole32.CLSIDFromString(text, ctypes.byref(g))
+        if hr_g < 0:
+            raise OSError(f"CLSIDFromString 失敗: {hr_g:#x}")
+        return g
+
+    def _vtbl(ptr: ctypes.c_void_p, idx: int, restype: Any, *argtypes: Any):
+        vt = ctypes.cast(ptr, ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p))).contents
+        fn = ctypes.WINFUNCTYPE(restype, ctypes.c_void_p, *argtypes)(vt[idx])
+        return lambda *a: fn(ptr, *a)
+
+    def _chk(hr_val: int, step: str) -> None:
+        if hr_val < 0:
+            raise OSError(f"建立 Windows 捷徑失敗 ({step}): {hr_val & 0xFFFFFFFF:#x}")
+
+    hr_init = ole32.CoInitializeEx(None, 0x2)
+    need_uninit = hr_init in (0, 1)
+    if hr_init < 0 and (hr_init & 0xFFFFFFFF) != 0x80010106:
+        _chk(hr_init, "CoInitializeEx")
+
+    clsid_shell_link = _guid("{00021401-0000-0000-C000-000000000046}")
+    iid_shell_link_w = _guid("{000214F9-0000-0000-C000-000000000046}")
+    iid_persist_stream = _guid("{00000109-0000-0000-C000-000000000046}")
+
+    sl = ctypes.c_void_p()
+    ps = ctypes.c_void_p()
+    stm = ctypes.c_void_p()
+    try:
+        _chk(ole32.CoCreateInstance(ctypes.byref(clsid_shell_link), None, 1, ctypes.byref(iid_shell_link_w), ctypes.byref(sl)), "CoCreateInstance")
+        safe_wd = working_dir if len(working_dir) < 240 else str(Path(target_path).parent)
+        _chk(_vtbl(sl, 20, ctypes.c_long, ctypes.c_wchar_p)(target_path), "SetPath")
+        _chk(_vtbl(sl, 11, ctypes.c_long, ctypes.c_wchar_p)(arguments), "SetArguments")
+        _chk(_vtbl(sl, 9, ctypes.c_long, ctypes.c_wchar_p)(safe_wd), "SetWorkingDirectory")
+        _chk(_vtbl(sl, 15, ctypes.c_long, ctypes.c_int)(int(window_style)), "SetShowCmd")
+        _chk(
+            _vtbl(sl, 0, ctypes.c_long, ctypes.POINTER(_GUID), ctypes.POINTER(ctypes.c_void_p))(ctypes.byref(iid_persist_stream), ctypes.byref(ps)),
+            "QueryInterface(IPersistStream)",
+        )
+        _chk(ole32.CreateStreamOnHGlobal(None, True, ctypes.byref(stm)), "CreateStreamOnHGlobal")
+        _chk(_vtbl(ps, 6, ctypes.c_long, ctypes.c_void_p, wintypes.BOOL)(stm, True), "IPersistStream::Save")
+
+        hglob = wintypes.HANDLE()
+        _chk(ole32.GetHGlobalFromStream(stm, ctypes.byref(hglob)), "GetHGlobalFromStream")
+        size = kernel32.GlobalSize(hglob)
+        ptr = kernel32.GlobalLock(hglob)
+        if not ptr:
+            raise OSError("GlobalLock 失敗")
+        try:
+            return ctypes.string_at(ptr, size)
+        finally:
+            kernel32.GlobalUnlock(hglob)
+    finally:
+        for com_ptr in (stm, ps, sl):
+            if com_ptr.value:
+                _vtbl(com_ptr, 2, ctypes.c_ulong)()
+        if need_uninit:
+            ole32.CoUninitialize()
+
+
+def _read_windows_shortcut_info(raw: bytes) -> dict[str, Any]:
+    """從 .lnk 二進位資料經原生 Unicode COM (IShellLinkW) 讀回捷徑屬性，供自我測試與單元測試驗證無失真。"""
+    import ctypes
+    from ctypes import wintypes
+
+    ole32 = ctypes.windll.ole32
+    kernel32 = ctypes.windll.kernel32
+
+    class _GUID(ctypes.Structure):
+        _fields_ = [
+            ("Data1", ctypes.c_ulong),
+            ("Data2", ctypes.c_ushort),
+            ("Data3", ctypes.c_ushort),
+            ("Data4", ctypes.c_ubyte * 8),
+        ]
+
+    ole32.CoInitializeEx.argtypes = [ctypes.c_void_p, wintypes.DWORD]
+    ole32.CoInitializeEx.restype = ctypes.c_long
+    ole32.CoUninitialize.argtypes = []
+    ole32.CoUninitialize.restype = None
+    ole32.CLSIDFromString.argtypes = [ctypes.c_wchar_p, ctypes.POINTER(_GUID)]
+    ole32.CLSIDFromString.restype = ctypes.c_long
+    ole32.CoCreateInstance.argtypes = [
+        ctypes.POINTER(_GUID),
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.POINTER(_GUID),
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    ole32.CoCreateInstance.restype = ctypes.c_long
+    ole32.CreateStreamOnHGlobal.argtypes = [wintypes.HANDLE, wintypes.BOOL, ctypes.POINTER(ctypes.c_void_p)]
+    ole32.CreateStreamOnHGlobal.restype = ctypes.c_long
+
+    kernel32.GlobalAlloc.argtypes = [wintypes.UINT, ctypes.c_size_t]
+    kernel32.GlobalAlloc.restype = wintypes.HANDLE
+    kernel32.GlobalLock.argtypes = [wintypes.HANDLE]
+    kernel32.GlobalLock.restype = ctypes.c_void_p
+    kernel32.GlobalUnlock.argtypes = [wintypes.HANDLE]
+    kernel32.GlobalUnlock.restype = wintypes.BOOL
+
+    def _guid(text: str) -> _GUID:
+        g = _GUID()
+        ole32.CLSIDFromString(text, ctypes.byref(g))
+        return g
+
+    def _vtbl(ptr: ctypes.c_void_p, idx: int, restype: Any, *argtypes: Any):
+        vt = ctypes.cast(ptr, ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p))).contents
+        fn = ctypes.WINFUNCTYPE(restype, ctypes.c_void_p, *argtypes)(vt[idx])
+        return lambda *a: fn(ptr, *a)
+
+    hr_init = ole32.CoInitializeEx(None, 0x2)
+    need_uninit = hr_init in (0, 1)
+    clsid_shell_link = _guid("{00021401-0000-0000-C000-000000000046}")
+    iid_shell_link_w = _guid("{000214F9-0000-0000-C000-000000000046}")
+    iid_persist_stream = _guid("{00000109-0000-0000-C000-000000000046}")
+
+    sl = ctypes.c_void_p()
+    ps = ctypes.c_void_p()
+    stm = ctypes.c_void_p()
+    try:
+        ole32.CoCreateInstance(ctypes.byref(clsid_shell_link), None, 1, ctypes.byref(iid_shell_link_w), ctypes.byref(sl))
+        _vtbl(sl, 0, ctypes.c_long, ctypes.POINTER(_GUID), ctypes.POINTER(ctypes.c_void_p))(ctypes.byref(iid_persist_stream), ctypes.byref(ps))
+        hglob = kernel32.GlobalAlloc(0x0002, len(raw))
+        ptr = kernel32.GlobalLock(hglob)
+        ctypes.memmove(ptr, raw, len(raw))
+        kernel32.GlobalUnlock(hglob)
+        ole32.CreateStreamOnHGlobal(hglob, True, ctypes.byref(stm))
+        _vtbl(ps, 5, ctypes.c_long, ctypes.c_void_p)(stm)
+        arg_buf = ctypes.create_unicode_buffer(2048)
+        wd_buf = ctypes.create_unicode_buffer(2048)
+        show_cmd = ctypes.c_int()
+        _vtbl(sl, 10, ctypes.c_long, ctypes.c_wchar_p, ctypes.c_int)(arg_buf, 2048)
+        _vtbl(sl, 8, ctypes.c_long, ctypes.c_wchar_p, ctypes.c_int)(wd_buf, 2048)
+        _vtbl(sl, 14, ctypes.c_long, ctypes.POINTER(ctypes.c_int))(ctypes.byref(show_cmd))
+        return {"arguments": arg_buf.value, "working_dir": wd_buf.value, "window_style": show_cmd.value}
+    finally:
+        for com_ptr in (stm, ps, sl):
+            if com_ptr.value:
+                _vtbl(com_ptr, 2, ctypes.c_ulong)()
+        if need_uninit:
+            ole32.CoUninitialize()
 
 
 def manage_autostart(
@@ -363,29 +656,40 @@ def manage_autostart(
 ) -> dict:
     ps1_path = state_dir / "cockpit" / "autostart-cockpit.ps1"
     lnk_path = _startup_shortcut_path(appdata)
+    lnk_fs = _win_fs_path(lnk_path)
+    ps1_fs = _win_fs_path(ps1_path)
     if action == "uninstall":
-        for p in (lnk_path, ps1_path):
-            if p.is_file():
-                p.unlink()
+        for raw_p in (lnk_fs, ps1_fs):
+            if os.path.isfile(raw_p):
+                collector.fs_retry(os.unlink, raw_p)
         alive, _ = probe_cockpit_health(host, port)
         return {"action": "uninstall", "installed": False, "shortcut": str(lnk_path), "listening": alive}
 
     if action == "install":
-        ps1_path.parent.mkdir(parents=True, exist_ok=True)
-        ps1_path.write_text(build_autostart_ps1(repo_root, state_dir, host=host, port=port, strict_port=True), encoding="utf-8")
+        os.makedirs(_win_fs_path(ps1_path.parent), exist_ok=True)
+        ps1_bytes = build_autostart_ps1(repo_root, state_dir, host=host, port=port, strict_port=True).encode("utf-8")
+        collector.fs_retry(lambda: open(ps1_fs, "wb").write(ps1_bytes))
         if os.name == "nt":
-            lnk_path.parent.mkdir(parents=True, exist_ok=True)
+            os.makedirs(_win_fs_path(lnk_path.parent), exist_ok=True)
             ps_exe = str(Path(os.environ.get("SystemRoot") or r"C:\Windows") / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe")
-            ps_cmd = (
-                "$sh = New-Object -ComObject WScript.Shell; "
-                f"$s = $sh.CreateShortcut('{str(lnk_path).replace(chr(39), chr(39)*2)}'); "
-                f"$s.TargetPath = '{ps_exe.replace(chr(39), chr(39)*2)}'; "
-                f"$s.Arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{ps1_path}\"'; "
-                f"$s.WorkingDirectory = '{str(repo_root).replace(chr(39), chr(39)*2)}'; "
-                "$s.WindowStyle = 7; "
-                "$s.Save()"
+            lnk_args = f'-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "{ps1_path}"'
+            raw_lnk = _build_windows_shortcut_bytes(
+                target_path=ps_exe,
+                arguments=lnk_args,
+                working_dir=str(repo_root),
+                window_style=7,
             )
-            subprocess.run([ps_exe, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd], check=True, capture_output=True)
+            tmp_fs = _win_fs_path(lnk_path.parent / f".ok-lnk-{os.getpid()}.tmp")
+            try:
+                with open(tmp_fs, "wb") as fh:
+                    fh.write(raw_lnk)
+                collector.fs_retry(os.replace, tmp_fs, lnk_fs)
+            finally:
+                if os.path.exists(tmp_fs):
+                    try:
+                        os.unlink(tmp_fs)
+                    except OSError:
+                        pass
             if start_now and not probe_cockpit_health(host, port)[0]:
                 _spawn_detached_windows(ps_exe, ps1_path, repo_root)
                 for _ in range(40):
@@ -394,9 +698,10 @@ def manage_autostart(
                     time.sleep(0.2)
 
     alive, _ = probe_cockpit_health(host, port)
+    installed_ok = os.path.isfile(lnk_fs) if os.name == "nt" else os.path.isfile(ps1_fs)
     return {
         "action": action,
-        "installed": lnk_path.is_file() if os.name == "nt" else ps1_path.is_file(),
+        "installed": installed_ok,
         "shortcut": str(lnk_path),
         "script": str(ps1_path),
         "host": host,
@@ -415,16 +720,20 @@ def selftest() -> int:
         if not cond:
             fails.append(label)
 
-    with tempfile.TemporaryDirectory(prefix="omnikit-cockpit-test-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="ok-cp-") as tmp:
         root = Path(tmp)
         state = root / "state"
         repo_a = root / "Alpha 專案"
         repo_a.mkdir(parents=True)
 
         def git(*args: str) -> None:
-            subprocess.run(["git", *args], cwd=str(repo_a), check=True, capture_output=True)
+            flags = ["-c", "core.longpaths=true", "-c", "commit.gpgsign=false"]
+            if args and args[0] != "init":
+                flags.extend(["--git-dir=.git", "--work-tree=."])
+            subprocess.run(["git", *flags, *args], cwd=str(repo_a), check=True, capture_output=True)
 
-        git("init")
+        git("init", "--quiet", ".")
+        git("config", "core.longpaths", "true")
         git("config", "user.name", "Test")
         git("config", "user.email", "test@example.com")
         (repo_a / "README.md").write_text("hello\n", encoding="utf-8")
@@ -608,15 +917,25 @@ def selftest() -> int:
             httpd.shutdown()
             httpd.server_close()
 
-        fake_appdata = root / "Roaming"
+        fake_appdata = root / "Roaming ⚡テスト"
         st_auto = manage_autostart(state, action="install", repo_root=ROOT, port=37809, appdata=fake_appdata, start_now=False)
-        ps1_txt = Path(st_auto["script"]).read_text(encoding="utf-8")
+        with open(_win_fs_path(Path(st_auto["script"])), encoding="utf-8") as fh_ps1:
+            ps1_txt = fh_ps1.read()
+        lnk_ok = st_auto["installed"] is True and "/api/health" in ps1_txt
+        if os.name == "nt" and lnk_ok:
+            with open(_win_fs_path(Path(st_auto["shortcut"])), "rb") as fh_lnk:
+                lnk_info = _read_windows_shortcut_info(fh_lnk.read())
+            lnk_ok = (
+                str(st_auto["script"]) in lnk_info["arguments"]
+                and "????" not in lnk_info["arguments"]
+                and lnk_info["window_style"] == 7
+            )
         check(
-            "autostart --install 產生啟動腳本（驗證 /api/health 而非裸 TCP）與 Startup 捷徑",
-            st_auto["installed"] is True and "/api/health" in ps1_txt,
+            "autostart --install 產生啟動腳本（驗證 /api/health 而非裸 TCP）與原生 Unicode Startup 捷徑",
+            lnk_ok,
         )
         st_un = manage_autostart(state, action="uninstall", repo_root=ROOT, port=37809, appdata=fake_appdata, start_now=False)
-        check("autostart --uninstall 乾淨移除捷徑與腳本", st_un["installed"] is False and not Path(st_auto["script"]).exists())
+        check("autostart --uninstall 乾淨移除捷徑與腳本", st_un["installed"] is False and not os.path.exists(_win_fs_path(Path(st_auto["script"]))))
 
     return 1 if fails else 0
 
@@ -639,6 +958,8 @@ def main() -> int:
     p_open.add_argument("--port", type=int, default=3780, help="首選埠號（預設 3780）")
 
     p_stop = sub.add_parser("stop", help="停止目前背景執行中的控制面板伺服器")
+    p_stop.add_argument("--host", default="127.0.0.1", help="監聽位址（預設 127.0.0.1）")
+    p_stop.add_argument("--port", type=int, default=None, help="指定連接埠（不指定則讀 server.json 或預設 3780）")
     p_stop.add_argument("--json", action="store_true", help="輸出 JSON 結果")
 
     p_serve = sub.add_parser("serve", help="前景啟動本機控制面板伺服器")
@@ -687,7 +1008,7 @@ def main() -> int:
         return 0 if res.get("ok") else 1
 
     if args.cmd == "stop":
-        res = stop_running_server(sdir)
+        res = stop_running_server(sdir, default_host=args.host, explicit_port=args.port)
         if args.json:
             print(json.dumps(res, ensure_ascii=False))
         else:

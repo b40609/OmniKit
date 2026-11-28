@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
 import threading
+import time
 import urllib.error
 import urllib.request
 from datetime import UTC, datetime
@@ -681,7 +683,208 @@ def test_adopted_drift_preserved_across_foreground_apply_kit(short_tmp: Path):
     # 再次透過面板前台 apply_kit 切換工具，手改內容必須被完整保留
     res2 = app.apply_kit({"tools": ["gitleaks", "frontend-design", "exa"], "done_check": "log"})
     assert custom_marker in codex_rules.read_text(encoding="utf-8")
+    # 一鍵修復同步（fix_doctor 預設 force_overwrite=False）同樣不得洗掉使用者 adopted 手改區塊（修 M-P1-5）
+    app.fix_doctor()
+    assert custom_marker in codex_rules.read_text(encoding="utf-8")
     # 未設 EXA_API_KEY 時 exa 應自動維持 disabled 並附帶清楚提醒
     assert any("EXA_API_KEY" in w for w in res2.get("warnings") or [])
     kdoc = kit_mod.load(state)
     assert kdoc["profiles"][kdoc["active_profile"]]["tools"]["exa"]["tier"] == "disabled"
+
+
+def test_v021_review_regressions_anti_framing_collision_and_answer_merge(short_tmp: Path):
+    """回歸測試（v0.2.1 雙跨家審查修復）：X-Frame-Options 防嵌、新專案撞名 409、精靈保留訪談欄位、無 T3 對帳不消紅燈。"""
+    state = short_tmp / "state"
+    home = short_tmp / "home"
+    (home / ".claude").mkdir(parents=True)
+    desktop = home / "Desktop"
+    desktop.mkdir(parents=True)
+
+    app = server.CockpitApp(
+        state_dir=state,
+        home_dir=home,
+        default_repo_root=None,
+        t3_runner=lambda _: [],
+        cli_runner=lambda *_a, **_kw: (0, "[]", ""),
+        cache_ttl=0,
+        allowed_hosts=set(),
+        token=TOKEN,
+    )
+    httpd = server.create_server("127.0.0.1", 0, app=app)
+    port = httpd.server_address[1]
+    th = threading.Thread(target=httpd.serve_forever, daemon=True)
+    th.start()
+    try:
+        base = f"http://127.0.0.1:{port}"
+        with urllib.request.urlopen(f"{base}/", timeout=5) as resp:
+            assert resp.headers.get("X-Frame-Options") == "DENY"
+            assert "frame-ancestors 'none'" in (resp.headers.get("Content-Security-Policy") or "")
+
+        # 純 Claude 環境 compatible_agents 對齊預選 5 項免金鑰套件（修 M-P0-1）
+        _, boot = _http_json(f"{base}/api/bootstrap")
+        assert boot["installed_agents"] == ["claude-code"]
+        assert boot["done_check"] == "log"
+        compat_default = [
+            it["id"]
+            for it in boot["workbench"]["items"]
+            if it["enabled"] and "claude-code" in (it.get("compatible_agents") or [])
+        ]
+        assert len(compat_default) >= 5 and "claude-code-setup" in compat_default
+
+        # 訪談欄位合併保留（修 M-P1-12）
+        _http_json(
+            f"{base}/api/kit/apply",
+            method="POST",
+            payload={
+                "answers": {
+                    "name": "alice",
+                    "language": "zh-TW",
+                    "verbosity": "concise",
+                    "autonomy": "balanced",
+                    "domains": ["software-dev"],
+                    "pains": ["anti-fake-done"],
+                    "evaluate_tools": True,
+                    "background": "嵌入式韌體開發",
+                    "projects": {"main": "FWCore", "frontend": "Panel"},
+                }
+            },
+        )
+        # 再次送不含 background / evaluate_tools 的局部 answers，不得洗掉既有值
+        _http_json(
+            f"{base}/api/kit/apply",
+            method="POST",
+            payload={
+                "answers": {
+                    "name": "alice",
+                    "language": "zh-TW",
+                    "verbosity": "detailed",
+                    "autonomy": "hands-off",
+                    "domains": ["software-dev"],
+                    "pains": ["anti-fake-done"],
+                }
+            },
+        )
+        saved_ans = json.loads((state / "profiles" / "alice" / "answers.json").read_text(encoding="utf-8"))
+        assert saved_ans["evaluate_tools"] is True
+        assert saved_ans["background"] == "嵌入式韌體開發"
+
+        # 建立新專案後同名第二次建立必須回 409 Conflict（修 M-P1-10）
+        st_c1, _ = _http_json(f"{base}/api/projects/create", method="POST", payload={"name": "UniqueApp", "parent_dir": str(desktop)})
+        assert st_c1 == 201
+        st_c2, _ = _http_json(f"{base}/api/projects/create", method="POST", payload={"name": "UniqueApp", "parent_dir": str(desktop)})
+        assert st_c2 == 409
+
+        # 無 T3 本機退路對帳不得覆寫舊更新時間戳（修 M-P1-13）
+        now_f = state / "status" / "UniqueApp" / "NOW.md"
+        now_f.write_text("# UniqueApp\n\n- 更新時間：2020-01-01 00:00\n\n## 目前結論\n- 舊結論\n", encoding="utf-8")
+        reconciler._fallback_local_git_reconcile(
+            project_id="UniqueApp",
+            project_name="UniqueApp",
+            project_path=desktop / "UniqueApp",
+            now_path=now_f,
+            state_dir=state,
+        )
+        assert "2020-01-01 00:00" in now_f.read_text(encoding="utf-8")
+
+        # 連「更新時間」標頭都沒有的舊 NOW.md，本機退路對帳亦不得刷掉檔案 mtime（修 PR #12 P2-9）
+        headerless_now = state / "status" / "UniqueApp" / "HEADERLESS_NOW.md"
+        headerless_now.write_text("# UniqueApp\n\n## 目前結論\n- 舊結論\n", encoding="utf-8")
+        old_epoch = 1577836800.0  # 2020-01-01T00:00:00Z
+        os.utime(headerless_now, (old_epoch, old_epoch))
+        reconciler._fallback_local_git_reconcile(
+            project_id="UniqueApp",
+            project_name="UniqueApp",
+            project_path=desktop / "UniqueApp",
+            now_path=headerless_now,
+            state_dir=state,
+        )
+        assert abs(headerless_now.stat().st_mtime - old_epoch) < 2.0
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_drift_restore_no_reentrant_lock_deadlock_and_unicode_shortcut(short_tmp: Path):
+    """回歸測試（PR #12 跨家複審 P1-A / P1-B / P2-6）：漂移還原不死結、全失敗回滾 tier、Windows 原生 Unicode 捷徑不失真。"""
+    import importlib.util
+    import kit as kit_mod  # type: ignore
+
+    state = short_tmp / "state"
+    home = short_tmp / "home"
+    (home / ".claude").mkdir(parents=True)
+
+    app = server.CockpitApp(
+        state_dir=state,
+        home_dir=home,
+        default_repo_root=None,
+        t3_runner=lambda _: [],
+        cli_runner=lambda *_a, **_kw: (0, "[]", ""),
+        cache_ttl=0,
+        allowed_hosts=set(),
+        token=TOKEN,
+    )
+    app.apply_kit({"tools": ["gitleaks"], "done_check": "log"})
+
+    # 1. P1-B：外部竄改 ~/.claude/CLAUDE.md 與 profile.json 後呼叫 resolve_drift(..., "restore") 必須立即成功不死結
+    claude_md = home / ".claude" / "CLAUDE.md"
+    tampered = claude_md.read_text(encoding="utf-8").replace("<!-- omnikit:rules:end -->", "\n# 外部誤改測試\n<!-- omnikit:rules:end -->", 1)
+    claude_md.write_text(tampered, encoding="utf-8")
+    assert any(d["id"] == "rule:claude-code" for d in kit_mod.detect_drift(state, home))
+
+    t0 = time.monotonic()
+    res_rule = kit_mod.resolve_drift("rule:claude-code", "restore", state=state, home=home, repo_root=app.repo_root)
+    assert res_rule["ok"] is True
+    assert (time.monotonic() - t0) < 5.0
+    assert "# 外部誤改測試" not in claude_md.read_text(encoding="utf-8")
+    assert not any(d["id"] == "rule:claude-code" for d in kit_mod.detect_drift(state, home))
+
+    (state / "profile.json").write_text('{"profile": "ryan"}\n', encoding="utf-8")
+    assert any(d["id"] == "profile:active" for d in kit_mod.detect_drift(state, home))
+    res_prof = kit_mod.resolve_drift("profile:active", "restore", state=state, home=home, repo_root=app.repo_root)
+    assert res_prof["ok"] is True
+    assert json.loads((state / "profile.json").read_text(encoding="utf-8"))["profile"] == "default"
+
+    # 2. P2-6：auto_plugin 啟用時若 CLI 全數失敗，回 ok=False 且 kit.yaml 的 tier 必須自動回滾為先前狀態
+    kit_mod.patch(state, profile_patch={"tools": {"frontend-design": {"tier": "disabled"}}})
+    res_fail = kit_mod.apply_tool_toggle(
+        "frontend-design",
+        "resident",
+        state=state,
+        home=home,
+        repo_root=app.repo_root,
+        runner=lambda *_a, **_kw: (1, "", "simulated offline failure"),
+    )
+    assert res_fail["ok"] is False
+    assert res_fail["tier"] == "disabled"
+    after_doc = kit_mod.load(state)
+    assert after_doc["profiles"][after_doc["active_profile"]]["tools"]["frontend-design"]["tier"] == "disabled"
+
+    # 3. P1-A：Windows 原生 Unicode 捷徑在含非 cp950/cp1252 字元與長路徑下不變成 ????
+    if os.name == "nt":
+        spec = importlib.util.spec_from_file_location("cockpit_cli_mod", str(ROOT / "scripts" / "cockpit.py"))
+        assert spec and spec.loader
+        cp_cli = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cp_cli)
+        long_uni = short_tmp / ("長路徑 王小明 ⚡テスト " + ("x" * 110))
+        st_auto = cp_cli.manage_autostart(
+            long_uni / "state",
+            action="install",
+            repo_root=long_uni / "OmniKit 副本",
+            port=37819,
+            appdata=long_uni / "Roaming ⚡テスト",
+            start_now=False,
+        )
+        assert st_auto["installed"] is True
+        with open(cp_cli._win_fs_path(Path(st_auto["shortcut"])), "rb") as fh:
+            info = cp_cli._read_windows_shortcut_info(fh.read())
+        assert "⚡テスト" in info["arguments"]
+        assert "????" not in info["arguments"]
+        st_un = cp_cli.manage_autostart(
+            long_uni / "state",
+            action="uninstall",
+            repo_root=long_uni / "OmniKit 副本",
+            port=37819,
+            appdata=long_uni / "Roaming ⚡テスト",
+            start_now=False,
+        )
+        assert st_un["installed"] is False
