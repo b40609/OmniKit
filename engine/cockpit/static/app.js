@@ -1824,7 +1824,10 @@
   function runtimeStripHtml() {
     const rt = state.runtime;
     if (!rt) return "";
-    const s = rt.summary || {};
+    // 摘要的數字一律轉成數值再放進 HTML（不直接信任 JSON 的型別）
+    const raw = rt.summary || {};
+    const s = { oldest_evidence_at: raw.oldest_evidence_at };
+    for (const k of ["services", "ok", "warn", "bad", "idle", "output_verified", "liveness_only"]) s[k] = Math.max(0, Math.trunc(Number(raw[k]) || 0));
     const expired = document.body.classList.contains("is-stale");
     const expiredTag = expired ? `<span class="tag tag-danger">可能已過期</span>` : "";
     if (!s.services) {
@@ -1835,7 +1838,7 @@
     if (s.oldest_evidence_at) notes.push(`最舊證據 ${rtAgo(s.oldest_evidence_at)}`);
     if (s.liveness_only) notes.push(`${s.liveness_only} 個只證實活著`);
     if (s.idle) notes.push(`${s.idle} 個暫停或無資料`);
-    if (rt.wake_grace_active) notes.push(`剛從休眠醒來，緩衝 ${rt.wake_grace_remaining_s} 秒`);
+    if (rt.wake_grace_active) notes.push(`剛從休眠醒來，緩衝 ${Math.max(0, Math.round(Number(rt.wake_grace_remaining_s) || 0))} 秒`);
     const troubled = (s.bad || 0) + (s.warn || 0);
     if (!troubled) {
       const dot = !s.ok ? "rt-gray" : s.output_verified ? "rt-solid" : "rt-hollow";
@@ -1855,7 +1858,7 @@
       </button>`).join("");
     return `<div class="rt-strip">
       <div class="rt-strip-line"><i class="rt-dot ${s.bad ? "rt-red" : "rt-amber"}" aria-hidden="true"></i>
-        <span><b>${lead}</b>，${s.ok || 0} 個正常${notes.length ? ` · ${esc(notes.join(" · "))}` : ""}</span>${expiredTag}</div>
+        <span><b>${lead}</b>，${s.ok} 個正常${notes.length ? ` · ${esc(notes.join(" · "))}` : ""}</span>${expiredTag}</div>
       ${rows}
       ${alerts.length > 6 ? `<div class="rt-strip-more">還有 ${alerts.length - 6} 個，到「專案」看全部</div>` : ""}
     </div>`;
