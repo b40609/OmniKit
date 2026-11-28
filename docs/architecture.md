@@ -51,7 +51,7 @@ flowchart LR
 
 1. **評估**：把工具的 GitHub 連結貼給 agent，`omnikit-eval` 會查 GitHub 現況、對照槽位情境，寫成一張工具卡。
 2. **產生**：commit 時 git hook 驗證名冊並重新產生 marketplace 清單；需要更新線上看板時於 GitHub Actions 手動觸發「部署看板」。
-3. **同步**：`install.ps1` 透過無帳本同步器（`engine/scripts/sync.py`）把規則（安全底線 + 你選的 profile）、skills、hooks 與 MCP 接到 Claude Code、Codex 與 Antigravity。維護者版之後 commit 或 pull 動到這些檔案時，git hook 會自動再同步；同事版不設 git hook，pull 不會改任何設定。
+3. **同步**：`install.ps1` 透過無帳本同步器（`engine/scripts/sync.py`）把規則（安全底線 + 你選的 profile）、skills、hooks 與 MCP 接到 Claude Code、Codex 與 Antigravity。開發模式（`-Dev`）下 commit 或 pull 動到這些檔案時，git hook 會自動再同步；標準安裝不設 git hook，pull 不會改任何設定。
 
 ## 無帳本對帳與檢查
 
@@ -102,7 +102,7 @@ docs/                        說明文件（安裝、使用、分派、運作方
   cli-features.md            三家 CLI 內建功能與指令對照表
   starter.md                 新電腦起步清單
 engine/                      引擎：不用改
-  cockpit/                   本機 Cockpit 多專案面板後端與前端（個人進階功能，同事版預設不啟用；只接受本機與這台 Tailscale 名稱的 Host，經 Tailscale 只能看，寫入與對帳要在本機開並帶啟動時產生的 token）
+  cockpit/                   本機控制面板後端與前端（按需啟動；只接受本機與這台 Tailscale 名稱的 Host，經 Tailscale 只能看，寫入與對帳要在本機開並帶啟動時產生的 token）
   schema/                    名冊與槽位的 JSON Schema
   scripts/                   安裝與移除（install.ps1／uninstall.ps1）、無帳本同步與健康檢查（sync.py／doctor.py）、profile 與帳號池、子任務分派、能力清點、名冊驗證與看板建置、護欄與提醒 hook
   site/                      看板的樣式與程式、匯出的架構地圖（map.html），以及 README 門面圖的產生器（readme_art.py）

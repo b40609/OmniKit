@@ -51,7 +51,7 @@ jobs:
       - run: uv run engine/scripts/codex_hooks.py --selftest
       # 防毒短暫鎖住檔案時等一下再試（FR-34）：寫檔、複製、刪除的腳本都用它
       - run: uv run engine/scripts/fsretry.py --selftest
-      # 維護者版與同事版（含 git hook 只在維護者版同步）、免問核准的個人同意
+      # 安裝模式（standard / -Dev，含 git hook 僅於開發模式自動同步）與免問核准的個人同意
       - run: uv run engine/scripts/edition.py --selftest
       - run: uv run engine/scripts/claude_allow.py --selftest
       # 確定性護欄 hook：擋 --no-verify、機密檔不進對話、門禁設定不准偷關、改 .py 後 ruff 回饋（只回報新增問題）、Stop 不無限迴圈

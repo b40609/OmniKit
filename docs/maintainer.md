@@ -74,7 +74,7 @@ answers:
 
 ## 改名冊
 
-改完 `data/` 直接 commit：維護者版的 pre-commit hook 會驗證名冊，並重新產生 marketplace 清單一起放進 commit。要手動檢查：
+改完 `data/` 直接 commit：開發模式（`-Dev`）的 pre-commit hook 會驗證名冊，並重新產生 marketplace 清單一起放進 commit。要手動檢查：
 
 ```powershell
 uv run engine/scripts/validate.py
@@ -90,7 +90,7 @@ uv 不在 PATH 上的話，把 `uv` 換成 `& "$env:LOCALAPPDATA\Programs\uv\uv.
 1. **開分支與提交**：從最新 `main` 切出工作分支（例如 `fix/...`、`feat/...`），小步 commit 並推送該分支（不要用 `git push --mirror`；維護者本機掃全歷史請用 `--log-opts="--branches --remotes"`）。
 2. **開 PR 等 CI 綠燈**：用 `gh pr create`（或 T3 的 `pull_request_create`）開 PR，等待「檢查」workflow 的必過檢查（`名冊`、`Windows（PowerShell 5.1）`、`Windows（PowerShell 7）`、`金鑰外洩`）全部通過。
 3. **直接合併**：CI 全綠後直接合併（`gh pr merge` 或 `pull_request_merge`）並清理已合併分支；合併回 `main` 後由 `now_tick.py` 查證 `gh run list --commit <sha>` 全綠才在狀態板 `NOW.md` 打勾。
-4. **發給同事的穩定版本（tag）**：由維護者本人確認要發給同事的版本後，在該 `main` commit 上打語意版本 tag（例如 `git tag -a v0.1.0 -m "首次同事試用版" && git push origin v0.1.0`）。同事端用 `git fetch --tags` 與 `install.ps1 -Tag v0.1.0` 升級，平日 `main` 上的變動不會波及同事。
+4. **發布穩定版本（tag）**：確認可發布的 `main` commit 後，建立並推送語意版本 tag（例如 `git tag -a v0.2.1 -m "發行說明"; git push origin v0.2.1`）。一般使用者端執行 `git fetch --tags --force; git checkout v0.2.1` 與 `install.ps1 -Tag v0.2.1` 即可升級，平日 `main` 上的變動不會波及已安裝的穩定版環境。
 
 ## 更新 README 門面圖
 
@@ -127,9 +127,9 @@ git pull upstream main
 - 兩份 marketplace 清單有衝突時，直接重新產生：`uv run engine/scripts/build.py --marketplace-only`。
 - `engine/` 有更新時，重跑一次 `install.ps1`。
 
-## 本機 Cockpit 多專案面板（個人進階功能）
+## 本機控制面板（Cockpit）CLI 與登入自啟
 
-同時開多個專案與狀態板（`NOW.md`）時，可以用本機指揮台一次看清「等你決定／待收尾／執行中／停泊」與過期提醒。同事版安裝時預設不會啟用，也不會註冊開機自啟：
+同時開多個專案與狀態板（`NOW.md`）時，控制面板預設隨安裝按需啟動（不常駐吃資源）；需要時也可透過 CLI 查看快照或啟用 Windows 登入背景自啟：
 
 ```powershell
 uv run scripts/cockpit.py snapshot            # 終端機檢視所有已註冊專案現況

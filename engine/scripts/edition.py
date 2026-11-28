@@ -2,24 +2,24 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""這台電腦是 OmniKit 的維護者版還是同事版，以及免問核准的個人同意。
+"""OmniKit 安裝模式（標準安裝 standard / 開發模式 dev）與免問核准的個人同意。
 
-兩版只差兩件事，規則、skills、MCP 的接法都一樣：
-- git hook：維護者版在 commit 或 pull 動到規則、skills、MCP、權限時自動同步；同事版不設 git hook，
+對外只有一套產品，一般使用者直接標準安裝（鎖定穩定發行 tag、使用 ~/.omnikit/current 乾淨副本、不設 git hook）；
+僅在開發 OmniKit 本身或 fork 自建名冊時啟用開發模式（install.ps1 -Dev）：
+- git hook：開發模式在 commit 或 pull 動到規則、skills、MCP、權限時自動同步；標準安裝不設 git hook，
   pull 不會改任何設定，要套用更新就重跑 install.ps1（先用 -WhatIf 預覽）。
-- 免問核准（Claude Code 的 permissions.allow、Codex 的 default_tools_approval_mode）：維護者版沿用
-  data/harness/claude-allow.txt 與 data/mcp/servers.yaml，那是維護者自己同意過的；同事版每個工具分開問，
-  本人同意了才寫入，不沿用維護者的同意。
+- 免問核准（Claude Code 的 permissions.allow、Codex 的 default_tools_approval_mode）：
+  標準安裝與開發模式統一走個人同意紀錄（~/.omnikit/consent.json）或本機控制面板工作台開關，不再依模式自動放行。
 
-版本記在 ~/.omnikit/edition.json（狀態資料夾，見 statedir.py）。沒有記錄時：分版之前就裝過的電腦（有 agents.json，
-而且 repo 用 .githooks）是維護者版，其他都是同事版。
+模式記在 ~/.omnikit/edition.json（狀態資料夾，見 statedir.py）；向後相容舊值 colleague（→ standard）與 maintainer（→ dev）。
+沒有記錄時：舊版已設 .githooks 且有設定檔的開發機視為 dev，其餘預設為 standard。
 同意記在 ~/.omnikit/consent.json，以工具為單位（MCP server 名稱；不是 MCP 的權限規則就用規則本身）。
 
 用法：
-  uv run engine/scripts/edition.py                          印出這台的版本與判斷依據
-  uv run engine/scripts/edition.py --show                   只印 maintainer 或 colleague（git hook、install.ps1 用）
-  uv run engine/scripts/edition.py --set maintainer|colleague
-  uv run engine/scripts/edition.py --save                   把目前判斷的版本記下來（install.ps1 用）
+  uv run engine/scripts/edition.py                          印出這台的模式與判斷依據
+  uv run engine/scripts/edition.py --show                   只印 standard 或 dev（git hook、install.ps1 用）
+  uv run engine/scripts/edition.py --set standard|dev       設定模式（亦相容舊別名 colleague|maintainer）
+  uv run engine/scripts/edition.py --save                   把目前判斷的模式記下來（install.ps1 用）
   uv run engine/scripts/edition.py --selftest
 """
 import argparse
@@ -38,15 +38,23 @@ import statedir  # 同一個資料夾：狀態資料夾 ~/.omnikit
 
 ROOT = Path(__file__).resolve().parents[2]
 STATE = statedir.STATE
-EDITIONS = ("maintainer", "colleague")
-LABELS = {"maintainer": "維護者版", "colleague": "同事版"}
-SOURCES = {"recorded": "記在 edition.json", "legacy": "分版之前就裝過，沿用原本的自動同步", "default": "預設"}
+EDITIONS = ("standard", "dev")
+ALIASES = {"standard": "standard", "dev": "dev", "colleague": "standard", "maintainer": "dev"}
+LABELS = {"standard": "標準安裝", "dev": "開發模式"}
+SOURCES = {"recorded": "記在 edition.json", "legacy": "偵測到既有的 .githooks 開發設定", "default": "預設"}
 # Claude Code 的 MCP 權限規則：mcp__<server> 或 mcp__<server>__<工具>
 MCP_RULE = re.compile(r"^mcp__(.+?)(?:__.+)?$")
 
 
+def normalize(value):
+    """正規化模式名稱（相容舊值 colleague -> standard、maintainer -> dev）。"""
+    if not isinstance(value, str):
+        return None
+    return ALIASES.get(value.strip().lower())
+
+
 def read_json(path):
-    """讀不到或格式不對都當成空的：這些檔只是記錄，壞了就退回預設（同事版、還沒問過）。"""
+    """讀不到或格式不對都當成空的：這些檔只是記錄，壞了就退回預設（標準安裝、還沒問過）。"""
     try:
         doc = json.loads(path.read_bytes().decode("utf-8-sig"))
     except (OSError, ValueError):
@@ -71,19 +79,24 @@ def hooks_path(repo):
 
 
 def resolve(state=STATE, repo=ROOT, git=hooks_path):
-    """回傳（版本, 依據）。依據：recorded（記在 edition.json）、legacy（分版之前就裝過）、default。"""
-    value = read_json(state / "edition.json").get("edition")
+    """回傳（模式, 依據）。模式為 standard 或 dev；依據：recorded、legacy、default。"""
+    value = normalize(read_json(state / "edition.json").get("edition"))
     if value in EDITIONS:
         return value, "recorded"
     if ((state / "config.json").exists() or (state / "agents.json").exists()) and git(repo) == ".githooks":
-        return "maintainer", "legacy"
-    return "colleague", "default"
+        return "dev", "legacy"
+    return "standard", "default"
+
+
+def is_dev(state=STATE, repo=ROOT, git=hooks_path):
+    return resolve(state, repo, git)[0] == "dev"
 
 
 def set_edition(state, value):
-    if value not in EDITIONS:
-        raise SystemExit(f"版本只能是 {' 或 '.join(EDITIONS)}：{value}")
-    write_json(state / "edition.json", {"edition": value, "date": date.today().isoformat()})
+    norm = normalize(value)
+    if norm not in EDITIONS:
+        raise SystemExit(f"模式只能是 {' 或 '.join(EDITIONS)}：{value}")
+    write_json(state / "edition.json", {"edition": norm, "date": date.today().isoformat()})
 
 
 def tool_of(rule):
@@ -112,10 +125,50 @@ def record(state, tool, granted):
     write_json(state / "consent.json", doc)
 
 
+def _legacy_allow_tools(repo):
+    """讀取舊版免問核准清單（claude-allow.txt 與 servers.yaml 的 Codex default_tools_approval_mode）。"""
+    tools = []
+    allow_file = repo / "data" / "harness" / "claude-allow.txt"
+    if allow_file.is_file():
+        for ln in allow_file.read_text(encoding="utf-8", errors="replace").splitlines():
+            item = ln.strip()
+            if not item or item.startswith("#"):
+                continue
+            t = tool_of(item)
+            if t not in tools:
+                tools.append(t)
+    servers_file = repo / "data" / "mcp" / "servers.yaml"
+    if servers_file.is_file():
+        cur_server = None
+        for ln in servers_file.read_text(encoding="utf-8", errors="replace").splitlines():
+            m_srv = re.match(r"^  ([A-Za-z0-9_-]+):\s*$", ln)
+            if m_srv:
+                cur_server = m_srv.group(1)
+            elif cur_server and re.match(r"^\s+default_tools_approval_mode\s*:", ln):
+                if cur_server not in tools:
+                    tools.append(cur_server)
+    return tools
+
+
+def migrate_legacy_consent(state=STATE, repo=ROOT, git=hooks_path):
+    """若本機為舊版 maintainer（edition.json 原值為 maintainer 或未記但由 .githooks 判為 legacy dev）且尚無 consent.json，
+    一次性將既有的免問清單遷移為明確同意，避免 git hook 或升級同步時誤撤回既有權限。新安裝的 dev 模式不自動遷移。"""
+    if (state / "consent.json").exists():
+        return []
+    raw_ed = read_json(state / "edition.json").get("edition")
+    is_legacy_maintainer = raw_ed == "maintainer" or (raw_ed is None and resolve(state, repo, git) == ("dev", "legacy"))
+    if not is_legacy_maintainer:
+        return []
+    migrated = []
+    for t in _legacy_allow_tools(repo):
+        record(state, t, True)
+        migrated.append(t)
+    return migrated
+
+
 def approver(state=STATE, repo=ROOT, git=hooks_path):
-    """回傳 tool → 能不能寫入免問核准。維護者版：data 裡列的都可以；同事版：本人同意過的才可以。"""
-    if resolve(state, repo, git)[0] == "maintainer":
-        return lambda _tool: True
+    """回傳 tool → 能不能寫入免問核准。標準安裝與開發模式統一依本人同意紀錄（consent.json）決定。"""
+    _ = (repo, git)
     return lambda tool: decided(state, tool) is True
 
 
@@ -139,24 +192,29 @@ def selftest():
         state, repo = tmp / "state", tmp / "repo"
         hooks_on, hooks_off = (lambda _repo: ".githooks"), (lambda _repo: "")
 
-        check("沒有任何記錄：同事版", resolve(state, repo, hooks_on) == ("colleague", "default"))
+        check("沒有任何記錄：預設為標準安裝（standard）", resolve(state, repo, hooks_on) == ("standard", "default"))
         write_json(state / "agents.json", {"agents": ["claude-code"]})
-        check("分版之前裝過（有 agents.json 而且用 .githooks）：維護者版",
-              resolve(state, repo, hooks_on) == ("maintainer", "legacy"))
-        check("有 agents.json 但沒用 .githooks：同事版", resolve(state, repo, hooks_off) == ("colleague", "default"))
+        check("既有開發機（有設定檔而且用 .githooks）：自動識別為開發模式（dev）",
+              resolve(state, repo, hooks_on) == ("dev", "legacy"))
+        check("有設定檔但沒用 .githooks：標準安裝（standard）", resolve(state, repo, hooks_off) == ("standard", "default"))
         (state / "agents.json").unlink()
-        check("用 .githooks 但沒接過 agent：同事版", resolve(state, repo, hooks_on)[0] == "colleague")
+        check("用 .githooks 但沒接過 agent：標準安裝（standard）", resolve(state, repo, hooks_on)[0] == "standard")
 
-        set_edition(state, "colleague")
+        set_edition(state, "standard")
         write_json(state / "agents.json", {"agents": ["claude-code"]})
-        check("記錄優先：記成同事版就不看舊安裝", resolve(state, repo, hooks_on) == ("colleague", "recorded"))
-        set_edition(state, "maintainer")
-        check("記成維護者版", resolve(state, repo, hooks_off) == ("maintainer", "recorded"))
-        check("不認得的版本：失敗", fails(lambda: set_edition(state, "boss")))
+        check("記錄優先：記成 standard 就不看舊安裝", resolve(state, repo, hooks_on) == ("standard", "recorded"))
+        set_edition(state, "dev")
+        check("記成開發模式（dev）", resolve(state, repo, hooks_off) == ("dev", "recorded") and is_dev(state, repo, hooks_off))
+        # 向後相容舊別名 colleague / maintainer
+        set_edition(state, "colleague")
+        check("舊別名 colleague 正規化為 standard", resolve(state, repo, hooks_on) == ("standard", "recorded"))
+        write_json(state / "edition.json", {"edition": "maintainer"})
+        check("舊 edition.json 寫 maintainer 自動讀成 dev", resolve(state, repo, hooks_off) == ("dev", "recorded"))
+        check("不認得的模式：失敗", fails(lambda: set_edition(state, "boss")))
         (state / "edition.json").write_bytes("﻿{\"edition\": \"colleague\"}".encode("utf-8"))
-        check("edition.json 有 BOM 也讀得到", resolve(state, repo, hooks_on) == ("colleague", "recorded"))
+        check("edition.json 有 BOM 也讀得到且正規化為 standard", resolve(state, repo, hooks_on) == ("standard", "recorded"))
         (state / "edition.json").write_text("{壞掉", encoding="utf-8")
-        check("edition.json 壞掉：照沒有記錄判斷", resolve(state, repo, hooks_on) == ("maintainer", "legacy"))
+        check("edition.json 壞掉：照沒有記錄判斷", resolve(state, repo, hooks_on) == ("dev", "legacy"))
 
         check("權限規則對應到工具：mcp__<server> 與 mcp__<server>__<工具> 都是那個 server",
               tool_of("mcp__chrome_devtools") == "chrome_devtools"
@@ -174,12 +232,37 @@ def selftest():
         (state / "consent.json").write_text("{壞掉", encoding="utf-8")
         check("consent.json 壞掉：當成都還沒問過", decided(state, "other") is None)
 
-        set_edition(state, "maintainer")
-        check("維護者版：data 裡列的都可以寫", approver(state, repo, hooks_off)("chrome_devtools"))
-        set_edition(state, "colleague")
+        # 方案 A：開發模式與標準安裝統一走個人同意，不再自動放行
+        set_edition(state, "dev")
+        check("開發模式未同意前亦不自動放行", not approver(state, repo, hooks_off)("chrome_devtools"))
         record(state, "chrome_devtools", True)
         allowed = approver(state, repo, hooks_off)
-        check("同事版：本人同意過的才可以寫", allowed("chrome_devtools") and not allowed("other"))
+        check("本人同意過的工具才放行（不論 standard 或 dev）", allowed("chrome_devtools") and not allowed("other"))
+
+        # 舊版 maintainer / legacy .githooks 升級遷移：無 consent.json 時保留既有 Claude 與 Codex 免問權限；新 dev 不遷移
+        mig_state = tmp / "mig_state"
+        mig_repo = tmp / "mig_repo"
+        (mig_repo / "data" / "harness").mkdir(parents=True)
+        (mig_repo / "data" / "harness" / "claude-allow.txt").write_text("mcp__chrome_devtools\n", encoding="utf-8")
+        (mig_repo / "data" / "mcp").mkdir(parents=True)
+        (mig_repo / "data" / "mcp" / "servers.yaml").write_text(
+            "servers:\n  codex_only:\n    options:\n      codex:\n        default_tools_approval_mode: approve\n",
+            encoding="utf-8",
+        )
+        write_json(mig_state / "edition.json", {"edition": "maintainer"})
+        migrated = migrate_legacy_consent(mig_state, mig_repo, hooks_off)
+        check("舊版 maintainer 無 consent.json 時一次性遷移既有 Claude 與 Codex 免問權限",
+              migrated == ["chrome_devtools", "codex_only"]
+              and decided(mig_state, "chrome_devtools") is True
+              and decided(mig_state, "codex_only") is True)
+        leg_state = tmp / "leg_state"
+        write_json(leg_state / "config.json", {"agents": ["claude-code"]})
+        leg_mig = migrate_legacy_consent(leg_state, mig_repo, hooks_on)
+        check("舊版無 edition.json 但由 .githooks 判為 legacy 開發機時亦可平滑遷移",
+              leg_mig == ["chrome_devtools", "codex_only"])
+        fresh_dev = tmp / "fresh_dev"
+        set_edition(fresh_dev, "dev")
+        check("新安裝的 dev 模式不自動遷移繞過同意", migrate_legacy_consent(fresh_dev, mig_repo, hooks_on) == [])
 
         check("不是 git repo：hooksPath 是空字串", hooks_path(tmp / "not-a-repo") == "")
 
@@ -201,20 +284,20 @@ def selftest():
                 return r.returncode, r.stdout.strip(), r.stderr.strip()
 
             code, out, err = hook("data/mcp/servers.yaml\nengine/scripts/sync.py\n")
-            check("git hook：同事版動到 MCP 與腳本，只印一行提醒、不同步",
-                  code == 0 and len(out.splitlines()) == 1 and "不是維護者版" in out and not err)
+            check("git hook：標準安裝動到 MCP 與腳本，只印一行提醒、不同步",
+                  code == 0 and len(out.splitlines()) == 1 and "開發模式" in out and not err)
             code, out, _ = hook("docs/v2/prd/prd.md\n")
-            check("git hook：同事版只動到文件，什麼都不印", code == 0 and out == "")
-            set_edition(tmp / "hook" / "omnikit", "maintainer")
+            check("git hook：標準安裝只動到文件，什麼都不印", code == 0 and out == "")
+            set_edition(tmp / "hook" / "omnikit", "dev")
             code, out, _ = hook("docs/v2/prd/prd.md\n")
-            check("git hook：維護者版沒動到同步的檔案，什麼都不做", code == 0 and out == "")
+            check("git hook：開發模式沒動到同步的檔案，什麼都不做", code == 0 and out == "")
 
-            # linked worktree：暫存 repo 放假的 edition.py（固定維護者版）與 sync.py（只寫記號檔），
+            # linked worktree：暫存 repo 放假的 edition.py（固定 dev）與 sync.py（只寫記號檔），
             # 實際同步什麼都碰不到；主 checkout 要寫出記號，證明假腳本有接上，worktree 不寫才有意義
             main, wt, mark = tmp / "wt-main", tmp / "wt-linked", tmp / "synced.txt"
             scripts = main / "engine" / "scripts"
             scripts.mkdir(parents=True)
-            (scripts / "edition.py").write_text('print("maintainer")\n', encoding="utf-8")
+            (scripts / "edition.py").write_text('print("dev")\n', encoding="utf-8")
             (scripts / "sync.py").write_text(
                 "import os, sys\n"
                 f"with open({str(mark)!r}, 'a', encoding='utf-8') as f:\n"
@@ -245,19 +328,22 @@ def selftest():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="OmniKit 的維護者版與同事版")
-    parser.add_argument("--show", action="store_true", help="只印 maintainer 或 colleague")
-    parser.add_argument("--set", dest="value", choices=EDITIONS, help="把這台設成這個版本")
-    parser.add_argument("--save", action="store_true", help="把目前判斷的版本記下來")
+    parser = argparse.ArgumentParser(description="OmniKit 安裝模式（standard / dev）與免問授權狀態")
+    parser.add_argument("--show", action="store_true", help="只印 standard 或 dev")
+    parser.add_argument("--set", dest="value", choices=("standard", "dev", "colleague", "maintainer"), help="設定安裝模式")
+    parser.add_argument("--save", action="store_true", help="把目前判斷的模式記下來")
+    parser.add_argument("--migrate-consent", action="store_true", help="將舊版 maintainer 既有免問規則一次性遷移至 consent.json")
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args()
     if args.selftest:
         return selftest()
+    if args.migrate_consent:
+        migrate_legacy_consent(STATE, ROOT)
     if args.value:
         set_edition(STATE, args.value)
     elif args.save:
         value, source = resolve()
-        if source != "recorded":
+        if source != "recorded" or read_json(STATE / "edition.json").get("edition") not in EDITIONS:
             set_edition(STATE, value)
     value, source = resolve()
     if args.show:

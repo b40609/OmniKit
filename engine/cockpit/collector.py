@@ -1225,17 +1225,17 @@ def discover_projects(state_dir: Path, cfg: dict[str, Any], default_repo_root: P
                     hint_path = ""
             _upsert(child.name, name=child.name, path=hint_path, source="status_repo")
 
-    # 3. 僅在已有 OmniKit/NOW.md 或維護者版環境時自動納入 OmniKit repo，避免零專案新手看見無關的缺檔紅燈
+    # 3. 僅在已有 OmniKit/NOW.md 或開發模式（-Dev）環境時自動納入 OmniKit repo，避免零專案新手看見無關的缺檔紅燈
     if default_repo_root is not None and default_repo_root.is_dir():
         has_omnikit_now = (sdir / default_repo_root.name / "NOW.md").is_file()
-        is_maintainer = False
+        is_dev = False
         ed_file = state_dir / "edition.json"
         if ed_file.is_file():
             try:
-                is_maintainer = json.loads(read_utf8(ed_file)).get("edition") == "maintainer"
+                is_dev = json.loads(read_utf8(ed_file)).get("edition") in ("dev", "maintainer")
             except (OSError, ValueError):
-                is_maintainer = False
-        if has_omnikit_now or is_maintainer:
+                is_dev = False
+        if has_omnikit_now or is_dev:
             _upsert(default_repo_root.name, name=default_repo_root.name, path=str(default_repo_root), source="workspace")
 
     return list(merged.values())

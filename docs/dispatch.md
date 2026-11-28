@@ -18,13 +18,13 @@
 | 共用（所有人） | `data/rules/dispatch.md`（原則，常駐載入）與 `data/rules/dispatch-policy.md`（完整政策，要派才讀） | 任務類型 → 級別（中、高、更高、獨立驗收、重大架構）→ 模型類別 → 思考程度 → 升級路徑；管道怎麼選；Sonnet 試行的品質保護；委派紀錄的欄位 |
 | 個人（profile） | profile 資料夾的 `dispatch.md` | 你有哪些供應商實例（T3 的 providerInstanceId）、每個模型類別用哪個、要不要啟用選配模型；沒有這份就只用原生子代理 |
 
-共用層 `data/rules/dispatch.md` 會跟安全底線、profile 的 `AGENTS.md` 一起常駐載入三個 agent；完整政策 `dispatch-policy.md` 與個人層 `dispatch.md` 不佔常駐規則字數，需要派工時由 `engine/scripts/dispatch.py` 讀取。改共用層要更新 `data/rules/baseline.md` 的規則版本（同事版套用更新重跑 `install.ps1` 或 `uv run engine/scripts/profiles.py`）。
+共用層 `data/rules/dispatch.md` 會跟安全底線、profile 的 `AGENTS.md` 一起常駐載入三個 agent；完整政策 `dispatch-policy.md` 與個人層 `dispatch.md` 不佔常駐規則字數，需要派工時由 `engine/scripts/dispatch.py` 讀取。改共用層要更新 `data/rules/baseline.md` 的規則版本（標準安裝套用更新重跑 `install.ps1` 或 `uv run engine/scripts/profiles.py`）。
 
 派之前跑 `uv run engine/scripts/dispatch.py show`（或 skill 裡的 `run.py show`），會印出套上你的實例之後每一級依序能用的選項；沒有實例的、選配沒宣告的、已有更好選項的備援，都會標明跳過的原因。
 
 ## 每一級用什麼
 
-下表是**沒有寫個人 `dispatch.md`、只有 Claude** 時 `show` 會給的結果（大多數同事的情況）：
+下表是**沒有寫個人 `dispatch.md`、只有 Claude** 時 `show` 會給的結果（多數單一供應商環境的情況）：
 
 | 級別 | 任務 | 用什麼 |
 |---|---|---|

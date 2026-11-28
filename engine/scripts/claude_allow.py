@@ -394,9 +394,9 @@ def selftest() -> int:
         allow = load(settings)["permissions"]["allow"]
         check("settings.json 首次修改先留 .bak-omnikit 備份，防毒鎖檔時重試成功",
               (settings.parent / "settings.json.bak-omnikit").is_file() and st.calls == 3)
-        check("墓碑清單裡的舊權限自動移除，使用者自己的 Bash(ls) 保留；同事版還沒問過的先不加",
+        check("墓碑清單裡的舊權限自動移除，使用者自己的 Bash(ls) 保留；還沒問過的先不加",
               allow == ["Bash(ls)"] and any("還沒問過你" in line and "chrome_devtools、other" in line for line in lines))
-        check("同事版：hook 照樣註冊，其他設定不動",
+        check("未同意免問時：hook 照樣註冊，其他設定不動",
               any(is_nudge(h) for g in load(settings)["hooks"]["Stop"] for h in g["hooks"])
               and load(settings)["model"] == "x")
 
@@ -416,14 +416,15 @@ def selftest() -> int:
               list(after_p["hooks"].keys()) == ["SessionStart"]
               and [h["command"] for g in after_p["hooks"]["SessionStart"] for h in g["hooks"]] == ["mine.sh"])
 
-        edition.set_edition(state, "maintainer")
+        edition.set_edition(state, "dev")
+        edition.record(state, "other", True)
         kai = tmp / "home" / ".claude-kai" / "settings.json"
         kai.parent.mkdir(parents=True, exist_ok=True)
         kai.write_text(json.dumps({"permissions": {"allow": ["Bash(git status)"]},
                                    "statusLine": {"type": "command", "command": "my-status.sh"}}), encoding="utf-8")
         record2 = state / "record2.json"
         apply(settings, record2, state, repo, no_git, extra_settings=[kai])
-        check("維護者版其他設定目錄：規則、hook 與串接 statusLine 皆寫入",
+        check("已授權之其他設定目錄：規則、hook 與串接 statusLine 皆寫入",
               load(kai)["permissions"]["allow"] == ["Bash(git status)", "mcp__chrome_devtools", "mcp__other__click"]
               and is_ours_statusline(load(kai)["statusLine"]))
         uninstall(settings, load(record2))
