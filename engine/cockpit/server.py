@@ -293,12 +293,10 @@ class CockpitApp:
             and self.repo_root == collector.ROOT
         ):
             return sync_mod.real_env()
-        iso_env = {
-            **os.environ,
-            "USERPROFILE": str(self.home_dir),
-            "HOME": str(self.home_dir),
-            "OMNIKIT_STATE_DIR": str(self.state_dir),
-        }
+        import homes as homes_mod  # type: ignore
+
+        # 拿掉 CLAUDE_CONFIG_DIR 等指向真設定資料夾的變數，不然隔離同步會寫回使用者真的設定
+        iso_env = {**homes_mod.isolated_environ(self.home_dir), "OMNIKIT_STATE_DIR": str(self.state_dir)}
         return sync_mod.Env(
             home=self.home_dir,
             repo=self.repo_root,
