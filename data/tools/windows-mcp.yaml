@@ -1,0 +1,20 @@
+id: windows-mcp
+name: Windows-MCP（CursorTouch）
+kind: mcp
+slots: []
+status: on_demand
+ring: trial
+url: https://github.com/CursorTouch/Windows-MCP
+works_with:
+- claude
+- codex
+- antigravity
+trust: community
+context_cost: 0
+trigger_when: 需要讓 AI 代理操作無 API／CLI 且非瀏覽器網頁的原生 Windows 桌面軟體（例如傳統 Win32／系統設定介面），並優先透過 UI Automation 樹而非截圖辨識定位元件時按需啟用（注意平日 09:00–19:00 實體桌面操作須先取得使用者同意）。
+decided_at: '2026-11-28'
+reason: 一手查證（2026-11-28 gh api：★12,234，MIT，v0.9.0，最後 push 2026-11-28）：基於 Windows UI Automation 與 fastmcp>=3.0，免視覺模型、低延遲；但 pyproject.toml 要求 requires-python >= 3.14 且相依 posthog>=7.4.0 遙測套件，不適合常駐全域 MCP，列為按需備案。
+sources:
+- OmniKeep 2026-11-27 收錄（cursortouch/windows-mcp）
+notes: 一手原始碼反例（2026-11-28 檢視 pyproject.toml）：(1) requires-python >= 3.14，現有 Python 3.11/3.12/3.13 環境無法直接裝，需用 uvx --python 3.14 隔離；(2) dependencies 含 posthog>=7.4.0，正式啟用前須確認關閉遙測與外連。改判條件：官方支援 Python 3.12+ 且提供關閉遙測開關，或實際出現高頻非瀏覽器 Windows GUI 自動化任務時再進 Layer 2 隔離實測。
+added: '2026-11-28'

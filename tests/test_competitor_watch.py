@@ -220,3 +220,98 @@ def test_target_mode_does_not_false_match_different_owner_and_cli_selftest(tmp_p
     doc = json.loads(proc2.stdout)
     assert doc["normalized_repo"] == "Fission-AI/OpenSpec"
     assert len(doc["dispositions"]) == 5
+
+
+def test_dynamic_now_inference_watch_yaml_merged_update_and_cursor(tmp_path: Path):
+    """驗證通用開箱能力：NOW.md 動態領域推導、~/.omnikit/watch.yaml 覆寫、updated_at 歸併項目、增量水位線與 Layer A 全景表。"""
+    db_path = tmp_path / "omnikeep.db"
+    conn = sqlite3.connect(db_path)
+    conn.executescript("""
+        CREATE TABLE items (
+            id TEXT PRIMARY KEY, url TEXT, source_type TEXT, category_name TEXT,
+            title_l1 TEXT, summary_l1 TEXT, tech_tags TEXT, is_starred INTEGER,
+            is_read INTEGER, origin TEXT, user_note TEXT, agent_status TEXT,
+            created_at TEXT, updated_at TEXT, deep_analysis TEXT
+        );
+        CREATE TABLE item_citations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, source_parent_id TEXT,
+            target_name TEXT, target_canonical_url TEXT, mention_context TEXT
+        );
+    """)
+    now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    old_iso = (datetime.now(timezone.utc) - timedelta(days=20)).isoformat(timespec="seconds")
+    conn.executemany(
+        "INSERT INTO items VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [
+            ("q1", "https://blave.org/zh", "web", "投資理財", "Blave Agent 量化回測與 MCPT",
+             "支援台股回測與三道防過擬合檢驗", '["量化","回測"]', 0, 0, "manual", "", "none", now_iso, now_iso, ""),
+            ("u1", "https://www.instagram.com/reel/abc", "web", "生活娛樂", "六種 UI 彈出層怎麼選",
+             "設計系統彈出層選型與三個坑", '["UI"]', 0, 0, "manual", "", "none", now_iso, now_iso, ""),
+            ("m1", "https://github.com/google-gemini/gemini-api-cli", "web", "Github", "gemini-api-cli",
+             "20 天前建卡但今天歸併新社群貼文", '["CLI"]', 0, 0, "manual", "", "none", old_iso, now_iso, ""),
+            ("n1", "https://example.com/stock-gossip", "web", "投資理財", "台股明牌八卦閒聊",
+             "純閒聊無工具無方法論", '["投資"]', 0, 0, "manual", "", "none", now_iso, now_iso, ""),
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+    status_dir = tmp_path / "status"
+    (status_dir / "MyQuant").mkdir(parents=True)
+    (status_dir / "MyQuant" / "NOW.md").write_text("# MyQuant\n台股量化選股與財報回測系統\n", encoding="utf-8")
+    (status_dir / "MyDesign").mkdir(parents=True)
+    (status_dir / "MyDesign" / "NOW.md").write_text("# MyDesign\n品牌視覺與 DESIGN.md 設計系統\n", encoding="utf-8")
+
+    cfg_path = tmp_path / "watch.yaml"
+    cfg_path.write_text(
+        "projects:\n  MyQuant:\n    keywords:\n      - blave\n",
+        encoding="utf-8",
+    )
+    cfg = cw.load_watch_config(cfg_path)
+    projects = cw.load_project_profiles(status_dir, watch_cfg=cfg)
+    roster = {"by_id": {}, "by_repo": {}}
+
+    items = cw.fetch_recent_items(db_path, days=7)
+    assert {i["id"] for i in items} == {"q1", "u1", "m1", "n1"}
+
+    pkt = cw.build_scan_packet(items, roster, projects, days=7, max_deep=3, verify_gh=False, watch_cfg=cfg)
+    all_ids = {c["id"] for c in pkt["deep_candidates"] + pkt["overflow_candidates"]}
+    assert {"q1", "u1", "m1"} <= all_ids  # 工程方法論與歸併更新全數保留，不被生活／投資分類誤殺
+    assert "n1" not in all_ids  # 純閒聊八卦仍被濾除
+    assert "MyQuant" in pkt["by_project"] and "MyDesign" in pkt["by_project"]
+
+    md = cw.render_markdown(pkt)
+    assert "Layer A：各專案關聯全景" in md
+    assert "歸併" in md
+
+    # 水位線推進後，同一時間戳前不重複撈出
+    cursor_p = tmp_path / "watch_cursor.json"
+    cw.save_cursor(cursor_p, last_scan_at=now_iso, seen_ids=["q1", "u1", "m1"])
+    assert cw.fetch_recent_items(db_path, since_iso=cw.load_cursor(cursor_p)["last_scan_at"]) == []
+
+
+def test_validate_check_skills_catches_errors_and_collisions(tmp_path: Path):
+    """驗證 validate.py 新增的 Skill 格式硬規則與 TF-IDF 路由碰撞提醒。"""
+    import validate as val
+
+    sroot = tmp_path / "skills"
+    (sroot / "skill-a").mkdir(parents=True)
+    (sroot / "skill-a" / "SKILL.md").write_text(
+        "---\nname: skill-a\ndescription: 檢查前端版面溢位與行動端巡檢工具，非前端不觸發。\n---\n# A\n",
+        encoding="utf-8",
+    )
+    (sroot / "skill-b").mkdir(parents=True)
+    (sroot / "skill-b" / "SKILL.md").write_text(
+        "---\nname: skill-b\ndescription: 檢查前端版面溢位與行動端巡檢工具。\n---\n# B\n",
+        encoding="utf-8",
+    )
+    (sroot / "bad-name").mkdir(parents=True)
+    (sroot / "bad-name" / "SKILL.md").write_text(
+        "---\nname: wrong-name\ndescription: 錯誤名稱測試，非測試不觸發。\n---\n# Bad\n",
+        encoding="utf-8",
+    )
+
+    errs, warns = val.check_skills(sroot)
+    assert any("wrong-name" in e for e in errs)
+    assert any("skill-b" in w and "負面觸發" in w for w in warns)
+    assert any("skill-a <-> skill-b" in w for w in warns)

@@ -1,0 +1,21 @@
+id: gemini-api-cli
+name: gemini-api-cli（Google Gemini）
+kind: cli
+slots:
+- media-convert
+status: on_demand
+ring: trial
+url: https://github.com/google-gemini/gemini-api-cli
+works_with:
+- claude
+- codex
+- antigravity
+trust: community
+context_cost: 0
+trigger_when: 在 Claude Code、Codex 或自動化腳本中，需要單一無狀態 Go CLI 呼叫 Gemini API 進行多模態理解（長 PDF、音訊／影片轉錄）、生圖，並搭配內建 --dry-run 離線檢驗參數時按需使用。
+decided_at: '2026-11-28'
+reason: 一手查證（2026-11-28 gh api：★4,251，Apache-2.0，v0.5.0，最後 push 2026-11-27）：單一執行檔且對 agent 友善（JSON/jq 輸出、--dry-run 隱藏金鑰）；但仍屬實驗階段、不接受外部 PR、Files API 僅暫存 48 小時且免費金鑰高頻易限流，列為按需備案。
+sources:
+- OmniKeep 2026-11-28 收錄（google-gemini/gemini-api-cli）
+notes: 反例：(1) 官方標示 experimental 且不收 PR；(2) 免費 Gemini API key 處理長 PDF／多媒體高頻呼叫易觸發限流；(3) Antigravity 本身已有內建多模態能力，主要補 Claude Code／Codex 終端流程缺口。改判條件：進入 v1.0 穩定版或需要跨代理批次影音轉錄腳本時再實測升格。
+added: '2026-11-28'

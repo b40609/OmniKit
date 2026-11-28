@@ -7,20 +7,23 @@
 # ///
 """範圍 C（外部競品與收錄交叉檢視）確定性前置漏斗腳本。
 
-三種觸發模式共用同一套純唯讀前置引擎：
-1. 每週定時（T3 排程）／手動觸發：
+三種觸發模式共用同一套純唯讀前置引擎（所有 OmniKit＋OmniKeep 用戶開箱可用）：
+1. 增量巡檢（推薦，每週定時或手動一句話觸發）：
+   uv run engine/scripts/competitor_watch.py scan --since-last [--mark-seen]
+2. 固定天數全盤檢視：
    uv run engine/scripts/competitor_watch.py scan --days 7
-2. 丟特定專案即時觸發：
+3. 丟特定專案即時對決：
    uv run engine/scripts/competitor_watch.py target <github-url-or-owner/repo> [--project OmniKit]
-3. 離線自測：
+4. 離線自測：
    uv run engine/scripts/competitor_watch.py --selftest
 
-安全與反雜訊原則：
+安全、通用與反雜訊原則：
 - 對 OmniKeep 資料庫採 SQLite URI `?mode=ro` 與 `PRAGMA query_only = ON`，絕不寫入。
+- 查詢同時比對 created_at 與 updated_at，避免 OmniKeep 把新貼文歸併進既有卡片時漏掃。
 - 預設只掃手動收錄（`origin='manual'`）並排除 agent 寫回的 `source_type='insight'`，防自我迎合迴圈。
-- 僅備註含明確競品標記（`#競品`、`#watch`、`重造輪子`）走必查快車道（跳過分類過濾）；
-  單純加星（+25）或一般備註（+10）只做加權、仍受雜訊過濾，避免生活／美食／投資文章擠掉工程名額。
-- 每次檢視包依首個 GitHub repo 去重並嚴格截斷最多 N 項深挖標的（預設 3 項），附五選一強制處置與改判條件模板。
+- 共用層絕不寫死個人專案名：自動掃描 `~/.omnikit/status/*/NOW.md`（與 `~/.omnikit/local-status/*/NOW.md`）
+  並依內容自動推導領域關鍵詞；進階個人設定放在 repo 外的 `~/.omnikit/watch.yaml`。
+- 輸出採兩層結構：Layer A（各專案關聯全景分組表）＋ Layer B（最多 N 項深挖標的，預設 3 項，附五選一強制處置）。
 """
 from __future__ import annotations
 
@@ -42,8 +45,13 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OMNIKEEP_DB_CANDIDATES = (
     Path.home() / "Desktop" / "OmniKeep" / "omnikeep.db",
     Path.home() / "OmniKeep" / "omnikeep.db",
+    Path.home() / ".omnikeep" / "omnikeep.db",
 )
-DEFAULT_STATUS_DIR = Path.home() / ".omnikit" / "status"
+DEFAULT_STATE_DIR = Path(os.environ.get("OMNIKIT_STATE_DIR") or (Path.home() / ".omnikit"))
+DEFAULT_STATUS_DIR = DEFAULT_STATE_DIR / "status"
+DEFAULT_LOCAL_STATUS_DIR = DEFAULT_STATE_DIR / "local-status"
+DEFAULT_WATCH_CONFIG = DEFAULT_STATE_DIR / "watch.yaml"
+DEFAULT_CURSOR_PATH = DEFAULT_STATE_DIR / "state" / "watch_cursor.json"
 
 # 左邊界排除子網域（docs.github.com / gist.github.com / api.github.com）；
 # 右邊界以 lookahead 容許中文全形標點、半形逗號、反引號、方括號與句尾。
@@ -69,26 +77,55 @@ NOISE_CATEGORY_KEYWORDS = (
     "finance", "lifestyle", "travel", "food", "news",
 )
 
-# 內建核心專案領域關鍵詞（避開英文常見泛詞如 brand / line）
-PROJECT_DOMAIN_HINTS: dict[str, tuple[str, ...]] = {
+# 內容明確屬於工程方法論／開源工具／設計系統時，即使被分類到「生活」「投資」也不應被誤殺。
+ENGINEERING_METHOD_KEYWORDS = (
+    "開源", "回測", "過擬合", "mcpt", "walk-forward", "量化策略", "參數掃描",
+    "設計系統", "design.md", "彈出層", "規則檔", "元件庫", "ui automation",
+    "mcp", "skill", "agent", "cli", "hook", "linter", "rag", "ocr",
+)
+
+# 共用層僅內建公開產品本身之關鍵詞；任何使用者的其他專案均由 NOW.md 自動推導或透過 ~/.omnikit/watch.yaml 擴充。
+BUILTIN_DOMAIN_HINTS: dict[str, tuple[str, ...]] = {
     "omnikit": (
         "skill", "skills", "mcp", "claude code", "codex", "antigravity",
         "openspec", "skill router", "harness", "skill-scanner", "mcp-scanner",
         "dispatch", "subagent", "plugin", "obsidian-skills", "skillspector",
+        "deep research", "deep-research", "blast-radius", "windows-mcp",
     ),
     "omnikeep": (
         "second brain", "第二大腦", "obsidian", "vault", "mcpvault", "bookmark",
         "rss", "radar", "rag", "fts5", "sqlite-vec", "qmd", "rerank", "reranker",
         "embedding", "llm gateway", "freellmapi", "omniroute", "free llm",
-        "telegram bot", "line bot", "read-later",
+        "telegram bot", "read-later", "docling", "markitdown", "gemini-api-cli",
     ),
-    "catos": ("catos", "quant", "trading", "backtest", "okx", "alpha"),
-    "t3-deskcat": ("deskcat", "desktop pet", "tauri", "webview", "sprite"),
-    "lineport": ("lineport", "line webhook", "line bot", "line messaging"),
 }
 
+# 通用領域特徵庫：自動閱讀任意使用者的專案 NOW.md，若命中觸發詞即自動附加對應領域關鍵詞（開箱即用，無需硬編碼專案名）。
+DOMAIN_VOCAB_CLUSTERS: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
+    (
+        ("回測", "量化", "選股", "台股", "財報", "因子", "okx", "模擬盤", "交易", "backtest", "quant", "trading"),
+        ("量化", "回測", "過擬合", "mcpt", "walk-forward", "參數掃描", "參數平原", "策略回測", "quant", "backtest", "trading", "day-trader", "台股策略", "券商 api"),
+    ),
+    (
+        ("品牌", "視覺", "logo", "design.md", "設計系統", "svg", "配色", "字體", "前端", "ui"),
+        ("設計系統", "design.md", "refero", "彈出層", "ui 元件", "shadcn", "diagram-design", "html 圖表", "svg", "品牌風格", "21st.dev"),
+    ),
+    (
+        ("line", "telegram", "discord", "轉送", "webhook", "訊息橋接", "通訊軟體"),
+        ("line bot", "line webhook", "通訊軟體", "訊息橋接", "openclaw", "astrbot"),
+    ),
+    (
+        ("tauri", "桌寵", "系統匣", "desktop", "額度面板", "webview"),
+        ("tauri", "desktop pet", "windows-mcp", "動態島", "perch", "桌面自動化", "ui automation"),
+    ),
+    (
+        ("pdf", "ocr", "文件解析", "知識庫", "多模態", "markdown"),
+        ("docling", "markitdown", "ocr", "pdf 解析", "純文字知識庫", "gemini-api-cli"),
+    ),
+)
+
 # 英文單字與日常用語高度重疊的專案名，不把裸專案名本身當自動配對詞
-GENERIC_PROJECT_NAMES = frozenset({"brand", "line", "docs", "test", "app", "web", "tools"})
+GENERIC_PROJECT_NAMES = frozenset({"brand", "line", "docs", "test", "app", "web", "tools", "site", "data"})
 
 FIVE_DISPOSITIONS = (
     ("adopt_or_integrate", "直接導入或改接現有方案（免重造輪子）"),
@@ -106,6 +143,43 @@ def _configure_stdio() -> None:
                 stream.reconfigure(encoding="utf-8", errors="replace")
             except Exception:
                 pass
+
+
+def load_watch_config(config_path: Path | None = None) -> dict[str, Any]:
+    """讀取本機個人擴充設定檔 ~/.omnikit/watch.yaml（不存在或格式錯誤時靜默回傳空字典）。"""
+    path = config_path if config_path is not None else DEFAULT_WATCH_CONFIG
+    if not path or not path.is_file():
+        return {}
+    try:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+        return doc if isinstance(doc, dict) else {}
+    except Exception:
+        return {}
+
+
+def load_cursor(cursor_path: Path) -> dict[str, Any]:
+    """讀取增量掃描水位線（~/.omnikit/state/watch_cursor.json）。"""
+    if not cursor_path or not cursor_path.is_file():
+        return {}
+    try:
+        doc = json.loads(cursor_path.read_text(encoding="utf-8"))
+        return doc if isinstance(doc, dict) else {}
+    except Exception:
+        return {}
+
+
+def save_cursor(cursor_path: Path, *, last_scan_at: str, seen_ids: list[str]) -> None:
+    """以原子寫入方式更新增量水位線（最多保留最近 500 筆已看過 ID）。"""
+    cursor_path.parent.mkdir(parents=True, exist_ok=True)
+    deduped = list(dict.fromkeys(str(i) for i in seen_ids if i))[-500:]
+    payload = {
+        "schema_version": 1,
+        "last_scan_at": last_scan_at,
+        "seen_ids": deduped,
+    }
+    tmp = cursor_path.with_name(cursor_path.name + ".tmp")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, cursor_path)
 
 
 def normalize_repo(text: str) -> str | None:
@@ -150,13 +224,18 @@ def extract_github_repos(*texts: str) -> list[str]:
     return list(seen.values())
 
 
-def resolve_db_path(explicit: str | None) -> Path | None:
+def resolve_db_path(explicit: str | None, watch_cfg: dict[str, Any] | None = None) -> Path | None:
     if explicit:
         p = Path(explicit).expanduser()
         return p if p.is_file() else None
     env_db = os.environ.get("OMNIKEEP_DB", "").strip()
     if env_db:
         p = Path(env_db).expanduser()
+        if p.is_file():
+            return p
+    cfg_db = str((watch_cfg or {}).get("omnikeep_db") or "").strip()
+    if cfg_db:
+        p = Path(cfg_db).expanduser()
         if p.is_file():
             return p
     for cand in DEFAULT_OMNIKEEP_DB_CANDIDATES:
@@ -195,41 +274,101 @@ def load_roster_tools(data_dir: Path) -> dict[str, dict[str, Any]]:
     return {"by_id": by_id, "by_repo": by_repo}
 
 
-def load_project_profiles(status_dir: Path) -> list[dict[str, Any]]:
-    """從 ~/.omnikit/status/*/NOW.md 擷取活躍專案定位卡。"""
+def _infer_keywords_from_now_text(name: str, text: str) -> set[str]:
+    """從專案 NOW.md 前段內容自動推導領域關鍵詞（讓任何用戶開箱免設定即可配對）。"""
+    sample = "\n".join(text.splitlines()[:60]).lower()
+    inferred: set[str] = set()
+    for triggers, expanded in DOMAIN_VOCAB_CLUSTERS:
+        hits = sum(1 for t in triggers if t in sample)
+        if hits >= 2:
+            inferred.update(expanded)
+    return inferred
+
+
+def load_project_profiles(
+    status_dir: Path,
+    *,
+    extra_status_dirs: list[Path] | None = None,
+    watch_cfg: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """從狀態板目錄（~/.omnikit/status/*/NOW.md 與 local-status）及 ~/.omnikit/watch.yaml 擷取活躍專案定位卡。"""
+    cfg = watch_cfg or {}
+    cfg_projects = cfg.get("projects") if isinstance(cfg.get("projects"), dict) else {}
+    dirs_to_scan: list[Path] = [status_dir]
+    if extra_status_dirs:
+        dirs_to_scan.extend(extra_status_dirs)
+    for raw_dir in cfg.get("extra_status_dirs") or []:
+        if isinstance(raw_dir, str) and raw_dir.strip():
+            dirs_to_scan.append(Path(raw_dir).expanduser())
+
+    by_name: dict[str, dict[str, Any]] = {}
+    for root in dirs_to_scan:
+        if not root or not root.is_dir():
+            continue
+        for child in sorted(root.iterdir()):
+            if not child.is_dir() or child.name.startswith(("_", ".")):
+                continue
+            now_file = child / "NOW.md"
+            if not now_file.is_file():
+                continue
+            try:
+                text = now_file.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+            heading = lines[0].lstrip("# ").strip() if lines else child.name
+            path_line = next((ln for ln in lines[:12] if "專案路徑" in ln), "")
+            conclusions = [ln for ln in lines if ln.startswith(("1.", "2.", "3.", "- [ ]"))][:4]
+            low_name = child.name.lower()
+            keywords = {h.lower() for h in BUILTIN_DOMAIN_HINTS.get(low_name, ())}
+            keywords.update(_infer_keywords_from_now_text(child.name, text))
+            if low_name not in GENERIC_PROJECT_NAMES:
+                keywords.add(low_name)
+            for token in re.findall(r"[A-Za-z][A-Za-z0-9_-]{3,}", heading):
+                low_tok = token.lower()
+                if low_tok not in GENERIC_PROJECT_NAMES:
+                    keywords.add(low_tok)
+            if low_name not in by_name:
+                by_name[low_name] = {
+                    "name": child.name,
+                    "heading": heading,
+                    "now_path": str(now_file),
+                    "project_path": path_line,
+                    "highlights": conclusions,
+                    "keywords": keywords,
+                }
+            else:
+                by_name[low_name]["keywords"].update(keywords)
+
+    # 合併 ~/.omnikit/watch.yaml 個人專案關鍵詞設定（可追加既有專案或註冊未有 NOW.md 的專案）
+    for pname, pspec in cfg_projects.items():
+        if not isinstance(pname, str) or not pname.strip():
+            continue
+        spec = pspec if isinstance(pspec, dict) else {}
+        if spec.get("enabled") is False:
+            by_name.pop(pname.lower(), None)
+            continue
+        extra_kws = {str(k).strip().lower() for k in (spec.get("keywords") or []) if str(k).strip()}
+        low_name = pname.lower()
+        if low_name in by_name:
+            by_name[low_name]["keywords"].update(extra_kws)
+        else:
+            if low_name not in GENERIC_PROJECT_NAMES:
+                extra_kws.add(low_name)
+            by_name[low_name] = {
+                "name": pname,
+                "heading": str(spec.get("heading") or pname),
+                "now_path": str(spec.get("now_path") or ""),
+                "project_path": str(spec.get("project_path") or ""),
+                "highlights": [],
+                "keywords": extra_kws,
+            }
+
     profiles: list[dict[str, Any]] = []
-    if not status_dir.is_dir():
-        return profiles
-    for child in sorted(status_dir.iterdir()):
-        if not child.is_dir() or child.name.startswith(("_", ".")):
-            continue
-        now_file = child / "NOW.md"
-        if not now_file.is_file():
-            continue
-        try:
-            text = now_file.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
-        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-        heading = lines[0].lstrip("# ").strip() if lines else child.name
-        path_line = next((ln for ln in lines[:12] if "專案路徑" in ln), "")
-        conclusions = [ln for ln in lines if ln.startswith(("1.", "2.", "3.", "- [ ]"))][:4]
-        hints = list(PROJECT_DOMAIN_HINTS.get(child.name.lower(), ()))
-        keywords = {h.lower() for h in hints}
-        if child.name.lower() not in GENERIC_PROJECT_NAMES:
-            keywords.add(child.name.lower())
-        for token in re.findall(r"[A-Za-z][A-Za-z0-9_-]{3,}", heading):
-            low_tok = token.lower()
-            if low_tok not in GENERIC_PROJECT_NAMES:
-                keywords.add(low_tok)
-        profiles.append({
-            "name": child.name,
-            "heading": heading,
-            "now_path": str(now_file),
-            "project_path": path_line,
-            "highlights": conclusions,
-            "keywords": sorted(keywords),
-        })
+    for key in sorted(by_name):
+        entry = by_name[key]
+        entry["keywords"] = sorted(entry["keywords"])
+        profiles.append(entry)
     return profiles
 
 
@@ -261,31 +400,46 @@ def _open_readonly_db(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
-def fetch_recent_items(db_path: Path, days: int, include_radar: bool = False) -> list[dict[str, Any]]:
-    """唯讀查詢 OmniKeep 近 N 天手動收錄（排除 radar 與 agent 寫回的 insight）。"""
-    day_window = f"-{max(1, int(days))} days"
+def fetch_recent_items(
+    db_path: Path,
+    days: int = 7,
+    include_radar: bool = False,
+    *,
+    since_iso: str = "",
+) -> list[dict[str, Any]]:
+    """唯讀查詢 OmniKeep 手動收錄（同時比對 created_at 與 updated_at，排除 radar 與 agent 寫回的 insight）。"""
     conn = _open_readonly_db(db_path)
     try:
         cols = {row["name"] for row in conn.execute("PRAGMA table_info(items)").fetchall()}
         wanted = [
             "id", "url", "source_type", "category_name", "title_l1", "summary_l1",
             "tech_tags", "is_starred", "is_read", "origin", "user_note", "agent_status",
-            "created_at", "deep_analysis",
+            "created_at", "updated_at", "deep_analysis",
         ]
         select_cols = [c for c in wanted if c in cols]
         if "id" not in select_cols or "created_at" not in select_cols:
             raise ValueError("omnikeep.db 的 items 資料表缺少必要欄位（id / created_at）")
 
-        # 使用 julianday 同時精準處理 'YYYY-MM-DD HH:MM:SS' 與 ISO 'YYYY-MM-DDTHH:MM:SS+00:00'
-        where = ["julianday(created_at) >= julianday('now', ?)"]
-        params: list[Any] = [day_window]
+        ts_expr = "COALESCE(updated_at, created_at)" if "updated_at" in cols else "created_at"
+        if since_iso:
+            where = [f"julianday({ts_expr}) > julianday(?)"]
+            params: list[Any] = [since_iso]
+        else:
+            day_window = f"-{max(1, int(days))} days"
+            where = [f"julianday({ts_expr}) >= julianday('now', ?)"]
+            params = [day_window]
+
         if not include_radar and "origin" in cols:
             where.append("(origin = 'manual' OR origin IS NULL OR origin = '')")
         # 排除 agent 透過 writeback_insight 寫回的報告，避免自我迎合迴圈
         if "source_type" in cols:
             where.append("(source_type IS NULL OR source_type != 'insight')")
 
-        sql = f"SELECT {', '.join(select_cols)} FROM items WHERE {' AND '.join(where)} ORDER BY julianday(created_at) DESC LIMIT 300"
+        sql = (
+            f"SELECT {', '.join(select_cols)} FROM items "
+            f"WHERE {' AND '.join(where)} "
+            f"ORDER BY julianday({ts_expr}) DESC LIMIT 300"
+        )
         rows = [dict(r) for r in conn.execute(sql, params).fetchall()]
 
         tables = {r["name"] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
@@ -323,7 +477,7 @@ def fetch_recent_items(db_path: Path, days: int, include_radar: bool = False) ->
         conn.close()
 
 
-def _is_fast_track(item: dict[str, Any]) -> tuple[bool, list[str]]:
+def _is_fast_track(item: dict[str, Any], extra_markers: tuple[str, ...] = ()) -> tuple[bool, list[str]]:
     """僅備註含明確競品標記（#競品 / #watch / 重造輪子）才進必查快車道。
     一般備註與單純加星只於評分加權，不跳過分類雜訊過濾。
     """
@@ -331,21 +485,40 @@ def _is_fast_track(item: dict[str, Any]) -> tuple[bool, list[str]]:
     note = (item.get("user_note") or "").strip()
     if note:
         low_note = note.lower()
-        for mk in FAST_TRACK_MARKERS:
-            if mk.lower() in low_note:
+        for mk in (*FAST_TRACK_MARKERS, *extra_markers):
+            if mk and mk.lower() in low_note:
                 reasons.append(f"備註含 {mk}")
                 break
     return bool(reasons), reasons
 
 
-def _is_noise_item(item: dict[str, Any], repos: list[str], project_hits: list[tuple[str, list[str]]]) -> str:
-    if repos or project_hits:
+def _has_engineering_method(item: dict[str, Any], extra_allow: tuple[str, ...] = ()) -> str:
+    blob = " ".join([
+        item.get("title_l1") or "",
+        item.get("summary_l1") or "",
+        " ".join(item.get("tech_tags") or []),
+    ]).lower()
+    for kw in (*ENGINEERING_METHOD_KEYWORDS, *extra_allow):
+        if kw and kw.lower() in blob:
+            return kw
+    return ""
+
+
+def _is_noise_item(
+    item: dict[str, Any],
+    repos: list[str],
+    project_hits: list[tuple[str, list[str]]],
+    extra_allow: tuple[str, ...] = (),
+) -> str:
+    if repos or _has_engineering_method(item, extra_allow):
         return ""
     cat = (item.get("category_name") or "").lower()
     title = (item.get("title_l1") or "").lower()
     for kw in NOISE_CATEGORY_KEYWORDS:
         if kw in cat or kw in title:
             return f"非工程／生活雜訊（命中 {kw}）"
+    if project_hits:
+        return ""
     return ""
 
 
@@ -405,11 +578,17 @@ def build_scan_packet(
     projects: list[dict[str, Any]],
     *,
     days: int = 7,
+    since_iso: str = "",
     max_deep: int = 3,
     verify_gh: bool = True,
     gh_verifier=None,
+    watch_cfg: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """執行兩段降噪漏斗的第 1 段確定性篩選，產出結構化檢視包。"""
+    """執行兩段降噪漏斗的第 1 段確定性篩選，產出含全景分組表與 Top N 深挖的結構化檢視包。"""
+    cfg = watch_cfg or {}
+    extra_markers = tuple(str(x) for x in (cfg.get("fast_track_markers") or []) if str(x).strip())
+    extra_allow = tuple(str(x) for x in (cfg.get("extra_allow_keywords") or []) if str(x).strip())
+
     candidates: list[dict[str, Any]] = []
     filtered_out: list[dict[str, Any]] = []
 
@@ -433,10 +612,11 @@ def build_scan_packet(
             " ".join(repos),
         ])
         proj_hits = match_projects(blob, projects)
-        fast_track, ft_reasons = _is_fast_track(item)
+        fast_track, ft_reasons = _is_fast_track(item, extra_markers)
+        eng_hit = _has_engineering_method(item, extra_allow)
 
         if not fast_track:
-            noise_reason = _is_noise_item(item, repos, proj_hits)
+            noise_reason = _is_noise_item(item, repos, proj_hits, extra_allow)
             if noise_reason:
                 filtered_out.append({
                     "id": item.get("id"),
@@ -466,9 +646,12 @@ def build_scan_packet(
         if repos:
             score += 20
             score_reasons.append(f"含 GitHub repo(+20: {len(repos)} 個)")
+        elif eng_hit:
+            score += 12
+            score_reasons.append(f"工程方法論(+12: {eng_hit})")
         if proj_hits:
             total_kw = sum(len(kws) for _, kws in proj_hits)
-            pts = 4 if total_kw == 1 else min(32, total_kw * 8)
+            pts = 8 if total_kw == 1 else min(36, total_kw * 8)
             score += pts
             score_reasons.append(
                 f"命中活躍專案(+{pts}: {', '.join(p for p, _ in proj_hits[:3])})"
@@ -487,9 +670,13 @@ def build_scan_packet(
             })
             continue
 
+        updated_raw = str(item.get("updated_at") or item.get("created_at") or "")
+        created_raw = str(item.get("created_at") or "")
         candidates.append({
             "id": item.get("id"),
-            "created_at": str(item.get("created_at") or "")[:19],
+            "created_at": created_raw[:19],
+            "updated_at": updated_raw[:19],
+            "merged_update": bool(updated_raw and created_raw and updated_raw[:10] != created_raw[:10]),
             "title": item.get("title_l1") or "(無標題)",
             "category": item.get("category_name") or "",
             "url": item.get("url") or "",
@@ -505,8 +692,8 @@ def build_scan_packet(
             "score_reasons": score_reasons,
         })
 
-    # 嚴格依分數由高到低，同分時快車道優先、再按時間新到舊
-    candidates.sort(key=lambda c: (c["score"], int(c["fast_track"]), c["created_at"]), reverse=True)
+    # 嚴格依分數由高到低，同分時快車道優先、再按更新時間新到舊
+    candidates.sort(key=lambda c: (c["score"], int(c["fast_track"]), c["updated_at"]), reverse=True)
 
     # 挑選深挖名單時以首個正規化 GitHub repo 去重，避免同一個 repo 的貼文與專案卡佔走兩個名額
     deep_limit = max(1, min(max_deep, 5))
@@ -521,6 +708,21 @@ def build_scan_packet(
                 seen_primary_repos.add(primary_repo)
         else:
             overflow.append(cand)
+
+    # Layer A：全景按專案分組（讓使用者 30 秒掃完所有相關收錄，不因 Top 3 截斷漏看全景）
+    by_project: dict[str, list[dict[str, Any]]] = {}
+    for cand in candidates:
+        proj_names = [m["project"] for m in cand["matched_projects"][:2]] or ["通用／待歸類"]
+        for pn in proj_names:
+            by_project.setdefault(pn, []).append({
+                "id": cand["id"],
+                "title": cand["title"],
+                "score": cand["score"],
+                "fast_track": cand["fast_track"],
+                "merged_update": cand["merged_update"],
+                "repos": cand["repos"][:2],
+                "roster_status": [f"{h['id']}:{h['status']}" for h in cand["roster_matches"]],
+            })
 
     gh_facts: dict[str, dict[str, Any]] = {}
     if verify_gh:
@@ -541,6 +743,7 @@ def build_scan_packet(
         "mode": "scan",
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "days": days,
+        "since_iso": since_iso,
         "max_deep": deep_limit,
         "counts": {
             "scanned_items": len(items),
@@ -553,6 +756,7 @@ def build_scan_packet(
             {"name": p["name"], "heading": p["heading"], "now_path": p["now_path"]}
             for p in projects
         ],
+        "by_project": by_project,
         "deep_candidates": deep_candidates,
         "overflow_candidates": overflow,
         "filtered_out": filtered_out,
@@ -619,7 +823,8 @@ def render_markdown(packet: dict[str, Any]) -> str:
     lines: list[str] = []
     if packet["mode"] == "scan":
         c = packet["counts"]
-        lines.append(f"# 範圍 C 競品與收錄交叉檢視包（近 {packet['days']} 天）")
+        scope_label = f"自上次水位線 {packet['since_iso']} 以來" if packet.get("since_iso") else f"近 {packet['days']} 天"
+        lines.append(f"# 範圍 C 競品與收錄交叉檢視包（{scope_label}）")
         lines.append(f"- 產生時間：{packet['generated_at']}")
         lines.append(
             f"- 漏斗統計：掃描 {c['scanned_items']} 筆手動收錄 → 精選深挖 **{c['deep_candidates']}** 項"
@@ -630,13 +835,38 @@ def render_markdown(packet: dict[str, Any]) -> str:
             + ("、".join(p["name"] for p in packet["active_projects"]) or "（未偵測到 NOW.md）")
         )
         lines.append("")
-        lines.append(f"## 建議深挖標的（最多 {packet['max_deep']} 項）")
+
+        # Layer A：全景分組表
+        by_project = packet.get("by_project") or {}
+        if by_project:
+            lines.append("## Layer A：各專案關聯全景（30 秒總覽）")
+            for pname in sorted(by_project, key=lambda k: (k == "通用／待歸類", k.lower())):
+                entries = by_project[pname]
+                lines.append(f"### {pname}（{len(entries)} 筆）")
+                for e in entries[:8]:
+                    flags = []
+                    if e["fast_track"]:
+                        flags.append("快車道")
+                    if e["merged_update"]:
+                        flags.append("歸併更新")
+                    if e["roster_status"]:
+                        flags.append("名冊:" + ",".join(e["roster_status"]))
+                    flag_str = f" [{'｜'.join(flags)}]" if flags else ""
+                    repo_str = f" (`{', '.join(e['repos'])}`)" if e["repos"] else ""
+                    lines.append(f"- [{e['id']}] {e['title']}{repo_str}{flag_str}（分 {e['score']}）")
+                if len(entries) > 8:
+                    lines.append(f"- ...其餘 {len(entries) - 8} 筆略")
+            lines.append("")
+
+        # Layer B：Top N 強制深挖
+        lines.append(f"## Layer B：建議深挖標的（最多 {packet['max_deep']} 項）")
         if not packet["deep_candidates"]:
             lines.append("- 本期無符合條件的外部競品或工具候選，無需硬產報告。")
         for idx, cand in enumerate(packet["deep_candidates"], 1):
             badge = " [快車道]" if cand["fast_track"] else ""
-            lines.append(f"### {idx}. [{cand['id']}] {cand['title']}{badge}（分數 {cand['score']}）")
-            lines.append(f"- 分類 / 時間：{cand['category']} | {cand['created_at']}")
+            merged = " [歸併新貼文]" if cand.get("merged_update") else ""
+            lines.append(f"### {idx}. [{cand['id']}] {cand['title']}{badge}{merged}（分數 {cand['score']}）")
+            lines.append(f"- 分類 / 時間：{cand['category']} | 建於 {cand['created_at']} / 動於 {cand.get('updated_at', cand['created_at'])}")
             lines.append(f"- 連結：{cand['url']}")
             if cand["user_note"]:
                 lines.append(f"- 使用者備註：{cand['user_note']}")
@@ -722,7 +952,7 @@ def render_markdown(packet: dict[str, Any]) -> str:
 
 
 def run_selftest() -> int:
-    """完全離線的自我驗證，確保過濾、快車道、repo 萃取、insight 排除、去重與 target 模式皆正確。"""
+    """完全離線的自我驗證，確保過濾、快車道、動態關鍵詞、水位線、updated_at 歸併、去重與 target 模式皆正確。"""
     with tempfile.TemporaryDirectory(prefix="omnikit-scope-c-selftest-") as td:
         tmp = Path(td)
         db_path = tmp / "omnikeep.db"
@@ -732,7 +962,7 @@ def run_selftest() -> int:
                 id TEXT PRIMARY KEY, url TEXT, source_type TEXT, category_name TEXT,
                 title_l1 TEXT, summary_l1 TEXT, tech_tags TEXT, is_starred INTEGER,
                 is_read INTEGER, origin TEXT, user_note TEXT, agent_status TEXT,
-                created_at TEXT, deep_analysis TEXT
+                created_at TEXT, updated_at TEXT, deep_analysis TEXT
             );
             CREATE TABLE item_citations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, source_parent_id TEXT,
@@ -740,23 +970,26 @@ def run_selftest() -> int:
             );
         """)
         now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        old_iso = "2026-01-01T00:00:00+00:00"
         rows = [
-            ("i1", "https://threads.net/post/1", "web", "AI工具", "OpenSpec Skill Router",
-             "自然語言自動路由 Skills", '["Claude","Skills"]', 1, 0, "manual", "#競品 OmniKit", "none", now_iso, ""),
+            ("i1", "https://threads.net/p/1", "web", "AI工具", "OpenSpec Skill Router",
+             "自然語言自動路由 Skills", '["Claude","Skills"]', 1, 0, "manual", "#競品 OmniKit", "none", now_iso, now_iso, ""),
             ("i2", "https://github.com/bitbonsai/mcpvault", "web", "知識管理", "MCPVault Obsidian",
-             "Obsidian Vault MCP 讀寫工具", '["Obsidian","MCP"]', 0, 0, "manual", "", "none", now_iso, ""),
+             "Obsidian Vault MCP 讀寫工具", '["Obsidian","MCP"]', 0, 0, "manual", "", "none", now_iso, now_iso, ""),
             ("i3", "https://example.com/food", "web", "美食", "台北拉麵清單",
-             "週末吃拉麵推薦", '["生活"]', 0, 0, "manual", "下次去", "none", now_iso, ""),
+             "週末吃拉麵推薦", '["生活"]', 0, 0, "manual", "下次去", "none", now_iso, now_iso, ""),
             ("i4", "https://github.com/acme/radar-item", "web", "AI工具", "雷達自動抓的",
-             "不該被手動模式撈出", '["Agent"]', 0, 0, "radar", "", "none", now_iso, ""),
+             "不該被手動模式撈出", '["Agent"]', 0, 0, "radar", "", "none", now_iso, now_iso, ""),
             ("i5", "https://github.com/acme/old-rejected", "web", "AI工具", "曾被拒絕的代理",
-             "以前拒絕過的 mcp skill 套件", '["MCP"]', 0, 0, "manual", "", "none", now_iso, ""),
+             "以前拒絕過的 mcp skill 套件", '["MCP"]', 0, 0, "manual", "", "none", now_iso, now_iso, ""),
             ("i6", "https://github.com/tobi/qmd", "web", "搜尋", "QMD Hybrid Reranker",
-             "Markdown 本地語意檢索與 Reranker", '["RAG","QMD"]', 1, 0, "manual", "", "none", now_iso, ""),
+             "Markdown 本地語意檢索與 Reranker", '["RAG","QMD"]', 1, 0, "manual", "", "none", now_iso, now_iso, ""),
             ("i7", "omnikeep://insight/ins_1", "insight", "Insight", "Agent 自己回寫的結論",
-             "不該再進漏斗形成自我迎合", '["AgentInsight"]', 1, 0, "manual", "", "none", now_iso, ""),
+             "不該再進漏斗形成自我迎合", '["AgentInsight"]', 1, 0, "manual", "", "none", now_iso, now_iso, ""),
+            ("i8_merged", "https://github.com/google-gemini/gemini-api-cli", "web", "Github", "gemini-api-cli",
+             "舊卡片但今天歸併了新貼文", '["CLI"]', 0, 0, "manual", "", "none", old_iso, now_iso, ""),
         ]
-        conn.executemany("INSERT INTO items VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+        conn.executemany("INSERT INTO items VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
         conn.execute(
             "INSERT INTO item_citations (source_parent_id, target_name, target_canonical_url, mention_context) VALUES (?,?,?,?)",
             ("i1", "OpenSpec", "https://github.com/Fission-AI/OpenSpec", "Skill Router"),
@@ -776,19 +1009,32 @@ def run_selftest() -> int:
         (status_dir / "OmniKit" / "NOW.md").write_text("# OmniKit — 目前狀態\n- 專案路徑：/tmp/OmniKit\n", encoding="utf-8")
         (status_dir / "OmniKeep").mkdir(parents=True)
         (status_dir / "OmniKeep" / "NOW.md").write_text("# OmniKeep：現在\n- 專案路徑：/tmp/OmniKeep\n", encoding="utf-8")
+        (status_dir / "QuantDemo").mkdir(parents=True)
+        (status_dir / "QuantDemo" / "NOW.md").write_text("# QuantDemo\n台股量化回測與選股系統\n", encoding="utf-8")
 
         items = fetch_recent_items(db_path, days=7, include_radar=False)
-        assert {i["id"] for i in items} == {"i1", "i2", "i3", "i5", "i6"}, "radar 與 insight 不應出現在預設手動掃描"
+        assert {i["id"] for i in items} == {"i1", "i2", "i3", "i5", "i6", "i8_merged"}, "應納入歸併更新項並排除 radar/insight"
 
         roster = load_roster_tools(data_dir)
         projects = load_project_profiles(status_dir)
-        fake_gh = lambda r: {"repo": r, "verified_on": "2026-11-27", "ok": True, "stars": 1234, "license": "MIT", "archived": False, "pushed_at": "2026-11-26", "latest_release": "v1.0.0", "description": "demo"}
+        qproj = next(p for p in projects if p["name"] == "QuantDemo")
+        assert "mcpt" in qproj["keywords"], "應從 NOW.md 自動推導量化領域關鍵詞"
+
+        fake_gh = lambda r: {"repo": r, "verified_on": "2026-11-28", "ok": True, "stars": 1234, "license": "MIT", "archived": False, "pushed_at": "2026-11-27", "latest_release": "v1.0.0", "description": "demo"}
         pkt = build_scan_packet(items, roster, projects, days=7, max_deep=3, verify_gh=True, gh_verifier=fake_gh)
 
         assert pkt["counts"]["deep_candidates"] == 3, "應嚴格截斷最多 3 項"
         assert [f["id"] for f in pkt["filtered_out"]] == ["i3"], "美食加一般備註仍應被濾除"
         assert pkt["deep_candidates"][0]["id"] == "i1", "明確 #競品 快車道應排第一"
         assert "Fission-AI/OpenSpec" in pkt["deep_candidates"][0]["repos"]
+        assert "Layer A：各專案關聯全景" in render_markdown(pkt)
+
+        # 水位線增量驗證
+        cursor_p = tmp / "cursor.json"
+        save_cursor(cursor_p, last_scan_at=now_iso, seen_ids=["i1", "i2"])
+        cur_doc = load_cursor(cursor_p)
+        assert cur_doc["last_scan_at"] == now_iso
+        assert fetch_recent_items(db_path, since_iso=now_iso) == []
 
         t_pkt = build_target_packet(
             "https://github.com/acme/old-rejected",
@@ -803,7 +1049,7 @@ def run_selftest() -> int:
         assert t_pkt["roster_match"]["status"] == "rejected"
         assert "Windows 閃退" in render_markdown(t_pkt)
 
-    print("SELFTEST PASS: competitor_watch.py（降噪漏斗、快車道、insight 排除、repo 萃取、Top 3 去重、target 模式）全部通過。")
+    print("SELFTEST PASS: competitor_watch.py（降噪漏斗、動態關鍵詞、歸併更新、水位線、Layer A+B、target 模式）全部通過。")
     return 0
 
 
@@ -812,8 +1058,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--selftest", action="store_true", help="執行離線自我測試（不碰真實資料庫與網路）")
     sub = parser.add_subparsers(dest="command")
 
-    p_scan = sub.add_parser("scan", help="掃描 OmniKeep 近期手動收錄並產出 Top N 檢視包")
-    p_scan.add_argument("--days", type=int, default=7, help="回看天數（預設 7）")
+    p_scan = sub.add_parser("scan", help="掃描 OmniKeep 手動收錄並產出全景＋Top N 檢視包")
+    p_scan.add_argument("--days", type=int, default=7, help="回看天數（預設 7；若啟用 --since-last 且有水位線則優先用水位線）")
+    p_scan.add_argument("--since-last", action="store_true", help="只掃描上次水位線之後新增或更新的收錄（無水位線時退回 --days）")
+    p_scan.add_argument("--mark-seen", action="store_true", help="掃描完畢後把本次時間與項目寫入增量水位線")
+    p_scan.add_argument("--cursor", type=Path, default=DEFAULT_CURSOR_PATH, help="增量水位線檔案路徑")
+    p_scan.add_argument("--config", type=Path, default=DEFAULT_WATCH_CONFIG, help="個人擴充設定檔路徑（預設 ~/.omnikit/watch.yaml）")
     p_scan.add_argument("--max-deep", type=int, default=3, help="最多深挖幾項（預設 3，上限 5）")
     p_scan.add_argument("--db", default="", help="omnikeep.db 路徑（預設自動偵測）")
     p_scan.add_argument("--data", type=Path, default=ROOT / "data", help="OmniKit data/ 路徑")
@@ -826,6 +1076,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_target.add_argument("target", help="GitHub URL 或 owner/repo")
     p_target.add_argument("--project", default="", help="指定要比對的我方專案名稱（如 OmniKit、OmniKeep）")
     p_target.add_argument("--note", default="", help="使用者提問或比較重點")
+    p_target.add_argument("--config", type=Path, default=DEFAULT_WATCH_CONFIG, help="個人擴充設定檔路徑（預設 ~/.omnikit/watch.yaml）")
     p_target.add_argument("--data", type=Path, default=ROOT / "data", help="OmniKit data/ 路徑")
     p_target.add_argument("--status-dir", type=Path, default=DEFAULT_STATUS_DIR, help="狀態板 ~/.omnikit/status 路徑")
     p_target.add_argument("--no-gh", action="store_true", help="不呼叫 gh api")
@@ -844,16 +1095,28 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 2
 
+    watch_cfg = load_watch_config(getattr(args, "config", DEFAULT_WATCH_CONFIG))
     roster = load_roster_tools(args.data)
-    projects = load_project_profiles(args.status_dir)
+    extra_dirs = [DEFAULT_LOCAL_STATUS_DIR] if args.status_dir == DEFAULT_STATUS_DIR else []
+    projects = load_project_profiles(args.status_dir, extra_status_dirs=extra_dirs, watch_cfg=watch_cfg)
 
     if args.command == "scan":
-        db_path = resolve_db_path(args.db)
+        db_path = resolve_db_path(args.db, watch_cfg)
         if db_path is None:
-            print("錯誤：找不到 omnikeep.db，請以 --db 或環境變數 OMNIKEEP_DB 指定路徑。", file=sys.stderr)
+            print("錯誤：找不到 omnikeep.db，請以 --db、環境變數 OMNIKEEP_DB 或 ~/.omnikit/watch.yaml 指定路徑。", file=sys.stderr)
             return 1
+        since_iso = ""
+        cursor_doc: dict[str, Any] = {}
+        if args.since_last:
+            cursor_doc = load_cursor(args.cursor)
+            since_iso = str(cursor_doc.get("last_scan_at") or "").strip()
         try:
-            items = fetch_recent_items(db_path, days=args.days, include_radar=args.include_radar)
+            items = fetch_recent_items(
+                db_path,
+                days=args.days,
+                include_radar=args.include_radar,
+                since_iso=since_iso,
+            )
         except sqlite3.OperationalError as exc:
             print(f"錯誤：無法唯讀開啟資料庫 {db_path}（{exc}）；若為 WAL 模式且服務已停止，請確認有目錄讀取權限或先啟動服務。", file=sys.stderr)
             return 1
@@ -862,9 +1125,16 @@ def main(argv: list[str] | None = None) -> int:
             roster,
             projects,
             days=args.days,
+            since_iso=since_iso,
             max_deep=args.max_deep,
             verify_gh=not args.no_gh,
+            watch_cfg=watch_cfg,
         )
+        if args.mark_seen:
+            newest_ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            prev_ids = list(cursor_doc.get("seen_ids") or [])
+            new_ids = [str(i.get("id")) for i in items if i.get("id")]
+            save_cursor(args.cursor, last_scan_at=newest_ts, seen_ids=prev_ids + new_ids)
     elif args.command == "target":
         packet = build_target_packet(
             args.target,

@@ -27,8 +27,12 @@ pre-commit 與 CI 也不該因為這台的個人檔案失敗。看板用的 prof
 用法：uv run engine/scripts/validate.py [--data <資料目錄>]
 """
 import argparse
+import itertools
 import json
+import math
+import re
 import sys
+from collections import Counter
 from datetime import date as dt_date
 from pathlib import Path
 
@@ -381,15 +385,117 @@ def check_baseline_eval_docs(data: Path) -> list[str]:
     return errors
 
 
+SKILL_DESC_MAX_CHARS = 1024
+SKILL_BODY_MAX_LINES = 500
+SKILL_COLLISION_THRESHOLD = 0.45
+_SKILL_STOPWORDS = frozenset({
+    "the", "a", "an", "and", "or", "of", "to", "for", "in", "on", "with", "use",
+    "uses", "using", "used", "when", "this", "that", "is", "are", "be", "by",
+    "from", "as", "it", "its", "into", "via", "at", "not", "skill", "skills",
+    "omnikit", "agent", "使用", "時候", "以及", "一個", "進行", "相關", "透過",
+})
+_NEG_TRIGGER_RE = re.compile(
+    r"(?:do\s+not\s+use|not\s+for|skip\s+when|不觸發|不適用|不要用於|非.+?不|僅.+?用)",
+    re.IGNORECASE,
+)
+
+
+def _skill_tokens(text: str) -> list[str]:
+    """抽取中英文混合詞元（英文單字＋中文雙字 bigram），純標準庫供 TF-IDF 碰撞偵測。"""
+    low = (text or "").lower()
+    toks = [w for w in re.findall(r"[a-z][a-z0-9_-]{2,}", low) if w not in _SKILL_STOPWORDS]
+    for seg in re.findall(r"[\u4e00-\u9fff]{2,}", low):
+        for i in range(len(seg) - 1):
+            bg = seg[i:i + 2]
+            if bg not in _SKILL_STOPWORDS:
+                toks.append(bg)
+    return toks
+
+
+def check_skills(skills_root: Path | None) -> tuple[list[str], list[str]]:
+    """檢核 engine/skills/*/SKILL.md 品質與路由碰撞（借鏡 Anthropic-Cybersecurity-Skills linter 與 TF-IDF 碰撞偵測）。
+
+    回傳 (hard_errors, soft_warnings)：
+    - hard_errors：frontmatter name 與資料夾名不符、description > 1024 字元、SKILL.md > 500 行（阻斷 CI）。
+    - soft_warnings：缺負面觸發詞、或任兩技能描述 TF-IDF 餘弦相似度 >= 0.45（不阻斷 CI，供撰寫修正參考）。
+    """
+    if skills_root is None or not skills_root.is_dir():
+        return [], []
+    errors: list[str] = []
+    warnings: list[str] = []
+    docs: list[tuple[str, list[str]]] = []
+
+    for sd in sorted(skills_root.iterdir()):
+        sm = sd / "SKILL.md"
+        if not sd.is_dir() or not sm.is_file():
+            continue
+        raw = sm.read_bytes().decode("utf-8-sig")
+        line_count = len(raw.splitlines())
+        if line_count > SKILL_BODY_MAX_LINES:
+            errors.append(f"{show(sm)}: 總行數 {line_count} 超過上限 {SKILL_BODY_MAX_LINES} 行（請將長參考分流至 references/）")
+        parts = raw.split("---", 2)
+        if len(parts) < 3:
+            errors.append(f"{show(sm)}: 缺少 YAML frontmatter（--- ... ---）")
+            continue
+        try:
+            fm = yaml.safe_load(parts[1]) or {}
+        except yaml.YAMLError as exc:
+            errors.append(f"{show(sm)}: frontmatter YAML 語法錯誤：{exc}")
+            continue
+        if not isinstance(fm, dict):
+            errors.append(f"{show(sm)}: frontmatter 必須為對應表")
+            continue
+        name = str(fm.get("name") or "").strip()
+        if name != sd.name:
+            errors.append(f"{show(sm)}: frontmatter name「{name}」與資料夾名「{sd.name}」不符")
+        desc = str(fm.get("description") or "").strip()
+        if not desc:
+            errors.append(f"{show(sm)}: description 不可為空")
+            continue
+        if len(desc) > SKILL_DESC_MAX_CHARS:
+            errors.append(f"{show(sm)}: description 長度 {len(desc)} 字元超過上限 {SKILL_DESC_MAX_CHARS}")
+        if not _NEG_TRIGGER_RE.search(desc):
+            warnings.append(f"{sd.name}: description 未含負面觸發界線（建議補「不觸發／不適用」降低誤路由）")
+        toks = _skill_tokens(f"{sd.name} {desc}")
+        if toks:
+            docs.append((sd.name, toks))
+
+    if len(docs) >= 2:
+        n_docs = len(docs)
+        df: Counter[str] = Counter()
+        for _, toks in docs:
+            for t in set(toks):
+                df[t] += 1
+        vecs: dict[str, dict[str, float]] = {}
+        norms: dict[str, float] = {}
+        for name, toks in docs:
+            tf = Counter(toks)
+            vec = {t: (c / len(toks)) * (math.log((n_docs + 1) / (df[t] + 1)) + 1.0) for t, c in tf.items()}
+            norm = math.sqrt(sum(v * v for v in vec.values()))
+            vecs[name] = vec
+            norms[name] = norm
+        for (a, _), (b, _) in itertools.combinations(docs, 2):
+            if norms[a] == 0.0 or norms[b] == 0.0:
+                continue
+            dot = sum(v * vecs[b].get(k, 0.0) for k, v in vecs[a].items())
+            sim = dot / (norms[a] * norms[b])
+            if sim >= SKILL_COLLISION_THRESHOLD:
+                warnings.append(f"技能描述疑似碰撞：{a} <-> {b}（TF-IDF 餘弦相似度 {sim:.2f} >= {SKILL_COLLISION_THRESHOLD}）")
+
+    return errors, warnings
+
+
 def check_governance(data: Path, skills_root: Path | None = None) -> list[str]:
-    """Commit 與 CI 治理檢查（patches.yaml、review_on 標記語法、eval_doc 參照、常駐預算棘輪），與執行期 check() 解耦。"""
+    """Commit 與 CI 治理檢查（patches.yaml、review_on 標記語法、eval_doc 參照、常駐預算棘輪、Skill 格式硬規則），與執行期 check() 解耦。"""
     if skills_root is None and data.resolve() == (ROOT / "data").resolve():
         skills_root = ROOT / "engine" / "skills"
+    skill_errors, _ = check_skills(skills_root)
     return (
         check_patches(data)
         + check_review_markers(data)
         + check_baseline_eval_docs(data)
         + check_budget(data, skills_root)[0]
+        + skill_errors
     )
 
 
@@ -720,6 +826,12 @@ def main():
         print("提醒（規則到期需檢討）：" + "；".join(f"{loc}（{d} {why}）".strip() for loc, d, why in gov["due_reviews"]))
     if gov["unverified_defaults"]:
         print("提醒（尚未登記裸模型／基準對照 baseline_eval 的 default 卡）：" + "、".join(gov["unverified_defaults"]))
+    skills_dir = ROOT / "engine" / "skills" if data == (ROOT / "data").resolve() else None
+    _, skill_warnings = check_skills(skills_dir)
+    if skill_warnings:
+        print(f"提醒（Skill 描述與路由碰撞檢核，共 {len(skill_warnings)} 則）：")
+        for w in skill_warnings:
+            print(f"  - {w}")
     # 私有模組只在這台生效：有問題只提醒，不算驗證失敗（pre-commit 不該因為個人檔案擋下來）
     if mine["loaded"]:
         print(f"這台另外有 {len(mine['loaded'])} 個私有模組：{'、'.join(mine['loaded'])}（{mine['dir']}）。")

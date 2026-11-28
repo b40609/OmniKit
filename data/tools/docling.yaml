@@ -1,0 +1,21 @@
+id: docling
+name: Docling（IBM）
+kind: cli
+slots:
+- media-convert
+status: on_demand
+ring: trial
+url: https://github.com/docling-project/docling
+works_with:
+- claude
+- codex
+- antigravity
+trust: community
+context_cost: 0
+trigger_when: 需要將複雜版面、多欄表格或掃描影像 PDF（如財報、法說會簡報、技術規格書）純本機離線（air-gapped）解析成高保真結構化 Markdown／JSON，且輕量工具 MarkItDown 表格失真時按需呼叫。
+decided_at: '2026-11-28'
+reason: 一手查證（2026-11-28 gh api：★71,156，MIT，最後 push 2026-11-27，Python 3.10+）：版面與表格還原及離線 OCR 能力強，適合高價值 PDF 表格解析；但相依模型權重較重，一般 Office 轉檔仍優先用 MarkItDown，列為按需備案。
+sources:
+- OmniKeep 2026-11-26 收錄（docling-project/docling）
+notes: 與 markitdown 分工：純文字 Office／輕量 PDF 用 markitdown；複雜表格／掃描件／純本機隱私 PDF 用 docling。改判條件：若專案出現每週固定解析法說會／規格書 PDF 表格管線，再升為 trial 測實際表格準確率與 Windows CPU 耗時。
+added: '2026-11-28'

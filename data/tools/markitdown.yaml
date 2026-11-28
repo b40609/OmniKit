@@ -1,10 +1,22 @@
 id: markitdown
-name: markitdown（microsoft）
+name: MarkItDown（Microsoft）
+kind: cli
 slots:
 - media-convert
-status: pending
+status: on_demand
+ring: trial
 url: https://github.com/microsoft/markitdown
+works_with:
+- claude
+- codex
+- antigravity
+trust: community
+context_cost: 0
+trigger_when: 需要快速、輕量地將 Word（.docx）、簡報（.pptx）、試算表（.xlsx）或一般可選字 PDF 轉成保留標題與表格結構的 Markdown 餵給 LLM 時，透過 CLI（uvx markitdown）按需執行。
+decided_at: '2026-11-28'
+reason: 一手查證（2026-11-28 gh api：★198,788，MIT，最後 push 2026-11-07，Python 3.10–3.14）：純本機輕量轉檔免重型模型權重，適合偶發文件前處理；掃描檔與高難度表格則交給 docling。不常駐 MCP 以免佔 context。
 sources:
 - 自我迭代訊號
-notes: 自我迭代從 omnikeep 的收錄找到（2026-11-13，訊號 omnikeep:8f7a863967f8）：提到 markitdown（文件轉 Markdown），名冊沒有，可當轉檔槽位的候選；同一則的 browser-use 名冊已有。名冊外，還沒評估。
+- OmniKeep 2026-11-26 收錄（microsoft/markitdown）
+notes: 建議以 uvx 按需呼叫而非掛載常駐 markitdown-mcp。反例：對掃描件與跨頁複雜財報表格效果弱於 docling，進階影片／OCR 需接付費 Azure 服務。改判條件：若轉檔頻率升至每週多次且 CLI 無法滿足，再評估常駐化。
 added: '2026-11-13'
