@@ -297,9 +297,12 @@ def check_doc(doc, now, opts):
     opts 除了原本的 expect_build、started_after、max_data_age_days、skip_pid、pid_tolerance_s，另外支援：
     override_period_s、override_grace_s（讀取方覆寫期望）、max_run_s、min_items_out（優先於狀態檔的同名欄位）、
     wake_grace_remaining_s（剛從休眠醒來還剩幾秒緩衝）、local_host（測試用：把本機主機名固定成這個）、
-    max_pause_s（paused_until_ts 最多採信多久，預設 30 天）。
+    max_pause_s（paused_until_ts 最多採信多久，預設 30 天）、_meta（呼叫端給一個 dict，檢查完把機器可讀的事實填進去：
+    pid_state、actual_start_ts、remote_host、paused、stale_kinds，給控制面板的探針分三軸用）。
     """
     reasons = []
+    meta = opts.get("_meta") if isinstance(opts.get("_meta"), dict) else {}
+    meta.update({"pid_state": None, "actual_start_ts": None, "remote_host": None, "paused": False, "stale_kinds": []})
     # 可以被「預期暫停」或「剛喚醒」降成 PAUSED 的理由記在這裡（存 reasons 的索引）：
     # timeout 是「時間過太久」這一類（休眠會造成假的），output 是產出不夠，liveness 是 pid 不在（暫停期間本來就可以不在跑）
     soft = {"timeout": [], "output": [], "liveness": []}
@@ -464,6 +467,7 @@ def check_doc(doc, now, opts):
             mine = {str(opts["local_host"]).strip().lower()} if opts.get("local_host") else local_host_names()
             if host.strip().lower() not in mine:
                 info(f"狀態檔來自遠端主機 {host.strip()}（不是這台）：不查 pid")
+                meta["remote_host"] = host.strip()
                 if not skip_pid:
                     skip_pid, skip_why = True, f"遠端主機 {host.strip()}"
 
@@ -477,8 +481,12 @@ def check_doc(doc, now, opts):
             down(f"pid 超出範圍（要在 1 到 {PID_MAX}）：{pid}；不能交給系統呼叫截斷成別的行程")
         elif skip_pid:
             info(f"沒查 pid {pid}（{skip_why}）")
+            meta["pid_state"] = "skipped"
         else:
             state, actual, note = process_info(pid)
+            meta["pid_state"] = state
+            if state == "alive" and actual is not None:
+                meta["actual_start_ts"] = actual.isoformat(timespec="seconds")
             if state == "dead":
                 down(f"pid {pid} 不存在（行程已結束{'，' + note if note else ''}）", "liveness")
             elif state == "unknown":
@@ -496,6 +504,7 @@ def check_doc(doc, now, opts):
                          f"（差 {human(diff)}，pid 可能被別的行程重用，或行程重開過）")
                 else:
                     verified_start = True
+    meta["pid_start_verified"] = verified_start
 
     # 規格第 7 條：「已上線」要對得上版本與重啟時間
     expect = opts.get("expect_build")
@@ -545,6 +554,7 @@ def check_doc(doc, now, opts):
             else:
                 reasons.append(("PAUSED", f"預期暫停到 {doc['paused_until_ts']}（還有 {human(remain)}），到期自動恢復判定"))
                 demote(("timeout", "output", "liveness"), "預期暫停中")
+                meta["paused"] = True
         else:
             info(f"暫停期限 {doc['paused_until_ts']} 已過，恢復嚴格判定")
 
@@ -558,12 +568,15 @@ def check_doc(doc, now, opts):
         if timeout_idx and "DOWN" not in levels and not other_stale:
             for i in timeout_idx:
                 reasons[i] = ("PAUSED", f"{reasons[i][1]}（系統剛自休眠喚醒緩衝中，還有 {human(wake)}）")
+    # 還留著的 STALE 各是哪一類：timeout（時間過太久）、output（產出不夠）、other（例如部署後還沒有成功紀錄）
+    kind_of = {i: kind for kind in ("timeout", "output") for i in soft[kind]}
+    meta["stale_kinds"] = sorted({kind_of.get(i, "other") for i, (lvl, _) in enumerate(reasons) if lvl == "STALE"})
     return reasons
 
 
 def check_file(path, now, opts):
     path = Path(path)
-    result = {"path": str(path), "name": None, "verdict": "DOWN", "reasons": [], "facts": {}}
+    result = {"path": str(path), "name": None, "verdict": "DOWN", "reasons": [], "facts": {}, "meta": {}}
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as e:
@@ -576,10 +589,12 @@ def check_file(path, now, opts):
         return result
     if isinstance(doc, dict) and isinstance(doc.get("name"), str):
         result["name"] = doc["name"]
+    meta = {}
     try:
-        reasons = check_doc(doc, now, opts)
+        reasons = check_doc(doc, now, {**opts, "_meta": meta})
     except Exception as e:  # noqa: BLE001  檢查器自己出錯也不能當正常
         reasons = [("DOWN", f"檢查器例外：{type(e).__name__}: {e}")]
+    result["meta"] = meta
     order = {"DOWN": 0, "STALE": 1, "PAUSED": 2, "info": 3}
     reasons.sort(key=lambda r: order[r[0]])
     result["verdict"] = verdict_of(reasons)
