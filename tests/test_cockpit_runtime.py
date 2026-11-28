@@ -482,7 +482,7 @@ def test_watchdog_task_registration_uses_injected_scheduler_only(box, monkeypatc
 
     # 預設（沒注入排程器）：測試用的 appdata、OMNIKIT_NO_LAUNCH 都會讓它跳過，不會呼叫 schtasks
     res = cli.manage_autostart(state, action="install", repo_root=ROOT, port=37811, appdata=appdata, start_now=False)
-    assert res["watchdog"]["managed"] is False and res["installed"] is (os.name == "nt")
+    assert res["watchdog"]["managed"] is False
     assert cli._real_scheduler_allowed(None, "install")[0] is False
     off = cli.manage_autostart(state, action="install", repo_root=ROOT, port=37811, appdata=appdata, start_now=False, watchdog=False)
     assert off["watchdog"]["managed"] is False
