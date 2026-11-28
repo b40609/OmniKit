@@ -9,9 +9,10 @@
 
 用法（路徑相對於這個 skill 的資料夾）：
   uv run scripts/run.py show                 套上這台 profile 之後的分派表，開頭附本週 Claude 用量
-  uv run scripts/run.py log --task ... --class ... --thinking ... --verdict ...   記一行委派紀錄
+  uv run scripts/run.py log --task ... --class ... --thinking ... --verdict ...   記一行委派紀錄（Schema v2）
   （t3_cli 管道不經過這個腳本：在 PowerShell 直接跑 t3 thread start，見 SKILL.md）
-  uv run scripts/run.py stats                一次通過率與 Sonnet 試行的判定
+  uv run scripts/run.py stats [--mode both|raw|clean]   去噪模型良率（Wilson 95% CI）、原始通過率與試行判定
+  uv run scripts/run.py backfill-audit [--json]         唯讀對帳舊紀錄回溯投影與原 log 零寫改雜湊驗證
   uv run scripts/run.py usage                本週 Claude 用量（狀態列快照）
 """
 import json
