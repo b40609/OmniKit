@@ -6,7 +6,7 @@
 - [Fork 一份自己維護（開發模式 `-Dev`）](#fork-一份自己維護開發模式--dev)
 - [只想裝預設的 plugin](#只想裝預設的-plugin)
 - [安裝會改動哪些地方](#安裝會改動哪些地方)
-- [標準安裝與開發模式（`-Dev`）](#標準安裝與開發模式--dev)
+- [標準安裝與開發模式（`-Dev`）](#標準安裝與開發模式-dev)
 - [移除](#移除)
 - [疑難排解](#疑難排解)
 
@@ -36,13 +36,13 @@
    # 指定特定發行 tag：加上 -Tag v0.2.1
    ```
 
-   預設為標準穩定安裝：不設 git hook，預設鎖定穩定發行 tag（不受開發分支變動影響）；免問核准權限預設皆須本人明確同意或於控制面板開關。見[標準安裝與開發模式（`-Dev`）](#標準安裝與開發模式--dev)。
+   預設為標準穩定安裝：不設 git hook，預設鎖定穩定發行 tag（不受開發分支變動影響）；免問核准權限預設皆須本人明確同意或於控制面板開關。見[標準安裝與開發模式（`-Dev`）](#標準安裝與開發模式-dev)。
 
 3. **在本機控制面板一鍵完成個人化與精選工作台。** 安裝完成後會自動啟動本機控制面板（預設 `http://127.0.0.1:3780/`，無頭或遠端環境可加 `-NoBrowser` / `-NoLaunch`）：在網頁勾選目標套餐、AI 工作習慣（全部 9 項自由複選）與精選工具，按「一鍵套用」即可同步到這台所有已安裝的 Agent，並自動初始化免 GitHub 帳號的本機 `NOW.md` 狀態板。
 
 4. **確認接上了。** 在控制面板切到「Agent 與額度」分頁查看健康檢查（Doctor），或開一個新的對話問「OmniKit 規則版本與 profile 是什麼？」確認規則已生效。細節見[使用指南](usage.md#確認接上了)。
 
-之後要更新到新發行版：`git fetch --tags --force && git checkout <新版本>`，先跑 `install.ps1 -Tag <新版本> -WhatIf` 預覽，確認後跑 `install.ps1 -Tag <新版本>` 套用。`git fetch` 本身不會改任何設定。
+之後要更新到新發行版：`git fetch --tags --force; git checkout <新版本>`，先跑 `install.ps1 -Tag <新版本> -WhatIf` 預覽，確認後跑 `install.ps1 -Tag <新版本>` 套用。`git fetch` 本身不會改任何設定。
 
 ## Fork 一份自己維護（開發模式 `-Dev`）
 
@@ -142,7 +142,7 @@ OmniKit 對外只有一套產品：規則、skills、MCP、控制面板與免問
 
 | | 標準安裝（預設） | 開發模式（`-Dev`） |
 |---|---|---|
-| 版本來源 | 鎖定穩定發行 tag（`v*`）與 `~/.omnikit/current` 乾淨副本；升級時執行 `git fetch --tags --force && git checkout <版本>` 後重跑 `install.ps1 -Tag <版本>` | 直接連結本地開發工作區（`dev_link`），追蹤目前工作分支、改動即時生效 |
+| 版本來源 | 鎖定穩定發行 tag（`v*`）與 `~/.omnikit/current` 乾淨副本；升級時執行 `git fetch --tags --force; git checkout <版本>` 後重跑 `install.ps1 -Tag <版本>` | 直接連結本地開發工作區（`dev_link`），追蹤目前工作分支、改動即時生效 |
 | git hook | 不設；`git pull` 或 `fetch` 不會自動改本機設定 | 啟用 `.githooks`（commit 前掃金鑰與驗證名冊；commit 或 pull 後自動同步；worktree 中不同步） |
 | 免問核准 | 統一由本人同意紀錄（`consent.json`）或控制面板工作台開關決定（`uv run engine/scripts/sync.py approvals`） | 同左（統一走個人同意／面板開關，不再依模式自動繞過同意） |
 | Repo 維護 | 不改動 repo 內檔案，保持工作區乾淨 | 檢查 repo git 身分；fork 時自動更新 `data/omnikit.yaml` 與 marketplace 清單 |

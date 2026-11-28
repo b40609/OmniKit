@@ -35,6 +35,7 @@ if [ "$edition" != "dev" ] && [ "$edition" != "maintainer" ]; then
   fi
   exit 0
 fi
+"$uv" run --quiet engine/scripts/edition.py --migrate-consent --show >/dev/null 2>&1 || true
 
 if [ -n "$git_dir" ] && [ -n "$common_dir" ] && [ "$git_dir" != "$common_dir" ]; then
   if printf '%s\n' "$changed" | grep -qE "$syncable"; then

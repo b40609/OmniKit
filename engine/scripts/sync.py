@@ -1588,6 +1588,8 @@ def main(argv=None) -> int:
     moved = statedir.migrate(env.state) if (args.command and not is_readonly_check) else statedir.Result(env.state)
     for line in moved.lines():
         print(line)
+    if args.command in ("connect", "sync") and not is_readonly_check:
+        edition.migrate_legacy_consent(env.state, resolve_real_repo(env.repo, env.state))
 
     def _dev_arg(ns) -> bool | None:
         if getattr(ns, "dev", False):

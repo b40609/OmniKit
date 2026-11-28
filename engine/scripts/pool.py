@@ -285,9 +285,9 @@ def top(entries, keywords, limit):
     return [{**e, "score": s, "matched": m} for s, e, m in scored[:limit]]
 
 
-def open_slots(roster, edition="colleague"):
+def open_slots(roster, edition="standard"):
     """哪些槽位要找：這個 agent 還沒有答案（或答案是不知道、也沒記內建功能），名冊也沒有預設或試用的卡。"""
-    hidden = {m["id"] for m in roster["modules"] if m.get("maintainer_only") and edition != "maintainer"}
+    hidden = {m["id"] for m in roster["modules"] if m.get("maintainer_only") and edition not in ("dev", "maintainer")}
     enabled = roster.get("enabled")
     out = []
     for s in roster["slots"]:
@@ -664,7 +664,7 @@ def pick_skills(entries, health, keywords, today, limit):
 
 # ---------- 找候選 ----------
 
-def find(roster, catalog, state, client, fetch=http, today=None, only=None, registry=True, edition="colleague", skills=True):
+def find(roster, catalog, state, client, fetch=http, today=None, only=None, registry=True, edition="standard", skills=True):
     """對要找的槽位，從兩家官方目錄、Registry 與 skills.sh 找候選，過檢查，存到 state/pool/slots.json。"""
     today = today or date.today()
     index, health = roster_index(roster), Health(state, client, today)
@@ -937,8 +937,10 @@ def selftest():
         opened = {s["slot"]: s["agents"] for s in open_slots(roster)}
         check("要找的槽位：沒有答案、名冊也沒有預設或試用的卡才找；記了內建功能的不找；分 agent",
               opened == {"open": ["claude", "codex"], "builtin": ["codex"], "half": ["codex"]})
-        check("要找的槽位：一般使用者不看只給維護者的模組，指定 maintainer 才看",
-              "hidden" in {s["slot"] for s in open_slots(roster, "maintainer")})
+        check("要找的槽位：一般使用者不看只給維護者的模組，dev 或舊別名 maintainer 才看",
+              "hidden" not in {s["slot"] for s in open_slots(roster, "standard")}
+              and "hidden" in {s["slot"] for s in open_slots(roster, "dev")}
+              and "hidden" in {s["slot"] for s in open_slots(roster, "maintainer")})
 
         # GitHub 現況
         def node(archived=False, stars=900, pushed="2026-10-01", created="2025-01-01", spdx="MIT"):

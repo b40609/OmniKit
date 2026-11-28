@@ -52,7 +52,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File engine\scripts\install.ps1
 | AI 老是只跑假測試就說完工怎麼辦 | 內建防假完工護欄（`done_check` 記錄並可切強制攔截 `.skip` 假綠燈與無實測宣稱）＋ `/ok 驗收` 真機瀏覽器驗收 |
 | 不想用了怎麼辦 | `engine\scripts\uninstall.ps1` 停止面板並只拿掉 OmniKit 加的東西，備份放回原位 |
 
-之後要更新到新發行版：`git fetch --tags --force && git checkout <版本>`，再跑 `install.ps1 -Tag <版本> -WhatIf` 預覽、`install.ps1 -Tag <版本>` 套用。fork 一份自己維護與每一處改動的完整清單，見[安裝說明](docs/install.md)。
+之後要更新到新發行版：`git fetch --tags --force; git checkout <版本>`，再跑 `install.ps1 -Tag <版本> -WhatIf` 預覽、`install.ps1 -Tag <版本>` 套用。fork 一份自己維護與每一處改動的完整清單，見[安裝說明](docs/install.md)。
 
 ## 裝好之後
 

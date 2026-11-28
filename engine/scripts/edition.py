@@ -125,25 +125,44 @@ def record(state, tool, granted):
     write_json(state / "consent.json", doc)
 
 
-def migrate_legacy_consent(state=STATE, repo=ROOT):
-    """若本機為舊版 maintainer 且尚未建立 consent.json，一次性將既有的 claude-allow 清單遷移為明確同意。"""
+def _legacy_allow_tools(repo):
+    """讀取舊版免問核准清單（claude-allow.txt 與 servers.yaml 的 Codex default_tools_approval_mode）。"""
+    tools = []
+    allow_file = repo / "data" / "harness" / "claude-allow.txt"
+    if allow_file.is_file():
+        for ln in allow_file.read_text(encoding="utf-8", errors="replace").splitlines():
+            item = ln.strip()
+            if not item or item.startswith("#"):
+                continue
+            t = tool_of(item)
+            if t not in tools:
+                tools.append(t)
+    servers_file = repo / "data" / "mcp" / "servers.yaml"
+    if servers_file.is_file():
+        cur_server = None
+        for ln in servers_file.read_text(encoding="utf-8", errors="replace").splitlines():
+            m_srv = re.match(r"^  ([A-Za-z0-9_-]+):\s*$", ln)
+            if m_srv:
+                cur_server = m_srv.group(1)
+            elif cur_server and re.match(r"^\s+default_tools_approval_mode\s*:", ln):
+                if cur_server not in tools:
+                    tools.append(cur_server)
+    return tools
+
+
+def migrate_legacy_consent(state=STATE, repo=ROOT, git=hooks_path):
+    """若本機為舊版 maintainer（edition.json 原值為 maintainer 或未記但由 .githooks 判為 legacy dev）且尚無 consent.json，
+    一次性將既有的免問清單遷移為明確同意，避免 git hook 或升級同步時誤撤回既有權限。新安裝的 dev 模式不自動遷移。"""
     if (state / "consent.json").exists():
         return []
     raw_ed = read_json(state / "edition.json").get("edition")
-    if raw_ed != "maintainer":
-        return []
-    allow_file = repo / "data" / "harness" / "claude-allow.txt"
-    if not allow_file.is_file():
+    is_legacy_maintainer = raw_ed == "maintainer" or (raw_ed is None and resolve(state, repo, git) == ("dev", "legacy"))
+    if not is_legacy_maintainer:
         return []
     migrated = []
-    for ln in allow_file.read_text(encoding="utf-8", errors="replace").splitlines():
-        item = ln.strip()
-        if not item or item.startswith("#"):
-            continue
-        t = tool_of(item)
-        if t not in migrated:
-            record(state, t, True)
-            migrated.append(t)
+    for t in _legacy_allow_tools(repo):
+        record(state, t, True)
+        migrated.append(t)
     return migrated
 
 
@@ -220,15 +239,30 @@ def selftest():
         allowed = approver(state, repo, hooks_off)
         check("本人同意過的工具才放行（不論 standard 或 dev）", allowed("chrome_devtools") and not allowed("other"))
 
-        # 舊版 maintainer 升級遷移：無 consent.json 時保留既有工具授權
+        # 舊版 maintainer / legacy .githooks 升級遷移：無 consent.json 時保留既有 Claude 與 Codex 免問權限；新 dev 不遷移
         mig_state = tmp / "mig_state"
         mig_repo = tmp / "mig_repo"
         (mig_repo / "data" / "harness").mkdir(parents=True)
         (mig_repo / "data" / "harness" / "claude-allow.txt").write_text("mcp__chrome_devtools\n", encoding="utf-8")
+        (mig_repo / "data" / "mcp").mkdir(parents=True)
+        (mig_repo / "data" / "mcp" / "servers.yaml").write_text(
+            "servers:\n  codex_only:\n    options:\n      codex:\n        default_tools_approval_mode: approve\n",
+            encoding="utf-8",
+        )
         write_json(mig_state / "edition.json", {"edition": "maintainer"})
-        migrated = migrate_legacy_consent(mig_state, mig_repo)
-        check("舊版 maintainer 無 consent.json 時一次性遷移既有免問權限",
-              migrated == ["chrome_devtools"] and decided(mig_state, "chrome_devtools") is True)
+        migrated = migrate_legacy_consent(mig_state, mig_repo, hooks_off)
+        check("舊版 maintainer 無 consent.json 時一次性遷移既有 Claude 與 Codex 免問權限",
+              migrated == ["chrome_devtools", "codex_only"]
+              and decided(mig_state, "chrome_devtools") is True
+              and decided(mig_state, "codex_only") is True)
+        leg_state = tmp / "leg_state"
+        write_json(leg_state / "config.json", {"agents": ["claude-code"]})
+        leg_mig = migrate_legacy_consent(leg_state, mig_repo, hooks_on)
+        check("舊版無 edition.json 但由 .githooks 判為 legacy 開發機時亦可平滑遷移",
+              leg_mig == ["chrome_devtools", "codex_only"])
+        fresh_dev = tmp / "fresh_dev"
+        set_edition(fresh_dev, "dev")
+        check("新安裝的 dev 模式不自動遷移繞過同意", migrate_legacy_consent(fresh_dev, mig_repo, hooks_on) == [])
 
         check("不是 git repo：hooksPath 是空字串", hooks_path(tmp / "not-a-repo") == "")
 

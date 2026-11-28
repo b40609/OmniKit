@@ -114,11 +114,16 @@ $PreflightPs1 = Join-Path $Repo 'engine\scripts\preflight.ps1'
 $EditionNames = @{ 'standard' = '標準安裝'; 'dev' = '開發模式' }
 $EditionAliases = @{ 'standard' = 'standard'; 'dev' = 'dev'; 'colleague' = 'standard'; 'maintainer' = 'dev' }
 function Get-NormalizedEdition($raw, [switch]$DevSwitch) {
+  $fromRaw = ''
+  if ($raw) {
+    $k = "$raw".Trim().ToLower()
+    if ($EditionAliases.ContainsKey($k)) { $fromRaw = $EditionAliases[$k] }
+  }
+  if ($DevSwitch -and $fromRaw -and $fromRaw -ne 'dev') {
+    throw "參數衝突：不能同時指定 -Dev 與 -Edition $raw"
+  }
   if ($DevSwitch) { return 'dev' }
-  if (-not $raw) { return '' }
-  $k = "$raw".Trim().ToLower()
-  if ($EditionAliases.ContainsKey($k)) { return $EditionAliases[$k] }
-  return ''
+  return $fromRaw
 }
 $Arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
 $UvDir = Join-Path $env:LOCALAPPDATA 'Programs\uv'
@@ -393,7 +398,7 @@ function Move-LegacyProfiles {
 # sync.py 會依各設定目錄的薄 plugin 實際安裝狀態決定寫入權限或備案 hooks，不需額外無條件清掉備案 hooks。
 function Connect-Agents($mode = 'standard') {
   $profileArgs = @(if ($ProfileName) { '--profile', $ProfileName })
-  $devArgs = @(if ($mode -eq 'dev') { '--dev' })
+  $devArgs = @(if ($mode -eq 'dev') { '--dev' } else { '--no-dev' })
   $r = Invoke-UvRun (Get-Uv) (@('run', '--quiet', $AgentsPy, 'connect') + $profileArgs + $devArgs + '--ask')
   if ($r.Code -ne 0) { throw "sync.py connect 失敗（exit $($r.Code)）" }
 }
@@ -762,7 +767,7 @@ function Show-NextSteps($mode, $panelUrl = $null) {
   Write-Host '  - 防假完工實體驗收：在對話輸入 /ok 驗收（自動檢查假綠燈並真開服務／瀏覽器確認 0 錯誤）'
   Write-Host "  - 確認連線版本：問「OmniKit 規則版本與 profile 是什麼？」，應回答 $version 與 $name"
   if ($mode -ne 'dev') {
-    Write-Host '  - 版本更新：預設鎖定穩定發行 tag；升級時先 git fetch --tags && git checkout <新版本>，再跑 install.ps1 -Tag <新版本>'
+    Write-Host '  - 版本更新：預設鎖定穩定發行 tag；升級時先 git fetch --tags --force; git checkout <新版本>，再跑 install.ps1 -Tag <新版本>'
   }
 }
 

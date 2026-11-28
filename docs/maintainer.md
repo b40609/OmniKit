@@ -90,7 +90,7 @@ uv 不在 PATH 上的話，把 `uv` 換成 `& "$env:LOCALAPPDATA\Programs\uv\uv.
 1. **開分支與提交**：從最新 `main` 切出工作分支（例如 `fix/...`、`feat/...`），小步 commit 並推送該分支（不要用 `git push --mirror`；維護者本機掃全歷史請用 `--log-opts="--branches --remotes"`）。
 2. **開 PR 等 CI 綠燈**：用 `gh pr create`（或 T3 的 `pull_request_create`）開 PR，等待「檢查」workflow 的必過檢查（`名冊`、`Windows（PowerShell 5.1）`、`Windows（PowerShell 7）`、`金鑰外洩`）全部通過。
 3. **直接合併**：CI 全綠後直接合併（`gh pr merge` 或 `pull_request_merge`）並清理已合併分支；合併回 `main` 後由 `now_tick.py` 查證 `gh run list --commit <sha>` 全綠才在狀態板 `NOW.md` 打勾。
-4. **發布穩定版本（tag）**：確認可發布的 `main` commit 後，建立並推送語意版本 tag（例如 `git tag -a v0.2.1 -m "發行說明" && git push origin v0.2.1`）。一般使用者端執行 `git fetch --tags --force && git checkout v0.2.1` 與 `install.ps1 -Tag v0.2.1` 即可升級，平日 `main` 上的變動不會波及已安裝的穩定版環境。
+4. **發布穩定版本（tag）**：確認可發布的 `main` commit 後，建立並推送語意版本 tag（例如 `git tag -a v0.2.1 -m "發行說明"; git push origin v0.2.1`）。一般使用者端執行 `git fetch --tags --force; git checkout v0.2.1` 與 `install.ps1 -Tag v0.2.1` 即可升級，平日 `main` 上的變動不會波及已安裝的穩定版環境。
 
 ## 更新 README 門面圖
 
