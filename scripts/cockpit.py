@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["pyyaml", "jsonschema"]
+# dependencies = ["pyyaml", "jsonschema", "tzdata"]
 #
 # [tool.uv]
 # exclude-newer = "2026-11-01T00:00:00Z"
@@ -14,12 +14,21 @@
   uv run scripts/cockpit.py serve [--host 127.0.0.1] [--port 3780] [--strict-port] [--open]
   uv run scripts/cockpit.py snapshot [--json] [--sync] [--write]
   uv run scripts/cockpit.py register --name <名稱> [--path <目錄>] [--id <代號>] [--parked|--unpark]
-  uv run scripts/cockpit.py autostart [--install|--uninstall|--status] [--port 3780]
+  uv run scripts/cockpit.py autostart [--install|--uninstall|--status] [--port 3780] [--no-watchdog]
+  uv run scripts/cockpit.py watchdog-tick [--port 3780] [--json]
   uv run scripts/cockpit.py --selftest
+
+監控者自保（控制平面 L1）：
+- serve 會帶起背景巡檢（每 60 秒掃一輪探針，寫 snapshot.json 與 poller-heartbeat.json）。
+- watchdog-tick 是「看監控者的人」：面板沒回應就馬上重啟；背景巡檢的心跳連續兩次都過期也重啟；
+  每小時最多重啟 3 次，超過就停手（熔斷），紀錄在 ~/.omnikit/cockpit/watchdog-state.json。
+- autostart --install 會順手登記一個使用者層級、不用系統管理員的工作排程（每 10 分鐘跑一次 watchdog-tick，沒有黑窗）；
+  --uninstall 一起移除。
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -40,7 +49,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from engine.cockpit import collector, server
+from engine.cockpit import collector, probes, server
 
 
 def _utf8_stdio() -> None:
@@ -653,17 +662,37 @@ def manage_autostart(
     port: int = 3780,
     appdata: Path | None = None,
     start_now: bool = True,
+    watchdog: bool | None = None,
+    scheduler: Any = None,
 ) -> dict:
+    """管理登入自啟（Startup 捷徑）與看門狗（工作排程每 10 分鐘一次）。
+
+    watchdog：None 照預設（真的安裝才登記排程；測試注入 appdata、CI、OMNIKIT_NO_LAUNCH 都跳過），False 完全不碰排程。
+    scheduler：注入假的 schtasks（測試用）；有給就一定用它，不會動到這台真的工作排程器。
+    """
     ps1_path = state_dir / "cockpit" / "autostart-cockpit.ps1"
     lnk_path = _startup_shortcut_path(appdata)
     lnk_fs = _win_fs_path(lnk_path)
     ps1_fs = _win_fs_path(ps1_path)
+
+    def watchdog_part() -> dict[str, Any]:
+        if watchdog is False:
+            return {"managed": False, "reason": "已指定不管看門狗排程"}
+        if scheduler is None:
+            allowed, why = _real_scheduler_allowed(appdata, action)
+            if not allowed:
+                return {"managed": False, "reason": why}
+        try:
+            return manage_watchdog_task(state_dir, action=action, repo_root=repo_root, host=host, port=port, scheduler=scheduler)
+        except OSError as exc:
+            return {"managed": True, "installed": False, "error": collector.sanitize(exc, 200)}
+
     if action == "uninstall":
         for raw_p in (lnk_fs, ps1_fs):
             if os.path.isfile(raw_p):
                 collector.fs_retry(os.unlink, raw_p)
         alive, _ = probe_cockpit_health(host, port)
-        return {"action": "uninstall", "installed": False, "shortcut": str(lnk_path), "listening": alive}
+        return {"action": "uninstall", "installed": False, "shortcut": str(lnk_path), "listening": alive, "watchdog": watchdog_part()}
 
     if action == "install":
         os.makedirs(_win_fs_path(ps1_path.parent), exist_ok=True)
@@ -707,7 +736,304 @@ def manage_autostart(
         "host": host,
         "port": port,
         "listening": alive,
+        "watchdog": watchdog_part(),
     }
+
+
+WATCHDOG_TASK = "OmniKit Cockpit Watchdog"
+WATCHDOG_INTERVAL_MIN = 10
+WATCHDOG_MAX_RESTARTS = 3          # 每小時最多自己重啟面板幾次，超過就停手等人來看
+WATCHDOG_WINDOW_S = 3600.0
+WATCHDOG_BOOT_GRACE_S = 180.0      # 面板剛啟動這麼久之內，背景巡檢還沒寫出第一份心跳是正常的
+WATCHDOG_LOG_MAX_BYTES = 256 * 1024
+
+
+def watchdog_task_name(state_dir: Path) -> str:
+    """工作排程的名稱。不是預設狀態目錄（測試、第二套安裝）就加上目錄的雜湊，免得互相蓋掉。"""
+    try:
+        same = os.path.normcase(str(state_dir.resolve())) == os.path.normcase(str(collector.default_state_dir().resolve()))
+    except OSError:
+        same = False
+    if same:
+        return WATCHDOG_TASK
+    return f"{WATCHDOG_TASK} {hashlib.sha1(os.path.normcase(str(state_dir)).encode('utf-8')).hexdigest()[:8]}"
+
+
+def build_watchdog_ps1(repo_root: Path, state_dir: Path, *, host: str = "127.0.0.1", port: int = 3780) -> str:
+    def _ps_sq(val: Any) -> str:
+        return str(val).replace("'", "''")
+
+    uv_exe = shutil.which("uv") or str(Path(os.environ.get("LOCALAPPDATA") or "") / "Programs" / "uv" / "uv.exe")
+    return (
+        "# OmniKit 控制面板看門狗（由 scripts/cockpit.py 產生；工作排程器每 10 分鐘執行一次）\n"
+        "$ErrorActionPreference = 'SilentlyContinue'\n"
+        "$mPath = [Environment]::GetEnvironmentVariable('Path', 'Machine')\n"
+        "$uPath = [Environment]::GetEnvironmentVariable('Path', 'User')\n"
+        "if ($mPath -or $uPath) { $env:Path = (@($mPath, $uPath, $env:Path) | Where-Object { $_ }) -join ';' }\n"
+        f"$env:OMNIKIT_STATE_DIR = '{_ps_sq(state_dir)}'\n"
+        f"Set-Location -LiteralPath '{_ps_sq(repo_root)}'\n"
+        f"& '{_ps_sq(uv_exe)}' run --quiet '{_ps_sq(repo_root / 'scripts' / 'cockpit.py')}' --state-dir '{_ps_sq(state_dir)}' "
+        f"watchdog-tick --host '{_ps_sq(host)}' --port {int(port)} *> $null\n"
+        "exit $LASTEXITCODE\n"
+    )
+
+
+def build_watchdog_task_xml(ps1_path: Path, repo_root: Path, *, user: str | None = None, interval_min: int = WATCHDOG_INTERVAL_MIN) -> str:
+    """使用者層級的工作排程定義：每 10 分鐘一次、互動式權杖、最低權限（登記與執行都不用系統管理員）。
+
+    用 conhost.exe --headless 包一層，PowerShell 就不會閃一下黑窗；錯過的那一次（關機、休眠）開機後補跑。
+    """
+    from xml.sax.saxutils import escape
+
+    sysroot = Path(os.environ.get("SystemRoot") or r"C:\Windows")
+    ps_exe = sysroot / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    conhost = sysroot / "System32" / "conhost.exe"
+    ps_args = f'-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "{ps1_path}"'
+    if os.name != "nt" or conhost.is_file():
+        command, arguments = str(conhost), f'--headless "{ps_exe}" {ps_args}'
+    else:
+        command, arguments = str(ps_exe), ps_args
+    if user is None:
+        domain, name = os.environ.get("USERDOMAIN") or "", os.environ.get("USERNAME") or os.environ.get("USER") or ""
+        user = f"{domain}\\{name}" if domain and name else name
+    principal_user = f"      <UserId>{escape(user)}</UserId>\n" if user else ""
+    return (
+        '<?xml version="1.0" encoding="UTF-16"?>\n'
+        '<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">\n'
+        "  <RegistrationInfo>\n"
+        "    <Description>OmniKit 控制面板看門狗：每 10 分鐘檢查面板與背景巡檢，失聯就重啟（每小時最多 3 次）。</Description>\n"
+        "  </RegistrationInfo>\n"
+        "  <Triggers>\n"
+        "    <TimeTrigger>\n"
+        f"      <Repetition><Interval>PT{int(interval_min)}M</Interval><StopAtDurationEnd>false</StopAtDurationEnd></Repetition>\n"
+        "      <StartBoundary>2026-01-01T00:00:00</StartBoundary>\n"
+        "      <Enabled>true</Enabled>\n"
+        "    </TimeTrigger>\n"
+        "  </Triggers>\n"
+        "  <Principals>\n"
+        '    <Principal id="Author">\n'
+        f"{principal_user}"
+        "      <LogonType>InteractiveToken</LogonType>\n"
+        "      <RunLevel>LeastPrivilege</RunLevel>\n"
+        "    </Principal>\n"
+        "  </Principals>\n"
+        "  <Settings>\n"
+        "    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>\n"
+        "    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>\n"
+        "    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>\n"
+        "    <AllowHardTerminate>true</AllowHardTerminate>\n"
+        "    <StartWhenAvailable>true</StartWhenAvailable>\n"
+        "    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>\n"
+        "    <IdleSettings><StopOnIdleEnd>false</StopOnIdleEnd><RestartOnIdle>false</RestartOnIdle></IdleSettings>\n"
+        "    <AllowStartOnDemand>true</AllowStartOnDemand>\n"
+        "    <Enabled>true</Enabled>\n"
+        "    <Hidden>false</Hidden>\n"
+        "    <RunOnlyIfIdle>false</RunOnlyIfIdle>\n"
+        "    <WakeToRun>false</WakeToRun>\n"
+        "    <ExecutionTimeLimit>PT5M</ExecutionTimeLimit>\n"
+        "    <Priority>7</Priority>\n"
+        "  </Settings>\n"
+        '  <Actions Context="Author">\n'
+        "    <Exec>\n"
+        f"      <Command>{escape(command)}</Command>\n"
+        f"      <Arguments>{escape(arguments)}</Arguments>\n"
+        f"      <WorkingDirectory>{escape(str(repo_root))}</WorkingDirectory>\n"
+        "    </Exec>\n"
+        "  </Actions>\n"
+        "</Task>\n"
+    )
+
+
+def _run_schtasks(args: list[str]) -> tuple[int, str]:
+    """真的去叫 schtasks.exe（使用者層級，不用系統管理員）。測試一律注入假的，不會走到這裡。"""
+    exe = str(Path(os.environ.get("SystemRoot") or r"C:\Windows") / "System32" / "schtasks.exe")
+    try:
+        proc = subprocess.run([exe, *args], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
+                              check=False, stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        return proc.returncode, ((proc.stdout or "") + (proc.stderr or "")).strip()
+    except (OSError, subprocess.SubprocessError) as exc:
+        return 127, str(exc)
+
+
+def _real_scheduler_allowed(appdata: Path | None, action: str) -> tuple[bool, str]:
+    """要不要動這台真的工作排程器。測試（注入假的 appdata）、CI 與 OMNIKIT_NO_LAUNCH 都不動，免得測試在機器上留下排程。"""
+    if os.name != "nt":
+        return False, "只有 Windows 有工作排程器"
+    if appdata is not None:
+        return False, "測試用的隔離環境不登記真的排程"
+    if action == "install":
+        for key in ("OMNIKIT_NO_LAUNCH", "CI", "GITHUB_ACTIONS"):
+            if str(os.environ.get(key) or "").strip().lower() not in ("", "0", "false"):
+                return False, f"{key} 有設定：不登記排程"
+    return True, ""
+
+
+def manage_watchdog_task(
+    state_dir: Path,
+    *,
+    action: str,
+    repo_root: Path = ROOT,
+    host: str = "127.0.0.1",
+    port: int = 3780,
+    scheduler: Any = None,
+) -> dict[str, Any]:
+    """登記、移除或查詢看門狗的工作排程。scheduler(args) 回傳（結束碼, 輸出），預設是 schtasks.exe。"""
+    run = scheduler or _run_schtasks
+    cdir = collector.cockpit_dir(state_dir)
+    name = watchdog_task_name(state_dir)
+    ps1_path, xml_path, marker = cdir / "watchdog-tick.ps1", cdir / "watchdog-task.xml", cdir / "watchdog-task.json"
+    out: dict[str, Any] = {"managed": True, "task_name": name, "interval_min": WATCHDOG_INTERVAL_MIN, "script": str(ps1_path)}
+    if action == "install":
+        cdir.mkdir(parents=True, exist_ok=True)
+        ps1_path.write_text(build_watchdog_ps1(repo_root, state_dir, host=host, port=port), encoding="utf-8")
+        xml_path.write_text(build_watchdog_task_xml(ps1_path, repo_root), encoding="utf-16")
+        rc, text = run(["/Create", "/TN", name, "/XML", str(xml_path), "/F"])
+        out["installed"] = rc == 0
+        if rc == 0:
+            doc = {"task_name": name, "installed_at": collector.iso_utc(collector.utc_now()), "interval_min": WATCHDOG_INTERVAL_MIN,
+                   "host": host, "port": int(port)}
+            collector.write_utf8_atomic(marker, json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
+        else:
+            out["error"] = collector.sanitize(text, 300) or f"schtasks 結束碼 {rc}"
+        return out
+    if action == "uninstall":
+        rc, text = run(["/Delete", "/TN", name, "/F"])
+        gone = rc == 0 or run(["/Query", "/TN", name])[0] != 0     # 本來就沒有這個排程也算移除了
+        for path in (ps1_path, xml_path, marker):
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
+        out["installed"] = not gone
+        if not gone:
+            out["error"] = collector.sanitize(text, 300) or f"schtasks 結束碼 {rc}"
+        return out
+    out["installed"] = run(["/Query", "/TN", name])[0] == 0
+    return out
+
+
+def _watchdog_log(cdir: Path, line: str) -> None:
+    path = cdir / "watchdog.log"
+    try:
+        cdir.mkdir(parents=True, exist_ok=True)
+        if path.is_file() and path.stat().st_size > WATCHDOG_LOG_MAX_BYTES:
+            keep = path.read_bytes()[-WATCHDOG_LOG_MAX_BYTES // 2:]
+            path.write_bytes(keep[keep.find(b"\n") + 1:])
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(line.rstrip("\n") + "\n")
+    except OSError:
+        pass
+
+
+def watchdog_tick(
+    state_dir: Path,
+    *,
+    repo_root: Path = ROOT,
+    host: str = "127.0.0.1",
+    port: int = 3780,
+    now: datetime | None = None,
+    health: Any = None,
+    launcher: Any = None,
+    stopper: Any = None,
+    max_restarts: int = WATCHDOG_MAX_RESTARTS,
+    window_s: float = WATCHDOG_WINDOW_S,
+) -> dict[str, Any]:
+    """看門狗跑一次：面板與背景巡檢還活著嗎？不行就重啟，但每小時最多 3 次。
+
+    - 面板沒回應（或回應的是舊版）：馬上重啟。
+    - 面板有回應、背景巡檢的心跳過期：先記一次；連續兩次（相隔 10 分鐘）都過期才重啟。
+      電腦剛從休眠醒來時心跳一定是舊的，等下一次再看就不會誤殺。
+    - 一小時內已經重啟 3 次：停手（熔斷），只記錄，等人來看，免得壞掉的面板被無限重啟。
+    health、launcher、stopper 給測試注入；預設是真的 probe_cockpit_health、launch_on_demand、stop_running_server。
+    """
+    ref = collector.utc_now(now)
+    health = health or probe_cockpit_health
+    launcher = launcher or launch_on_demand
+    stopper = stopper or stop_running_server
+    cdir = collector.cockpit_dir(state_dir)
+    state_path = cdir / "watchdog-state.json"
+    try:
+        prev = json.loads(collector.read_utf8(state_path)) if state_path.is_file() else {}
+    except (OSError, ValueError):
+        prev = {}
+    if not isinstance(prev, dict):
+        prev = {}
+    restarts = [t for t in (collector.parse_timestamp(str(x)) for x in prev.get("restarts") or [] if isinstance(x, str))
+                if t is not None and 0 <= (ref - t).total_seconds() < window_s]
+
+    info = read_server_info(state_dir) or {}
+    chk_host = str(info.get("host") or host)
+    chk_port = int(info["port"]) if isinstance(info.get("port"), int) else int(port)
+    alive, hdoc = health(chk_host, chk_port)
+    if not alive and (chk_host, chk_port) != (host, int(port)):
+        alive, hdoc = health(host, int(port))
+        chk_host, chk_port = host, int(port)
+
+    reason: str | None = None
+    need_stop = False
+    poller_note = ""
+    stale_ticks = 0
+    if not alive:
+        reason = f"面板沒有回應（{chk_host}:{chk_port}）"
+    elif hdoc.get("version") != server.SERVER_VERSION:
+        reason = f"面板跑的是舊版 {hdoc.get('version')}，目前的碼是 {server.SERVER_VERSION}"
+        need_stop = True
+    else:
+        started = collector.parse_timestamp(str(info.get("started_at") or ""))
+        booting = started is not None and 0 <= (ref - started).total_seconds() < WATCHDOG_BOOT_GRACE_S
+        hb_path = cdir / "poller-heartbeat.json"
+        verdict = "MISSING"
+        if hb_path.is_file():
+            res = probes.stale_check.check_file(hb_path, ref, {})
+            verdict = res["verdict"]
+            poller_note = next((msg for lvl, msg in res["reasons"] if lvl == verdict), "")
+        if verdict in ("FRESH", "PAUSED") or booting:
+            poller_note = poller_note if verdict not in ("FRESH", "PAUSED") else ""
+        else:
+            stale_ticks = int(prev.get("consecutive_poller_stale") or 0) + 1
+            poller_note = poller_note or "背景巡檢還沒寫出心跳"
+            if stale_ticks >= 2:
+                reason = f"背景巡檢的心跳連續 {stale_ticks} 次都不新鮮：{collector.sanitize(poller_note, 160)}"
+                need_stop = True
+
+    action = "none"
+    launch_res: dict[str, Any] | None = None
+    breaker_open = False
+    if reason is not None:
+        if len(restarts) >= max_restarts:
+            action, breaker_open = "breaker_open", True
+        else:
+            restarts.append(ref)
+            if need_stop:
+                try:
+                    stopper(state_dir, default_host=chk_host, default_port=chk_port)
+                except Exception as exc:  # noqa: BLE001  停不掉也要試著拉起來
+                    poller_note = f"{poller_note}；停舊的失敗：{collector.sanitize(exc, 120)}"
+            try:
+                launch_res = launcher(state_dir, repo_root=repo_root, host=host, preferred_port=int(port), open_browser=False)
+            except Exception as exc:  # noqa: BLE001
+                launch_res = {"ok": False, "error": collector.sanitize(exc, 200)}
+            action = "restarted" if launch_res.get("ok") else "restart_failed"
+            if action == "restarted":
+                stale_ticks = 0
+
+    doc = {
+        "last_tick_at": collector.iso_utc(ref),
+        "last_action": action,
+        "last_reason": reason or (f"背景巡檢心跳不新鮮（第 {stale_ticks} 次，下一次還是這樣就重啟）：{collector.sanitize(poller_note, 160)}" if stale_ticks else None),
+        "restarts": [collector.iso_utc(t) for t in restarts],
+        "breaker_open": breaker_open,
+        "consecutive_poller_stale": stale_ticks,
+        "last_restart_at": collector.iso_utc(restarts[-1]) if restarts and action in ("restarted", "restart_failed") else prev.get("last_restart_at"),
+        "max_restarts_per_hour": max_restarts,
+        "expected_version": server.SERVER_VERSION,
+    }
+    collector.write_utf8_atomic(state_path, json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
+    if action != "none" or stale_ticks:
+        _watchdog_log(cdir, f"{doc['last_tick_at']} {action} {doc['last_reason'] or ''}"
+                            + (f" → {launch_res.get('url') or launch_res.get('error')}" if launch_res else ""))
+    return {**doc, "ok": action in ("none", "restarted"), "alive": bool(alive), "restarts_last_hour": len(restarts),
+            "launch": launch_res}
 
 
 def selftest() -> int:
@@ -936,6 +1262,156 @@ def selftest() -> int:
         )
         st_un = manage_autostart(state, action="uninstall", repo_root=ROOT, port=37809, appdata=fake_appdata, start_now=False)
         check("autostart --uninstall 乾淨移除捷徑與腳本", st_un["installed"] is False and not os.path.exists(_win_fs_path(Path(st_auto["script"]))))
+        check("測試環境（注入 appdata）不碰這台真的工作排程器",
+              st_auto["watchdog"]["managed"] is False and st_un["watchdog"]["managed"] is False)
+
+        # 看門狗的工作排程：注入假的 schtasks，不在這台登記任何東西
+        wd_state = root / "wd-state"
+        calls: list[list[str]] = []
+        registered: set[str] = set()
+
+        def fake_schtasks(args: list[str]) -> tuple[int, str]:
+            calls.append(list(args))
+            name = args[args.index("/TN") + 1]
+            if args[0] == "/Create":
+                registered.add(name)
+                return 0, "SUCCESS"
+            if args[0] == "/Delete":
+                if name in registered:
+                    registered.discard(name)
+                    return 0, "SUCCESS"
+                return 1, "ERROR: not found"
+            return (0, name) if name in registered else (1, "ERROR: not found")
+
+        w_in = manage_autostart(wd_state, action="install", repo_root=ROOT, port=37809, appdata=fake_appdata, start_now=False,
+                                scheduler=fake_schtasks)["watchdog"]
+        xml_txt = (wd_state / "cockpit" / "watchdog-task.xml").read_text(encoding="utf-16")
+        wd_ps1 = (wd_state / "cockpit" / "watchdog-tick.ps1").read_text(encoding="utf-8")
+        check(
+            "autostart --install 登記看門狗排程（每 10 分鐘、最低權限、無黑窗、不用系統管理員）",
+            w_in["installed"] is True and calls[0][0] == "/Create" and "/XML" in calls[0] and "/RL" not in calls[0]
+            and "<Interval>PT10M</Interval>" in xml_txt and "<RunLevel>LeastPrivilege</RunLevel>" in xml_txt
+            and "<LogonType>InteractiveToken</LogonType>" in xml_txt and "HighestAvailable" not in xml_txt
+            and "watchdog-tick.ps1" in xml_txt and "watchdog-tick" in wd_ps1 and (os.name != "nt" or "--headless" in xml_txt),
+            w_in["task_name"],
+        )
+        check("不是預設狀態目錄：排程名稱帶雜湊，不會蓋掉正式安裝的那一個",
+              w_in["task_name"].startswith(WATCHDOG_TASK + " ") and w_in["task_name"] != WATCHDOG_TASK)
+        w_st = manage_autostart(wd_state, action="status", repo_root=ROOT, port=37809, appdata=fake_appdata, scheduler=fake_schtasks)["watchdog"]
+        w_un = manage_autostart(wd_state, action="uninstall", repo_root=ROOT, port=37809, appdata=fake_appdata, scheduler=fake_schtasks)["watchdog"]
+        check("autostart --status 查得到、--uninstall 移除排程與產生的檔案",
+              w_st["installed"] is True and w_un["installed"] is False and not registered
+              and not (wd_state / "cockpit" / "watchdog-task.xml").exists() and not (wd_state / "cockpit" / "watchdog-tick.ps1").exists()
+              and not (wd_state / "cockpit" / "watchdog-task.json").exists())
+
+        # watchdog-tick：失聯就重啟、每小時最多 3 次熔斷、巡檢心跳連續兩次過期才重啟
+        t0 = datetime(2026, 11, 27, 4, 0, 0, tzinfo=UTC)
+        launched: list[int] = []
+        stopped: list[int] = []
+        world = {"alive": False, "version": server.SERVER_VERSION}
+
+        def fake_health(_host: str, _port: int, **_kw: Any) -> tuple[bool, dict[str, Any]]:
+            return (True, {"service": "omnikit-cockpit", "version": world["version"]}) if world["alive"] else (False, {})
+
+        def fake_launch(_state: Path, **kw: Any) -> dict[str, Any]:
+            launched.append(kw["preferred_port"])
+            return {"ok": True, "url": f"http://127.0.0.1:{kw['preferred_port']}/"}
+
+        def fake_stop(_state: Path, **kw: Any) -> dict[str, Any]:
+            stopped.append(kw["default_port"])
+            return {"ok": True, "stopped": True}
+
+        def tick(minutes: float) -> dict[str, Any]:
+            return watchdog_tick(wd_state, repo_root=ROOT, port=37809, now=t0 + timedelta(minutes=minutes),
+                                 health=fake_health, launcher=fake_launch, stopper=fake_stop)
+
+        acts = [tick(m)["last_action"] for m in (0, 10, 20, 30, 40)]
+        check("watchdog-tick：面板失聯就重啟，一小時內第 4 次起熔斷不再重啟",
+              acts == ["restarted", "restarted", "restarted", "breaker_open", "breaker_open"] and len(launched) == 3, str(acts))
+        wd_doc = json.loads((wd_state / "cockpit" / "watchdog-state.json").read_text(encoding="utf-8"))
+        check("熔斷紀錄寫進 watchdog-state.json", wd_doc["breaker_open"] is True and len(wd_doc["restarts"]) == 3)
+        check("一小時過後熔斷自動解除", tick(61)["last_action"] == "restarted" and len(launched) == 4)
+
+        world["alive"] = True
+        hb_path = wd_state / "cockpit" / "poller-heartbeat.json"
+
+        def write_poller_hb(at: datetime) -> None:
+            probes.stale_check.write_self_heartbeat(hb_path, at, 60, 60, [], name="cockpit-poller")
+
+        t1 = 200.0
+        write_poller_hb(t0 + timedelta(minutes=t1))
+        healthy = tick(t1 + 1)
+        check("面板與背景巡檢都正常：什麼都不做", healthy["last_action"] == "none" and healthy["consecutive_poller_stale"] == 0)
+        first = tick(t1 + 10)
+        check("巡檢心跳第一次過期：先記一次，不重啟（剛從休眠醒來不誤殺）",
+              first["last_action"] == "none" and first["consecutive_poller_stale"] == 1 and len(launched) == 4)
+        second = tick(t1 + 20)
+        check("巡檢心跳連續兩次過期：停掉卡住的面板再重啟",
+              second["last_action"] == "restarted" and len(launched) == 5 and stopped == [37809], str(second["last_reason"]))
+        write_poller_hb(t0 + timedelta(minutes=t1 + 29))
+        check("心跳恢復後計數歸零", tick(t1 + 30)["consecutive_poller_stale"] == 0)
+        world["version"] = "0.0.1"
+        old = tick(t1 + 100)
+        check("面板跑的是舊版的碼：重啟換新", old["last_action"] == "restarted" and "舊版" in str(old["last_reason"]))
+
+        # 背景巡檢：一輪就寫出 snapshot.json 與合規格的自心跳；探針三軸進總覽與 API
+        svc_repo = root / "svc"
+        svc_repo.mkdir()
+        (svc_repo / "out.txt").write_text("ok\n", encoding="utf-8")
+        poll_state = root / "poll-state"
+        collector.register_project(poll_state, name="Svc", path=str(svc_repo), project_id="Svc")
+        papp = server.CockpitApp(state_dir=poll_state, home_dir=fake_home, default_repo_root=None, t3_runner=lambda _p: [],
+                                 cache_ttl=0, allowed_hosts={"box.example.ts.net"}, token="selftest-token")
+        phttpd = server.create_server("127.0.0.1", 0, app=papp)
+        pport = phttpd.server_address[1]
+        threading.Thread(target=phttpd.serve_forever, daemon=True).start()
+        try:
+            pbase = f"http://127.0.0.1:{pport}"
+            ptok = {"X-OmniKit-Token": papp.token}
+            good = {"op": "add_probe", "service": {"name": "產出"}, "probe": {"type": "artifact", "glob": "out.txt", "max_age_s": 3600}}
+            st_p, body_p = _http_json(f"{pbase}/api/projects/Svc/probes", method="POST", payload=good, headers=ptok)
+            check("POST /api/projects/<id>/probes 存進個人設定並馬上掃出三軸",
+                  st_p == 200 and body_p["runtime"]["services"][0]["fresh"]["state"] == "FRESH"
+                  and body_p["runtime"]["services"][0]["alive"]["proof_level"] == "output_verified")
+            down = {"op": "add_probe", "service": {"name": "沒在跑"}, "probe": {"type": "tcp", "port": 1}}
+            _http_json(f"{pbase}/api/projects/Svc/probes", method="POST", payload=down, headers=ptok)
+            for bad_probe in ({"type": "http", "url": "http://example.com/"},
+                              {"type": "artifact", "sqlite_path": "a.db", "table": "t; DROP TABLE t", "ts_col": "ts"},
+                              {"type": "artifact", "glob": "..\\..\\secret.txt"}):
+                st_b, _ = _http_json(f"{pbase}/api/projects/Svc/probes", method="POST",
+                                     payload={"op": "add_probe", "service": {"name": "x"}, "probe": bad_probe}, headers=ptok)
+                check(f"探針設定安全檢查擋下 {bad_probe['type']}：{str(list(bad_probe.values())[1])[:24]}", st_b == 400)
+            ts_h = {"Host": "box.example.ts.net:2389", "X-Forwarded-For": "100.64.0.9", "Tailscale-User-Login": "u@example.test"}
+            st_tr, body_tr = _http_json(f"{pbase}/api/runtime", headers=ts_h)
+            st_tw, _ = _http_json(f"{pbase}/api/projects/Svc/probes", method="POST", payload=good, headers={**ptok, **ts_h})
+            st_tf, _ = _http_json(f"{pbase}/api/runtime/refresh", method="POST", payload={}, headers={**ptok, **ts_h})
+            check("經 Tailscale：GET /api/runtime 可以看，改探針與立即重掃都 403",
+                  st_tr == 200 and body_tr["summary"]["services"] == 2 and st_tw == 403 and st_tf == 403)
+            st_rf, body_rf = _http_json(f"{pbase}/api/runtime/refresh", method="POST", payload={}, headers=ptok)
+            check("本機 POST /api/runtime/refresh 立即重掃", st_rf == 200 and body_rf["summary"]["bad"] == 1 and len(body_rf["alerts"]) == 1)
+            st_ov, body_ov = _http_json(f"{pbase}/api/overview")
+            svc_ov = next(p for p in body_ov["projects"] if p["id"] == "Svc")
+            check("服務異常併進總覽：專案進「卡在你身上」，但不動 NOW.md 對帳的過期判定",
+                  st_ov == 200 and svc_ov["lane"] == "blocked_on_me" and any("服務異常" in r for r in svc_ov["block_reasons"])
+                  and not any("服務" in r for r in svc_ov["stale_reasons"]) and body_ov["summary"]["runtime_bad"] == 1)
+
+            poller = papp.start_runtime_poller(interval=0.3)
+            deadline = time.monotonic() + 10
+            while poller.rounds < 2 and time.monotonic() < deadline:
+                time.sleep(0.05)
+            papp.stop_runtime_poller()
+            poller.join(timeout=10)
+            snap_doc = json.loads((poll_state / "cockpit" / "snapshot.json").read_text(encoding="utf-8"))
+            hb_res = probes.stale_check.check_file(poll_state / "cockpit" / "poller-heartbeat.json", datetime.now(UTC), {})
+            check("背景巡檢每輪寫 snapshot.json（generated_at、wake_grace_active、各專案三軸）",
+                  poller.rounds >= 2 and snap_doc["wake_grace_active"] is False and bool(snap_doc["generated_at"])
+                  and len(snap_doc["runtime"]["projects"]["Svc"]["services"]) == 2)
+            check("背景巡檢的自心跳合規格，由 stale_check 判 FRESH（pid 與啟動時間對得上）",
+                  hb_res["verdict"] == "FRESH" and hb_res["name"] == "cockpit-poller" and hb_res["meta"].get("pid_start_verified") is True,
+                  str(hb_res["reasons"][:2]))
+        finally:
+            phttpd.shutdown()
+            phttpd.server_close()
 
     return 1 if fails else 0
 
@@ -989,6 +1465,12 @@ def main() -> int:
     p_auto.add_argument("--host", default="127.0.0.1", help="監聽位址（預設 127.0.0.1）")
     p_auto.add_argument("--port", type=int, default=3780, help="監聽埠號（預設 3780）")
     p_auto.add_argument("--no-start", action="store_true", help="只安裝自啟捷徑，不立即啟動服務")
+    p_auto.add_argument("--no-watchdog", action="store_true", help="不登記（或不移除）每 10 分鐘的看門狗工作排程")
+
+    p_wd = sub.add_parser("watchdog-tick", help="看門狗跑一次：面板或背景巡檢失聯就重啟（每小時最多 3 次）")
+    p_wd.add_argument("--host", default="127.0.0.1", help="監聽位址（預設 127.0.0.1）")
+    p_wd.add_argument("--port", type=int, default=3780, help="面板的連接埠（預設 3780）")
+    p_wd.add_argument("--json", action="store_true", help="輸出 JSON 結果")
 
     args = parser.parse_args()
     if args.selftest:
@@ -1017,9 +1499,18 @@ def main() -> int:
 
     if args.cmd == "autostart":
         act = "install" if args.install else ("uninstall" if args.uninstall else "status")
-        res = manage_autostart(sdir, action=act, host=args.host, port=args.port, start_now=not args.no_start)
+        res = manage_autostart(sdir, action=act, host=args.host, port=args.port, start_now=not args.no_start,
+                               watchdog=False if args.no_watchdog else None)
         print(json.dumps(res, ensure_ascii=False, indent=2))
         return 0
+
+    if args.cmd == "watchdog-tick":
+        res = watchdog_tick(sdir, host=args.host, port=args.port)
+        if args.json:
+            print(json.dumps(res, ensure_ascii=False, indent=2))
+        else:
+            print(f"看門狗：{res['last_action']}" + (f"（{res['last_reason']}）" if res.get("last_reason") else ""))
+        return 0 if res["ok"] else 1
 
     if args.cmd == "snapshot":
         ov = collector.collect_overview(sdir, sync=args.sync)
@@ -1053,6 +1544,7 @@ def main() -> int:
     httpd = server.bind_server(host, port, app=app, strict_port=strict_port)
     actual_port = httpd.server_address[1]
     write_server_info(sdir, host=host, port=actual_port, app=app)
+    app.start_runtime_poller()   # 背景巡檢：每輪寫 snapshot.json 與自己的心跳，看門狗靠那份心跳知道它還活著
     url = f"http://{host}:{actual_port}/"
     print(f"OmniKit 控制面板已啟動：{url}")
     print(f"狀態目錄：{sdir}")
@@ -1067,6 +1559,7 @@ def main() -> int:
     except KeyboardInterrupt:
         print("\n已停止 OmniKit 控制面板。")
     finally:
+        app.stop_runtime_poller()
         clear_server_info(sdir, instance=app.instance)
         httpd.server_close()
     return 0

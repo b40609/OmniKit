@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -1270,8 +1271,13 @@ def collect_project(
     cfg: dict[str, Any],
     now: datetime,
     t3_runner: Callable[[Path], list[dict[str, Any]] | None] | None = None,
+    runtime_project: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """採集並對帳單一專案的完整 4 格狀態與球權分流。"""
+    """採集並對帳單一專案的完整 4 格狀態與球權分流。
+
+    runtime_project 是這個專案的運行態三軸（engine/cockpit/probes.py 掃出來的）：有服務異常就進「卡在你身上」。
+    它只加進 block_reasons，不碰 stale_reasons（那是 NOW.md、Git、T3 三源對帳的契約，重新對帳靠它決定要不要開對話）。
+    """
     pid = entry["id"]
     now_path = status_repo_dir(state_dir) / pid / "NOW.md"
     now_mtime = None
@@ -1349,6 +1355,7 @@ def collect_project(
         block_reasons.append(f"{waiting_count} 條對話等待回覆")
     if failed_count > 0:
         block_reasons.append(f"{failed_count} 條對話異常中斷")
+    runtime_counts = runtime_reasons(runtime_project, block_reasons)
 
     settle_reasons: list[str] = []
     if ready_settle_count > 0:
@@ -1409,7 +1416,70 @@ def collect_project(
         "open_critiques_count": len(open_critiques),
         "commands": commands,
         "primary_t3_url": primary_t3_url,
+        "runtime": runtime_project,
+        "runtime_counts": runtime_counts,
     }
+
+
+def runtime_flags(service: dict[str, Any]) -> str:
+    """一個異常服務的短說明：哪一軸出事（活著嗎 DOWN、版本 DRIFT、資料 STALE）。"""
+    parts: list[str] = []
+    alive = str((service.get("alive") or {}).get("state") or "")
+    sync_state = str((service.get("sync") or {}).get("state") or "")
+    fresh = str((service.get("fresh") or {}).get("state") or "")
+    if alive in ("DOWN", "DEGRADED"):
+        parts.append("沒在跑" if alive == "DOWN" else "部分異常")
+    if fresh in ("DOWN", "STALE"):
+        parts.append("資料沒更新" if fresh == "STALE" else "讀不到產出")
+    if sync_state == "DRIFT":
+        parts.append("改碼後沒重啟")
+    return "、".join(parts) or "異常"
+
+
+def runtime_reasons(runtime_project: dict[str, Any] | None, block_reasons: list[str]) -> dict[str, int]:
+    """把運行態異常寫成「卡在你身上」的理由（已確認、還沒到期的不算），回傳這個專案各等級的服務數。"""
+    counts = {"services": 0, "ok": 0, "warn": 0, "bad": 0, "idle": 0}
+    services = (runtime_project or {}).get("services") or []
+    for svc in services:
+        counts["services"] += 1
+        level = str(svc.get("level") or "idle")
+        counts[level if level in counts else "idle"] += 1
+    for level, label in (("bad", "個服務異常"), ("warn", "個服務要留意")):
+        hit = [s for s in services if s.get("level") == level and not s.get("acknowledged")]
+        if hit:
+            names = "、".join(f"{sanitize(s.get('name') or s.get('id'), 40)}（{runtime_flags(s)}）" for s in hit[:3])
+            block_reasons.append(f"{len(hit)} {label}：{names}" + ("…" if len(hit) > 3 else ""))
+    return counts
+
+
+RUNTIME_SNAPSHOT_MAX_AGE_S = 300.0   # 快照裡的運行態超過這麼久就不採信，改成當場掃一輪
+
+
+def read_snapshot(state_dir: Path) -> dict[str, Any]:
+    path = cockpit_dir(state_dir) / "snapshot.json"
+    try:
+        doc = json.loads(read_utf8(path)) if path.is_file() else {}
+    except (OSError, ValueError):
+        return {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def latest_runtime(state_dir: Path, *, now: datetime, default_repo_root: Path | None = ROOT,
+                   cfg: dict[str, Any] | None = None, entries: list[dict[str, Any]] | None = None) -> dict[str, Any] | None:
+    """最新的運行態三軸：先用背景巡檢寫在 snapshot.json 裡的（5 分鐘內），沒有或太舊就當場掃一輪（安全回退）。"""
+    runtime = read_snapshot(state_dir).get("runtime")
+    if isinstance(runtime, dict) and isinstance(runtime.get("projects"), dict):
+        made = parse_timestamp(runtime.get("generated_at"))
+        if made is not None and 0 <= (now - made).total_seconds() <= RUNTIME_SNAPSHOT_MAX_AGE_S:
+            return runtime
+    try:
+        # 這裡才載入：probes 會 import 這個模組
+        from . import probes
+
+        return probes.scan_all(state_dir, cfg=cfg, entries=entries, now=now, default_repo_root=default_repo_root)
+    except Exception as exc:  # noqa: BLE001  探針掃描失敗不能讓整個總覽掛掉
+        sys.stderr.write(f"[cockpit] 運行態掃描失敗：{sanitize(exc)}\n")
+        return None
 
 
 def collect_overview(
@@ -1419,16 +1489,24 @@ def collect_overview(
     now: datetime | None = None,
     default_repo_root: Path | None = ROOT,
     t3_runner: Callable[[Path], list[dict[str, Any]] | None] | None = None,
+    runtime: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """產出跨專案指揮台完整快照。"""
+    """產出跨專案指揮台完整快照。
+
+    runtime 是運行態三軸快照（伺服器的背景巡檢會傳進來）；沒給就讀 snapshot.json 裡最新的，太舊或沒有就當場掃一輪。
+    """
     sdir = state_dir if state_dir is not None else default_state_dir()
     ref_now = utc_now(now)
     sync_result = sync_status_repo(sdir) if sync else None
     cfg = load_config(sdir)
     entries = discover_projects(sdir, cfg, default_repo_root=default_repo_root)
+    if runtime is None:
+        runtime = latest_runtime(sdir, now=ref_now, default_repo_root=default_repo_root, cfg=cfg, entries=entries)
+    runtime_by_id = {str(k).lower(): v for k, v in ((runtime or {}).get("projects") or {}).items() if isinstance(v, dict)}
 
     projects = [
-        collect_project(e, state_dir=sdir, cfg=cfg, now=ref_now, t3_runner=t3_runner)
+        collect_project(e, state_dir=sdir, cfg=cfg, now=ref_now, t3_runner=t3_runner,
+                        runtime_project=runtime_by_id.get(str(e["id"]).lower()))
         for e in entries
     ]
     projects.sort(
@@ -1454,6 +1532,7 @@ def collect_overview(
         overloaded_total += int(p["t3"].get("overloaded_count") or 0)
         settle_total += int(p["t3"].get("ready_to_settle_count") or 0)
         open_critiques_total += p["open_critiques_count"]
+    runtime_total = {k: sum(p["runtime_counts"][k] for p in projects) for k in ("services", "ok", "warn", "bad", "idle")}
 
     return {
         "generated_at": iso_utc(ref_now),
@@ -1478,14 +1557,52 @@ def collect_overview(
             "open_critiques": open_critiques_total,
             "ready_to_settle_threads": settle_total,
             "overloaded_threads": overloaded_total,
+            "runtime_services": runtime_total["services"],
+            "runtime_bad": runtime_total["bad"],
+            "runtime_warn": runtime_total["warn"],
         },
+        "runtime": {k: v for k, v in runtime.items() if k != "projects"} if runtime else None,
         "projects": projects,
     }
 
 
-def write_snapshot(state_dir: Path, overview: dict[str, Any]) -> Path:
+_SNAPSHOT_LOCK = threading.Lock()
+
+
+def write_snapshot(state_dir: Path, overview: dict[str, Any] | None = None, *, runtime: dict[str, Any] | None = None) -> Path:
+    """原子寫入 ~/.omnikit/cockpit/snapshot.json（給面板以外的讀者，例如桌面小工具）。
+
+    兩個寫入者共用這一份：開面板時的總覽（專案清單、球權分流），與背景巡檢每一輪的運行態三軸。
+    - 給 overview：整份換成新的總覽。
+    - 給 runtime：換上最新的三軸，並把各專案底下的 runtime 一起更新；沒給 overview 就保留檔案裡上一份總覽。
+    兩邊的運行態取比較新的那一份（總覽可能是拿稍早的運行態算的）。
+    最外層的 generated_at 是「這個檔案最後一次寫入」的時間，前端與看門狗靠它判斷快照有沒有凍結；
+    總覽那一部分是什麼時候採的，另外記在 overview_generated_at。大小只跟專案數與設定的服務數有關，不會越寫越大。
+    """
     out = cockpit_dir(state_dir) / "snapshot.json"
-    write_utf8_atomic(out, json.dumps(overview, ensure_ascii=False, indent=2) + "\n")
+    with _SNAPSHOT_LOCK:
+        prev = read_snapshot(state_dir)
+        if overview is not None:
+            doc = dict(overview)
+            doc["overview_generated_at"] = overview.get("generated_at")
+        else:
+            doc = dict(prev)
+            doc.setdefault("overview_generated_at", prev.get("generated_at"))
+        kept = prev.get("runtime") if isinstance(prev.get("runtime"), dict) else None
+        if kept and isinstance(kept.get("projects"), dict):
+            mine = runtime if runtime is not None else (overview or {}).get("runtime") or {}
+            if str(kept.get("generated_at") or "") > str(mine.get("generated_at") or ""):
+                runtime = kept
+        if runtime is not None:
+            doc["runtime"] = runtime
+            doc["generated_at"] = runtime.get("generated_at") or doc.get("generated_at")
+            doc["generated_local"] = runtime.get("generated_local") or doc.get("generated_local")
+            by_id = {str(k).lower(): v for k, v in (runtime.get("projects") or {}).items()}
+            if isinstance(doc.get("projects"), list):
+                doc["projects"] = [{**p, "runtime": by_id.get(str(p.get("id")).lower())} if isinstance(p, dict) else p
+                                   for p in doc["projects"]]
+        doc["wake_grace_active"] = bool((doc.get("runtime") or {}).get("wake_grace_active"))
+        write_utf8_atomic(out, json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
     return out
 
 

@@ -698,7 +698,7 @@ def test_active_window_pauses_instead_of_alarming(box):
     os.utime(report, (old, old))
     probe_list = [{"type": "tcp", "port": 9100}, {"type": "artifact", "glob": "out.csv", "max_age_s": 600}]
     system = FakeSystem(listeners=[])
-    base = {"id": "feed", "probes": probe_list, "timezone": "Asia/Taipei"}
+    base = {"id": "feed", "probes": probe_list, "timezone": "+08:00"}   # 固定位移：不靠這台有沒有裝 tzdata
 
     inside = one(box, {**base, "active_days": ["mon", "tue", "wed", "thu", "fri"], "active_hours": "08:45-13:45"}, system)
     assert inside["active"] is True and inside["alive"]["state"] == "DOWN" and inside["fresh"]["state"] == "STALE"

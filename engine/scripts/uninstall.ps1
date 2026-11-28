@@ -172,6 +172,9 @@ if ((Test-Path $ComposedRules) -or (Test-Path $ProfileFile) -or (Test-Path $Onbo
 if ((Test-Path -LiteralPath $PanelShortcut) -or (Test-Path -LiteralPath $AutostartShortcut) -or $record['shortcuts']) {
   $plan += '移除開始功能表與登入自啟的控制面板捷徑'
 }
+if (Test-Path -LiteralPath (Join-Path $CockpitDir 'watchdog-task.json')) {
+  $plan += '移除控制面板看門狗的工作排程（每 10 分鐘一次的使用者層級排程）'
+}
 if ($record['claude_allow']) { $plan += "從 ~/.claude/settings.json 拿掉權限規則：$($record['claude_allow'] -join ', ')" }
 if ($record['claude_hooks']) { $plan += '從 ~/.claude/settings.json 拿掉 OmniKit 的 hook（開新對話提醒、說做不到查證、設定目錄檢查）' }
 if ($record['claude_statusline']) { $plan += '從 ~/.claude/settings.json 還原或移除 OmniKit 的狀態列設定（statusLine）' }
@@ -278,6 +281,19 @@ function Stop-CockpitAndShortcuts {
       Write-Warning "停止本機控制面板伺服器時發生例外：$_"
     }
   }
+  # 看門狗的工作排程（cockpit.py autostart --install 登記的）：照登記時留下的名稱移除；沒登記過就不碰工作排程器
+  $wdMarker = Join-Path $CockpitDir 'watchdog-task.json'
+  if (Test-Path -LiteralPath $wdMarker) {
+    try {
+      $wdName = [string]((Get-Content -Raw -Encoding UTF8 -LiteralPath $wdMarker | ConvertFrom-Json).task_name)
+      if ($wdName -like 'OmniKit Cockpit Watchdog*') {
+        & (Join-Path $env:SystemRoot 'System32\schtasks.exe') /Delete /TN $wdName /F 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) { Write-Warning "移除看門狗工作排程「$wdName」回傳非 0（可能已經不在了）" }
+      }
+    } catch {
+      Write-Warning "移除看門狗工作排程時發生例外：$_"
+    }
+  }
   foreach ($lnk in @($PanelShortcut, $AutostartShortcut) + @($record['shortcuts'] | Where-Object { $_ })) {
     if ($lnk -and (Test-Path -LiteralPath $lnk)) {
       Remove-Item -Force -LiteralPath $lnk -ErrorAction SilentlyContinue
@@ -297,7 +313,8 @@ function Remove-ProfileState {
   }
   Remove-Item -Recurse -Force $ComposedRules, $ClaudeMarketplace, $AppliedStateDir, $LocksDir -ErrorAction SilentlyContinue
   if (Test-Path -LiteralPath $CockpitDir) {
-    foreach ($runtimeName in @('server.json', 'snapshot.json', 'launch-on-demand.ps1', 'autostart-cockpit.ps1', 'server.log', 'server.err.log')) {
+    foreach ($runtimeName in @('server.json', 'snapshot.json', 'launch-on-demand.ps1', 'autostart-cockpit.ps1', 'server.log', 'server.err.log',
+        'poller-heartbeat.json', 'watchdog-state.json', 'watchdog-task.json', 'watchdog-task.xml', 'watchdog-tick.ps1', 'watchdog.log')) {
       $rtPath = Join-Path $CockpitDir $runtimeName
       if (Test-Path -LiteralPath $rtPath) { Remove-Item -Force -LiteralPath $rtPath -ErrorAction SilentlyContinue }
     }
