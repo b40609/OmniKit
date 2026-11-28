@@ -666,7 +666,22 @@ def resolve_drift(
             kdoc = load(base)
             want_p = str(kdoc.get("active_profile") or "default")
             _patch_in_lock(base, active_profile=want_p)
-            profiles.apply(repo_root / "data", base, wanted=want_p)
+            if homes.is_real_home(h):
+                profiles.apply(repo_root / "data", base, wanted=want_p)
+            else:
+                # 隔離家目錄：規則只寫進 h；不帶 paths 會落到 profiles.RULES（真家目錄）與真環境找到的其他帳號
+                profiles.apply(
+                    repo_root / "data",
+                    base,
+                    paths={
+                        "claude-code": h / ".claude" / "CLAUDE.md",
+                        "codex": h / ".codex" / "AGENTS.md",
+                        "antigravity": h / ".gemini" / "GEMINI.md",
+                    },
+                    wanted=want_p,
+                    claude_extra=[d / "CLAUDE.md" for d in homes.extra("claude-code", h)],
+                    codex_extra=[d / "AGENTS.md" for d in homes.extra("codex", h)],
+                )
             record_applied_snapshot(base, h, preserve_keys=drifted_rule_keys(base, h))
             return {"ok": True, "id": drift_id, "action": "restore", "active_profile": want_p}
 
@@ -901,9 +916,8 @@ def apply_tool_toggle(
         if runner is not None:
             return runner(cmd, env_extra or {})
         merged_env = dict(os.environ)
-        if os.path.normcase(str(h.resolve())) != os.path.normcase(str(Path.home().resolve())):
-            merged_env["USERPROFILE"] = str(h)
-            merged_env["HOME"] = str(h)
+        if not homes.is_real_home(h):
+            merged_env = homes.isolated_environ(h, merged_env)
         if env_extra:
             merged_env.update(env_extra)
         kw: dict[str, Any] = {

@@ -31,6 +31,8 @@ HOME = Path.home()
 AGENTS = ("claude-code", "codex", "antigravity")
 DEFAULTS = {"claude-code": ".claude", "codex": ".codex", "antigravity": ".gemini"}
 ENV_VARS = {"claude-code": "CLAUDE_CONFIG_DIR", "codex": "CODEX_HOME"}
+# 指向使用者真設定資料夾的環境變數：換成隔離家目錄時一律拿掉，免得寫回真設定（2026-11-28 全套 pytest 事故）
+CONFIG_ENV_VARS = ("CLAUDE_CONFIG_DIR", "CODEX_HOME", "T3CODE_HOME")
 T3_DRIVERS = {"claudeAgent": "claude-code", "codex": "codex", "antigravity": "antigravity"}
 T3_DEFAULT_ANTIGRAVITY = "antigravity"
 
@@ -181,10 +183,28 @@ def from_t3(home):
 LAUNCHERS = (from_omnikit_config, from_t3)
 
 
+def is_real_home(home):
+    """home 是不是這台使用者真的家目錄（匯入時的或目前的 Path.home()）。"""
+    name = os.path.normcase(str(canonical(Path(home))))
+    return name in {os.path.normcase(str(canonical(HOME))), os.path.normcase(str(canonical(Path.home())))}
+
+
+def isolated_environ(home, base=None):
+    """給隔離家目錄跑同步或外部 CLI 的環境：家目錄換成 home，拿掉指向真設定資料夾的變數。"""
+    env = dict(os.environ if base is None else base)
+    for var in CONFIG_ENV_VARS:
+        env.pop(var, None)
+    env["USERPROFILE"] = str(home)
+    env["HOME"] = str(home)
+    return env
+
+
 def discover(home=HOME, environ=None):
-    """預設目錄以外、由明確清單宣告的設定目錄（絕不掃描 ~/.claude-mem 等工具目錄）。"""
-    environ = os.environ if environ is None else environ
-    found = [Found(agent, expand_home(environ[var], home), f"環境變數 {var}")
+    """預設目錄以外、由明確清單宣告的設定目錄（絕不掃描 ~/.claude-mem 等工具目錄）。
+    沒給 environ 時才讀這個行程的環境變數，而且只在 home 是真家目錄時讀：隔離家目錄不得沿用真環境指的設定資料夾。"""
+    if environ is None:
+        environ = os.environ if is_real_home(home) else {}
+    found =[Found(agent, expand_home(environ[var], home), f"環境變數 {var}")
              for agent, var in ENV_VARS.items() if environ.get(var, "").strip()]
     for launcher in LAUNCHERS:
         found += launcher(home, environ) if launcher is from_omnikit_config else launcher(home)

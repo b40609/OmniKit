@@ -888,3 +888,132 @@ def test_drift_restore_no_reentrant_lock_deadlock_and_unicode_shortcut(short_tmp
             start_now=False,
         )
         assert st_un["installed"] is False
+
+
+def _tree_snapshot(root: Path) -> dict[str, str]:
+    """root 底下每個項目（含資料夾、連結）的相對路徑與內容雜湊，用來確認一個資料夾完全沒被動過。"""
+    import hashlib
+
+    snap: dict[str, str] = {}
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        for name in dirnames:
+            snap[os.path.relpath(os.path.join(dirpath, name), root)] = "dir"
+        for name in filenames:
+            p = Path(dirpath) / name
+            snap[os.path.relpath(p, root)] = hashlib.sha256(p.read_bytes()).hexdigest()
+    return snap
+
+
+def test_isolated_home_never_touches_config_dirs_named_by_env(short_tmp: Path, monkeypatch: pytest.MonkeyPatch):
+    """回歸測試（2026-11-28 全套 pytest 改壞真設定）：控制面板用隔離家目錄時，
+    行程環境變數 CLAUDE_CONFIG_DIR、CODEX_HOME、T3CODE_HOME 指的是使用者真的設定資料夾，套用設定與同步都不得寫進去。"""
+    import homes as homes_mod  # type: ignore
+    import kit as kit_mod  # type: ignore
+
+    real = short_tmp / "real"
+    claude_real = real / ".claude-retis"
+    codex_real = real / ".codex-alt"
+    t3_real = real / ".t3"
+    for d in (claude_real / "skills", codex_real, t3_real / "userdata"):
+        d.mkdir(parents=True)
+    (claude_real / "CLAUDE.md").write_text("# 使用者真規則\n", encoding="utf-8")
+    (claude_real / "settings.json").write_text("{}\n", encoding="utf-8")
+    (codex_real / "AGENTS.md").write_text("# 使用者真規則\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(claude_real))
+    monkeypatch.setenv("CODEX_HOME", str(codex_real))
+    monkeypatch.setenv("T3CODE_HOME", str(t3_real))
+    before = _tree_snapshot(real)
+
+    state = short_tmp / "state"
+    home = short_tmp / "home"
+    (home / ".claude").mkdir(parents=True)
+    (home / ".codex").mkdir(parents=True)
+
+    app = server.CockpitApp(
+        state_dir=state,
+        home_dir=home,
+        default_repo_root=None,
+        t3_runner=lambda _: [],
+        cli_runner=lambda *_a, **_kw: (0, "[]", ""),
+        cache_ttl=0,
+        allowed_hosts=set(),
+        token=TOKEN,
+    )
+    app.apply_kit({"tools": ["gitleaks"], "done_check": "log"})
+    app.apply_kit(
+        {
+            "answers": {
+                "name": "alice",
+                "language": "zh-TW",
+                "verbosity": "concise",
+                "autonomy": "balanced",
+                "domains": ["software-dev"],
+                "pains": ["anti-fake-done"],
+            }
+        }
+    )
+    kit_mod.resolve_drift("rule:claude-code", "restore", state=state, home=home, repo_root=app.repo_root)
+
+    assert (home / ".claude" / "CLAUDE.md").is_file(), "隔離家目錄本身應該照常寫入規則"
+    assert _tree_snapshot(real) == before, "環境變數指的真設定資料夾被寫到了"
+
+    # 設定目錄探索：隔離家目錄沒給 environ 時，不得沿用這個行程（使用者真環境）的環境變數
+    found = homes_mod.discover(home)
+    assert not [f.path for f in found if str(f.path).startswith(str(real))]
+    # 明確給 environ 時照舊採用（doctor、home_watch、selftest 都靠這個）
+    (home / "envclaude").mkdir()
+    found_explicit = homes_mod.discover(home, {"CLAUDE_CONFIG_DIR": str(home / "envclaude")})
+    assert any(f.path.name == "envclaude" for f in found_explicit)
+
+    # 給隔離家目錄跑外部 CLI 的環境：家目錄換掉，指向真設定資料夾的變數拿掉
+    iso = homes_mod.isolated_environ(home)
+    assert iso["USERPROFILE"] == str(home) and iso["HOME"] == str(home)
+    assert not {"CLAUDE_CONFIG_DIR", "CODEX_HOME", "T3CODE_HOME"} & set(iso)
+    sync_env = app._make_sync_env()
+    assert not {"CLAUDE_CONFIG_DIR", "CODEX_HOME", "T3CODE_HOME"} & set(sync_env.environ)
+
+
+def test_isolated_profile_restore_writes_only_isolated_home(short_tmp: Path, monkeypatch: pytest.MonkeyPatch):
+    """回歸測試（2026-11-28 全套 pytest 改壞真設定）：漂移橫幅「還原 profile」在隔離家目錄下，
+    規則只能寫進隔離家目錄，不得落到真家目錄（profiles.RULES）或真環境找到的其他帳號設定資料夾。
+    真家目錄與其他帳號都用替身，修前跑這個測試也不會碰到使用者真的設定。"""
+    import kit as kit_mod  # type: ignore
+    import profiles as profiles_mod  # type: ignore
+
+    real = short_tmp / "real"
+    real_rules = {
+        "claude-code": real / ".claude" / "CLAUDE.md",
+        "codex": real / ".codex" / "AGENTS.md",
+        "antigravity": real / ".gemini" / "GEMINI.md",
+    }
+    other_account = real / ".claude-kai"
+    for p in [*real_rules.values(), other_account / "CLAUDE.md"]:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("# 使用者真規則\n", encoding="utf-8")
+    monkeypatch.setattr(profiles_mod, "RULES", real_rules)
+    monkeypatch.setattr(profiles_mod, "claude_homes", lambda *_a, **_kw: [other_account])
+    monkeypatch.setattr(profiles_mod, "codex_homes", lambda *_a, **_kw: [])
+    before = _tree_snapshot(real)
+
+    state = short_tmp / "state"
+    home = short_tmp / "home"
+    (home / ".claude").mkdir(parents=True)
+    app = server.CockpitApp(
+        state_dir=state,
+        home_dir=home,
+        default_repo_root=None,
+        t3_runner=lambda _: [],
+        cli_runner=lambda *_a, **_kw: (0, "[]", ""),
+        cache_ttl=0,
+        allowed_hosts=set(),
+        token=TOKEN,
+    )
+    app.apply_kit({"tools": ["gitleaks"], "done_check": "log"})
+    (state / "profile.json").write_text('{"profile": "ryan"}\n', encoding="utf-8")
+    assert any(d["id"] == "profile:active" for d in kit_mod.detect_drift(state, home))
+
+    res = kit_mod.resolve_drift("profile:active", "restore", state=state, home=home, repo_root=app.repo_root)
+
+    assert res["ok"] is True
+    assert "omnikit:rules:begin" in (home / ".claude" / "CLAUDE.md").read_text(encoding="utf-8")
+    assert _tree_snapshot(real) == before, "還原 profile 寫到了隔離家目錄以外的設定"
