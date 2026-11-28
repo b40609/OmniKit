@@ -971,3 +971,49 @@ def test_isolated_home_never_touches_config_dirs_named_by_env(short_tmp: Path, m
     assert not {"CLAUDE_CONFIG_DIR", "CODEX_HOME", "T3CODE_HOME"} & set(iso)
     sync_env = app._make_sync_env()
     assert not {"CLAUDE_CONFIG_DIR", "CODEX_HOME", "T3CODE_HOME"} & set(sync_env.environ)
+
+
+def test_isolated_profile_restore_writes_only_isolated_home(short_tmp: Path, monkeypatch: pytest.MonkeyPatch):
+    """回歸測試（2026-11-28 全套 pytest 改壞真設定）：漂移橫幅「還原 profile」在隔離家目錄下，
+    規則只能寫進隔離家目錄，不得落到真家目錄（profiles.RULES）或真環境找到的其他帳號設定資料夾。
+    真家目錄與其他帳號都用替身，修前跑這個測試也不會碰到使用者真的設定。"""
+    import kit as kit_mod  # type: ignore
+    import profiles as profiles_mod  # type: ignore
+
+    real = short_tmp / "real"
+    real_rules = {
+        "claude-code": real / ".claude" / "CLAUDE.md",
+        "codex": real / ".codex" / "AGENTS.md",
+        "antigravity": real / ".gemini" / "GEMINI.md",
+    }
+    other_account = real / ".claude-kai"
+    for p in [*real_rules.values(), other_account / "CLAUDE.md"]:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("# 使用者真規則\n", encoding="utf-8")
+    monkeypatch.setattr(profiles_mod, "RULES", real_rules)
+    monkeypatch.setattr(profiles_mod, "claude_homes", lambda *_a, **_kw: [other_account])
+    monkeypatch.setattr(profiles_mod, "codex_homes", lambda *_a, **_kw: [])
+    before = _tree_snapshot(real)
+
+    state = short_tmp / "state"
+    home = short_tmp / "home"
+    (home / ".claude").mkdir(parents=True)
+    app = server.CockpitApp(
+        state_dir=state,
+        home_dir=home,
+        default_repo_root=None,
+        t3_runner=lambda _: [],
+        cli_runner=lambda *_a, **_kw: (0, "[]", ""),
+        cache_ttl=0,
+        allowed_hosts=set(),
+        token=TOKEN,
+    )
+    app.apply_kit({"tools": ["gitleaks"], "done_check": "log"})
+    (state / "profile.json").write_text('{"profile": "ryan"}\n', encoding="utf-8")
+    assert any(d["id"] == "profile:active" for d in kit_mod.detect_drift(state, home))
+
+    res = kit_mod.resolve_drift("profile:active", "restore", state=state, home=home, repo_root=app.repo_root)
+
+    assert res["ok"] is True
+    assert "omnikit:rules:begin" in (home / ".claude" / "CLAUDE.md").read_text(encoding="utf-8")
+    assert _tree_snapshot(real) == before, "還原 profile 寫到了隔離家目錄以外的設定"
