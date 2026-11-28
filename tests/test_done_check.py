@@ -689,17 +689,110 @@ def _agy_transcript(tmp_path: Path, start: float, final: str) -> Path:
     return tr
 
 
-def test_antigravity_falls_back_to_session_start_for_stale(tmp_path):
-    """PR #13 審查 P0-1：看不到寫檔紀錄的 agent（Antigravity）退回修前行為，拿對話開始時間逐項比。"""
+def _agy_user(t: float) -> dict:
+    return {"source": "USER_EXPLICIT", "type": "USER_INPUT", "created_at": _iso(t), "content": "開工"}
+
+
+def _agy_call(name: str, t: float, **args) -> dict:
+    return {"source": "MODEL", "type": "PLANNER_RESPONSE", "created_at": _iso(t), "tool_calls": [{"name": name, "args": args}]}
+
+
+def _agy_final(t: float, msg: str) -> dict:
+    return {"source": "MODEL", "type": "PLANNER_RESPONSE", "created_at": _iso(t), "content": msg}
+
+
+def _agy_rows(path: Path, rows: list) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(json.dumps(x, ensure_ascii=False) for x in rows) + "\n", encoding="utf-8")
+    return path
+
+
+def _agy_stop(tr: Path, cwd: Path) -> dict:
+    return {"hookEventName": "Stop", "conversationId": "c", "transcriptPath": str(tr), "cwd": str(cwd),
+            "terminationReason": "NO_TOOL_CALL"}
+
+
+UNIT_ONLY = ("【完成待收尾】改好了。\n\n## 完工回執\n| 需求項 | 驗證層級 | 驗證指令或觀察 | 結果 | 證據位置 |\n|---|---|---|---|---|\n"
+             "| 計算正確 | 單元 | pytest | 3 passed | 本回合第 3 次工具呼叫 |\n沒驗的範圍：無\n")
+
+
+def test_antigravity_session_scan_reads_planner_tool_calls(tmp_path):
+    """Antigravity 的寫檔在 PLANNER_RESPONSE.tool_calls[]：write_file／edit_file 用 Path，
+    write_to_file／replace_file_content／multi_replace_file_content 用 TargetFile；本機紀錄約一半的參數值是 JSON 字串（帶引號）。"""
     now = time.time()
-    shot = tmp_path / "old.png"
+    q = json.dumps
+    tr = _agy_rows(tmp_path / "logs" / "transcript.jsonl", [
+        _agy_user(now - 600),
+        _agy_call("write_file", now - 500, Path=q(str(tmp_path / "old_turn.py")), Content=q("x")),
+        _agy_user(now - 400),
+        _agy_call("replace_file_content", now - 300, TargetFile=str(tmp_path / "app.py"), ReplacementContent="y"),
+        _agy_call("multi_replace_file_content", now - 250, TargetFile=q(str(tmp_path / "pkg" / "mod.ts"))),
+        _agy_call("edit_file", now - 200, Path=str(tmp_path / "test_app.py"), Target="a", Replacement="b"),
+        _agy_call("write_to_file", now - 150, TargetFile=q(str(tmp_path / "NOTES.md")), CodeContent=q("n")),
+        _agy_call("write_file", now - 100, Path=q(str(tmp_path.parent / "elsewhere.py"))),
+        _agy_call("view_file", now - 90, AbsolutePath=q(str(tmp_path / "read_only.py"))),
+        _agy_call("run_command", now - 50, CommandLine=q('git commit -m "x"'), Cwd=q(str(tmp_path))),
+        _agy_final(now - 1, "好了"),
+    ])
+    scan = dc.session_scan(str(tr), str(tmp_path))
+    assert scan.has_transcript and scan.sees_writes
+    assert scan.touched == {"old_turn.py", "app.py", "pkg/mod.ts", "test_app.py", "NOTES.md"}
+    assert scan.changed_code  # app.py 是這一回合（最後一則 USER_INPUT 之後）改的
+    assert scan.committed
+    assert scan.last_code_write == pytest.approx(now - 200, abs=1)  # 測試檔算改檔；NOTES.md 是文件、elsewhere.py 在 cwd 外
+    assert scan.turn_started == pytest.approx(now - 400, abs=1)
+
+
+def test_antigravity_previous_turn_write_is_not_this_turn_change(tmp_path):
+    now = time.time()
+    tr = _agy_rows(tmp_path / "agy.jsonl", [
+        _agy_user(now - 600),
+        _agy_call("write_file", now - 500, Path=str(tmp_path / "app.py")),
+        _agy_user(now - 100),
+        _agy_final(now - 1, "好了"),
+    ])
+    scan = dc.session_scan(str(tr), str(tmp_path))
+    assert scan.touched == {"app.py"} and not scan.changed_code
+
+
+def test_antigravity_uncommitted_write_blocks_git_dirty(pushed_repo):
+    """Antigravity 改了檔沒 commit 就宣告完工：git-dirty 要查得到（以前 touched 一直是空的，整段跳過）。"""
+    (pushed_repo / "a.txt").write_text("changed\n", encoding="utf-8")
+    now = time.time()
+    tr = _agy_rows(pushed_repo.parent / "agy.jsonl", [
+        _agy_user(now - 60),
+        _agy_call("write_file", now - 30, Path=json.dumps(str(pushed_repo / "a.txt"))),
+        _agy_final(now - 1, receipt()),
+    ])
+    ev = dc.evaluate(_agy_stop(tr, pushed_repo), env=BLOCK)
+    assert ev.agy and "git-dirty" in rules(ev.result)
+
+
+def test_antigravity_code_change_needs_runtime_proof(tmp_path):
+    """Antigravity 這一回合改了程式，回執只有單元測試：no-runtime-proof 要查得到。"""
+    now = time.time()
+    tr = _agy_rows(tmp_path / "agy.jsonl", [
+        _agy_user(now - 60),
+        _agy_call("replace_file_content", now - 30, TargetFile=json.dumps(str(tmp_path / "app.py"))),
+        _agy_final(now - 1, UNIT_ONLY),
+    ])
+    ev = dc.evaluate(_agy_stop(tr, tmp_path), env=BLOCK)
+    assert "no-runtime-proof" in rules(ev.result)
+
+
+def test_antigravity_stale_compares_with_last_write(tmp_path):
+    """看得到 Antigravity 的寫檔後，evidence-stale 跟 Claude Code 一樣比最後一次改檔（改法 4），不再退回對話開始時間。
+    PR #13 審查 P0-1 的退回做法只剩 Codex。"""
+    now = time.time()
+    shot = tmp_path / "before_fix.png"
     shot.write_bytes(b"png")
-    os.utime(shot, (now - 86400, now - 86400))
-    tr = _agy_transcript(tmp_path, now - 7200, file_receipt("old.png"))
-    assert dc.session_scan(str(tr), str(tmp_path)).sees_writes is False
-    out = dc.handle({"hookEventName": "Stop", "conversationId": "c", "transcriptPath": str(tr), "cwd": str(tmp_path),
-                     "terminationReason": "NO_TOOL_CALL"}, env=BLOCK)
-    assert out["decision"] == "continue" and "old.png" in out["reason"]
+    os.utime(shot, (now - 300, now - 300))  # 對話開始後拍的，但早於最後一次改檔
+    tr = _agy_transcript(tmp_path, now - 7200, file_receipt("before_fix.png"))
+    assert dc.session_scan(str(tr), str(tmp_path)).sees_writes is True
+    out = dc.handle(_agy_stop(tr, tmp_path), env=BLOCK)
+    assert out["decision"] == "continue" and "before_fix.png" in out["reason"]
+    os.utime(shot, (now, now))  # 改完才拍：放行
+    assert dc.handle(_agy_stop(tr, tmp_path), env=BLOCK) == {}
 
 
 def test_codex_falls_back_to_session_start_for_stale(tmp_path):
