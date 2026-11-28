@@ -482,37 +482,63 @@ def weekly_diff(state, data, mine=None, *, days=7, now=None):
     pol = dispatch.policy(data)
     trials = load_trials(state)
     log_rows, _ = dispatch.read_log(dispatch.log_path(state))
+    anns = dispatch.read_annotations(state)
+    proj_rows = [dispatch.project_record(r, annotations=anns, pol=pol) for r in log_rows]
     smoke_rows = read_smoke(state)
     items = []
 
-    # 1. 新模型待跑煙霧題組 / 試用模型委派紀錄達標檢查
-    judged = [r for r in log_rows if r.get("verdict") != "skipped"]
+    # 1. 新模型待跑煙霧題組 / 試用模型委派紀錄達標檢查（改採去噪口徑：只計 origin=="field" 且 model_ok is not None）
+    clean_field = [p for p in proj_rows if p.get("origin") == "field" and p.get("model_ok") is not None]
+    classes_cfg = pol.get("model_classes") or {}
     for model, info in sorted(trials.get("models", {}).items()):
         st = info.get("status")
         if st == "discovered":
             items.append({"kind": "smoke_needed", "model": model,
                           "message": f"新模型 {model} 已探測通過但還沒跑煙霧題組（model_eval.py smoke-plan --model {model}）"})
         elif st == "trial":
-            m_rows = [r for r in judged if accounts.norm(r.get("model")) == accounts.norm(model)]
+            norm_m = accounts.norm(model)
+            m_rows = [p for p in clean_field if accounts.norm(p.get("judged_model") or p.get("model")) == norm_m]
             base_cls = info.get("baseline")
-            b_rows = [r for r in judged if r.get("class") == base_cls] if base_cls else []
+            base_model = (classes_cfg.get(base_cls) or {}).get("model") if base_cls else None
+            if base_model:
+                norm_b = accounts.norm(base_model)
+                b_rows = [
+                    p for p in clean_field
+                    if accounts.norm(p.get("judged_model") or p.get("model")) == norm_b or p.get("class") == base_cls
+                ]
+            elif base_cls:
+                b_rows = [p for p in clean_field if p.get("class") == base_cls]
+            else:
+                b_rows = []
             if len(m_rows) < MIN_TRIAL_SAMPLES:
                 items.append({"kind": "trial_progress", "model": model,
-                              "message": f"試用中 {model}：目前 {len(m_rows)}/{MIN_TRIAL_SAMPLES} 筆委派紀錄，樣本不足尚不判定"})
+                              "message": f"試用中 {model}：目前去噪可評 {len(m_rows)}/{MIN_TRIAL_SAMPLES} 筆委派紀錄，樣本不足尚不判定"})
             else:
-                ra = sum(1 for r in m_rows if r.get("first_pass")) / len(m_rows) * 100
+                ra = sum(1 for p in m_rows if p.get("model_ok") is True) / len(m_rows) * 100
                 if base_cls and len(b_rows) >= MIN_BASELINE_SAMPLES:
-                    rb = sum(1 for r in b_rows if r.get("first_pass")) / len(b_rows) * 100
+                    rb = sum(1 for p in b_rows if p.get("model_ok") is True) / len(b_rows) * 100
                     gap = round(rb - ra, 1)
                     if gap >= MAX_GAP_PP:
                         items.append({"kind": "trial_demote", "model": model,
-                                      "message": f"建議下架／退回 {model}：一次通過率 {ra:.1f}%，比 {base_cls}（{rb:.1f}%）低 {gap} 個百分點"})
+                                      "message": f"建議下架／退回 {model}：去噪 model_ok 良率 {ra:.1f}%，比 {base_cls}（{rb:.1f}%）低 {gap} 個百分點"})
                     else:
                         items.append({"kind": "trial_promote", "model": model,
-                                      "message": f"建議升級進正式分工 {model}：一次通過率 {ra:.1f}%（{len(m_rows)} 筆），與 {base_cls} 差距 {gap} 個百分點（門檻 {MAX_GAP_PP}）"})
+                                      "message": f"建議升級進正式分工 {model}：去噪 model_ok 良率 {ra:.1f}%（{len(m_rows)} 筆），與 {base_cls} 差距 {gap} 個百分點（門檻 {MAX_GAP_PP}）"})
                 else:
                     items.append({"kind": "trial_ready", "model": model,
-                                  "message": f"試用中 {model} 已達 {len(m_rows)} 筆（一次通過率 {ra:.1f}%），可決定是否升級進正式分工"})
+                                  "message": f"試用中 {model} 已達去噪 {len(m_rows)} 筆（model_ok 良率 {ra:.1f}%），可決定是否升級進正式分工"})
+
+    # 1b. 實地良率觸頂提醒（clean_table 有 ceiling_warn：n >= 20 且 Wilson 95% CI 下限 > 85%）
+    st_summary = dispatch.stats(pol, log_rows, annotations=anns)
+    ceilings = [c for c in (st_summary.get("clean_table") or []) if c.get("ceiling_warn")]
+    if ceilings:
+        labels = "、".join(f"{c['level']}/{c['model']}({c['thinking']} {c['ok']}/{c['n']})" for c in ceilings[:4])
+        more = f" 等 {len(ceilings)} 組" if len(ceilings) > 4 else ""
+        items.append({
+            "kind": "ceiling_warn",
+            "model": None,
+            "message": f"實地良率觸頂提醒：{labels}{more} 的 Wilson 95% CI 下限已高於 85%，跨模型排名請改看同題配對盲評",
+        })
 
     # 2. high vs xhigh 配對結果摘要
     for model in sorted({r.get("model") for r in smoke_rows if r.get("model")}):
@@ -521,13 +547,13 @@ def weekly_diff(state, data, mine=None, *, days=7, now=None):
             items.append({"kind": "thinking_compare", "model": model,
                           "message": f"{model} 同題比較（{cmp['paired']} 題）：{cmp['verdict']}"})
 
-    # 3. 近 N 天撞額度體檢（提案第八節：選了 max_available 卻一週撞額度好幾次就提醒降一級）
+    # 3. 近 N 天撞額度體檢（納入 error_kind == "quota_exhausted" 與投影後 infra_issue == "quota"）
     cutoff = now_dt - timedelta(days=days)
     recent_quota = 0
-    for r in log_rows:
-        if r.get("error_kind") != "quota_exhausted":
+    for r, p in zip(log_rows, proj_rows):
+        if r.get("error_kind") != "quota_exhausted" and p.get("infra_issue") != "quota":
             continue
-        ts_s = str(r.get("ts") or "")
+        ts_s = str(p.get("ts") or r.get("ts") or "")
         try:
             dt = datetime.fromisoformat(ts_s.replace("Z", "+00:00"))
             if dt.tzinfo is None:

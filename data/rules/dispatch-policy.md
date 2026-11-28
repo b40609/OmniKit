@@ -358,8 +358,9 @@ trials:
       2026-11-27 拍板 3A：到期直接結案並保留為 medium 第 5 順位低優先退路，維持統計門檻監控。
     control_every: 0
 
-# 委派紀錄：每次委派結束時一行 JSONL，存在本機，不進 repo。
+# 委派紀錄：每次委派結束時一行 JSONL（Schema v2，向後相容 v1 舊紀錄），存在本機，不進 repo。
+# dispatch.py check 會強制比對這裡的 log.fields 與 make_record() 實際寫出的欄位集合。
 log:
   path: '~/.omnikit/dispatch/log.jsonl'
-  fields: [ts, project, task, level, channel, instance, model, thinking, first_pass, retries, escalations, final_model, verdict, error_kind, rules_version, profile, control, note]
+  fields: [ts, project, task, level, channel, instance, class, model, thinking, first_pass, retries, escalations, final_class, verdict, error_kind, rules_version, profile, control, note, schema_version, origin, role, infra_issue, scope, unverified, subject_pass, model_ok, defect_kind, retries_infra, retries_quality, judged_model, judged_thinking, duration_sec, work_id, eval_ref, inferred]
 ```

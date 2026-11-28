@@ -119,22 +119,27 @@ agy_cli、t3_cli、`t3_thread_launch`，主控在 T3 裡用 delegate_task 也一
 
 ## 收完結果、settle 之前：記一行
 
-一次委派一行。重跑與升級記在同一行，`--class` 寫一開始派的類別，`--final-class` 寫最後過關的類別。
+一次委派一行（Schema v2，保留全部舊旗標向後相容）。重跑與升級記在同一行，`--class` 寫一開始派的類別，`--final-class` 寫最後過關的類別。
 
 ```
 uv run scripts/run.py log --task <任務類型> --class <模型類別> --thinking <程度> --verdict <pass|fail|partial|skipped> \
-  [--channel native|agy_cli|t3_cli|delegate_task|t3_thread_launch] [--instance <實例>] [--retries N] [--escalations N] [--final-class <類別>] [--error <種類> | --error-text <原文>] [--resets-at <時間>] [--error-url <https://...>] [--control] [--note <一句話>]
+  [--channel native|agy_cli|t3_cli|delegate_task|t3_thread_launch] [--instance <實例>] \
+  [--retries N] [--retries-infra N] [--retries-quality N] [--escalations N] [--final-class <類別>] \
+  [--origin field|eval|probe] [--role author|reviewer|prework|judge] [--infra <基礎設施問題>] \
+  [--scope complete|capped_by_caller|truncated_by_model | --scope-capped] [--unverified] \
+  [--subject-pass yes|no|na] [--model-ok yes|no|na] [--defect <缺陷類別>] \
+  [--duration-sec <秒>] [--work <群組ID>] [--eval-ref-json <JSON>] \
+  [--error <種類> | --error-text <原文>] [--resets-at <時間>] [--error-url <https://...>] [--control] [--note <一句話>]
 ```
 
-- `--task`：共用層 `tasks` 的 key（docs、ui-small、readonly、code-small、synthesis、major-change、accounting、risk、orders、design-decision、hard-bug、acceptance-loop、verify、architecture）。級別會自動帶出來。
-- `--verdict`：驗收結論。`skipped` 是沒有驗收，不算進通過率。
-- `--error`／`--error-text`：錯誤分類（`rate_limit`、`quota_exhausted`、`auth_expired`、`validation_required`、`tos_banned`、`hard_forbidden`、`model_forbidden`、`timeout_15min`、`other`）。寫進 `log.jsonl` 並自動同步更新 `pool-state.json`（敏感 token 自動遮罩）；`verdict=pass` 且無錯時會自動清除該實例的暫時鎖定。
-- 一次通過：沒寫 `--first-pass` 時，結論是 pass 而且沒有重跑、沒有升級才算。
+- `--task`：共用層 `tasks` 的 key（docs、ui-small、readonly、code-small、synthesis、major-change、accounting、risk、orders、design-decision、hard-bug、acceptance-loop、verify、architecture）。級別與預設 `--role`（`verify` 為 `reviewer`，其餘 `author`）會自動帶出。
+- `--verdict`：這次委派本身是否交出可用結果。`skipped` 是沒有驗收，或交付待查證加 `--unverified`（兩者 `model_ok` 皆為 `null`，不算進模型良率分母）。
+- **審查者抓到真問題怎麼記（源頭防呆）**：當角色是 `reviewer`（例如 `verify`）且抓出被審物的真 bug 時，審查者本身是盡責成功的，請記 `--verdict pass --subject-pass no`（自動推導 `model_ok=true`）；若對 `reviewer` 記 `--verdict fail` 卻沒給 `--subject-pass` 也沒給 `--infra`/`--error`，腳本會直接擋下提示。
+- **顯式標模型失敗必填缺陷**：傳 `--model-ok no` 時必須搭配 `--defect`（`wrong_fact`、`false_claim`、`missed_requirement`、`overreach`、`unfinished`、`low_quality`、`other`）。
+- **基礎設施與範圍封頂去噪**：`--error`／`--error-text`（寫入 `log.jsonl` 並同步更新 `pool-state.json`）會自動映射 `--infra`（`quota`、`rate_limit`、`model_unavailable`、`auth`、`harness_timeout`、`harness_permission`、`harness_tooling`、`cancelled`），未通過且無模型缺陷時 `model_ok=null`；跑滿呼叫端指定的 12/15 組上限記 `--verdict partial --scope-capped`（無缺陷時 `model_ok=true`）。
+- `--origin`：預設 `field`（實地委派）；跑評測或模型探測請傳 `eval` 或 `probe`，避免污染實地良率。
 - `--instance`：用 delegate_task、t3_thread_launch 時寫 providerInstanceId，用 t3_cli 時寫 `--provider` 的值；原生子代理不用寫。
-- `--control`：Sonnet 試行的對照組（中級改派 Opus 的那幾次）。
-- `--note`：一句話，不寫專案內容細節、不寫金鑰或 token。
-- 時間、專案名稱、規則版本、profile 自動帶；不確定欄位怎麼寫，先加 `--dry-run` 看會寫出什麼。
-- 寫在本機 `~/.omnikit/dispatch/log.jsonl`，不進 repo、不上傳。
+- `--note`：一句話，不寫專案內容細節、不寫金鑰或 token。時間、專案名稱、規則版本、profile 自動帶；不確定先加 `--dry-run` 預覽。寫在本機 `~/.omnikit/dispatch/log.jsonl`，不進 repo、不上傳。
 
 範例：Sonnet 做的文件驗收不過，改 Opus（同一級 effort）重跑後過關：
 
@@ -142,13 +147,15 @@ uv run scripts/run.py log --task <任務類型> --class <模型類別> --thinkin
 uv run scripts/run.py log --task docs --class claude-sonnet --thinking medium --verdict pass --escalations 1 --final-class claude-opus
 ```
 
-## 看統計
+## 看統計與唯讀回溯對帳
 
 ```
-uv run scripts/run.py stats
+uv run scripts/run.py stats [--mode both|raw|clean] [--json]
+uv run scripts/run.py backfill-audit [--limit 30] [--json]
 ```
 
-依級別與一開始派的類別列一次通過率，再列 Sonnet 試行的判定：Sonnet 累積 20 筆、Opus 同級也有足夠基準時，Sonnet 低 10 個百分點以上就是「退回」。照輸出回報，不要自己改規則；要退回或調整，先問使用者。
+- `stats`：預設 `both` 並列兩套視圖——去噪模型良率（只計 `origin=field` 且 `model_ok` 非空，改依 `level / judged_model / judged_thinking` 分組，附 Wilson 95% 信賴區間、`n < 20` 樣本提醒、觸頂警示與中位耗時）、基礎設施損耗率（依 `instance / channel`）、審查抓蟲率（`reviewer` 的 `subject_pass=false` 比率），以及原始一次通過率與試行判定（改以去噪 `model_ok` 為基準並並列原始率）。照輸出回報，不要自己改規則；要退回或調整，先問使用者。
+- `backfill-audit`：絕不改寫 `log.jsonl`，以讀取期投影 `project_record`（含複合缺陷覆寫保護與可選 `~/.omnikit/dispatch/annotations.jsonl` 覆寫）對帳全部紀錄，印出 `log_sha256` 零寫改證明、歸因分布表與前 30 筆真模型缺陷／複合缺陷清單。
 
 ## 本週 Claude 用量與多帳號額度視圖
 

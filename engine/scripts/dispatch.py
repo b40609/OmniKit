@@ -25,9 +25,15 @@ T3 透過 Agent SDK 跑 Claude 時狀態列會不會執行，還沒實測（待�
   uv run engine/scripts/dispatch.py show [--agent claude|codex|antigravity] [--json]   套上這台 profile 之後的分派表
   uv run engine/scripts/dispatch.py check                                            檢查兩層政策
   uv run engine/scripts/dispatch.py log --task <類型> --class <類別> --thinking <程度> --verdict pass|fail|partial|skipped
-        [--first-pass yes|no] [--retries N] [--escalations N] [--final-class <類別>] [--channel native|agy_cli|t3_cli|delegate_task|t3_thread_launch]
+        [--first-pass yes|no] [--retries N] [--retries-infra N] [--retries-quality N] [--escalations N] [--final-class <類別>]
+        [--origin field|eval|probe] [--role author|reviewer|prework|judge] [--infra <基礎設施問題>]
+        [--scope complete|capped_by_caller|truncated_by_model | --scope-capped] [--unverified]
+        [--subject-pass yes|no|na] [--model-ok yes|no|na] [--defect <缺陷類別>]
+        [--duration-sec <秒>] [--work <群組ID>] [--eval-ref-json <JSON>]
+        [--channel native|agy_cli|t3_cli|delegate_task|t3_thread_launch]
         [--instance <實例>] [--level <級別>] [--project <名稱>] [--control] [--note <文字>] [--dry-run]
-  uv run engine/scripts/dispatch.py stats [--json]                                   一次通過率與 Sonnet 試行的判定
+  uv run engine/scripts/dispatch.py stats [--mode both|raw|clean] [--json]           去噪模型良率（Wilson 95% CI）、原始通過率與試行判定
+  uv run engine/scripts/dispatch.py backfill-audit [--limit 30] [--json]             唯讀回溯投影對帳與原 log 零寫改雜湊驗證
   uv run engine/scripts/dispatch.py usage [--json]                                   本週 Claude 用量（快照）
   uv run engine/scripts/dispatch.py statusline [--then "<原本的狀態列指令>"]          給 Claude Code 狀態列用
   uv run engine/scripts/dispatch.py agy --class <類別> --thinking <程度> (--brief <文字> | --brief-file <檔>) [--cwd <資料夾>]
@@ -35,10 +41,13 @@ T3 透過 Agent SDK 跑 Claude 時狀態列會不會執行，還沒實測（待�
   uv run engine/scripts/dispatch.py --selftest
 """
 import argparse
+import hashlib
 import json
+import math
 import os
 import re
 import shutil
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -53,6 +62,63 @@ import profiles  # noqa: E402  同一個資料夾：這台選的 profile 與它�
 
 THINKING = ["low", "medium", "high", "xhigh", "max"]
 VERDICTS = ("pass", "fail", "partial", "skipped")
+SCHEMA_VERSION = 2
+ORIGINS = ("field", "eval", "probe")
+ROLES = ("author", "reviewer", "prework", "judge")
+INFRA_ISSUES = (
+    "quota",
+    "rate_limit",
+    "model_unavailable",
+    "auth",
+    "harness_timeout",
+    "harness_permission",
+    "harness_tooling",
+    "cancelled",
+)
+SCOPES = ("complete", "capped_by_caller", "truncated_by_model")
+DEFECT_KINDS = (
+    "wrong_fact",
+    "false_claim",
+    "missed_requirement",
+    "overreach",
+    "unfinished",
+    "low_quality",
+    "other",
+)
+STATS_MODES = ("both", "raw", "clean")
+ERROR_TO_INFRA = {
+    "quota_exhausted": "quota",
+    "rate_limit": "rate_limit",
+    "model_forbidden": "model_unavailable",
+    "auth_expired": "auth",
+    "validation_required": "auth",
+    "tos_banned": "auth",
+    "hard_forbidden": "auth",
+    "timeout_15min": "harness_timeout",
+    "other": "harness_tooling",
+}
+QUOTA_INFRA = frozenset({"quota", "rate_limit", "model_unavailable", "auth"})
+HARNESS_INFRA = frozenset({"harness_timeout", "harness_permission", "harness_tooling", "cancelled"})
+LEGACY_CLASS_MODELS = {
+    "claude-fable": "claude-fable-5-2",
+    "claude-opus": "claude-opus-5-5",
+    "claude-sonnet": "claude-sonnet-5-5",
+    "gemini-carbon": "gemini-4-carbon",
+    "gemini-pro": "gemini-4-neon",
+    "gemini-fast": "gemini-4-hydrogen",
+    "gemini-orchestrator": "gemini-pro-orchestrator-neon",
+    "antigravity-opus": "claude-opus-5-5",
+    "gemini-flash": "gemini-3.8-flash",
+    "gemini-argon": "gemini-4-argon",
+}
+LOG_FIELDS = (
+    "ts", "project", "task", "level", "channel", "instance", "class", "model", "thinking",
+    "first_pass", "retries", "escalations", "final_class", "verdict", "error_kind",
+    "rules_version", "profile", "control", "note",
+    "schema_version", "origin", "role", "infra_issue", "scope", "unverified",
+    "subject_pass", "model_ok", "defect_kind", "retries_infra", "retries_quality",
+    "judged_model", "judged_thinking", "duration_sec", "work_id", "eval_ref", "inferred",
+)
 # 管道名稱要和共用層 channels 的 key 一致（check 會比對）。t3_cli：不在 T3 裡，用本機 t3 thread CLI 開 T3 對話。
 CHANNELS = ("native", "agy_cli", "t3_cli", "delegate_task", "t3_thread_launch")
 # 派給 Antigravity 時看不看得到過程：個人層 dispatch.md 的 visibility，沒寫用共用層 visibility.default（2026-11-21）。
@@ -131,6 +197,49 @@ def check(pol, mine=None):
     for key in ("model_classes", "tasks", "levels", "escalation", "channels", "visibility", "antigravity_turns", "usage_signal", "trials", "log"):
         if key not in pol:
             errors.append(f"共用層少了 {key}")
+    if "log" in pol:
+        log_cfg = pol.get("log")
+        fields = (log_cfg or {}).get("fields") if isinstance(log_cfg, dict) else None
+        if not isinstance(fields, list) or not all(isinstance(f, str) for f in fields):
+            errors.append("log.fields 要是欄位名稱清單")
+        else:
+            expected_fields = set(LOG_FIELDS)
+            valid_task = next(
+                (tk for tk, tv in (pol.get("tasks") or {}).items()
+                 if isinstance(tv, dict) and tv.get("level") in levels),
+                None,
+            )
+            valid_cls = next(
+                (ck for ck, cv in classes.items()
+                 if isinstance(cv, dict) and cv.get("model") and cv.get("default_thinking") in THINKING
+                 and THINKING.index(cv["default_thinking"]) <= THINKING.index(cv.get("max_thinking", "max")
+                 if cv.get("max_thinking") in THINKING else "max")),
+                None,
+            )
+            if valid_task and valid_cls:
+                try:
+                    sample_rec = make_record(
+                        pol,
+                        argparse.Namespace(
+                            task=valid_task, cls=valid_cls,
+                            thinking=classes[valid_cls]["default_thinking"],
+                            verdict="pass", first_pass=None, retries=0, escalations=0,
+                            final_class=None, channel="native", instance=None,
+                            level=None, project="p", control=False, note=None,
+                        ),
+                        "v", "default", "p", datetime(2026, 11, 29, tzinfo=timezone.utc),
+                    )
+                    expected_fields = set(sample_rec.keys())
+                except SystemExit:
+                    pass
+            f_set = set(fields)
+            if len(fields) != len(f_set):
+                errors.append(f"log.fields 有重複欄位：{sorted(f for f in f_set if fields.count(f) > 1)}")
+            if f_set != expected_fields:
+                errors.append(
+                    f"log.fields 和 make_record 實際欄位對不上：政策多了 {sorted(f_set - expected_fields)}，"
+                    f"少了 {sorted(expected_fields - f_set)}"
+                )
     turns = pol.get("antigravity_turns") or {}
     if "antigravity_turns" in pol:
         if len(turns.get("brief") or []) != 4:
@@ -392,7 +501,7 @@ def verified_pairs(state):
     out = set()
     for r in rows:
         if (r.get("verdict") == "pass" and not r.get("error_kind") and r.get("instance") and r.get("model")
-                and r.get("final_class") in (None, r.get("class"))):
+                and r.get("final_class") in (None, r.get("class")) and r.get("model_ok") is not False):
             out.add((r["instance"], r["model"]))
     for iid, rec in (accounts.load_matrix(state) or {}).items():
         for m, v in ((rec or {}).get("models") or {}).items():
@@ -561,6 +670,54 @@ def log_path(state):
     return Path(state) / "dispatch" / "log.jsonl"
 
 
+def annotations_path(state):
+    return Path(state) / "dispatch" / "annotations.jsonl"
+
+
+def record_fingerprint(row):
+    """紀錄指紋鍵：ts|class|instance|task，供 annotations.jsonl 非破壞性覆寫對齊。"""
+    if not isinstance(row, dict):
+        return ""
+    return f"{row.get('ts') or ''}|{row.get('class') or ''}|{row.get('instance') or ''}|{row.get('task') or ''}"
+
+
+def read_annotations(state):
+    """讀取可選覆寫檔 ~/.omnikit/dispatch/annotations.jsonl（或直接傳入 .jsonl 路徑），回傳 {指紋鍵: 覆寫欄位 dict}。"""
+    if state is None:
+        return {}
+    p = Path(state)
+    if p.suffix.lower() != ".jsonl":
+        p = annotations_path(p)
+    if not p.is_file():
+        return {}
+    meta_keys = {"key", "fingerprint", "by", "author", "updated_at", "reason", "comment"}
+    id_keys = {"ts", "class", "instance", "task"}
+    out = {}
+    for line in p.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(obj, dict):
+            continue
+        explicit_key = obj.get("key") or obj.get("fingerprint")
+        key = str(explicit_key) if explicit_key else record_fingerprint(obj)
+        if not key or key == "|||":
+            continue
+        if isinstance(obj.get("override"), dict):
+            ov = dict(obj["override"])
+        elif isinstance(obj.get("fields"), dict):
+            ov = dict(obj["fields"])
+        else:
+            skip = meta_keys | (set() if explicit_key else id_keys)
+            ov = {k: v for k, v in obj.items() if k not in skip}
+        if ov:
+            out.setdefault(key, {}).update(ov)
+    return out
+
+
 def project_name(cwd=None):
     """專案名稱：優先用 git common-dir 取主 repo 資料夾名（worktree 也能回到主專案名）；
     次用 --show-toplevel；不在 repo 裡就用目前資料夾名。只記名稱，不記完整路徑。"""
@@ -591,16 +748,28 @@ def project_name(cwd=None):
     return cwd.name
 
 
+def _clamp_thinking_for_class(cls_spec, thinking):
+    if not isinstance(cls_spec, dict) or thinking not in THINKING:
+        return thinking
+    top = cls_spec.get("max_thinking", "max")
+    forbid = set(cls_spec.get("forbid_thinking") or [])
+    if top in THINKING and THINKING.index(thinking) > THINKING.index(top):
+        return cls_spec.get("default_thinking") or top
+    if thinking in forbid:
+        return cls_spec.get("default_thinking") or thinking
+    return thinking
+
+
 def make_record(pol, args, version, profile, project, now=None):
-    """命令列參數 → 一筆紀錄；不合政策的直接失敗（SystemExit），不寫半筆。"""
+    """命令列參數 → 一筆 Schema v2 紀錄；不合政策或違反源頭防呆的直接失敗（SystemExit），不寫半筆。"""
     tasks, classes = pol["tasks"], pol["model_classes"]
     if args.task not in tasks:
         raise SystemExit(f"任務類型不存在：{args.task}，可選：{'、'.join(tasks)}")
-    level = args.level or tasks[args.task]["level"]
+    level = getattr(args, "level", None) or tasks[args.task]["level"]
     if level not in pol["levels"]:
         raise SystemExit(f"級別不存在：{level}")
     for k in ("cls", "final_class"):
-        v = getattr(args, k)
+        v = getattr(args, k, None)
         if v and v not in classes:
             raise SystemExit(f"模型類別不存在：{v}，可選：{'、'.join(classes)}")
     if args.thinking not in THINKING:
@@ -610,14 +779,27 @@ def make_record(pol, args, version, profile, project, now=None):
         raise SystemExit(f"{args.cls} 的思考程度最高 {top}，寫了 {args.thinking}")
     if args.verdict not in VERDICTS:
         raise SystemExit(f"驗收結論要是 {VERDICTS} 之一：{args.verdict}")
-    first = {"yes": True, "no": False, None: None}[args.first_pass]
-    if first is None:  # 沒寫就從結論推：一次就過、沒有重跑與升級才算
-        first = args.verdict == "pass" and not args.retries and not args.escalations
-    if args.escalations and not args.final_class:
+    if getattr(args, "escalations", 0) and not getattr(args, "final_class", None):
         raise SystemExit("有升級（--escalations）就要寫最後用哪個類別（--final-class）")
+
+    inferred = []
+
+    origin = getattr(args, "origin", None)
+    if origin is None:
+        origin = "field"
+    elif origin not in ORIGINS:
+        raise SystemExit(f"來源（--origin）要是 {ORIGINS} 之一：{origin}")
+
+    role = getattr(args, "role", None)
+    if role is None:
+        role = "reviewer" if args.task == "verify" else "author"
+        inferred.append("role")
+    elif role not in ROLES:
+        raise SystemExit(f"角色（--role）要是 {ROLES} 之一：{role}")
+
     error_kind = getattr(args, "error", None)
     error_text = getattr(args, "error_text", None)
-    note = args.note
+    note = getattr(args, "note", None)
     if error_kind or error_text:
         import account_pool
         if error_kind and error_kind not in account_pool.ERROR_KINDS:
@@ -627,15 +809,185 @@ def make_record(pol, args, version, profile, project, now=None):
             error_kind = c["kind"]
             if not note:
                 note = c["summary"]
+
+    infra_arg = getattr(args, "infra", None)
+    if infra_arg is not None:
+        if infra_arg not in INFRA_ISSUES:
+            raise SystemExit(f"基礎設施問題（--infra）要是 {INFRA_ISSUES} 之一：{infra_arg}")
+        infra_issue = infra_arg
+    elif error_kind:
+        infra_issue = ERROR_TO_INFRA.get(error_kind)
+        if infra_issue is not None:
+            inferred.append("infra_issue")
+    else:
+        infra_issue = None
+
+    scope_arg = getattr(args, "scope", None)
+    scope_capped = bool(getattr(args, "scope_capped", False))
+    if scope_capped:
+        if scope_arg is not None and scope_arg != "capped_by_caller":
+            raise SystemExit(f"--scope-capped 與 --scope {scope_arg} 衝突")
+        scope = "capped_by_caller"
+    elif scope_arg is not None:
+        if scope_arg not in SCOPES:
+            raise SystemExit(f"範圍（--scope）要是 {SCOPES} 之一：{scope_arg}")
+        scope = scope_arg
+    else:
+        scope = "complete"
+
+    unverified = bool(getattr(args, "unverified", False))
+
+    defect_kind = getattr(args, "defect", None)
+    if defect_kind is not None and defect_kind not in DEFECT_KINDS:
+        raise SystemExit(f"缺陷類別（--defect）要是 {DEFECT_KINDS} 之一：{defect_kind}")
+
+    subj_arg = getattr(args, "subject_pass", None)
+    if subj_arg not in (None, "yes", "no", "na"):
+        raise SystemExit(f"--subject-pass 要是 yes|no|na 之一：{subj_arg}")
+    if subj_arg in ("yes", "no") and role not in ("reviewer", "judge"):
+        raise SystemExit("--subject-pass 僅適用於 reviewer 或 judge 角色")
+
+    model_ok_arg = getattr(args, "model_ok", None)
+    if model_ok_arg not in (None, "yes", "no", "na"):
+        raise SystemExit(f"--model-ok 要是 yes|no|na 之一：{model_ok_arg}")
+
+    # 源頭寫入防呆
+    if model_ok_arg == "no" and not defect_kind:
+        raise SystemExit("顯式指定 --model-ok no 時必填 --defect（缺陷類別）")
+    if model_ok_arg in ("yes", "na") and defect_kind:
+        raise SystemExit(f"顯式指定 --model-ok {model_ok_arg} 時不可同時指定 --defect")
+    if role == "reviewer" and args.verdict == "fail" and subj_arg is None and infra_issue is None:
+        raise SystemExit("審查者抓到真問題請記 --verdict pass --subject-pass no，環境故障請帶 --infra 或 --error")
+
+    r_inf_arg = getattr(args, "retries_infra", None)
+    r_qual_arg = getattr(args, "retries_quality", None)
+    r_legacy = getattr(args, "retries", 0) or 0
+    if r_legacy < 0 or (r_inf_arg is not None and r_inf_arg < 0) or (r_qual_arg is not None and r_qual_arg < 0):
+        raise SystemExit("重跑次數不可為負數")
+    if r_inf_arg is not None or r_qual_arg is not None:
+        retries_infra = int(r_inf_arg or 0)
+        retries_quality = int(r_qual_arg or 0)
+        split_sum = retries_infra + retries_quality
+        retries = int(r_legacy) if r_legacy > split_sum else split_sum
+    else:
+        retries = int(r_legacy)
+        if retries > 0:
+            if infra_issue is not None and defect_kind is None:
+                retries_infra, retries_quality = retries, 0
+                inferred.append("retries_infra")
+            else:
+                retries_infra, retries_quality = 0, retries
+                inferred.append("retries_quality")
+        else:
+            retries_infra, retries_quality = 0, 0
+
+    escalations = int(getattr(args, "escalations", 0) or 0)
+    first_arg = getattr(args, "first_pass", None)
+    first = {"yes": True, "no": False, None: None}[first_arg]
+    if first is None:  # 沒寫就從結論推：一次就過、沒有重跑與升級才算
+        first = args.verdict == "pass" and not retries and not escalations
+
+    final_cls = getattr(args, "final_class", None) or args.cls
+    model = classes[args.cls]["model"]
+    if getattr(args, "final_class", None) and args.final_class != args.cls:
+        judged_model = classes[args.final_class]["model"]
+        judged_thinking = _clamp_thinking_for_class(classes[args.final_class], args.thinking)
+        inferred.extend(["judged_model", "judged_thinking"])
+    else:
+        judged_model = model
+        judged_thinking = args.thinking
+
+    if subj_arg is not None:
+        subject_pass = {"yes": True, "no": False, "na": None}[subj_arg]
+    elif role in ("reviewer", "judge"):
+        if args.verdict == "pass" and first and not unverified and infra_issue is None:
+            subject_pass = True
+            inferred.append("subject_pass")
+        else:
+            subject_pass = None
+    else:
+        subject_pass = None
+
+    if model_ok_arg is not None:
+        model_ok = {"yes": True, "no": False, "na": None}[model_ok_arg]
+    else:
+        inferred.append("model_ok")
+        if args.verdict == "skipped" or unverified:
+            model_ok = None
+        elif defect_kind is not None:
+            model_ok = False
+        elif infra_issue is not None and not first:
+            model_ok = None
+        elif role in ("reviewer", "judge") and subject_pass is False:
+            model_ok = True
+        elif scope == "capped_by_caller" and args.verdict == "partial":
+            model_ok = True
+        else:
+            model_ok = bool(first)
+
+    dur_raw = getattr(args, "duration_sec", None)
+    if dur_raw is not None:
+        duration_sec = float(dur_raw)
+        if duration_sec < 0 or math.isnan(duration_sec) or math.isinf(duration_sec):
+            raise SystemExit(f"--duration-sec 必須是非負實數：{dur_raw}")
+    else:
+        duration_sec = None
+
+    work_id = getattr(args, "work", None) or None
+    eval_raw = getattr(args, "eval_ref_json", None)
+    if eval_raw is not None:
+        if isinstance(eval_raw, dict):
+            eval_ref = eval_raw
+        else:
+            try:
+                eval_ref = json.loads(eval_raw)
+            except ValueError as e:
+                raise SystemExit(f"--eval-ref-json JSON 解析失敗：{e}") from e
+            if not isinstance(eval_ref, dict):
+                raise SystemExit("--eval-ref-json 必須是 JSON 物件（dict）")
+    else:
+        eval_ref = None
+
+    channel = getattr(args, "channel", "native") or "native"
+    instance = getattr(args, "instance", None) or ("native" if channel == "native" else None)
+
     return {
         "ts": (now or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
-        "project": args.project or project, "task": args.task, "level": level,
-        "channel": args.channel, "instance": args.instance or ("native" if args.channel == "native" else None),
-        "class": args.cls, "model": classes[args.cls]["model"], "thinking": args.thinking,
-        "first_pass": first, "retries": args.retries, "escalations": args.escalations,
-        "final_class": args.final_class or args.cls, "verdict": args.verdict,
+        "project": getattr(args, "project", None) or project,
+        "task": args.task,
+        "level": level,
+        "channel": channel,
+        "instance": instance,
+        "class": args.cls,
+        "model": model,
+        "thinking": args.thinking,
+        "first_pass": first,
+        "retries": retries,
+        "escalations": escalations,
+        "final_class": final_cls,
+        "verdict": args.verdict,
         "error_kind": error_kind,
-        "rules_version": version, "profile": profile, "control": bool(args.control), "note": note,
+        "rules_version": version,
+        "profile": profile,
+        "control": bool(getattr(args, "control", False)),
+        "note": note,
+        "schema_version": SCHEMA_VERSION,
+        "origin": origin,
+        "role": role,
+        "infra_issue": infra_issue,
+        "scope": scope,
+        "unverified": unverified,
+        "subject_pass": subject_pass,
+        "model_ok": model_ok,
+        "defect_kind": defect_kind,
+        "retries_infra": retries_infra,
+        "retries_quality": retries_quality,
+        "judged_model": judged_model,
+        "judged_thinking": judged_thinking,
+        "duration_sec": duration_sec,
+        "work_id": work_id,
+        "eval_ref": eval_ref,
+        "inferred": inferred,
     }
 
 
@@ -658,29 +1010,416 @@ def read_log(path):
     return rows, bad
 
 
-# ---------- 統計與試行判定 ----------
+# ---------- 非破壞性讀取期投影（v1 回溯瀑布流 ＋ 複合缺陷覆寫保護） ----------
+
+_ZERO_FALSE_POSITIVE_RE = re.compile(r"(?:0\s*誤報|零誤報|無誤報|0\s*缺漏|0\s*佔位符錯|0\s*missing)")
+DEFECT_EVIDENCE_RE = re.compile(
+    r"漏掉官方|結論不可靠|數字對不上|經核對不成立|誤報|寫錯|未對官方頁|"
+    r"把文件當成已實作|引文有對不上|宣稱沒改檔|夾帶自行添加|抽測抓到.*失敗|"
+    r"查無原文|報告本身\s*\d+\s*處(?:小)?錯"
+)
+_INFRA_NOTE_PATTERNS = (
+    ("cancelled", re.compile(r"提前取消|使用者取消|手動取消")),
+    ("model_unavailable", re.compile(r"無此模型|未開通.*credits|無\s*Fable|model_forbidden", re.I)),
+    ("rate_limit", re.compile(r"\b429\b|rate[-_ ]?limit", re.I)),
+    ("quota", re.compile(
+        r"額度|配額|限額|quota|5h\s*(?:上限|限額|中斷|桶)|"
+        r"撞\s*(?:02:00|2am|上限|Ryan|Kai|個人|Gemini|週)|週上限|冷卻至|"
+        r"前半\s*(?:Kai|Ryan).*收尾\s*(?:antigravity|claude)",
+        re.I,
+    )),
+    ("harness_timeout", re.compile(r"15\s*分鐘無輸出|sent nothing for 15 minutes", re.I)),
+    ("harness_permission", re.compile(r"無頭權限擋|權限核准|守工作目錄邊界|觸發審批")),
+    ("harness_tooling", re.compile(r"靜默結束|Git Bash\s*路徑|provider\s*錯誤|斷線|ECONNREFUSED|被中斷.*換手", re.I)),
+)
+_SCOPE_CAP_RE = re.compile(
+    r"(?:跑滿|查滿|到|第)?\s*\d+\s*組(?:上限|未飽和|未收斂|完整|到頂)|\d+-group\s+cap|照\s*★\s*停法停|長尾未飽和",
+    re.I,
+)
+_UNVERIFIED_RE = re.compile(r"內容待主控查證|待主控查證")
+_VERIFY_CATCH_RE = re.compile(
+    r"抓到|抓出|初審|首輪\s*FAIL|第一輪\s*FAIL|初驗\s*(?:FAIL|PASS)|修後窄範圍重驗|[DB]\d+\s*[-–]\s*[DB]?\d+"
+)
+_NOTE_THINKING_RE = re.compile(r"(?:Opus(?:\s*5\.5)?|Fable(?:\s*5\.2)?|Carbon|Neon|Hydrogen)\s+(low|medium|high|xhigh|max)\b", re.I)
+
+
+def _infer_defect_kind(clean_note):
+    if "宣稱沒改檔" in clean_note:
+        return "false_claim"
+    if "夾帶自行添加" in clean_note:
+        return "overreach"
+    if "漏掉官方" in clean_note or "漏看後續決定" in clean_note:
+        return "missed_requirement"
+    if re.search(r"抽測抓到.*失敗", clean_note):
+        return "unfinished"
+    if DEFECT_EVIDENCE_RE.search(clean_note):
+        return "wrong_fact"
+    return "other"
+
+
+def _derive_attribution(proj):
+    """依投影後的正交欄位決定一致的 failure_attribution。"""
+    verdict = proj.get("verdict")
+    infra = proj.get("infra_issue")
+    scope = proj.get("scope")
+    model_ok = proj.get("model_ok")
+    if model_ok is False:
+        if infra is not None or scope == "capped_by_caller" or "compound_defect" in (proj.get("inferred") or []):
+            return "compound_defect"
+        return "model_defect"
+    if verdict == "skipped":
+        if infra in QUOTA_INFRA:
+            return "infra_quota"
+        if infra in HARNESS_INFRA:
+            return "infra_harness"
+        return "skipped"
+    if proj.get("unverified"):
+        return "unverified"
+    if proj.get("role") in ("reviewer", "judge") and proj.get("subject_pass") is False and model_ok is True:
+        return "verify_subject_fail"
+    if infra is not None and model_ok is None:
+        return "infra_quota" if infra in QUOTA_INFRA else "infra_harness"
+    if scope == "capped_by_caller" and model_ok is True and (verdict == "partial" or not proj.get("first_pass", True)):
+        return "scope_cap_partial"
+    return None
+
+
+def _resolve_judged_pair(row, pol=None):
+    cls = row.get("class")
+    final_cls = row.get("final_class") or cls
+    raw_model = row.get("model")
+    raw_th = row.get("thinking")
+    classes = (pol or {}).get("model_classes") or {}
+    if not final_cls or final_cls == cls:
+        jm = raw_model or (classes.get(cls) or {}).get("model") or LEGACY_CLASS_MODELS.get(cls) or cls
+        return jm, raw_th, False
+    t_spec = classes.get(final_cls) or {}
+    jm = t_spec.get("model") or LEGACY_CLASS_MODELS.get(final_cls) or raw_model or final_cls
+    note = str(row.get("note") or "")
+    m_th = _NOTE_THINKING_RE.search(note)
+    if m_th:
+        jt = m_th.group(1).lower()
+    else:
+        jt = _clamp_thinking_for_class(t_spec, raw_th) if t_spec else raw_th
+    return jm, jt, True
+
+
+def project_record(row, annotations=None, pol=None):
+    """非破壞性讀取期投影：不修改傳入的 row、不改寫 log.jsonl。
+    v1 紀錄（無 schema_version）透過確定性瀑布流與複合缺陷覆寫保護（Defect-Override Guard）投影為 v2 結構；
+    若有 annotations（dict: key -> override）命中紀錄指紋鍵則最後覆寫。"""
+    out = dict(row)
+    fp_key = record_fingerprint(out)
+
+    if out.get("schema_version") and int(out["schema_version"]) >= 2:
+        inferred = list(out.get("inferred") or [])
+        out.setdefault("origin", "field")
+        out.setdefault("role", "reviewer" if out.get("task") == "verify" else "author")
+        out.setdefault("infra_issue", ERROR_TO_INFRA.get(out.get("error_kind")) if out.get("error_kind") else None)
+        out.setdefault("scope", "complete")
+        out.setdefault("unverified", False)
+        out.setdefault("subject_pass", None)
+        out.setdefault("defect_kind", None)
+        out.setdefault("retries_infra", 0)
+        out.setdefault("retries_quality", 0)
+        jm, jt, _ = _resolve_judged_pair(out, pol)
+        out.setdefault("judged_model", jm)
+        out.setdefault("judged_thinking", jt)
+        out.setdefault("duration_sec", None)
+        out.setdefault("work_id", None)
+        out.setdefault("eval_ref", None)
+        out["inferred"] = inferred
+        if "failure_attribution" not in out:
+            out["failure_attribution"] = _derive_attribution(out)
+    else:
+        inferred = ["v1_backfill"]
+        verdict = out.get("verdict")
+        task = out.get("task")
+        retries = int(out.get("retries") or 0)
+        escalations = int(out.get("escalations") or 0)
+        if isinstance(out.get("first_pass"), bool):
+            first_pass = out["first_pass"]
+        else:
+            first_pass = verdict == "pass" and not retries and not escalations
+            out["first_pass"] = first_pass
+
+        origin = "field"
+        role = "reviewer" if task == "verify" else "author"
+        inferred.extend(["origin", "role"])
+
+        note = str(out.get("note") or "")
+        clean_note = _ZERO_FALSE_POSITIVE_RE.sub("", note)
+
+        error_kind = out.get("error_kind")
+        infra_issue = ERROR_TO_INFRA.get(error_kind) if error_kind else None
+        if infra_issue is None and note:
+            for kind, pat in _INFRA_NOTE_PATTERNS:
+                if pat.search(note):
+                    infra_issue = kind
+                    break
+        if infra_issue is not None:
+            inferred.append("infra_issue")
+
+        scope = "capped_by_caller" if (note and _SCOPE_CAP_RE.search(note)) else "complete"
+        if scope != "complete":
+            inferred.append("scope")
+
+        unverified = bool(note and _UNVERIFIED_RE.search(note) and verdict in ("partial", "skipped"))
+        if unverified:
+            inferred.append("unverified")
+
+        is_verify_catch = bool(
+            role in ("reviewer", "judge")
+            and (verdict in ("fail", "partial") or retries > 0)
+            and infra_issue is None
+            and note
+            and _VERIFY_CATCH_RE.search(note)
+        )
+        has_defect_evidence = bool(clean_note and DEFECT_EVIDENCE_RE.search(clean_note) and not is_verify_catch)
+
+        subject_pass = None
+        defect_kind = None
+        retries_infra = 0
+        retries_quality = 0
+
+        # 確定性優先序瀑布流 ＋ 複合缺陷覆寫保護（Defect-Override Guard）
+        if first_pass and verdict == "pass":
+            model_ok = True
+            if role in ("reviewer", "judge"):
+                subject_pass = True
+                inferred.append("subject_pass")
+            failure_attribution = None
+        elif first_pass and verdict == "partial":
+            if has_defect_evidence:
+                model_ok = False
+                defect_kind = _infer_defect_kind(clean_note)
+                retries_quality = retries
+                if infra_issue is not None or scope == "capped_by_caller":
+                    failure_attribution = "compound_defect"
+                    inferred.append("compound_defect")
+                else:
+                    failure_attribution = "model_defect"
+                inferred.append("defect_kind")
+            else:
+                model_ok = True
+                failure_attribution = "scope_cap_partial" if scope == "capped_by_caller" else None
+        elif verdict == "skipped":
+            if has_defect_evidence:
+                model_ok = False
+                defect_kind = _infer_defect_kind(clean_note)
+                if infra_issue is not None or scope == "capped_by_caller":
+                    failure_attribution = "compound_defect"
+                    inferred.append("compound_defect")
+                else:
+                    failure_attribution = "model_defect"
+                inferred.append("defect_kind")
+            else:
+                model_ok = None
+                retries_infra = retries if infra_issue is not None else 0
+                if infra_issue in QUOTA_INFRA:
+                    failure_attribution = "infra_quota"
+                elif infra_issue in HARNESS_INFRA:
+                    failure_attribution = "infra_harness"
+                else:
+                    failure_attribution = "skipped"
+        elif has_defect_evidence:
+            # Defect-Override Guard：即使同筆撞額度、逾時或 12/15 組上限，真實模型缺陷絕不洗白！
+            model_ok = False
+            defect_kind = _infer_defect_kind(clean_note)
+            if infra_issue is not None:
+                retries_infra = retries
+            else:
+                retries_quality = retries
+            if infra_issue is not None or scope == "capped_by_caller":
+                failure_attribution = "compound_defect"
+                inferred.append("compound_defect")
+            else:
+                failure_attribution = "model_defect"
+            inferred.append("defect_kind")
+        elif unverified:
+            model_ok = None
+            failure_attribution = "unverified"
+        elif is_verify_catch:
+            subject_pass = False
+            model_ok = True
+            retries_quality = 0
+            failure_attribution = "verify_subject_fail"
+            inferred.append("subject_pass")
+        elif infra_issue is not None:
+            model_ok = None
+            retries_infra = retries
+            failure_attribution = "infra_quota" if infra_issue in QUOTA_INFRA else "infra_harness"
+        elif scope == "capped_by_caller":
+            model_ok = True
+            retries_quality = 0
+            failure_attribution = "scope_cap_partial"
+        else:
+            model_ok = False
+            defect_kind = "other"
+            retries_quality = retries
+            failure_attribution = "model_defect"
+            inferred.extend(["defect_kind", "fallback_non_first_pass"])
+
+        inferred.append("model_ok")
+        jm, jt, changed_jm = _resolve_judged_pair(out, pol)
+        if changed_jm:
+            inferred.extend(["judged_model", "judged_thinking"])
+
+        out.update({
+            "schema_version": SCHEMA_VERSION,
+            "raw_schema_version": 1,
+            "origin": origin,
+            "role": role,
+            "infra_issue": infra_issue,
+            "scope": scope,
+            "unverified": unverified,
+            "subject_pass": subject_pass,
+            "model_ok": model_ok,
+            "defect_kind": defect_kind,
+            "retries_infra": retries_infra,
+            "retries_quality": retries_quality,
+            "judged_model": jm,
+            "judged_thinking": jt,
+            "duration_sec": out.get("duration_sec"),
+            "work_id": out.get("work_id"),
+            "eval_ref": out.get("eval_ref"),
+            "failure_attribution": failure_attribution,
+            "inferred": inferred,
+        })
+
+    if annotations and fp_key in annotations:
+        ov = annotations[fp_key]
+        if isinstance(ov, dict) and ov:
+            out.update(ov)
+            inf = list(out.get("inferred") or [])
+            if "annotation" not in inf:
+                inf.append("annotation")
+            out["inferred"] = inf
+            if "failure_attribution" not in ov:
+                out["failure_attribution"] = _derive_attribution(out)
+
+    return out
+
+
+# ---------- 統計、Wilson 信賴區間與回溯對帳 ----------
+
+def wilson_ci(k, n, z=1.96):
+    """純標準庫計算 Wilson score 信賴區間，回傳 [lo, hi]（0..1 浮點數）。"""
+    if n <= 0:
+        return [0.0, 0.0]
+    k = max(0, min(int(k), int(n)))
+    n = float(n)
+    p = k / n
+    z2 = float(z) * float(z)
+    denom = 1.0 + z2 / n
+    center = (p + z2 / (2.0 * n)) / denom
+    half = (float(z) / denom) * math.sqrt((p * (1.0 - p) / n) + (z2 / (4.0 * n * n)))
+    return [round(max(0.0, min(1.0, center - half)), 4), round(max(0.0, min(1.0, center + half)), 4)]
+
 
 def rate(rows):
     return (sum(1 for r in rows if r.get("first_pass")) / len(rows)) if rows else None
 
 
-def stats(pol, rows):
-    """一次通過率（依級別與一開始派的類別分組；沒驗收的 skipped 不算），以及每個試行的判定。"""
+def stats(pol, rows, annotations=None):
+    """雙視圖統計：保留舊版依 (level, class) 的原始 table 相容舊呼叫端，
+    並新增依 (level, judged_model, judged_thinking) 的去噪 clean_table、infra_summary、verify_summary、attribution_counts；
+    trials 改以去噪 model_ok（origin=='field' 且 model_ok is not None）判定，並附 raw_trial_rate 與 wilson_ci。"""
     judged = [r for r in rows if r.get("verdict") != "skipped"]
     groups = {}
     for r in judged:
         groups.setdefault((r.get("level"), r.get("class")), []).append(r)
     table = [{"level": lv, "class": c, "n": len(g), "first_pass_rate": rate(g),
               "escalated": sum(1 for r in g if r.get("escalations"))} for (lv, c), g in sorted(groups.items(), key=str)]
+
+    projected = [project_record(r, annotations=annotations, pol=pol) for r in rows]
+
+    # 1. 去噪模型良率表：依 (level, judged_model, judged_thinking) 分組，只計 origin == "field" 且 model_ok is not None
+    clean_field = [p for p in projected if p.get("origin") == "field" and p.get("model_ok") is not None]
+    c_groups = {}
+    for p in clean_field:
+        key = (p.get("level"), p.get("judged_model") or p.get("model"), p.get("judged_thinking") or p.get("thinking"))
+        c_groups.setdefault(key, []).append(p)
+    clean_table = []
+    for (lv, jm, jt), g in sorted(c_groups.items(), key=lambda kv: tuple(str(x or "") for x in kv[0])):
+        n = len(g)
+        ok_n = sum(1 for p in g if p.get("model_ok") is True)
+        ci = wilson_ci(ok_n, n)
+        durs = [float(p["duration_sec"]) for p in g if isinstance(p.get("duration_sec"), (int, float))]
+        clean_table.append({
+            "level": lv,
+            "model": jm,
+            "judged_model": jm,
+            "thinking": jt,
+            "judged_thinking": jt,
+            "n": n,
+            "ok": ok_n,
+            "model_ok_rate": ok_n / n if n else None,
+            "wilson_ci": ci,
+            "low_sample": n < 20,
+            "ceiling_warn": bool(n >= 20 and ci[0] > 0.85),
+            "median_duration_sec": round(statistics.median(durs), 1) if durs else None,
+        })
+
+    # 2. 基礎設施損耗彙總：依 (instance, channel) 分組
+    i_groups = {}
+    for p in projected:
+        ikey = (p.get("instance") or "unknown", p.get("channel") or "unknown")
+        i_groups.setdefault(ikey, []).append(p)
+    infra_summary = []
+    for (inst, ch), g in sorted(i_groups.items(), key=str):
+        ic = sum(1 for p in g if p.get("infra_issue") is not None)
+        by_issue = {}
+        for p in g:
+            iss = p.get("infra_issue")
+            if iss:
+                by_issue[iss] = by_issue.get(iss, 0) + 1
+        infra_summary.append({
+            "instance": inst,
+            "channel": ch,
+            "total": len(g),
+            "infra_count": ic,
+            "infra_rate": round(ic / len(g), 4) if g else 0.0,
+            "issues": by_issue,
+        })
+
+    # 3. 審查抓蟲率統計
+    rev_rows = [p for p in projected if p.get("origin") == "field" and p.get("role") == "reviewer"]
+    rev_eval = [p for p in rev_rows if p.get("subject_pass") is not None]
+    rev_caught = sum(1 for p in rev_eval if p.get("subject_pass") is False)
+    verify_summary = {
+        "reviewer_total": len(rev_rows),
+        "evaluated_n": len(rev_eval),
+        "caught_n": rev_caught,
+        "catch_rate": round(rev_caught / len(rev_eval), 4) if rev_eval else None,
+        "wilson_ci": wilson_ci(rev_caught, len(rev_eval)) if rev_eval else [0.0, 0.0],
+        "reviewer_model_ok_n": sum(1 for p in rev_rows if p.get("model_ok") is True),
+    }
+
+    # 4. 歸因類別計數
+    attribution_counts = {}
+    for p in projected:
+        attr = p.get("failure_attribution") or "clean_pass"
+        attribution_counts[attr] = attribution_counts.get(attr, 0) + 1
+
+    # 5. 試行判定：改以去噪 model_ok 為基準，附 raw_trial_rate 與 wilson_ci
     trials = {}
     for name, tr in (pol.get("trials") or {}).items():
-        mine = [r for r in judged if r.get("class") == tr["class"]]
-        levels = sorted({r.get("level") for r in mine}, key=str)
+        clean_mine = [p for p in clean_field if p.get("class") == tr["class"]]
+        raw_mine = [r for r in judged if r.get("class") == tr["class"]]
+        levels = sorted({p.get("level") for p in (clean_mine or raw_mine)}, key=str)
         per = []
         for lv in levels:
-            a = [r for r in mine if r.get("level") == lv]
-            b = [r for r in judged if r.get("class") == tr["baseline"] and r.get("level") == lv]
-            ra, rb = rate(a), rate(b)
+            a = [p for p in clean_mine if p.get("level") == lv]
+            b = [p for p in clean_field if p.get("class") == tr["baseline"] and p.get("level") == lv]
+            raw_a = [r for r in raw_mine if r.get("level") == lv]
+            raw_b = [r for r in judged if r.get("class") == tr["baseline"] and r.get("level") == lv]
+            ok_a = sum(1 for p in a if p.get("model_ok") is True)
+            ok_b = sum(1 for p in b if p.get("model_ok") is True)
+            ra = (ok_a / len(a)) if a else None
+            rb = (ok_b / len(b)) if b else None
+            ci_a = wilson_ci(ok_a, len(a))
+            ci_b = wilson_ci(ok_b, len(b))
             gap = None if ra is None or rb is None else round((rb - ra) * 100, 1)
             if len(a) < tr["min_samples"]:
                 verdict = f"樣本不足：{tr['class']} 有 {len(a)} 筆，要 {tr['min_samples']} 筆"
@@ -690,10 +1429,90 @@ def stats(pol, rows):
                 verdict = f"退回：{tr['class']} 比 {tr['baseline']} 低 {gap} 個百分點（門檻 {tr['max_gap_pp']}）"
             else:
                 verdict = f"繼續試行：差距 {gap} 個百分點，低於門檻 {tr['max_gap_pp']}"
-            per.append({"level": lv, "trial_n": len(a), "trial_rate": ra, "baseline_n": len(b), "baseline_rate": rb,
-                        "gap_pp": gap, "verdict": verdict, "revert": verdict.startswith("退回")})
-        trials[name] = per or [{"verdict": f"樣本不足：{tr['class']} 還沒有紀錄", "revert": False}]
-    return {"total": len(rows), "judged": len(judged), "table": table, "trials": trials}
+            per.append({
+                "level": lv,
+                "trial_n": len(a),
+                "trial_rate": ra,
+                "raw_trial_n": len(raw_a),
+                "raw_trial_rate": rate(raw_a),
+                "wilson_ci": ci_a,
+                "baseline_n": len(b),
+                "baseline_rate": rb,
+                "raw_baseline_rate": rate(raw_b),
+                "baseline_wilson_ci": ci_b,
+                "gap_pp": gap,
+                "verdict": verdict,
+                "revert": verdict.startswith("退回"),
+            })
+        trials[name] = per or [{
+            "verdict": f"樣本不足：{tr['class']} 還沒有紀錄",
+            "revert": False,
+            "raw_trial_rate": None,
+            "wilson_ci": [0.0, 0.0],
+        }]
+
+    return {
+        "total": len(rows),
+        "judged": len(judged),
+        "clean_judged": len(clean_field),
+        "table": table,
+        "clean_table": clean_table,
+        "infra_summary": infra_summary,
+        "verify_summary": verify_summary,
+        "attribution_counts": attribution_counts,
+        "trials": trials,
+    }
+
+
+def backfill_audit(path, annotations=None, pol=None, limit=30):
+    """唯讀對帳：計算原 log.jsonl SHA-256 並執行讀取期投影，彙總歸因分布與前 limit 筆真模型缺陷／複合缺陷。"""
+    p = Path(path)
+    before_sha = hashlib.sha256(p.read_bytes()).hexdigest() if p.is_file() else None
+    rows, bad = read_log(p)
+    attribution_counts = {}
+    defects = []
+    v1_count, v2_count, annotated_count = 0, 0, 0
+    for idx, r in enumerate(rows, 1):
+        if r.get("schema_version") and int(r["schema_version"]) >= 2:
+            v2_count += 1
+        else:
+            v1_count += 1
+        proj = project_record(r, annotations=annotations, pol=pol)
+        if "annotation" in (proj.get("inferred") or []):
+            annotated_count += 1
+        attr = proj.get("failure_attribution") or "clean_pass"
+        attribution_counts[attr] = attribution_counts.get(attr, 0) + 1
+        if proj.get("model_ok") is False or attr in ("model_defect", "compound_defect"):
+            defects.append({
+                "index": idx,
+                "ts": proj.get("ts"),
+                "task": proj.get("task"),
+                "level": proj.get("level"),
+                "class": proj.get("class"),
+                "judged_model": proj.get("judged_model"),
+                "judged_thinking": proj.get("judged_thinking"),
+                "verdict": proj.get("verdict"),
+                "failure_attribution": attr,
+                "defect_kind": proj.get("defect_kind"),
+                "infra_issue": proj.get("infra_issue"),
+                "scope": proj.get("scope"),
+                "note": proj.get("note"),
+            })
+    after_sha = hashlib.sha256(p.read_bytes()).hexdigest() if p.is_file() else None
+    return {
+        "log_path": str(p),
+        "log_sha256": before_sha,
+        "after_sha256": after_sha,
+        "zero_mutation": before_sha == after_sha,
+        "total": len(rows),
+        "unreadable_lines": bad,
+        "v1_count": v1_count,
+        "v2_count": v2_count,
+        "annotated_count": annotated_count,
+        "attribution_counts": attribution_counts,
+        "defect_total": len(defects),
+        "defects": defects[: max(0, int(limit))],
+    }
 
 
 # ---------- 本週 Claude 用量 ----------
@@ -917,14 +1736,75 @@ def account_lines(rows, filtered, hints=()):
     return lines
 
 
-def stats_text(s):
-    lines = [f"委派紀錄 {s['total']} 筆，有驗收的 {s['judged']} 筆"]
-    for r in s["table"]:
-        pct = "—" if r["first_pass_rate"] is None else f"{r['first_pass_rate'] * 100:.1f}%"
-        lines.append(f"  {r['level']} / {r['class']}：{r['n']} 筆，一次通過 {pct}，升級 {r['escalated']} 筆")
+def stats_text(s, mode="both"):
+    lines = [f"委派紀錄 {s['total']} 筆，有驗收的 {s['judged']} 筆（去噪實地可評 {s.get('clean_judged', 0)} 筆）"]
+    if mode in ("both", "raw"):
+        if mode == "both":
+            lines.append("\n原始一次通過率（依級別 / 初始類別，含基礎設施雜訊）：")
+        for r in s["table"]:
+            pct = "—" if r["first_pass_rate"] is None else f"{r['first_pass_rate'] * 100:.1f}%"
+            lines.append(f"  {r['level']} / {r['class']}：{r['n']} 筆，一次通過 {pct}，升級 {r['escalated']} 筆")
+    if mode in ("both", "clean"):
+        lines.append("\n去噪模型良率（origin=field，依 level / model / thinking 分組，附 Wilson 95% CI）：")
+        for r in s.get("clean_table") or []:
+            lo, hi = r["wilson_ci"]
+            pct = "—" if r["model_ok_rate"] is None else f"{r['model_ok_rate'] * 100:.1f}%"
+            tags = []
+            if r.get("low_sample"):
+                tags.append("n<20 樣本偏少，請看區間")
+            if r.get("ceiling_warn"):
+                tags.append("觸頂警示 CI下限>85%")
+            dur = f"，中位耗時 {r['median_duration_sec']:.1f}s" if r.get("median_duration_sec") is not None else ""
+            tag_s = f"［{'；'.join(tags)}］" if tags else ""
+            lines.append(
+                f"  {r['level']} / {r['model']} ({r['thinking']})：{r['ok']}/{r['n']} 通過（{pct}，"
+                f"95% CI [{lo * 100:.1f}%, {hi * 100:.1f}%]{dur}）{tag_s}"
+            )
+        infra_rows = [x for x in (s.get("infra_summary") or []) if x.get("infra_count")]
+        lines.append("\n基礎設施損耗率（依 instance / channel）：")
+        if not infra_rows:
+            lines.append("  無基礎設施損耗紀錄")
+        for x in infra_rows:
+            detail = "、".join(f"{k}:{v}" for k, v in sorted((x.get("issues") or {}).items()))
+            lines.append(
+                f"  {x['instance']} / {x['channel']}：{x['infra_count']}/{x['total']}"
+                f"（{x['infra_rate'] * 100:.1f}%；{detail}）"
+            )
+        vs = s.get("verify_summary") or {}
+        if vs.get("reviewer_total"):
+            cpct = "—" if vs.get("catch_rate") is None else f"{vs['catch_rate'] * 100:.1f}%"
+            vlo, vhi = vs.get("wilson_ci") or [0.0, 0.0]
+            lines.append(
+                f"\n審查抓蟲率（reviewer）：共 {vs['reviewer_total']} 筆，已評被審物 {vs['evaluated_n']} 筆，"
+                f"抓出真問題 {vs['caught_n']} 筆（{cpct}，95% CI [{vlo * 100:.1f}%, {vhi * 100:.1f}%]）"
+            )
     for name, per in s["trials"].items():
         for p in per:
-            lines.append(f"試行 {name}{'（' + p['level'] + '）' if p.get('level') else ''}：{p['verdict']}")
+            extra = ""
+            if p.get("trial_rate") is not None and p.get("wilson_ci"):
+                lo, hi = p["wilson_ci"]
+                raw_s = f"，原始 {p['raw_trial_rate'] * 100:.1f}%" if p.get("raw_trial_rate") is not None else ""
+                extra = f"（去噪 {p['trial_rate'] * 100:.1f}%，95% CI [{lo * 100:.1f}%, {hi * 100:.1f}%]{raw_s}）"
+            lines.append(f"試行 {name}{'（' + p['level'] + '）' if p.get('level') else ''}：{p['verdict']}{extra}")
+    return "\n".join(lines)
+
+
+def backfill_audit_text(rep):
+    lines = [
+        f"唯讀回溯對帳：{rep['log_path']}",
+        f"  log_sha256：{rep['log_sha256'] or '（檔案不存在）'}（零寫改驗證：{'通過' if rep['zero_mutation'] else '失敗'}）",
+        f"  總筆數：{rep['total']}（v1 舊紀錄 {rep['v1_count']} 筆、v2 新紀錄 {rep['v2_count']} 筆、覆寫命中 {rep['annotated_count']} 筆、壞行 {rep['unreadable_lines']}）",
+        "\n歸因分布：",
+    ]
+    for k, v in sorted((rep.get("attribution_counts") or {}).items(), key=lambda kv: (-kv[1], kv[0])):
+        pct = (v / rep["total"] * 100) if rep["total"] else 0.0
+        lines.append(f"  {k}：{v} 筆（{pct:.1f}%）")
+    lines.append(f"\n真模型缺陷／複合缺陷清單（共 {rep['defect_total']} 筆，顯示前 {len(rep['defects'])} 筆）：")
+    for d in rep.get("defects") or []:
+        lines.append(
+            f"  #{d['index']} [{d['failure_attribution']}/{d['defect_kind']}] {d['level']} / {d['judged_model']} ({d['judged_thinking']}) "
+            f"task={d['task']} verdict={d['verdict']}：{(d.get('note') or '')[:120]}"
+        )
     return "\n".join(lines)
 
 
@@ -1056,8 +1936,22 @@ def run_agy(pol, args):
 # ---------- 主程式 ----------
 
 def context():
-    """這台的 data、state、選的 profile 與它的資料夾。"""
+    """這台的 data、state、選的 profile 與它的資料夾。
+    在 git worktree 內開發時，被 .gitignore 忽略的個人 profile（data/profiles/<name>）只存在主 repo；
+    若當前 data/ 找不到，依序查 state/config.json 登記的主 repo，仍無則退回 default，避免 worktree 內 stats/backfill-audit 失敗。"""
     data, state = profiles.DATA, profiles.STATE
+    chosen_name = profiles.chosen(state)
+    if chosen_name and profiles.folder(data, state, chosen_name) is None:
+        cfg_file = Path(state) / "config.json"
+        if cfg_file.is_file():
+            try:
+                cfg_repo = Path(json.loads(cfg_file.read_text(encoding="utf-8-sig")).get("repo") or "")
+                cand = cfg_repo / "data" / "profiles" / chosen_name
+                if (cand / "AGENTS.md").is_file():
+                    return data, state, chosen_name, cand
+            except (OSError, ValueError, TypeError):
+                pass
+        return data, state, profiles.DEFAULT, profiles.folder(data, state, profiles.DEFAULT)
     name, _ = profiles.resolve(data, state)
     return data, state, name, profiles.folder(data, state, name)
 
@@ -1079,8 +1973,22 @@ def main(argv=None):
     p.add_argument("--verdict", required=True)
     p.add_argument("--first-pass", choices=["yes", "no"])
     p.add_argument("--retries", type=int, default=0)
+    p.add_argument("--retries-infra", type=int, default=None, help="基礎設施重跑次數")
+    p.add_argument("--retries-quality", type=int, default=None, help="模型品質重跑次數")
     p.add_argument("--escalations", type=int, default=0)
     p.add_argument("--final-class")
+    p.add_argument("--origin", choices=ORIGINS, default=None, help="紀錄來源：field（預設）| eval | probe")
+    p.add_argument("--role", choices=ROLES, default=None, help="角色：author | reviewer | prework | judge")
+    p.add_argument("--infra", choices=INFRA_ISSUES, default=None, help="基礎設施問題分類")
+    p.add_argument("--scope", choices=SCOPES, default=None, help="執行範圍：complete | capped_by_caller | truncated_by_model")
+    p.add_argument("--scope-capped", action="store_true", help="快捷旗標：等同 --scope capped_by_caller（如 12 組上限封頂）")
+    p.add_argument("--unverified", action="store_true", help="交付完成但尚未完成實質驗收（model_ok=None）")
+    p.add_argument("--subject-pass", choices=["yes", "no", "na"], default=None, help="被審物是否通過（僅 reviewer/judge 有效）")
+    p.add_argument("--model-ok", choices=["yes", "no", "na"], default=None, help="模型本身表現是否合格（no 必填 --defect）")
+    p.add_argument("--defect", choices=DEFECT_KINDS, default=None, help="模型缺陷分類")
+    p.add_argument("--duration-sec", type=float, default=None, help="本次委派耗時（秒）")
+    p.add_argument("--work", default=None, help="同一工作包／對照實驗叢集 ID")
+    p.add_argument("--eval-ref-json", default=None, help="關聯盲評／評測 JSON 物件字串")
     p.add_argument("--channel", choices=CHANNELS, default="native")
     p.add_argument("--instance")
     p.add_argument("--level")
@@ -1093,6 +2001,10 @@ def main(argv=None):
     p.add_argument("--note")
     p.add_argument("--dry-run", action="store_true")
     p = sub.add_parser("stats")
+    p.add_argument("--mode", choices=STATS_MODES, default="both", help="顯示視圖：both（預設）| raw | clean")
+    p.add_argument("--json", action="store_true")
+    p = sub.add_parser("backfill-audit", help="唯讀對帳 log.jsonl 投影結果與原檔 SHA-256 零寫改驗證")
+    p.add_argument("--limit", type=int, default=30, help="列出模型缺陷清單筆數上限（預設 30）")
     p.add_argument("--json", action="store_true")
     p = sub.add_parser("usage")
     p.add_argument("--all", action="store_true", help="列出全部 Claude 設定目錄與 Antigravity 帳號的額度視圖")
@@ -1206,9 +2118,15 @@ def main(argv=None):
         return 0
     if args.cmd == "stats":
         rows, bad = read_log(log_path(state))
-        s = stats(pol, rows)
+        anns = read_annotations(state)
+        s = stats(pol, rows, annotations=anns)
         s["unreadable_lines"] = bad
-        print(json.dumps(s, ensure_ascii=False, indent=2) if args.json else stats_text(s) + (f"\n讀不懂的行：{bad}" if bad else ""))
+        print(json.dumps(s, ensure_ascii=False, indent=2) if args.json else stats_text(s, mode=args.mode) + (f"\n讀不懂的行：{bad}" if bad else ""))
+        return 0
+    if args.cmd == "backfill-audit":
+        anns = read_annotations(state)
+        rep = backfill_audit(log_path(state), annotations=anns, pol=pol, limit=args.limit)
+        print(json.dumps(rep, ensure_ascii=False, indent=2) if args.json else backfill_audit_text(rep))
         return 0
     if args.cmd == "agy":
         out = run_agy(pol, args)
@@ -1511,6 +2429,28 @@ def selftest():
        and fails(lambda: make_record(pol, ns(**{**base, "cls": "antigravity-opus", "thinking": "xhigh"}), "v", "r", "p"))
        and fails(lambda: make_record(pol, ns(**{**base, "verdict": "ok"}), "v", "r", "p"))
        and fails(lambda: make_record(pol, ns(**{**base, "escalations": 1}), "v", "r", "p")))
+    ok("Schema v2：欄位與政策 log.fields 完全一致；源頭防呆擋下無 --defect 的 --model-ok no 與無歸因的 reviewer fail",
+       tuple(rec.keys()) == LOG_FIELDS and rec["schema_version"] == 2 and rec["model_ok"] is True
+       and esc["judged_model"] == "claude-opus-5-5" and esc["model_ok"] is False
+       and erec["infra_issue"] == "quota" and erec["model_ok"] is None
+       and fails(lambda: make_record(pol, ns(**{**base, "model_ok": "no"}), "v", "r", "p"))
+       and fails(lambda: make_record(pol, ns(**{**base, "task": "verify", "cls": "claude-opus", "thinking": "xhigh", "verdict": "fail"}), "v", "r", "p"))
+       and make_record(pol, ns(**{**base, "task": "verify", "cls": "claude-opus", "thinking": "xhigh", "verdict": "pass", "subject_pass": "no"}), "v", "r", "p")["model_ok"] is True)
+    ci_9 = wilson_ci(9, 9)
+    compound_v1 = project_record({
+        "ts": "2026-11-15T00:00:00+00:00", "task": "readonly", "level": "medium", "class": "gemini-pro",
+        "model": "gemini-4-hydrogen", "thinking": "high", "verdict": "partial", "first_pass": False, "retries": 1,
+        "escalations": 0, "final_class": "gemini-pro", "error_kind": None,
+        "note": "兩輪都因 15 分鐘無輸出被 T3 停掉；事後發現漏掉官方 cuda-gpu 變體，結論不可靠",
+    }, pol=pol)
+    ok("Schema v2 回溯與 Wilson CI：9/9 下限約 0.701，複合缺陷覆寫保護（逾時＋漏掉官方）強制標 model_ok=False 與 compound_defect",
+       0.700 <= ci_9[0] <= 0.702 and ci_9[1] == 1.0
+       and compound_v1["model_ok"] is False and compound_v1["failure_attribution"] == "compound_defect"
+       and compound_v1["judged_model"] == "gemini-4-hydrogen")
+    bad_fields = json.loads(json.dumps(pol))
+    bad_fields["log"]["fields"] = ["ts", "final_model"]
+    ok("政策檢查抓得到 log.fields 與 make_record 欄位漂移（如舊版誤寫 final_model）",
+       any("log.fields" in e and "final_model" in e for e in check(bad_fields)))
 
     def rows(cls, n, passed, level="medium"):
         return [{"level": level, "class": cls, "first_pass": i < passed, "verdict": "pass" if i < passed else "fail",
