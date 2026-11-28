@@ -617,28 +617,199 @@ def test_one_fresh_evidence_after_last_code_write_is_enough(tmp_path):
     assert out is None
 
 
-def test_tool_call_evidence_row_is_not_judged_stale(tmp_path):
-    """「第幾次工具呼叫」量不到時間，有這種列就不判 evidence-stale（寧可放過，不誤擋）。"""
+def test_tool_call_row_does_not_hide_old_runtime_evidence(tmp_path):
+    """PR #13 審查 P1-2：量不到時間的列（第幾次工具呼叫）算中性，不能讓改碼前拍的截圖一起過關。"""
     now = time.time()
     shot = tmp_path / "old.png"
     shot.write_bytes(b"png")
-    os.utime(shot, (now - 3600, now - 3600))
+    os.utime(shot, (now - 300, now - 300))
     tr = transcript_with_writes(tmp_path, now - 600, [(str(tmp_path / "app.py"), now - 60)])
-    assert dc.handle(stop(receipt("old.png"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK) is None
+    out = dc.handle(stop(receipt("old.png"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK)
+    assert out["decision"] == "block" and "old.png" in out["reason"]
 
 
-def test_session_scan_reads_last_code_write(tmp_path):
+def test_old_reference_in_static_row_is_not_runtime_evidence(tmp_path):
+    """只看實跑觀察、截圖這類層級的列：靜態列引用舊規格檔、實跑列是工具呼叫，不判 evidence-stale。"""
+    now = time.time()
+    spec = tmp_path / "spec.md"
+    spec.write_text("spec", encoding="utf-8")
+    os.utime(spec, (now - 3600, now - 3600))
+    msg = ("【完成待收尾】改好了。\n\n## 完工回執\n| 需求項 | 驗證層級 | 驗證指令或觀察 | 結果 | 證據位置 |\n|---|---|---|---|---|\n"
+           "| 符合規格 | 靜態 | 對照規格 | 符合 | spec.md |\n| 畫面正確 | 實跑觀察 | 開面板 | 正確 | 本回合第 9 次工具呼叫 |\n沒驗的範圍：無\n")
+    tr = transcript_with_writes(tmp_path, now - 600, [(str(tmp_path / "app.py"), now - 60)])
+    assert dc.handle(stop(msg, cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK) is None
+
+
+def test_writes_outside_cwd_do_not_count_as_code_change(tmp_path):
+    """PR #13 審查 P1-1：在 cwd 外寫暫存腳本或 HTML 摘要，不算這段對話改了程式碼，引用稍早的報告不判 evidence-stale。"""
+    now = time.time()
+    cwd = tmp_path / "repo"
+    cwd.mkdir()
+    report = cwd / "sub-report.md"
+    report.write_text("ok", encoding="utf-8")
+    os.utime(report, (now - 600, now - 600))
+    tr = transcript_with_writes(tmp_path, now - 7200, [(str(tmp_path / "scratch" / "repro.py"), now - 60),
+                                                       (str(tmp_path / "scratch" / "summary.html"), now - 30)])
+    assert dc.handle(stop(file_receipt("sub-report.md"), cwd=str(cwd), transcript_path=str(tr)), env=BLOCK) is None
+
+
+@pytest.mark.parametrize("name", ["main.go", "lib.rs", "config.yaml", "settings.json", "schema.sql"])
+def test_non_doc_file_writes_count_as_change(tmp_path, name):
+    """PR #13 審查 P1-3：改法 4 寫的是「修改過檔案」，不限 CODE_EXTS；只有文件（.md 這類）不算。"""
+    now = time.time()
+    shot = tmp_path / "old.png"
+    shot.write_bytes(b"png")
+    os.utime(shot, (now - 300, now - 300))
+    tr = transcript_with_writes(tmp_path, now - 600, [(str(tmp_path / name), now - 60)])
+    out = dc.handle(stop(file_receipt("old.png"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK)
+    assert out["decision"] == "block" and "old.png" in out["reason"]
+
+
+def test_session_scan_reads_last_change(tmp_path):
     now = time.time()
     tr = transcript_with_writes(tmp_path, now - 600, [(str(tmp_path / "a.py"), now - 300),
                                                       (str(tmp_path / "test_a.py"), now - 200),
-                                                      (str(tmp_path / "NOW.md"), now - 100)])
+                                                      (str(tmp_path / "NOW.md"), now - 100),
+                                                      (str(tmp_path.parent / "elsewhere.py"), now - 50)])
     scan = dc.session_scan(str(tr), str(tmp_path))
-    assert scan.has_transcript and scan.last_code_write == pytest.approx(now - 200, abs=1)
-    agy = tmp_path / "agy.jsonl"
-    agy.write_text(json.dumps({"source": "MODEL", "type": "TOOL_CALL", "created_at": _iso(now - 50),
-                               "args": {"Path": str(tmp_path / "b.ts")}}) + "\n", encoding="utf-8")
-    assert dc.session_scan(str(agy), str(tmp_path)).last_code_write == pytest.approx(now - 50, abs=1)
+    assert scan.has_transcript and scan.sees_writes
+    assert scan.last_code_write == pytest.approx(now - 200, abs=1)
     assert dc.session_scan(None).last_code_write is None
+
+
+def _agy_transcript(tmp_path: Path, start: float, final: str) -> Path:
+    """照本機 Antigravity 紀錄的真實形狀：工具呼叫放在 PLANNER_RESPONSE.tool_calls[]，沒有頂層 TOOL_CALL。"""
+    rows = [{"source": "USER_EXPLICIT", "type": "USER_INPUT", "created_at": _iso(start), "content": "開工"},
+            {"source": "MODEL", "type": "PLANNER_RESPONSE", "created_at": _iso(time.time() - 60),
+             "tool_calls": [{"name": "write_file", "args": {"Path": str(tmp_path / "app.py"), "Content": "x"}}]},
+            {"source": "MODEL", "type": "PLANNER_RESPONSE", "created_at": _iso(time.time() - 1), "content": final}]
+    tr = tmp_path / "agy.jsonl"
+    tr.write_text("\n".join(json.dumps(x, ensure_ascii=False) for x in rows) + "\n", encoding="utf-8")
+    return tr
+
+
+def test_antigravity_falls_back_to_session_start_for_stale(tmp_path):
+    """PR #13 審查 P0-1：看不到寫檔紀錄的 agent（Antigravity）退回修前行為，拿對話開始時間逐項比。"""
+    now = time.time()
+    shot = tmp_path / "old.png"
+    shot.write_bytes(b"png")
+    os.utime(shot, (now - 86400, now - 86400))
+    tr = _agy_transcript(tmp_path, now - 7200, file_receipt("old.png"))
+    assert dc.session_scan(str(tr), str(tmp_path)).sees_writes is False
+    out = dc.handle({"hookEventName": "Stop", "conversationId": "c", "transcriptPath": str(tr), "cwd": str(tmp_path),
+                     "terminationReason": "NO_TOOL_CALL"}, env=BLOCK)
+    assert out["decision"] == "continue" and "old.png" in out["reason"]
+
+
+def test_codex_falls_back_to_session_start_for_stale(tmp_path):
+    """PR #13 審查 P0-1：Codex rollout 也看不到寫檔，退回對話開始時間逐項比。"""
+    now = time.time()
+    shot = tmp_path / "old.png"
+    shot.write_bytes(b"png")
+    os.utime(shot, (now - 86400, now - 86400))
+    tr = tmp_path / "rollout.jsonl"
+    rows = [{"timestamp": _iso(now - 7200), "type": "session_meta", "payload": {"timestamp": _iso(now - 7200)}},
+            {"timestamp": _iso(now - 60), "type": "response_item",
+             "payload": {"type": "custom_tool_call", "name": "apply_patch", "input": "*** Update File: app.py"}}]
+    tr.write_text("\n".join(json.dumps(x) for x in rows) + "\n", encoding="utf-8")
+    out = dc.handle(stop(file_receipt("old.png"), cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK)
+    assert out["decision"] == "block" and "old.png" in out["reason"]
+
+
+@pytest.mark.parametrize("scope", [
+    "## 沒驗的範圍\n- 手機寬度",
+    "### 沒驗的範圍：\n- 手機寬度",
+    "## 沒驗的範圍\n\n無",
+    "**沒驗的範圍**\n- 手機寬度",
+    "沒驗的範圍：\n無",
+    "沒驗的範圍：\n1、手機寬度",
+    "沒驗的範圍：\n（1）手機寬度",
+    "沒驗的範圍：\n- [ ] 手機寬度",
+])
+def test_scope_heading_and_newline_forms_count(tmp_path, scope):
+    """PR #13 審查 P1-4（改法 3.4）：標題式、粗體不加冒號、換行寫「無」、頓號與括號編號都算有寫。"""
+    assert "no-scope" not in rules(dc.check(receipt(scope=scope), cwd=str(tmp_path)))
+
+
+@pytest.mark.parametrize("scope", [
+    "沒驗的範圍：\n- - -",
+    "沒驗的範圍：\n- [ ]",
+    "沒驗的範圍：\n\n\n\n- 下一步：等 CI 跑完再 merge",
+    "## 沒驗的範圍\n\n## 下一步\n- 等 CI",
+])
+def test_scope_false_positives_are_still_no_scope(tmp_path, scope):
+    assert "no-scope" in rules(dc.check(receipt(scope=scope), cwd=str(tmp_path)))
+
+
+def test_table_row_mentioning_level_and_evidence_is_not_a_receipt(tmp_path):
+    """改法 3.3：一般表格的資料列剛好提到「層級」與「證據」，下一列不是分隔列，不能當成回執表頭。"""
+    msg = ("【完成待收尾】改好了。\n\n| 欄位 | 說明 |\n|---|---|\n| 驗證層級 | 證據位置要寫路徑 |\n| a | b |\n"
+           "沒驗的範圍：無\n")
+    assert "no-receipt" in rules(dc.check(msg, cwd=str(tmp_path)))
+
+
+def test_cross_repo_relative_evidence_resolves_from_deliverable(tmp_path):
+    """PR #13 審查 P1-5（改法 4.2）：回執在別的資料夾的交付檔裡，相對證據先照交付檔所在資料夾解析；
+    解不到的降成提示，不判 evidence-missing。"""
+    cwd = tmp_path / "repo"
+    cwd.mkdir()
+    other = tmp_path / "status" / "reports"
+    other.mkdir(parents=True)
+    (other / "evidence.txt").write_text("3 passed", encoding="utf-8")
+    deliverable = other / "r.md"
+    done = other / "r.md.done"
+    tr = transcript_with_writes(tmp_path, time.time() - 600, [(str(done), time.time() - 5)])
+    done.write_text("", encoding="utf-8")
+    deliverable.write_text(file_receipt("evidence.txt"), encoding="utf-8")
+    assert dc.handle(stop("寫好了。", cwd=str(cwd), transcript_path=str(tr)), env=BLOCK) is None
+    deliverable.write_text(file_receipt("not-here.txt"), encoding="utf-8")
+    r = dc.check("寫好了。", cwd=str(cwd), done_paths=[str(done)])
+    assert "evidence-missing" not in rules(r) and any(rule == "evidence-unverifiable" for rule, _ in r.hints)
+
+
+def test_done_only_mentioned_in_command_does_not_trigger(tmp_path):
+    """PR #13 審查 P1-6（改法 1.2）：指令文字裡提到 .done、檔案其實沒寫出來，不算這一回合寫了 .done。"""
+    command = 'cat > repro.py <<EOF\n(rep / "r.md.done").write_text("")\nEOF'
+    tr = transcript_with_command(tmp_path, command)
+    assert dc.handle(stop("寫好了。", cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK) is None
+
+
+def test_done_written_before_this_turn_does_not_trigger(tmp_path):
+    old = tmp_path / "old.md.done"
+    old.write_text("", encoding="utf-8")
+    past = time.time() - 86400 * 365 * 10  # transcript_with_command 的回合開在 2026-01-01，比它更早
+    os.utime(old, (past, past))
+    tr = transcript_with_command(tmp_path, f"echo ok > {old}")
+    assert dc.handle(stop("寫好了。", cwd=str(tmp_path), transcript_path=str(tr)), env=BLOCK) is None
+
+
+@pytest.mark.parametrize("args", [["--since", "yesterday"], ["--since", "2026/11/28"], ["--limit", "abc"], ["--since"],
+                                  ["--since", "--json"]])
+def test_replay_cli_rejects_bad_arguments_without_traceback(tmp_path, args):
+    env = {**os.environ, "OMNIKIT_STATE_DIR": str(tmp_path / "st"), "USERPROFILE": str(tmp_path), "HOME": str(tmp_path)}
+    env.pop("CLAUDE_CONFIG_DIR", None)
+    proc = subprocess.run([sys.executable, str(SCRIPTS / "done_check.py"), "--replay", *args],
+                          capture_output=True, text=True, encoding="utf-8", env=env, check=False)
+    assert proc.returncode == 2 and "Traceback" not in proc.stderr and proc.stderr.strip()
+
+
+def test_replay_limit_counts_replayed_not_skipped_and_reports_triggered(tmp_path):
+    home, other, st = _replay_home(tmp_path)
+    for i in range(3):  # 最新的 3 份都找不到 cwd
+        tp = transcript_with_writes(home / ".claude" / "projects" / "p", time.time() - 60, [], f"nocwd{i}.jsonl",
+                                    NO_RECEIPT)
+        os.utime(tp, (time.time() + 10 + i, time.time() + 10 + i))
+    rep = dc.replay_history(state_dir=st, home_dir=home, limit=3, extra_dirs=[other])
+    assert rep["replayed_transcripts"] == 3 and rep["triggered"] == 3
+
+
+def test_replay_labels_same_named_config_dirs_apart(tmp_path):
+    home, _, st = _replay_home(tmp_path)
+    twin = tmp_path / "elsewhere" / ".claude"
+    transcript_with_writes(twin / "projects" / "p", time.time() - 60, [], "e.jsonl", NO_RECEIPT,
+                           str(tmp_path / "work"))
+    rep = dc.replay_history(state_dir=st, home_dir=home, limit=50, extra_dirs=[twin])
+    assert sum(rep["by_config_dir"].values()) == 3 and len(rep["by_config_dir"]) == 3
 
 
 def _replay_home(tmp_path: Path):
