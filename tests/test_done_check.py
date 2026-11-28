@@ -299,6 +299,7 @@ def test_done_file_written_this_turn_triggers(tmp_path):
             {"type": "tool_use", "id": "t1", "name": "Write", "input": {"file_path": str(done), "content": "ok"}}]}},
     ]
     tr.write_text("\n".join(json.dumps(x) for x in lines) + "\n", encoding="utf-8")
+    done.write_text("ok", encoding="utf-8")  # 改法 1.2：.done 要真的寫出來才算
     data = stop("寫好了。", cwd=str(tmp_path), transcript_path=str(tr))
     out = dc.handle(data, env=BLOCK)
     assert out["decision"] == "block" and "完工回執" in out["reason"]

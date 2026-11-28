@@ -15,9 +15,14 @@
 1. 沒有完工回執：找不到表頭含「驗證層級」與「證據位置」的表格（程式碼區塊裡的不算，原樣貼出的範本佔位列也不算）。
    表格的格子照 Markdown 切：反引號裡的 | 與跳脫的 \\| 不是分隔。回覆裡沒有時，也看 `.done` 對應的交付檔
    （`x.md.done` 看 `x.md`，`x.done` 看 `x.md`、`x.txt` 與 `.done` 本身），回執寫在交付檔裡也算。
-2. 回執沒有「沒驗的範圍：」這一行（沒有也要寫「無」）。
-3. 證據位置是檔案路徑的：檔案要存在，修改時間要在這段對話開始之後（對話開始時間取對話紀錄的第一筆時間；
-   那筆時間沒帶時區就不知道是本機時間還是 UTC，跳過這項不擋。三家本機紀錄實際都帶 Z）。
+   表頭那一列後面要接 |---| 分隔列；`.done` 要真的在磁碟上、是這一回合寫的，指令文字裡只是提到的不算。
+2. 回執沒有「沒驗的範圍」（同一行寫，或標題、冒號後換行接條列或「無」都算；沒有也要寫「無」）。
+3. 證據位置是檔案路徑的：檔案要存在（先照回執所在交付檔的資料夾找，再照 cwd；交付檔在別的 repo、相對路徑解不到的
+   只提示）。新鮮度：
+   - Claude Code（看得到寫檔）：這段對話在 cwd 裡改過檔（.md 這類文件以外）時，實跑觀察、截圖這類層級的列裡，
+     量得到時間的證據檔至少一項不早於最後一次改檔；沒改過檔不判。第幾次工具呼叫、程式碼行號、git 追蹤的檔算中性。
+   - Antigravity、Codex（看不到寫檔）與沒有對話紀錄時：每個證據檔的修改時間要在這段對話開始之後。
+   對話開始與改檔時間取對話紀錄裡的時間；沒帶時區就不知道是本機時間還是 UTC，跳過這項不擋。三家本機紀錄實際都帶 Z。
 4. 標了【完成待收尾】：cwd 的 git 有未提交（git status --porcelain）或未 push（@{u}..HEAD；沒設上游時看 HEAD
    在不在任何遠端分支裡）。不是 git repo、沒有遠端、git 出錯或逾時都跳過不擋。回覆寫明「只在這台」時不查未 push
    （使用者規則對【完成待收尾】的定義：不能 push 的寫明只在這台）；程式碼區塊、行內程式碼與否定句（不是只在這台）不算。
@@ -68,10 +73,14 @@ LABEL = "【完成待收尾】"
 LABEL_LINE = re.compile(r"(?m)^[ \t]*(?:#{1,6}[ \t]+|[-*+][ \t]+)?(?:\*\*)?【完成待收尾】")
 NON_DONE_LABEL_LINE = re.compile(r"(?m)^[ \t]*(?:#{1,6}[ \t]+|[-*+][ \t]+)?(?:\*\*)?【(?:進行中|等你決定|卡住)】")
 FENCE = re.compile(r"```[\s\S]*?(?:```|$)")
-SCOPE = re.compile(r"(?m)^[ \t>*\-]*(?:\*\*)?(?:沒驗的範圍|沒有驗的範圍|未驗證的範圍|未驗的範圍)(?:\*\*)?[ \t]*[:：]"
+SCOPE_WORDS = r"(?:沒驗的範圍|沒有驗的範圍|未驗證的範圍|未驗的範圍)"
+SCOPE = re.compile(r"(?m)^[ \t>*\-]*(?:#{1,6}[ \t]+)?(?:\*\*)?" + SCOPE_WORDS + r"(?:\*\*)?[ \t]*[:：]"
                    r"[ \t]*(?:\*\*)?[ \t]*(\S.*)?$")
-SCOPE_LIST_ITEM = re.compile(r"^[ \t>]*(?:[-*+•]|\d{1,3}[.)、])[ \t]+(\S.*)$")  # 「沒驗的範圍：」下一行的條列
-TOOL_CALL_REF = re.compile(r"工具呼叫|tool[ _-]?call", re.IGNORECASE)  # 「第幾次工具呼叫」：量不到時間的證據
+# 整行只有「沒驗的範圍」：標題（## 沒驗的範圍）、粗體不加冒號（**沒驗的範圍**），內容寫在下面幾行（改法 3.4）
+SCOPE_HEAD = re.compile(r"(?m)^[ \t>]*(?:#{1,6}[ \t]+)?(?:\*\*)?" + SCOPE_WORDS + r"(?:\*\*)?[ \t]*[:：]?[ \t]*(?:\*\*)?[ \t]*$")
+# 「沒驗的範圍」下一行的條列：- 項目、1. 項目、1、項目、（1）項目
+SCOPE_LIST_ITEM = re.compile(r"^[ \t>]*(?:[-*+•][ \t]+|\d{1,3}(?:[.)][ \t]+|、[ \t]*)|[（(]\d{1,3}[)）][ \t]*)(\S.*)$")
+SCOPE_NONE_LINE = re.compile(r"^[ \t>]*(?:無|沒有|none|n/?a)[ \t。.]*$", re.IGNORECASE)  # 換行後只寫「無」
 LOCAL_ONLY = re.compile(r"只在這台")
 NEGATIONS = ("不是", "並非", "不", "非", "沒有", "未必")  # 「不是只在這台」「不只在這台」不算宣告
 FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})")
@@ -79,6 +88,8 @@ STATIC = re.compile(r"靜態|static|lint|typecheck|型別檢查", re.IGNORECASE)
 NOT_STATIC = re.compile(r"單元|unit|整合|integration|實跑|觀察|端到端|e2e|截圖|人工|手動|manual", re.IGNORECASE)
 RUNTIME_PROOF = re.compile(r"整合|integration|實跑|觀察|端到端|e2e|瀏覽器|browser|webkit|playwright|截圖|人工|手動|manual", re.IGNORECASE)
 CODE_EXTS = {".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".vue", ".svelte", ".html", ".css", ".ps1", ".sh"}
+# 改法 4 的「修改過檔案」不限程式碼；只有文件、紀錄與 .done 這類寫了也不算改到東西
+DOC_EXTS = {".md", ".markdown", ".mdx", ".txt", ".rst", ".log", ".done"}
 DONE_CLAIM_TEXT = re.compile(r"(?:已完成|已經完成|修好了|已經幫你.*修好|全部通過|測試全過|改好了|done\b|all tests pass)", re.IGNORECASE)
 FAKE_GREEN_LINE_RE = re.compile(
     r"(?:\b(?:it|test|describe)\.skip\s*\(\s*['\"`]|\b(?:xit|xdescribe|xtest)\s*\("
@@ -214,24 +225,37 @@ SCOPE_PLACEHOLDER = SCOPE.search(RECEIPT_FORMAT).group(1).strip()  # 「…（�
 
 def _scope_filled(value) -> bool:
     v = (value or "").strip("*").strip()
-    return bool(v.strip("….。 ")) and v != SCOPE_PLACEHOLDER
+    core = re.sub(r"^\[[ xX]?\][ \t]*", "", v)  # 勾選框 - [ ] 本身不算內容
+    return bool(core.strip("….。 -*_=~")) and v != SCOPE_PLACEHOLDER
+
+
+def _scope_below(text: str, end: int) -> bool:
+    """「沒驗的範圍」那一行之後（最多隔一個空行）是有內容的條列，或只寫「無」。"""
+    blanks = 0
+    for ln in text[end:].split("\n")[1:]:
+        if not ln.strip():
+            blanks += 1
+            if blanks > 1:
+                return False
+            continue
+        item = SCOPE_LIST_ITEM.match(ln)
+        if item:
+            return _scope_filled(item.group(1))
+        return bool(SCOPE_NONE_LINE.match(ln))
+    return False
 
 
 def _has_scope(text: str) -> bool:
-    """「沒驗的範圍：」同一行有寫，或冒號後換行、下一個非空行是有內容的條列項目（628166ec 實例）。"""
+    """「沒驗的範圍：」同一行有寫；或冒號後換行、標題式、粗體式，下面接條列或「無」（628166ec 實例、改法 3.4）。"""
     for m in SCOPE.finditer(text):
-        if _scope_filled(m.group(1)):
+        if _scope_filled(m.group(1)) or (not m.group(1) and _scope_below(text, m.end())):
             return True
-        if m.group(1):
-            continue
-        for ln in text[m.end():].split("\n")[1:]:
-            if not ln.strip():
-                continue
-            item = SCOPE_LIST_ITEM.match(ln)
-            if item and _scope_filled(item.group(1)):
-                return True
-            break
-    return False
+    return any(_scope_below(text, m.end()) for m in SCOPE_HEAD.finditer(text))
+
+
+def _is_separator(line: str) -> bool:
+    cells = _cells(line) if line.strip().startswith("|") else []
+    return bool(cells) and all(re.fullmatch(r":?-{2,}:?", c) or not c for c in cells) and any(cells)
 
 
 def parse_receipt(text: str) -> Receipt | None:
@@ -243,7 +267,8 @@ def parse_receipt(text: str) -> Receipt | None:
     i = 0
     while i < len(lines):
         line = lines[i]
-        if line.strip().startswith("|") and "層級" in line and "證據" in line:
+        if (line.strip().startswith("|") and "層級" in line and "證據" in line
+                and i + 1 < len(lines) and _is_separator(lines[i + 1])):  # 改法 3.3：後面要接分隔列才是表頭
             found = True
             head = _cells(line)
             level_i = next(k for k, c in enumerate(head) if "層級" in c)
@@ -496,7 +521,10 @@ class SessionScan:
     changed_code: bool = False  # 本回合改過應用程式碼（不含測試檔）
     touched: set = field(default_factory=set)  # 整個對話在 cwd 內寫過的相對路徑
     committed: bool = False  # 整個對話執行過 git commit 這類指令
-    last_code_write: float | None = None  # 整個對話最後一次寫程式碼（含測試檔）的時間（epoch）；改法 4 拿它判 evidence-stale
+    # 整個對話最後一次在 cwd 裡改檔（.md 這類文件以外，含測試檔與設定檔）的時間（epoch）；改法 4 拿它判 evidence-stale
+    last_code_write: float | None = None
+    sees_writes: bool = False  # 這種對話紀錄看得到寫檔（Claude Code）；Antigravity、Codex 看不到，evidence-stale 退回對話開始時間
+    turn_started: float | None = None  # 這一回合（最後一則使用者訊息）的時間；改法 1.2 拿它判 .done 是不是這一回合寫的
 
 
 def session_edit_summary(path: str | None, cwd: str | None = None, subagent: bool = False) -> tuple[bool, bool, set[str], bool]:
@@ -506,9 +534,11 @@ def session_edit_summary(path: str | None, cwd: str | None = None, subagent: boo
 
 
 def session_scan(path: str | None, cwd: str | None = None, subagent: bool = False) -> SessionScan:
-    """讀對話紀錄尾端，整理這段對話寫過哪些檔、有沒有 commit、最後一次寫程式碼的時間。
-    寫檔時間取發出工具呼叫那一筆的時間（Claude 的 timestamp、Antigravity 的 created_at），會比真正寫入早一點，判斷偏寬。
-    只看 Write／Edit 這類工具與 Antigravity 的 Path 參數；用 shell 改檔（sed、腳本）看不到。"""
+    """讀對話紀錄尾端，整理這段對話寫過哪些檔、有沒有 commit、最後一次改檔的時間。
+    寫檔時間取發出工具呼叫那一筆的時間（Claude 的 timestamp），會比真正寫入早一點，判斷偏寬。
+    只看 Claude Code 的 Write／Edit 這類工具；用 shell 改檔（sed、腳本）看不到。
+    Antigravity 的工具呼叫實際放在 PLANNER_RESPONSE.tool_calls[]（2026-11-28 查本機 60 份紀錄，沒有頂層 TOOL_CALL），
+    下面的 TOOL_CALL 分支讀不到東西，所以 sees_writes 只對 Claude Code 為真。"""
     if not path or not Path(path).is_file():
         return SessionScan()
     try:
@@ -541,17 +571,19 @@ def session_scan(path: str | None, cwd: str | None = None, subagent: bool = Fals
             return
         fp = Path(raw_fp)
         name_low = fp.name.lower()
-        is_code = fp.suffix.lower() in CODE_EXTS
-        if in_this_turn and is_code and not TEST_FILE_NAME_RE.search(name_low):
+        if in_this_turn and fp.suffix.lower() in CODE_EXTS and not TEST_FILE_NAME_RE.search(name_low):
             turn_changed_app_code = True
-        if is_code and (t := _epoch(ts)) is not None and (last_code_write is None or t > last_code_write):
+        if base_res is None:
+            return
+        try:
+            resolved = fp.resolve() if fp.is_absolute() else (base_res / fp).resolve()
+            rel = resolved.relative_to(base_res).as_posix()
+        except (OSError, ValueError):
+            return  # cwd 外的暫存腳本、摘要不算這段對話改了這個專案（PR #13 審查 P1-1）
+        session_touched.add(rel)
+        if fp.suffix.lower() not in DOC_EXTS and (t := _epoch(ts)) is not None and (
+                last_code_write is None or t > last_code_write):
             last_code_write = t
-        if base_res is not None:
-            try:
-                resolved = fp.resolve() if fp.is_absolute() else (base_res / fp).resolve()
-                session_touched.add(resolved.relative_to(base_res).as_posix())
-            except (OSError, ValueError):
-                pass
 
     for idx, e in enumerate(entries):
         in_turn = idx >= turn_start
@@ -579,7 +611,10 @@ def session_scan(path: str | None, cwd: str | None = None, subagent: bool = Fals
             raw_c = str(p.get("arguments") or p.get("input") or "")
             if GIT_COMMIT_CMD_RE.search(raw_c):
                 session_committed = True
-    return SessionScan(True, turn_changed_app_code, session_touched, session_committed, last_code_write)
+    sees_writes = any(e.get("type") in ("assistant", "user") and isinstance(e.get("message"), dict) for e in entries)
+    turn_started = _epoch(entries[turn_start - 1].get("timestamp")) if turn_start > 0 else None
+    return SessionScan(True, turn_changed_app_code, session_touched, session_committed,
+                       last_code_write if sees_writes else None, sees_writes, turn_started)
 
 
 def turn_edit_summary(path: str | None, cwd: str | None = None, subagent: bool = False) -> tuple[bool, set[str]]:
@@ -604,6 +639,23 @@ def _is_git_tracked_file(cwd: str | None, p: Path, runner=None) -> bool:
     return rc == 0 and bool(out.strip())
 
 
+def _is_under(p: Path, base: Path) -> bool:
+    try:
+        p.resolve().relative_to(base.resolve())
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def _done_written(raw: str, cwd: str, since: float | None) -> bool:
+    """改法 1.2：抓到的 .done 要真的在磁碟上，而且是這一回合寫的（指令文字裡只是提到的不算）。"""
+    p = resolve(raw, Path(cwd))
+    try:
+        return p.is_file() and (since is None or p.stat().st_mtime >= since - SLACK)
+    except OSError:
+        return False
+
+
 def check(
     message: str,
     cwd: str | None = None,
@@ -616,6 +668,7 @@ def check(
     session_scoped: bool = False,
     session_committed: bool = False,
     last_code_write: float | None = None,
+    track_writes: bool = False,
 ) -> Result:
     stripped_msg = strip_fences(message or "")
     has_non_done_status = bool(NON_DONE_LABEL_LINE.search(stripped_msg)) and not bool(LABEL_LINE.search(stripped_msg))
@@ -665,42 +718,45 @@ def check(
             r.problems.append(("receipt-empty", "完工回執的表格沒有任何一列"))
         if not rc.has_scope:
             r.problems.append(("no-scope", "完工回執沒有「沒驗的範圍：」這一行（沒有也要寫「無」）"))
-        # 新鮮度的基準：有對話紀錄時照改法 4 用這段對話最後一次寫程式碼的時間（沒寫過程式碼就不判），
-        # 至少一項證據不早於它就過；沒有對話紀錄（--check、直接呼叫）沿用對話開始時間逐項比。
-        judge_ts = last_code_write if session_scoped else session_start
-        missing, stale, old = [], [], []
-        maybe_fresh = False
+        # 證據路徑先照回執所在交付檔的資料夾解析，再照 cwd；交付檔在 cwd 外（別的 repo）解不到的相對路徑降成提示（改法 4.2）
+        in_file = where != "這則回覆"
+        bases = [Path(where).parent, base] if in_file else [base]
+        receipt_elsewhere = in_file and not _is_under(Path(where), base)
+        # 新鮮度（改法 4）：看得到寫檔（Claude Code）時，跟這段對話最後一次在 cwd 改檔的時間比，沒改過就不判；
+        # 只看實跑觀察、截圖這類層級的列，裡面量得到時間的證據檔至少一項不早於它就過。
+        # 量不到時間的（第幾次工具呼叫、程式碼行號、git 追蹤的檔）算中性，不掩護舊截圖（PR #13 審查 P1-2）。
+        # 看不到寫檔（Antigravity、Codex）或沒有對話紀錄（--check、直接呼叫）時，沿用對話開始時間逐項比（審查 P0-1）。
+        judge_ts = last_code_write if track_writes else session_start
+        missing, unverifiable, stale, old = [], [], [], []
+        fresh = False
         for row in rc.rows:
-            row_judged = False
-            for raw in cell_paths(row.evidence, base):
+            for raw in cell_paths(row.evidence, bases[0]):
                 has_line_anchor = bool(re.search(re.escape(raw) + r"(?::\d+|#L\d+)", row.evidence))
-                p = resolve(raw, base)
                 try:
-                    if not p.exists():
-                        missing.append(raw)
+                    p = next((c for c in (resolve(raw, b) for b in bases) if c.exists()), None)
+                    if p is None:
+                        relative = not resolve(raw, Path()).is_absolute()
+                        (unverifiable if receipt_elsewhere and relative else missing).append(raw)
                         continue
-                    if (not judge_ts or not p.is_file() or has_line_anchor
-                            or _is_git_tracked_file(cwd, p, runner=runner)):
-                        continue  # 程式碼行號、git 追蹤的檔是引用的出處，不是這次產生的證據
+                    if not judge_ts or not p.is_file() or (track_writes and not row.has_runtime):
+                        continue
                     is_old = p.stat().st_mtime < judge_ts - SLACK
                 except OSError:
                     continue
-                row_judged = True
                 if not is_old:
-                    maybe_fresh = True
-                elif session_scoped:
-                    old.append(raw)
-                else:
-                    stale.append(raw)
-            if not row_judged or TOOL_CALL_REF.search(row.evidence):
-                maybe_fresh = True  # 這列的證據量不到時間（第幾次工具呼叫、文字），寧可當成新的
+                    fresh = True
+                elif not (has_line_anchor or _is_git_tracked_file(cwd, p, runner=runner)):
+                    (old if track_writes else stale).append(raw)  # 行號、git 追蹤的檔是引用的出處，不算舊證據
         if missing:
             r.problems.append(("evidence-missing", f"證據位置的檔案不存在：{'、'.join(missing[:5])}"))
+        if unverifiable:
+            r.hints.append(("evidence-unverifiable", (f"回執在 {where}，這些相對路徑在交付檔旁與 cwd 都找不到，"
+                                                      f"沒辦法查：{'、'.join(unverifiable[:5])}")))
         if stale:
             r.problems.append(("evidence-stale", f"證據檔的修改時間早於這段對話開始，不是這次產生的：{'、'.join(stale[:5])}"))
-        elif session_scoped and old and not maybe_fresh:
-            r.problems.append(("evidence-stale", ("這段對話最後一次改程式碼之後，回執沒有任何一項新產生的證據"
-                                                  f"（證據檔都早於最後一次改程式碼）：{'、'.join(old[:5])}")))
+        elif track_writes and old and not fresh:
+            r.problems.append(("evidence-stale", ("這段對話最後一次改檔之後，實跑觀察這類的列沒有任何一項新產生的證據"
+                                                  f"（證據檔都早於最後一次改檔）：{'、'.join(old[:5])}")))
         if rc.rows and all(row.static for row in rc.rows):
             r.hints.append(("static-only", STATIC_HINT))
         elif changed_code and rc.rows and not any(row.has_runtime for row in rc.rows):
@@ -1030,8 +1086,8 @@ def evaluate(data: dict, env=None, runner=None) -> Evaluation:
         transcript = (data.get("agent_transcript_path") if subagent else None) or data.get("transcript_path")
         msg = data.get("last_assistant_message")
         message = msg if isinstance(msg, str) else ("" if subagent else last_message(data))
-        done = done_paths_this_turn(transcript, subagent)
         scan = session_scan(transcript, cwd, subagent)
+        done = [d for d in done_paths_this_turn(transcript, subagent) if _done_written(d, cwd, scan.turn_started)]
     ev.result = check(
         message,
         cwd=cwd,
@@ -1043,6 +1099,7 @@ def evaluate(data: dict, env=None, runner=None) -> Evaluation:
         session_scoped=scan.has_transcript,
         session_committed=scan.committed,
         last_code_write=scan.last_code_write,
+        track_writes=scan.sees_writes,
     )
     return ev
 
@@ -1260,7 +1317,10 @@ def replay_history(state_dir: Path | None = None, home_dir: Path | None = None, 
     hm = home_dir if home_dir is not None else Path.home()
     since_ts = _since_epoch(since)
     found: list[tuple[float, Path, str]] = []
-    for root in _replay_roots(hm, extra_dirs):
+    roots = _replay_roots(hm, extra_dirs)
+    names = [r.name for r in roots]
+    for root in roots:
+        label = root.name if names.count(root.name) == 1 else str(root)  # 同名的設定資料夾用完整路徑分開
         for tp in (root / "projects").rglob("*.jsonl"):
             if "subagents" in tp.parts:
                 continue
@@ -1269,15 +1329,17 @@ def replay_history(state_dir: Path | None = None, home_dir: Path | None = None, 
             except OSError:
                 continue
             if since_ts is None or mt >= since_ts:
-                found.append((mt, tp, root.name))
+                found.append((mt, tp, label))
     found.sort(key=lambda x: x[0], reverse=True)
     env_sim = {"OMNIKIT_DONE_CHECK": "block", "OMNIKIT_TRIPWIRE_LOG": "off", "OMNIKIT_STATE_DIR": str(st)}
-    total = blocked = skipped = 0
+    total = blocked = skipped = triggered = 0
     by_rule: dict[str, int] = {}
     by_dir: dict[str, int] = {}
     blocked_by_dir: dict[str, int] = {}
     samples: list[dict] = []
-    for _, tp, label in found[: max(1, limit)]:
+    for _, tp, label in found:
+        if total >= max(1, limit):
+            break  # limit 算真的回放的份數，跳過的不算
         try:
             cwd = _transcript_cwd(tp)
         except OSError:
@@ -1290,7 +1352,10 @@ def replay_history(state_dir: Path | None = None, home_dir: Path | None = None, 
         ev = evaluate({"hook_event_name": "Stop", "session_id": tp.stem, "transcript_path": str(tp), "cwd": cwd},
                       env=env_sim)
         r = ev.result
-        if r is None or not r.triggered or not r.problems:
+        if r is None or not r.triggered:
+            continue
+        triggered += 1
+        if not r.problems:
             continue
         blocked += 1
         blocked_by_dir[label] = blocked_by_dir.get(label, 0) + 1
@@ -1303,6 +1368,7 @@ def replay_history(state_dir: Path | None = None, home_dir: Path | None = None, 
     return {
         "replayed_transcripts": total,
         "skipped_no_cwd": skipped,
+        "triggered": triggered,
         "would_block": blocked,
         "block_rate_pct": round((blocked / total) * 100, 2) if total else 0.0,
         "by_rule": by_rule,
@@ -1326,15 +1392,23 @@ if __name__ == "__main__":
         sys.exit(selftest())
     if "--replay" in sys.argv:
         sys.stdout.reconfigure(encoding="utf-8")
-        lim = int(arg_after("--limit", "60") or 60)
-        rep = replay_history(limit=lim, since=arg_after("--since"),
-                             extra_dirs=[os.environ.get("CLAUDE_CONFIG_DIR") or ""])
+        sys.stderr.reconfigure(encoding="utf-8")
+        since_arg = arg_after("--since")
+        try:
+            if "--since" in sys.argv and since_arg is None:
+                raise ValueError("--since 後面要接日期或時間，例如 2026-11-28 或 2026-11-28T13:34:42+08:00")
+            _since_epoch(since_arg)
+            lim = int(arg_after("--limit", "60") or 60)
+        except ValueError as exc:
+            print(f"done_check --replay：參數不對：{exc}", file=sys.stderr)
+            sys.exit(2)
+        rep = replay_history(limit=lim, since=since_arg, extra_dirs=[os.environ.get("CLAUDE_CONFIG_DIR") or ""])
         if "--json" in sys.argv:
             print(json.dumps(rep, ensure_ascii=False, indent=2))
         else:
             print(f"回放近期 {rep['replayed_transcripts']} 份對話紀錄（另有 {rep['skipped_no_cwd']} 份找不到 cwd 跳過）："
-                  f"將攔截 {rep['would_block']} 份（{rep['block_rate_pct']}%），規則分布：{rep['by_rule']}，"
-                  f"各設定資料夾：{rep['by_config_dir']}\n限制：{rep['limitations']}")
+                  f"觸發 {rep['triggered']} 份，將攔截 {rep['would_block']} 份（{rep['block_rate_pct']}%），"
+                  f"規則分布：{rep['by_rule']}，各設定資料夾：{rep['by_config_dir']}\n限制：{rep['limitations']}")
         sys.exit(0)
     if "--check" in sys.argv:
         sys.stdout.reconfigure(encoding="utf-8")
