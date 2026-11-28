@@ -491,3 +491,207 @@ def test_schema_case_insensitive_patterns_match_checker_lists():
         assert not key_re.search(fact), fact
     for fact in ("okay", "not running", "readyz", "2026-11-27", "demo-host"):
         assert not word_re.search(fact), fact
+
+
+
+# ---- 2026-11-28 向下相容補強 7 項（控制平面 L1＋L2 規格模組 1）----
+
+def lines_for(stdout, level):
+    return [ln for ln in stdout.splitlines() if ln.strip().startswith(f"- [{level}]")]
+
+
+def test_reader_override_beats_self_reported_ten_year_period(tmp_path):
+    """狀態檔自報週期 10 年就永遠 FRESH：讀取方帶自己的期望時以讀取方為準，並註明檔案自報多少。"""
+    f = write(tmp_path, expected_period_s=10 * 365 * 86400, last_attempt_ts=iso(NOW - timedelta(days=3)),
+              last_success_ts=iso(NOW - timedelta(days=3)))
+    assert run(f).returncode == 0                      # 沒有讀取方期望時被自報騙過
+    r = run(f, "--override-period-s", 3600, "--override-grace-s", 600)
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert verdict_lines(r.stdout)[0].startswith("STALE")
+    assert "已套用讀取方期望（檔案自報 315360000 秒" in r.stdout
+    assert "超過週期 3600 秒加寬限 600 秒" in r.stdout
+
+
+def test_reader_override_can_also_relax_and_rejects_bad_values(tmp_path):
+    f = write(tmp_path, last_attempt_ts=iso(NOW - timedelta(hours=2)), last_success_ts=iso(NOW - timedelta(hours=2)))
+    assert run(f).returncode == 1
+    assert run(f, "--override-period-s", 86400).returncode == 0
+    for bad in (["--override-period-s", 0], ["--override-grace-s", -1], ["--override-period-s", "inf"],
+                ["--max-run-s", 0], ["--min-items-out", -1], ["--wake-grace-remaining-s", -5]):
+        r = run(f, *bad)
+        assert r.returncode == 2, (bad, r.stdout, r.stderr)
+        assert not verdict_lines(r.stdout)
+
+
+def test_started_but_stuck_is_stale_with_max_run_s(tmp_path):
+    """每天跑一次的工作 2 小時前開始、到現在沒成功：週期還沒過所以原本是 FRESH，max_run_s 才抓得到卡死。"""
+    fields = dict(expected_period_s=86400, grace_s=3600, last_success_ts=iso(NOW - timedelta(hours=5)),
+                  last_attempt_ts=iso(NOW - timedelta(hours=2)))
+    f = write(tmp_path, **fields)
+    assert run(f).returncode == 0
+    r = run(f, "--max-run-s", 1800)
+    assert r.returncode == 1 and "任務啟動後逾時疑似卡死" in r.stdout
+    assert run(f, "--max-run-s", 3 * 3600).returncode == 0                # 還在上限內
+    g = write(tmp_path, "self.json", max_run_s=1800, **fields)            # 做事那方自己宣告上限
+    assert run(g).returncode == 1
+    assert run(g, "--max-run-s", 86400).returncode == 0                   # 讀取方的值優先
+    done = write(tmp_path, "done.json", max_run_s=60)                     # 這一輪已經成功，不算卡住
+    assert run(done).returncode == 0
+    bad = write(tmp_path, "bad.json", max_run_s=0, **fields)
+    assert run(bad).returncode == 2
+
+
+def test_exit_zero_with_no_output_is_stale_with_min_items_out(tmp_path):
+    """排程 exit 0、心跳照寫，但這一輪寫出 0 筆：min_items_out 抓空跑；設了下限卻沒有 items_out 也算。"""
+    empty = write(tmp_path, "empty.json", progress={"items_out": 0})
+    assert run(empty).returncode == 0
+    r = run(empty, "--min-items-out", 1)
+    assert r.returncode == 1 and "產出筆數低於下限" in r.stdout
+    missing = write(tmp_path, "missing.json")
+    r = run(missing, "--min-items-out", 1)
+    assert r.returncode == 1 and "沒有 progress.items_out" in r.stdout
+    declared = write(tmp_path, "declared.json", min_items_out=100, progress={"items_out": 99})
+    assert run(declared).returncode == 1
+    enough = write(tmp_path, "enough.json", min_items_out=100, progress={"items_out": 412})
+    assert run(enough).returncode == 0
+    for i, bad in enumerate((-1, 1.5, "3", True)):
+        assert run(write(tmp_path, f"bad{i}.json", min_items_out=bad)).returncode == 2, bad
+
+
+def test_wake_grace_downgrades_only_timeout_stale_to_paused(tmp_path):
+    """電腦剛從休眠醒來：只因為時間過太久的 STALE 先標 PAUSED（exit 0、不是 FRESH），緩衝用完恢復 STALE。"""
+    f = write(tmp_path, last_attempt_ts=iso(NOW - timedelta(hours=9)), last_success_ts=iso(NOW - timedelta(hours=9)))
+    assert run(f).returncode == 1
+    r = run(f, "--wake-grace-remaining-s", 150)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert r.stdout.splitlines()[0].startswith("PAUSED")
+    assert "系統剛自休眠喚醒緩衝中" in r.stdout and "全部 FRESH" not in r.stdout
+    assert "1 個 PAUSED" in r.stdout.strip().splitlines()[-1]
+    assert run(f, "--wake-grace-remaining-s", 0).returncode == 1
+    # 寬限不蓋掉別的問題
+    empty = write(tmp_path, "empty.json", last_attempt_ts=iso(NOW - timedelta(hours=9)),
+                  last_success_ts=iso(NOW - timedelta(hours=9)), progress={"items_out": 0})
+    assert run(empty, "--wake-grace-remaining-s", 150, "--min-items-out", 1).returncode == 1
+    word = write(tmp_path, "word.json", status="running", last_attempt_ts=iso(NOW - timedelta(hours=9)),
+                 last_success_ts=iso(NOW - timedelta(hours=9)))
+    assert run(word, "--wake-grace-remaining-s", 150).returncode == 2
+    fresh = write(tmp_path, "fresh.json")
+    rf = run(fresh, "--wake-grace-remaining-s", 150)
+    assert rf.returncode == 0 and rf.stdout.splitlines()[0].startswith("FRESH")
+
+
+def test_remote_host_skips_pid_instead_of_down(tmp_path):
+    """狀態檔是別台機器同步過來的：pid 在這台一定查不到，有 host 就自動不查，不誤判 DOWN；本機的照樣查。"""
+    import socket
+
+    pid = dead_pid()
+    remote = write(tmp_path, "remote.json", pid=pid, host="some-other-box-9f3")
+    r = run(remote)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "遠端主機 some-other-box-9f3" in r.stdout
+    local = write(tmp_path, "local.json", pid=pid, host=socket.gethostname().upper())
+    r = run(local)
+    assert r.returncode == 2 and "不存在" in r.stdout
+    nohost = write(tmp_path, "nohost.json", pid=pid)                      # 舊格式：沒有 host 照舊查 pid
+    assert run(nohost).returncode == 2
+    for i, bad in enumerate(("", "   ", 7)):
+        assert run(write(tmp_path, f"bad{i}.json", host=bad)).returncode == 2, bad
+
+
+def test_paused_until_ts_is_gray_then_recovers_strict(tmp_path):
+    """預期暫停到某個時間：到期前 PAUSED（不是綠燈、不算異常），到期後自動恢復嚴格判定。"""
+    old = dict(last_attempt_ts=iso(NOW - timedelta(days=2)), last_success_ts=iso(NOW - timedelta(days=2)))
+    f = write(tmp_path, paused_until_ts=iso(NOW + timedelta(hours=6)), pid=dead_pid(), **old)
+    r = run(f)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert r.stdout.splitlines()[0].startswith("PAUSED") and "預期暫停到" in r.stdout
+    assert "全部 FRESH" not in r.stdout
+    assert not lines_for(r.stdout, "STALE") and not lines_for(r.stdout, "DOWN")
+    # 同一個檔，時間過了期限：恢復成原本該有的判定（pid 不在：DOWN）
+    r = run(f, now=NOW + timedelta(hours=7))
+    assert r.returncode == 2 and "暫停期限" in r.stdout
+    stale_after = write(tmp_path, "after.json", paused_until_ts=iso(NOW - timedelta(minutes=1)), **old)
+    assert run(stale_after).returncode == 1
+    # 沒過期的心跳在暫停期間也不能顯示成 FRESH
+    fresh_paused = write(tmp_path, "fp.json", paused_until_ts=iso(NOW + timedelta(hours=1)))
+    assert run(fresh_paused).stdout.splitlines()[0].startswith("PAUSED")
+
+
+@pytest.mark.parametrize("fields", [
+    {"paused": True},                                   # 狀態字不是事實
+    {"x_paused": True},
+    {"x_mode": "Paused"},
+    {"progress": {"paused": 1}},
+    {"paused_until_ts": "2026-11-28T00:00:00"},         # 沒帶時區
+    {"paused_until_ts": 1764212400},                    # epoch 數字
+])
+def test_paused_as_status_word_or_bad_timestamp_is_down(tmp_path, fields):
+    r = run(write(tmp_path, **fields))
+    assert r.returncode == 2, r.stdout + r.stderr
+
+
+def test_pause_far_in_the_future_is_not_honoured(tmp_path):
+    """paused_until_ts 寫 10 年後等於自報永遠正常：超過 30 天不採信，照常判定。"""
+    f = write(tmp_path, paused_until_ts=iso(NOW + timedelta(days=3650)),
+              last_attempt_ts=iso(NOW - timedelta(days=2)), last_success_ts=iso(NOW - timedelta(days=2)))
+    r = run(f)
+    assert r.returncode == 1 and "不當成暫停" in r.stdout
+
+
+def test_x_dirty_fact_is_reported_but_does_not_change_verdict(tmp_path):
+    r = run(write(tmp_path, x_dirty=True))
+    assert r.returncode == 0 and "執行工作樹含未提交改動" in r.stdout
+    r = run(write(tmp_path, "clean.json", x_dirty=False))
+    assert r.returncode == 0 and "未提交改動" not in r.stdout
+
+
+def test_json_output_carries_paused_count_and_facts(tmp_path):
+    f = write(tmp_path, build="6940d7f", host="some-other-box-9f3", x_dirty=True, progress={"items_out": 7},
+              paused_until_ts=iso(NOW + timedelta(hours=1)))
+    rep = json.loads(run(f, "--json").stdout)
+    assert rep["exit"] == 0 and rep["counts"] == {"FRESH": 0, "STALE": 0, "DOWN": 0, "PAUSED": 1}
+    facts = rep["results"][0]["facts"]
+    assert facts["build"] == "6940d7f" and facts["x_dirty"] is True and facts["items_out"] == 7
+    assert any(r["level"] == "PAUSED" for r in rep["results"][0]["reasons"])
+
+
+def test_schema_accepts_new_optional_fields_and_old_files_unchanged():
+    """新欄位都是選填：舊格式照樣合規；新欄位型別錯或把暫停寫成狀態字就不合規。規格檔的選填欄位跟檢查器一致。"""
+    jsonschema = pytest.importorskip("jsonschema")
+    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+    jsonschema.Draft202012Validator.check_schema(schema)
+    v = jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker())
+    assert not list(v.iter_errors(heartbeat()))
+    full = heartbeat(max_run_s=1800, min_items_out=1, host="demo-host", x_dirty=True,
+                     paused_until_ts="2026-12-01T09:00:00+08:00", progress={"items_out": 3})
+    assert not list(v.iter_errors(full))
+    for bad in (heartbeat(max_run_s=0), heartbeat(min_items_out=-1), heartbeat(min_items_out=1.5), heartbeat(host=""),
+                heartbeat(paused_until_ts="2026-12-01T09:00:00"), heartbeat(paused=True), heartbeat(x_paused=True),
+                heartbeat(x_dirty="yes"), heartbeat(x_mode="paused")):
+        assert list(v.iter_errors(bad)), bad
+    sys.path.insert(0, str(SCRIPT.parent))
+    import stale_check
+
+    declared = set(schema["properties"]) - set(stale_check.REQUIRED) - {"x_dirty"}
+    assert declared == set(stale_check.OPTIONAL)
+
+
+def test_self_heartbeat_helper_serves_other_monitors(tmp_path):
+    """控制面板的背景巡檢借用同一個寫法寫自己的心跳（帶 pid、host、產出數），同一支檢查器照樣能判定。"""
+    sys.path.insert(0, str(SCRIPT.parent))
+    import socket
+
+    import stale_check
+
+    now = datetime.now(UTC)
+    _, started, _ = stale_check.process_info(os.getpid())
+    out = tmp_path / "cockpit" / "poller-heartbeat.json"
+    stale_check.write_self_heartbeat(out, now, 60, 120, [], name="cockpit-poller", extra={
+        "pid": os.getpid(), "pid_start_ts": started.isoformat(), "host": socket.gethostname(),
+        "build": "0.3.0", "progress": {"items_out": 4}})
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    assert doc["name"] == "cockpit-poller" and doc["pid"] == os.getpid() and doc["progress"]["items_out"] == 4
+    res = stale_check.run_checks([out], min_items_out=1)[0]
+    assert res["verdict"] == "FRESH", res["reasons"]
+    late = stale_check.run_checks([out], now=now + timedelta(minutes=10))[0]
+    assert late["verdict"] == "STALE"

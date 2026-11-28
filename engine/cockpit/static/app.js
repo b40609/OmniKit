@@ -21,6 +21,20 @@
     session: { writable: true, token: null, mode: "local" },
     pollTimer: null,
     wasBusy: false,
+    // 運行態三軸
+    inspectedId: null,
+    runtime: null,
+    rtClock: null,
+    rtFails: 0,
+    rtSig: null,
+    rtOpen: null,
+    rtTimer: null,
+    rtPolling: false,
+    rtDeferred: false,
+    probeFormOpen: new Set(),
+    probeDraft: {},
+    probeLayers: {},
+    probeLayersLoading: new Set(),
   };
 
   const LANE_ORDER = ["blocked_on_me", "ready_to_settle", "active", "parked"];
@@ -532,6 +546,8 @@
         </div>
       </div>
 
+      <div id="runtime-strip">${runtimeStripHtml()}</div>
+
       <div class="stat-strip">
         <button type="button" class="stat-box" data-goto-tab="cockpit">
           <span class="stat-label">專案狀態板（NOW.md）</span>
@@ -706,9 +722,14 @@
       renderOverview();
       if (state.bootstrap && state.bootstrap.onboarding_completed && !state.forceSetupWizard) renderHome();
       if (sync) showToast(data.sync?.synced ? "已同步狀態板並重新整理" : "已重新掃描本機專案");
+      return true;
     } catch (err) {
-      $("#project-list").innerHTML = `<div class="empty-inline">讀取失敗：${esc(err.message)}</div>`;
+      // 背景靜默重讀失敗時保留畫面上的舊資料（由「控制平面失聯或快照過期」橫幅示警），不把清單洗成錯誤訊息
+      if (!silent || !state.overview) {
+        $("#project-list").innerHTML = `<div class="empty-inline">讀取失敗：${esc(err.message)}</div>`;
+      }
       if (!silent) showToast(err.message);
+      return false;
     } finally {
       if (syncBtn) syncBtn.disabled = false;
     }
@@ -750,6 +771,8 @@
     if (job && (job.status === "running" || job.status === "queued")) {
       return { text: job.status === "running" ? "對帳中" : "排隊中", cls: "t-accent" };
     }
+    const rtBad = (state.runtime ? rtProject(p.id)?.services?.filter((s) => s.level === "bad" && !s.acknowledged).length : p.runtime_counts?.bad) || 0;
+    if (rtBad > 0) return { text: `${rtBad} 個服務異常`, cls: "t-danger" };
     if (p.open_critiques_count > 0) return { text: `待改 ${p.open_critiques_count}`, cls: "t-warn" };
     const behind = p.git?.commits_since_now || 0;
     if (behind > 0) return { text: `落後 ${behind} 個 commit`, cls: "t-warn" };
@@ -821,10 +844,12 @@
     if (!ov) return;
 
     const p = ov.projects.find((x) => x.id === state.selectedId) || filteredProjects()[0];
+    state.inspectedId = p?.id || null;
     if (!p) {
       root.innerHTML = `<div class="empty-inline">目前沒有專案，點擊左上角「建立新專案」即可開始</div>`;
       return;
     }
+    ensureProbeLayers(p.id);
 
     const job = ov.reconcile?.jobs?.[p.id];
     const isBusy = job && (job.status === "running" || job.status === "queued");
@@ -979,6 +1004,8 @@
         <p class="next-lead">${nxt ? esc(stripOwnerTag(nxt.text)) : "尚未填寫下一步，點一下「更新狀態板」即可從本機 Git 狀態補上"}</p>
         ${decisionsHtml}
       </section>
+
+      <section class="insp-section rt-section" id="rt-section">${runtimeSectionHtml(p)}</section>
 
       <section class="insp-section two-col">
         <div>
@@ -1684,6 +1711,572 @@
     }
   }
 
+  // ---------- 運行態三軸（活著嗎｜版本對嗎｜資料新嗎） ----------
+  // 三件事分開看、不混成一顆燈：行程活著不等於有產出（空心綠 vs 實心綠），有產出也不等於跑的是最新的碼（漂移）。
+  const RT_POLL_MS = 30000;
+  const RT_FROZEN_MS = 5 * 60 * 1000;
+  const RT_AXES = [["alive", "活著嗎"], ["sync", "版本對嗎"], ["fresh", "資料新嗎"]];
+  const PROBE_KINDS = [
+    ["tcp", "連接埠有沒有在聽"],
+    ["http", "健康檢查網址"],
+    ["process", "行程在不在"],
+    ["artifact", "產出檔有沒有更新"],
+    ["sqlite", "SQLite 資料有沒有進來"],
+    ["heartbeat", "心跳檔"],
+    ["win_task", "Windows 工作排程"],
+  ];
+
+  // 用伺服器的時間當基準：手機經 Tailscale 看的時候，手機時鐘不準也不會誤判快照過期
+  function rtNowMs() {
+    const c = state.rtClock;
+    return c ? c.serverMs + (Date.now() - c.localMs) : Date.now();
+  }
+
+  function rtAgo(iso) {
+    const t = Date.parse(iso || "");
+    if (!Number.isFinite(t)) return "";
+    const sec = Math.max(0, Math.round((rtNowMs() - t) / 1000));
+    if (sec < 60) return "不到 1 分鐘前";
+    if (sec < 3600) return `${Math.floor(sec / 60)} 分鐘前`;
+    if (sec < 86400) return `${Math.floor(sec / 3600)} 小時前`;
+    return `${Math.floor(sec / 86400)} 天前`;
+  }
+
+  function rtLocal(iso, withDate = true) {
+    const d = new Date(iso || "");
+    if (Number.isNaN(d.getTime())) return "";
+    const p2 = (n) => String(n).padStart(2, "0");
+    const hm = `${p2(d.getHours())}:${p2(d.getMinutes())}`;
+    return withDate ? `${p2(d.getMonth() + 1)}/${p2(d.getDate())} ${hm}:${p2(d.getSeconds())}` : hm;
+  }
+
+  const RT_ISO_RE = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})/g;
+
+  // 引擎給的說明裡夾著 UTC 的 ISO 時間戳：換成這台裝置的當地時間再顯示
+  function rtHuman(text) {
+    return String(text ?? "").replace(RT_ISO_RE, (m) => rtLocal(m) || m);
+  }
+
+  function rtFactValue(val) {
+    const s = String(val ?? "");
+    const whole = s.match(RT_ISO_RE);
+    if (whole && whole[0] === s && Number.isFinite(Date.parse(s))) return `${rtLocal(s)}（${rtAgo(s)}）`;
+    return rtHuman(s);
+  }
+
+  function rtProject(pid) {
+    const projects = state.runtime?.projects || {};
+    const key = Object.keys(projects).find((k) => k.toLowerCase() === String(pid).toLowerCase());
+    if (key) return projects[key];
+    return state.runtime ? null : state.overview?.projects?.find((p) => p.id === pid)?.runtime || null;
+  }
+
+  function rtAxisView(axis, a) {
+    const s = a?.state || "NO_DATA";
+    if (axis === "alive") {
+      if (s === "UP") {
+        return a.proof_level === "output_verified"
+          ? { dot: "rt-solid", text: "在跑，已證實有產出" }
+          : { dot: "rt-hollow", text: "在跑，只證實活著" };
+      }
+      if (s === "DEGRADED") return { dot: "rt-amber", text: "部分異常" };
+      if (s === "DOWN") return { dot: "rt-red", text: "沒在跑" };
+      if (s === "PAUSED") return { dot: "rt-gray", text: "暫停中" };
+      return { dot: "rt-gray", text: "沒有存活證據" };
+    }
+    if (axis === "sync") {
+      if (s === "SYNCED") return { dot: "rt-solid", text: "跟最新的碼一致" };
+      if (s === "DRIFT") return { dot: "rt-amber", text: "版本漂移，要重啟或重建" };
+      if (s === "DIRTY") return { dot: "rt-gray", text: "有未提交的改動" };
+      if (s === "NO_DATA") return { dot: "rt-gray", text: "無法比對" };
+      return { dot: "rt-gray", text: "不適用" };
+    }
+    if (s === "FRESH") return { dot: "rt-solid", text: "資料是新的" };
+    if (s === "STALE") return { dot: "rt-red", text: "資料沒更新" };
+    if (s === "DOWN") return { dot: "rt-red", text: "讀不到產出" };
+    if (s === "PAUSED") return { dot: "rt-gray", text: "暫停中" };
+    return { dot: "rt-gray", text: "沒有產出證據" };
+  }
+
+  // 出事的是哪一軸：存活優先，其次資料，最後版本
+  function rtBadAxis(svc) {
+    if (!svc) return "alive";
+    if (["DOWN", "DEGRADED"].includes(svc.alive?.state)) return "alive";
+    if (["DOWN", "STALE"].includes(svc.fresh?.state)) return "fresh";
+    return "sync";
+  }
+
+  // 例外列的說明用白話寫，後面接引擎給的事實；STALE、DRIFT 這類代號留在點開後的詳情裡
+  function rtAlertText(a) {
+    const svc = (rtProject(a.project_id)?.services || []).find((s) => s.id === a.service_id);
+    if (!svc) return a.text || "";
+    const parts = [];
+    if (["DOWN", "DEGRADED"].includes(svc.alive?.state)) parts.push("alive");
+    if (["DOWN", "STALE"].includes(svc.fresh?.state)) parts.push("fresh");
+    if (svc.sync?.state === "DRIFT") parts.push("sync");
+    if (!parts.length) return a.text || "";
+    const lead = parts.map((axis) => rtAxisView(axis, svc[axis]).text).join("、");
+    const why = rtHuman(svc[parts[0]]?.reason || "");
+    return why ? `${lead}：${why}` : lead;
+  }
+
+  // 首屏頂部：全部正常只有一行；有異常才展開例外列（平常安靜，出事才說話）
+  function runtimeStripHtml() {
+    const rt = state.runtime;
+    if (!rt) return "";
+    // 摘要的數字一律轉成數值再放進 HTML（不直接信任 JSON 的型別）
+    const raw = rt.summary || {};
+    const s = { oldest_evidence_at: raw.oldest_evidence_at };
+    for (const k of ["services", "ok", "warn", "bad", "idle", "output_verified", "liveness_only"]) s[k] = Math.max(0, Math.trunc(Number(raw[k]) || 0));
+    const expired = document.body.classList.contains("is-stale");
+    const expiredTag = expired ? `<span class="tag tag-danger">可能已過期</span>` : "";
+    if (!s.services) {
+      return `<div class="rt-strip"><div class="rt-strip-line"><i class="rt-dot rt-gray" aria-hidden="true"></i>
+        <span class="rt-muted">還沒有納管任何服務。到「專案」詳情加一個探針，就能看到它活著嗎、版本對嗎、資料新嗎</span></div></div>`;
+    }
+    const notes = [];
+    if (s.oldest_evidence_at) notes.push(`最舊證據 ${rtAgo(s.oldest_evidence_at)}`);
+    if (s.liveness_only) notes.push(`${s.liveness_only} 個只證實活著`);
+    if (s.idle) notes.push(`${s.idle} 個暫停或無資料`);
+    if (rt.wake_grace_active) notes.push(`剛從休眠醒來，緩衝 ${Math.max(0, Math.round(Number(rt.wake_grace_remaining_s) || 0))} 秒`);
+    const troubled = (s.bad || 0) + (s.warn || 0);
+    if (!troubled) {
+      const dot = !s.ok ? "rt-gray" : s.output_verified ? "rt-solid" : "rt-hollow";
+      const lead = s.ok ? `${s.ok} 個服務正常` : "沒有異常";
+      return `<div class="rt-strip is-quiet"><div class="rt-strip-line"><i class="rt-dot ${dot}" aria-hidden="true"></i>
+        <span><b>${lead}</b>${notes.length ? `，${esc(notes.join(" · "))}` : ""}</span>${expiredTag}</div></div>`;
+    }
+    const lead = [s.bad ? `${s.bad} 個服務異常` : "", s.warn ? `${s.warn} 個要留意` : ""].filter(Boolean).join("、");
+    const alerts = rt.alerts || [];
+    const rows = alerts.slice(0, 6).map((a) => `
+      <button type="button" class="rt-alert-row" data-rt-goto="${esc(a.project_id)}" data-rt-svc="${esc(a.service_id)}">
+        <i class="rt-dot ${a.level === "bad" ? "rt-red" : "rt-amber"}" aria-hidden="true"></i>
+        <span class="rt-alert-name">${esc(a.project_name)} › ${esc(a.service_name)}</span>
+        ${a.acknowledged ? `<span class="tag">已確認</span>` : ""}
+        <span class="rt-alert-text">${esc(rtAlertText(a))}</span>
+        ${ICON.chev}
+      </button>`).join("");
+    return `<div class="rt-strip">
+      <div class="rt-strip-line"><i class="rt-dot ${s.bad ? "rt-red" : "rt-amber"}" aria-hidden="true"></i>
+        <span><b>${lead}</b>，${s.ok} 個正常${notes.length ? ` · ${esc(notes.join(" · "))}` : ""}</span>${expiredTag}</div>
+      ${rows}
+      ${alerts.length > 6 ? `<div class="rt-strip-more">還有 ${alerts.length - 6} 個，到「專案」看全部</div>` : ""}
+    </div>`;
+  }
+
+  function rtDetailHtml(svc, axis) {
+    const a = svc[axis] || {};
+    const code = axis === "alive" && a.proof_level ? `${a.state} · ${a.proof_level}` : a.state;
+    const facts = (a.facts || []).map((f) => `<dt>${esc(f.label)}</dt><dd>${esc(rtFactValue(f.value))}</dd>`).join("");
+    const probeRows = (svc.probes || []).map((pr) => `
+      <li>
+        <span class="rt-probe-label">${esc(pr.label)}</span>
+        <span class="rt-probe-sum">${esc(rtHuman(pr.summary))}</span>
+        <span class="rt-probe-meta">${esc(rtLocal(pr.checked_at))}（${esc(rtAgo(pr.checked_at))}）· 耗時 ${Number(pr.duration_ms) || 0} ms</span>
+      </li>`).join("");
+    return `<div class="rt-detail">
+      <p class="rt-reason"><code>${esc(code)}</code>${esc(rtHuman(a.reason || ""))}</p>
+      ${facts ? `<dl class="rt-facts">${facts}</dl>` : ""}
+      ${(a.sources || []).length ? `<p class="rt-src">證據來源：${esc(a.sources.join("、"))}</p>` : ""}
+      <div class="rt-sub">這個服務的探針（證據時間與耗時）</div>
+      <ul class="rt-probes">${probeRows}</ul>
+      ${svc.fingerprint ? `<p class="rt-src">異常指紋 <code>${esc(svc.fingerprint)}</code></p>` : ""}
+    </div>`;
+  }
+
+  function probeFieldsHtml(kind, d) {
+    const field = (name, label, attrs, hint = "") => `
+      <div class="field">
+        <label for="rt-f-${name}">${label}</label>
+        <input id="rt-f-${name}" name="${name}" value="${esc(d[name] || "")}" ${attrs} autocomplete="off">
+        ${hint ? `<span class="field-hint">${hint}</span>` : ""}
+      </div>`;
+    if (kind === "tcp") return field("port", "連接埠", `type="number" inputmode="numeric" min="1" max="65535" placeholder="例如 8000" required`, "只看這台電腦（127.0.0.1）有沒有行程在聽這個埠");
+    if (kind === "http") {
+      return field("url", "網址", `type="url" placeholder="http://127.0.0.1:8000/health" required`, "只能填本機網址（127.0.0.1 或 localhost）")
+        + field("version_path", "版本欄位（選填）", `type="text" placeholder="例如 commit 或 build.sha"`, "回應 JSON 裡放 commit SHA 的欄位，用來比對跑的是不是最新的碼");
+    }
+    if (kind === "process") return field("match", "命令列裡的特徵字串", `type="text" placeholder="例如 bot.py" minlength="3" maxlength="200" required`, "只比對有沒有這段字，命令列本身不會顯示或儲存");
+    if (kind === "artifact") {
+      return field("glob", "檔案路徑（可用 * 萬用字元）", `type="text" placeholder="例如 out/*.csv" required`, "相對路徑從專案目錄算起")
+        + field("max_age_min", "多久內要更新（分鐘，選填）", `type="number" inputmode="numeric" min="1" placeholder="例如 1440"`);
+    }
+    if (kind === "sqlite") {
+      return field("sqlite_path", "資料庫檔路徑", `type="text" placeholder="例如 data/app.db" required`, "一律唯讀開啟，不會寫入資料庫")
+        + `<div class="field-row">${field("table", "資料表", `type="text" placeholder="例如 ticks_1m" pattern="[A-Za-z_][A-Za-z0-9_]*" required`)}${field("ts_col", "時間欄", `type="text" placeholder="例如 ts" pattern="[A-Za-z_][A-Za-z0-9_]*" required`)}</div>`
+        + field("max_age_days", "幾天內要有新資料（選填）", `type="number" inputmode="decimal" min="0" step="any" placeholder="例如 3"`);
+    }
+    if (kind === "heartbeat") {
+      return field("path", "心跳檔路徑", `type="text" placeholder="例如 state/heartbeat.json" required`, "符合 OmniKit 心跳規格的 JSON 檔")
+        + field("period_s", "你期望多久更新一次（秒，選填）", `type="number" inputmode="numeric" min="1" placeholder="例如 300"`, "填了就照你的期望判定，不管檔案自己說多久");
+    }
+    return field("task", "工作排程的名稱", `type="text" placeholder="例如 \\MyTasks\\Daily Report" required`, "排程說成功不等於有產出，建議再加一個產出檔探針");
+  }
+
+  function probeFormHtml(p, serviceNames) {
+    const d = state.probeDraft[p.id] || (state.probeDraft[p.id] = { kind: "tcp" });
+    const kind = d.kind || "tcp";
+    return `
+      <form class="rt-form" data-rt-probe-form="${esc(p.id)}" data-write-only>
+        <div class="field-row">
+          <div class="field">
+            <label for="rt-f-service">服務名稱</label>
+            <input id="rt-f-service" name="service" value="${esc(d.service || "")}" type="text" list="rt-service-names" placeholder="例如 報價 API" maxlength="60" required autocomplete="off">
+            <datalist id="rt-service-names">${serviceNames.map((n) => `<option value="${esc(n)}"></option>`).join("")}</datalist>
+            <span class="field-hint">填既有的服務名稱，就是替它多加一種證據</span>
+          </div>
+          <div class="field">
+            <label for="rt-f-kind">要看什麼</label>
+            <select id="rt-f-kind" name="kind">${PROBE_KINDS.map(([k, label]) => `<option value="${k}" ${k === kind ? "selected" : ""}>${label}</option>`).join("")}</select>
+          </div>
+        </div>
+        <div id="rt-kind-fields">${probeFieldsHtml(kind, d)}</div>
+        <p class="field-hint">存在這台電腦的個人設定，不會改動專案裡的任何檔案；每分鐘自動巡一次。</p>
+        <div class="composer-row">
+          <button type="submit" class="btn btn-sm btn-primary">加入探針</button>
+          <button type="button" class="btn btn-sm btn-quiet" data-rt-form-toggle>取消</button>
+        </div>
+      </form>`;
+  }
+
+  function runtimeSectionHtml(p) {
+    const proj = rtProject(p.id);
+    const services = proj?.services || [];
+    const checked = state.runtime?.generated_at;
+    const layers = state.probeLayers[p.id];
+    const formOpen = state.probeFormOpen.has(p.id);
+    const liveIds = new Set(services.map((s) => s.id.toLowerCase()));
+    const known = new Map();
+    for (const s of [...(layers?.project_services || []), ...(layers?.personal_services || [])]) {
+      known.set(s.id.toLowerCase(), { id: s.id, name: s.name || known.get(s.id.toLowerCase())?.name || s.id });
+    }
+    const disabled = [...known.values()].filter((s) => !liveIds.has(s.id.toLowerCase()));
+
+    const cards = services.map((svc) => {
+      const open = state.rtOpen && state.rtOpen.pid === p.id && state.rtOpen.sid === svc.id ? state.rtOpen.axis : null;
+      const axes = RT_AXES.map(([axis, q]) => {
+        const v = rtAxisView(axis, svc[axis]);
+        return `<button type="button" class="rt-axis" data-rt-axis="${axis}" data-rt-svc="${esc(svc.id)}" aria-expanded="${open === axis}">
+          <span class="rt-axis-q">${q}</span>
+          <span class="rt-axis-v"><i class="rt-dot ${v.dot}" aria-hidden="true"></i><span>${v.text}</span></span>
+        </button>`;
+      }).join("");
+      return `<div class="rt-svc" data-level="${esc(svc.level)}" data-svc="${esc(svc.id)}">
+        <div class="rt-svc-head">
+          <span class="rt-svc-name">${esc(svc.name)}</span>
+          ${svc.source && svc.source !== "personal" ? `<span class="tag">專案共用設定</span>` : ""}
+          ${svc.acknowledged ? `<span class="tag">已確認</span>` : ""}
+          ${svc.active === false ? `<span class="tag">非運作時段</span>` : ""}
+          <button type="button" class="btn btn-sm btn-quiet rt-svc-off" data-rt-enable="${esc(svc.id)}" data-enabled="0" data-name="${esc(svc.name)}" data-write-only>停用巡檢</button>
+        </div>
+        <div class="rt-axes">${axes}</div>
+        ${open ? rtDetailHtml(svc, open) : ""}
+      </div>`;
+    }).join("");
+
+    const errors = (proj?.config_errors || []).map((e) => `<li>${esc(rtHuman(e))}</li>`).join("");
+    const disabledHtml = disabled.length
+      ? `<div class="rt-disabled">${disabled.map((s) => `
+          <div class="rt-disabled-row"><span>已停用：${esc(s.name)}</span>
+            <button type="button" class="btn btn-sm btn-quiet" data-rt-enable="${esc(s.id)}" data-enabled="1" data-name="${esc(s.name)}" data-write-only>重新啟用</button>
+          </div>`).join("")}</div>`
+      : "";
+    const empty = services.length
+      ? ""
+      : `<p class="empty-muted">這個專案還沒有納管任何服務。加一個探針（連接埠、健康檢查網址、產出檔、心跳檔…），面板每分鐘幫你看它活著嗎、版本對嗎、資料新嗎。${p.local_available ? "" : "這台沒有專案目錄，路徑類的探針要填絕對路徑。"}</p>`;
+    const names = [...new Set([...services.map((s) => s.name), ...disabled.map((s) => s.name)])];
+
+    return `
+      <div class="sec-head rt-head">
+        <h3 class="sec-title">運行態（活著嗎｜版本對嗎｜資料新嗎）</h3>
+        <span class="sec-aside">
+          ${checked && services.length ? `<span>${esc(rtAgo(checked))}檢查</span>` : ""}
+          ${services.length ? `<button type="button" class="btn btn-sm btn-quiet" data-rt-refresh data-write-only>立即重掃</button>` : ""}
+        </span>
+      </div>
+      ${empty}
+      ${cards}
+      ${errors ? `<ul class="rt-errors">${errors}</ul>` : ""}
+      ${disabledHtml}
+      ${formOpen
+        ? probeFormHtml(p, names)
+        : `<div class="rt-add" data-write-only><button type="button" class="btn btn-sm" data-rt-form-toggle>加探針</button></div>`}
+    `;
+  }
+
+  function rtTyping() {
+    const el = document.activeElement;
+    return Boolean(el && ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) && el.closest("#inspector-root"));
+  }
+
+  function inspectedProject() {
+    return state.overview?.projects?.find((x) => x.id === state.inspectedId) || null;
+  }
+
+  function renderRuntimeSection(force = false) {
+    const sec = $("#rt-section");
+    const p = inspectedProject();
+    if (!sec || !p) return;
+    if (!force && rtTyping()) {
+      state.rtDeferred = true;   // 正在打字：先不重畫，免得把輸入中的內容洗掉
+      return;
+    }
+    state.rtDeferred = false;
+    const html = runtimeSectionHtml(p);
+    if (sec._rtHtml === html) return;   // 內容沒變就不重畫，鍵盤焦點與展開狀態才不會被洗掉
+    sec._rtHtml = html;
+    sec.innerHTML = html;
+  }
+
+  function renderRuntimeViews() {
+    const strip = $("#runtime-strip");
+    if (strip) {
+      const html = runtimeStripHtml();
+      if (strip._rtHtml !== html) {
+        strip._rtHtml = html;
+        strip.innerHTML = html;
+      }
+    }
+    renderRuntimeSection();
+  }
+
+  // 防陳舊綠燈：連續 2 輪拉不到，或快照的 generated_at 超過 5 分鐘沒動，頂部亮紅色橫幅，燈號全部降成半透明
+  function updateStaleBanner() {
+    const el = $("#stale-banner");
+    if (!el) return;
+    const rt = state.runtime;
+    const made = Date.parse(rt?.generated_at || "");
+    const frozenMs = Number.isFinite(made) ? rtNowMs() - made : 0;
+    let msg = "";
+    if (state.rtFails >= 2) {
+      msg = `連續 ${state.rtFails} 次連不上面板${rt ? `，畫面上的燈號停在 ${rtLocal(rt.generated_at, false)}` : ""}，不代表現況`;
+    } else if (frozenMs > RT_FROZEN_MS) {
+      msg = `快照停在 ${rtLocal(rt.generated_at, false)}（${rtAgo(rt.generated_at)}），背景巡檢可能卡住了；畫面上的燈號不代表現況`;
+    }
+    const stale = Boolean(msg);
+    el.hidden = !stale;
+    $("#stale-banner-detail").textContent = msg;
+    if (document.body.classList.contains("is-stale") !== stale) {
+      document.body.classList.toggle("is-stale", stale);
+      renderRuntimeViews();
+    }
+  }
+
+  function rtSignature(rt) {
+    const out = [];
+    for (const [pid, proj] of Object.entries(rt?.projects || {})) {
+      for (const s of proj.services || []) out.push(`${pid}|${s.id}|${s.level}|${s.acknowledged ? 1 : 0}`);
+    }
+    return out.sort().join(";");
+  }
+
+  function rtAccept(data) {
+    state.runtime = data;
+    const serverMs = Date.parse(data.server_time || "");
+    state.rtClock = { serverMs: Number.isFinite(serverMs) ? serverMs : Date.now(), localMs: Date.now() };
+  }
+
+  async function pollRuntime(initial = false) {
+    if (state.rtPolling) return;
+    state.rtPolling = true;
+    let ok = true;
+    try {
+      rtAccept(await api("/api/runtime", { cache: "no-store" }));
+      const sig = rtSignature(state.runtime);
+      if (initial || state.rtSig === null) {
+        state.rtSig = sig;
+      } else if (sig !== state.rtSig && !rtTyping()) {
+        // 有服務的狀態變了：連專案的球權分流一起重讀（這一輪拉總覽失敗也算一次失聯）
+        ok = await loadOverview(false, true);
+        if (ok) state.rtSig = sig;
+      }
+    } catch {
+      ok = false;
+    } finally {
+      state.rtPolling = false;
+    }
+    state.rtFails = ok ? 0 : state.rtFails + 1;
+    renderRuntimeViews();
+    updateStaleBanner();
+  }
+
+  function startRuntimePolling() {
+    if (state.rtTimer) return;
+    pollRuntime(true);
+    state.rtTimer = setInterval(() => pollRuntime(false), RT_POLL_MS);
+    setInterval(updateStaleBanner, 15000);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") pollRuntime(false);
+    });
+  }
+
+  async function ensureProbeLayers(pid, force = false) {
+    if (!force && (state.probeLayers[pid] || state.probeLayersLoading.has(pid))) return;
+    state.probeLayersLoading.add(pid);
+    try {
+      state.probeLayers[pid] = await api(`/api/projects/${encodeURIComponent(pid)}/probes`);
+      if (state.inspectedId === pid) renderRuntimeSection();
+    } catch {
+      // 讀不到設定層只影響「已停用」清單，不擋三軸顯示
+    } finally {
+      state.probeLayersLoading.delete(pid);
+    }
+  }
+
+  async function probeWrite(pid, payload, okMsg) {
+    const res = await api(`/api/projects/${encodeURIComponent(pid)}/probes`, { method: "POST", body: JSON.stringify(payload) });
+    if (res.layers) state.probeLayers[pid] = res.layers;
+    try {
+      rtAccept(await api("/api/runtime"));
+      state.rtSig = rtSignature(state.runtime);
+    } catch {
+      // 下一輪巡檢會補上
+    }
+    showToast(okMsg);
+    await loadOverview(false, true);
+    renderRuntimeViews();
+    updateStaleBanner();
+    return res;
+  }
+
+  function buildProbePayload(pid, fd) {
+    const txt = (k) => String(fd.get(k) || "").trim();
+    const num = (k) => (txt(k) === "" ? undefined : Number(txt(k)));
+    const kind = txt("kind");
+    let probe;
+    if (kind === "tcp") probe = { type: "tcp", port: num("port") };
+    else if (kind === "http") {
+      probe = { type: "http", url: txt("url") };
+      if (txt("version_path")) probe.version_json_path = txt("version_path");
+    } else if (kind === "process") probe = { type: "process", match: txt("match") };
+    else if (kind === "artifact") {
+      probe = { type: "artifact", glob: txt("glob") };
+      if (num("max_age_min") !== undefined) probe.max_age_s = num("max_age_min") * 60;
+    } else if (kind === "sqlite") {
+      probe = { type: "artifact", sqlite_path: txt("sqlite_path"), table: txt("table"), ts_col: txt("ts_col") };
+      if (num("max_age_days") !== undefined) probe.max_age_days = num("max_age_days");
+    } else if (kind === "heartbeat") {
+      probe = { type: "heartbeat", path: txt("path") };
+      if (num("period_s") !== undefined) probe.override_period_s = num("period_s");
+    } else probe = { type: "win_task", name: txt("task") };
+
+    const name = txt("service");
+    const layers = state.probeLayers[pid];
+    const candidates = [...(rtProject(pid)?.services || []), ...(layers?.project_services || []), ...(layers?.personal_services || [])];
+    const hit = candidates.find((s) => String(s.name || "").toLowerCase() === name.toLowerCase() || String(s.id).toLowerCase() === name.toLowerCase());
+    return { op: "add_probe", service: hit ? { id: hit.id } : { name }, probe };
+  }
+
+  function bindRuntimeEvents() {
+    $("#home-root").addEventListener("click", (e) => {
+      const row = e.target.closest("[data-rt-goto]");
+      if (!row) return;
+      const pid = row.dataset.rtGoto;
+      const svc = (rtProject(pid)?.services || []).find((s) => s.id === row.dataset.rtSvc);
+      const axis = rtBadAxis(svc);
+      state.selectedId = pid;
+      state.rtOpen = { pid, sid: row.dataset.rtSvc, axis };
+      switchTab("cockpit");
+      setMobileDetail(true);
+      renderList();
+      renderInspector();
+      $("#rt-section")?.scrollIntoView({ block: "start" });
+    });
+
+    const insp = $("#inspector-root");
+    insp.addEventListener("click", async (e) => {
+      const pid = state.inspectedId;
+      if (!pid) return;
+      const axisBtn = e.target.closest("[data-rt-axis]");
+      if (axisBtn) {
+        const next = { pid, sid: axisBtn.dataset.rtSvc, axis: axisBtn.dataset.rtAxis };
+        const cur = state.rtOpen;
+        state.rtOpen = cur && cur.pid === next.pid && cur.sid === next.sid && cur.axis === next.axis ? null : next;
+        renderRuntimeSection(true);
+        return;
+      }
+      if (e.target.closest("[data-rt-form-toggle]")) {
+        if (state.probeFormOpen.has(pid)) state.probeFormOpen.delete(pid);
+        else state.probeFormOpen.add(pid);
+        renderRuntimeSection(true);
+        if (state.probeFormOpen.has(pid)) $("#rt-f-service")?.focus();
+        return;
+      }
+      const refreshBtn = e.target.closest("[data-rt-refresh]");
+      if (refreshBtn) {
+        refreshBtn.disabled = true;
+        try {
+          rtAccept(await api("/api/runtime/refresh", { method: "POST", body: "{}" }));
+          state.rtFails = 0;
+          state.rtSig = rtSignature(state.runtime);
+          await loadOverview(false, true);
+          showToast(`已重新檢查 ${state.runtime.summary?.services ?? 0} 個服務`);
+        } catch (err) {
+          showToast(err.message);
+        }
+        renderRuntimeViews();
+        updateStaleBanner();
+        return;
+      }
+      const enBtn = e.target.closest("[data-rt-enable]");
+      if (enBtn) {
+        const enabled = enBtn.dataset.enabled === "1";
+        enBtn.disabled = true;
+        try {
+          await probeWrite(pid, { op: "set_enabled", service_id: enBtn.dataset.rtEnable, enabled },
+            enabled ? `已重新啟用「${enBtn.dataset.name}」的巡檢` : `已停用「${enBtn.dataset.name}」的巡檢，可在下方重新啟用`);
+        } catch (err) {
+          showToast(err.message);
+          enBtn.disabled = false;
+        }
+      }
+    });
+
+    insp.addEventListener("input", (e) => {
+      const form = e.target.closest("[data-rt-probe-form]");
+      if (!form || !e.target.name) return;
+      const draft = state.probeDraft[form.dataset.rtProbeForm] || (state.probeDraft[form.dataset.rtProbeForm] = { kind: "tcp" });
+      draft[e.target.name] = e.target.value;
+      if (e.target.name === "kind") {
+        const box = $("#rt-kind-fields", form);
+        if (box) box.innerHTML = probeFieldsHtml(draft.kind, draft);
+      }
+    });
+
+    insp.addEventListener("submit", async (e) => {
+      const form = e.target.closest("[data-rt-probe-form]");
+      if (!form) return;
+      e.preventDefault();
+      const pid = form.dataset.rtProbeForm;
+      const btn = $('button[type="submit"]', form);
+      btn.disabled = true;
+      try {
+        const payload = buildProbePayload(pid, new FormData(form));
+        const label = String(new FormData(form).get("service") || "").trim();
+        state.probeDraft[pid] = { kind: payload.probe.type === "artifact" && payload.probe.sqlite_path ? "sqlite" : payload.probe.type };
+        state.probeFormOpen.delete(pid);
+        try {
+          await probeWrite(pid, payload, `已替「${label}」加上探針，馬上檢查了一次`);
+        } catch (err) {
+          state.probeFormOpen.add(pid);
+          state.probeDraft[pid] = Object.fromEntries(new FormData(form).entries());
+          throw err;
+        }
+        renderRuntimeSection(true);
+      } catch (err) {
+        showToast(err.message);
+        btn.disabled = false;
+      }
+    });
+
+    insp.addEventListener("focusout", () => {
+      if (!state.rtDeferred) return;
+      setTimeout(() => {
+        if (state.rtDeferred && !rtTyping()) renderRuntimeSection();
+      }, 0);
+    });
+  }
+
   // ---------- 事件綁定 ----------
   function bindEvents() {
     for (const btn of $$("[data-tab]")) btn.addEventListener("click", () => switchTab(btn.dataset.tab));
@@ -2289,8 +2882,10 @@
 
   initTheme();
   bindEvents();
+  bindRuntimeEvents();
   loadSession().finally(() => {
     loadBootstrap(false);
     loadOverview(false);
+    startRuntimePolling();
   });
 })();

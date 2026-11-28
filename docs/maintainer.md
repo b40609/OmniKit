@@ -136,4 +136,35 @@ uv run scripts/cockpit.py snapshot            # 終端機檢視所有已註冊�
 uv run scripts/cockpit.py serve --open        # 啟動本機網頁面板（預設 127.0.0.1:3780）
 uv run scripts/cockpit.py register --name <專案> --path <目錄>
 uv run scripts/cockpit.py autostart --status  # 查詢／管理 Windows 登入自啟（--install / --uninstall）
+uv run scripts/cockpit.py watchdog-tick --json  # 看門狗跑一次：面板或背景巡檢失聯就重啟（每小時最多 3 次）
 ```
+
+### 運行態三軸與探針（活著嗎｜版本對嗎｜資料新嗎）
+
+`NOW.md` 只說「做到哪」；面板另外主動去看每個服務的三件事，三軸分開顯示、不混成一顆燈：
+
+| 軸 | 看什麼 | 燈號 |
+| --- | --- | --- |
+| 活著嗎 | 行程或連接埠在不在 | 實心綠＝有新鮮產出佐證；空心綠＝只證實活著；紅＝沒在跑 |
+| 版本對嗎 | 行程啟動時間對最後一次非文件 commit、回報版本對 HEAD、建置輸出對原始碼 | 琥珀＝版本漂移（改碼後沒重啟或沒重建） |
+| 資料新嗎 | 產出檔、SQLite 最新一筆或心跳有沒有在期限內更新 | 紅＝資料沒更新 |
+
+不用改專案的程式碼。在面板的專案詳情按「加探針」（只在這台電腦本機開啟時看得到，存進 `~/.omnikit/cockpit/config.json`），或在專案根目錄放一份跟著 Git 走的 `omnikit.probes.yaml` 給團隊共用（同 `id` 的服務以個人設定為準）：
+
+```yaml
+services:
+  - name: 報價 API
+    probes:
+      - {type: tcp, port: 8000}
+      - {type: http, url: "http://127.0.0.1:8000/health", version_json_path: commit}
+      - {type: artifact, glob: "out/*.csv", max_age_s: 3600}
+  - name: 每日報表
+    active_days: [mon, tue, wed, thu, fri]
+    probes:
+      - {type: win_task, name: "\\MyTasks\\Daily Report"}
+      - {type: artifact, sqlite_path: data/app.db, table: reports, ts_col: created_at, max_age_days: 1}
+```
+
+探針類型有 `tcp`、`http`、`process`、`win_task`、`artifact`（產出檔或唯讀 SQLite）、`heartbeat`（`engine/schema/heartbeat.schema.json` 規格的心跳檔，可用 `override_period_s` 以讀取方的期望為準）。安全邊界寫死不能放寬：`tcp` 與 `http` 只連本機（127.0.0.1、localhost），SQLite 一律唯讀且表名、欄位名過白名單，專案共用設定只能用專案內的相對路徑，經 Tailscale 開啟時不能改任何探針設定。
+
+`serve` 啟動後背景巡檢每 60 秒掃一輪（`OMNIKIT_COCKPIT_POLL_S` 或設定的 `runtime.poll_interval_s` 可調），結果寫進 `~/.omnikit/cockpit/snapshot.json`，自己的心跳寫在 `poller-heartbeat.json`。`autostart --install` 會一併登記使用者層級、不需系統管理員的工作排程「OmniKit Cockpit Watchdog」（每 10 分鐘跑一次 `watchdog-tick`，不要就加 `--no-watchdog`）；`autostart --uninstall` 與 `uninstall.ps1` 會把它移掉。面板連續 2 輪連不上，或快照超過 5 分鐘沒更新時，頁面頂部會亮「控制平面失聯或快照過期」，這時畫面上的燈號不代表現況。

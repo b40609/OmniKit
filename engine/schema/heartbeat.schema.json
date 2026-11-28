@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniKit 心跳狀態檔（spec 1）",
-  "description": "由讀取方判定的心跳與新鮮度規格（D10 改動 2）。7 條：\n1. 狀態檔不准存狀態字（running、ok、healthy…；欄位名稱或值都算，不分大小寫，巢狀物件與陣列裡也算），只存事實與時間。\n2. 是否正常由讀的一方算：現在時間減 last_success_ts 大於 expected_period_s 加 grace_s 就是 STALE。\n3. 讀不到檔、不是標準 JSON（Infinity、NaN 不算）、欄位缺、數字是無限大、時間解析失敗、pid 不存在、超出範圍或啟動時間對不上，一律 DOWN，不能當正常。\n4. 「成功」要是產出面的事實（progress 的寫出筆數、資料最新日期、這一輪錯誤數），不是 exit code：只有真的有產出才更新 last_success_ts。\n5. 檢查器只有全部新鮮才 exit 0；任何成功字樣只能在所有檢查跑完之後印。\n6. 檢查器自己也寫一筆心跳（stale_check.py --self-heartbeat），由另一個獨立觸發點看。\n7. 「已上線」要能對版本：帶 build，部署後要看到新的 build，而且 pid_start_ts 晚於部署開始時間（stale_check.py --expect-build、--started-after）。\n參考檢查器：engine/scripts/stale_check.py。時間一律 ISO 8601 並帶時區。擴充欄位用 x_ 開頭。",
+  "description": "由讀取方判定的心跳與新鮮度規格（D10 改動 2）。7 條：\n1. 狀態檔不准存狀態字（running、ok、healthy…；欄位名稱或值都算，不分大小寫，巢狀物件與陣列裡也算），只存事實與時間。\n2. 是否正常由讀的一方算：現在時間減 last_success_ts 大於 expected_period_s 加 grace_s 就是 STALE。\n3. 讀不到檔、不是標準 JSON（Infinity、NaN 不算）、欄位缺、數字是無限大、時間解析失敗、pid 不存在、超出範圍或啟動時間對不上，一律 DOWN，不能當正常。\n4. 「成功」要是產出面的事實（progress 的寫出筆數、資料最新日期、這一輪錯誤數），不是 exit code：只有真的有產出才更新 last_success_ts。\n5. 檢查器只有全部新鮮才 exit 0；任何成功字樣只能在所有檢查跑完之後印。\n6. 檢查器自己也寫一筆心跳（stale_check.py --self-heartbeat），由另一個獨立觸發點看。\n7. 「已上線」要能對版本：帶 build，部署後要看到新的 build，而且 pid_start_ts 晚於部署開始時間（stale_check.py --expect-build、--started-after）。\n參考檢查器：engine/scripts/stale_check.py。時間一律 ISO 8601 並帶時區。擴充欄位用 x_ 開頭。\n2026-11-28 向下相容補強（都是選填，舊的狀態檔不用改）：\n- 讀取方可以覆寫期望：stale_check.py --override-period-s、--override-grace-s 優先於狀態檔自報的 expected_period_s、grace_s（自報週期 10 年也沒用）。\n- max_run_s：開始嘗試後超過這麼久還沒有成功，判 STALE（啟動後卡死）。\n- min_items_out：progress.items_out 低於這個數、或設了下限卻沒有 items_out，判 STALE（exit 0 空跑）。\n- host：寫這個狀態檔的主機名；讀的一方在別台機器上看到時不查 pid，不誤判 DOWN。\n- paused_until_ts：預期暫停到什麼時候（事實的時間，不是狀態字）；還沒到期判 PAUSED（灰色、不是綠燈、不算異常），到期自動恢復嚴格判定。不准存 paused: true。超過 30 天後的期限不採信。\n- x_dirty：跑的工作樹有沒有還沒提交的改動（布林事實）；讀的一方附註出來，由上層決定怎麼顯示。\n- 讀取方說系統剛從休眠醒來（--wake-grace-remaining-s 大於 0）時，只因為時間過太久的 STALE 先降成 PAUSED。",
   "type": "object",
   "required": [
     "spec",
@@ -58,6 +58,30 @@
       "type": "number",
       "minimum": 0,
       "description": "progress.data_date 最多可以落後幾天；讀的一方也可以用 --max-data-age-days 指定"
+    },
+    "max_run_s": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "一輪最多可以跑多久（秒）：last_attempt_ts 晚於 last_success_ts 而且開始後超過這麼久，判 STALE（啟動後卡死）；讀的一方也可以用 --max-run-s 指定"
+    },
+    "min_items_out": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "progress.items_out 的下限：低於它、或沒有 items_out，判 STALE（exit 0 空跑）；讀的一方也可以用 --min-items-out 指定"
+    },
+    "host": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "description": "寫這個狀態檔的主機名（純事實）；跟讀的一方的主機名不同（不分大小寫）時不查 pid，並註明是遠端主機"
+    },
+    "paused_until_ts": {
+      "$ref": "#/$defs/timestamp",
+      "description": "預期暫停到這個時間為止（事實，不是狀態字）：還沒到期判 PAUSED，到期自動恢復嚴格判定；不准改存 paused: true"
+    },
+    "x_dirty": {
+      "type": "boolean",
+      "description": "跑的工作樹有還沒提交的改動（事實）：true 時讀的一方附註「執行工作樹含未提交改動」"
     },
     "progress": {
       "type": "object",
@@ -149,7 +173,10 @@
         "VERIFIED",
         "passes",
         "Passes",
-        "PASSES"
+        "PASSES",
+        "paused",
+        "Paused",
+        "PAUSED"
       ],
       "description": "狀態字的欄位名稱清單（給人看，也給測試跟檢查器比對）；驗證用不分大小寫的 statusKeyName"
     },
@@ -190,18 +217,21 @@
         "PASSING",
         "passed",
         "Passed",
-        "PASSED"
+        "PASSED",
+        "paused",
+        "Paused",
+        "PAUSED"
       ],
       "description": "狀態字的值清單（給人看，也給測試跟檢查器比對）；驗證用不分大小寫的 statusWordValue"
     },
     "statusKeyName": {
       "type": "string",
-      "pattern": "^(?:[xX]_)?(?:[sS][tT][aA][tT][uU][sS]|[sS][tT][aA][tT][eE]|[hH][eE][aA][lL][tT][hH]|[hH][eE][aA][lL][tT][hH][yY]|[oO][kK]|[rR][uU][nN][nN][iI][nN][gG]|[aA][lL][iI][vV][eE]|[uU][pP]|[sS][uU][cC][cC][eE][sS][sS]|[vV][eE][rR][iI][fF][iI][eE][dD]|[pP][aA][sS][sS][eE][sS])$",
+      "pattern": "^(?:[xX]_)?(?:[sS][tT][aA][tT][uU][sS]|[sS][tT][aA][tT][eE]|[hH][eE][aA][lL][tT][hH]|[hH][eE][aA][lL][tT][hH][yY]|[oO][kK]|[rR][uU][nN][nN][iI][nN][gG]|[aA][lL][iI][vV][eE]|[uU][pP]|[sS][uU][cC][cC][eE][sS][sS]|[vV][eE][rR][iI][fF][iI][eE][dD]|[pP][aA][sS][sS][eE][sS]|[pP][aA][uU][sS][eE][dD])$",
       "description": "statusKey 不分大小寫、可以帶 x_ 前綴（JSON Schema 的 regex 沒有忽略大小寫的旗標，所以每個字母寫成 [xX]）"
     },
     "statusWordValue": {
       "type": "string",
-      "pattern": "^\\s*(?:[rR][uU][nN][nN][iI][nN][gG]|[oO][kK]|[hH][eE][aA][lL][tT][hH][yY]|[aA][lL][iI][vV][eE]|[gG][rR][eE][eE][nN]|[sS][uU][cC][cC][eE][sS][sS]|[sS][uU][cC][cC][eE][eE][dD][eE][dD]|[oO][nN][lL][iI][nN][eE]|[rR][eE][aA][dD][yY]|[vV][eE][rR][iI][fF][iI][eE][dD]|[pP][aA][sS][sS][iI][nN][gG]|[pP][aA][sS][sS][eE][dD])\\s*$",
+      "pattern": "^\\s*(?:[rR][uU][nN][nN][iI][nN][gG]|[oO][kK]|[hH][eE][aA][lL][tT][hH][yY]|[aA][lL][iI][vV][eE]|[gG][rR][eE][eE][nN]|[sS][uU][cC][cC][eE][sS][sS]|[sS][uU][cC][cC][eE][eE][dD][eE][dD]|[oO][nN][lL][iI][nN][eE]|[rR][eE][aA][dD][yY]|[vV][eE][rR][iI][fF][iI][eE][dD]|[pP][aA][sS][sS][iI][nN][gG]|[pP][aA][sS][sS][eE][dD]|[pP][aA][uU][sS][eE][dD])\\s*$",
       "description": "statusWord 不分大小寫、前後可以有空白"
     },
     "factValue": {

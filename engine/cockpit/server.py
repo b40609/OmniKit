@@ -8,6 +8,11 @@
   POST、PATCH 一律 403；寫入、套用工作台與對帳只在這台電腦上開本機網址時可做。
 - 本機寫入要帶 X-OmniKit-Token（前端從同源 GET /api/session 取得；跨站 Fetch 由 Sec-Fetch-Site 擋下），
   且若有 Origin 標頭，其 host 與 port 都必須與目前伺服器完全一致。
+
+監控者自保（控制平面 L1）：
+- serve 啟動時帶起背景巡檢執行緒（RuntimePoller，預設 60 秒一輪）：掃各專案的探針，原子寫入
+  ~/.omnikit/cockpit/snapshot.json（運行態三軸）與自己的心跳 poller-heartbeat.json（給 scripts/cockpit.py watchdog-tick 看）。
+- GET /api/runtime 經 Tailscale 也能看；POST /api/runtime/refresh 與 POST /api/projects/<id>/probes 跟其他寫入一樣只限本機。
 """
 from __future__ import annotations
 
@@ -35,7 +40,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
-from . import collector, reconciler
+from . import collector, probes, reconciler
 
 SCRIPTS_DIR = collector.ROOT / "engine" / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
@@ -56,7 +61,7 @@ FORWARD_HEADERS = (
 )
 TOKEN_HEADER = "X-OmniKit-Token"
 HOSTS_ENV = "OMNIKIT_COCKPIT_HOSTS"
-SERVER_VERSION = "0.2.1"
+SERVER_VERSION = "0.3.0"
 QUERY_IN_REQ_RE = re.compile(r'(\"[A-Z]+\s+[^\s?\"]+)\?[^\s\"]*(\s+HTTP/[^\"]+\")')
 
 HABIT_CATALOG = [
@@ -221,6 +226,42 @@ class ExclusiveHTTPServer(ThreadingHTTPServer):
         super().server_bind()
 
 
+class RuntimePoller(threading.Thread):
+    """背景巡檢：每隔一段時間掃一輪探針，寫 snapshot.json 與自己的心跳。
+
+    這條線自己也可能死掉或卡住，所以它每成功一輪才更新 poller-heartbeat.json：
+    心跳過期由外面的看門狗（scripts/cockpit.py watchdog-tick）發現並重啟面板，前端也會因為 generated_at 不動而亮橫幅。
+    """
+
+    def __init__(self, app: CockpitApp, *, interval: float | None = None) -> None:
+        super().__init__(name="omnikit-cockpit-poller", daemon=True)
+        self.app = app
+        self.interval = interval
+        self._halt = threading.Event()
+        self.rounds = 0
+        self.errors = 0
+        self.last_error: str | None = None
+        self.last_ok_at: str | None = None
+
+    def stop(self) -> None:
+        self._halt.set()
+
+    def run(self) -> None:
+        while not self._halt.is_set():
+            started = time.monotonic()
+            wait_s = self.interval or probes.DEFAULT_POLL_S
+            try:
+                runtime = self.app.poll_once()
+                self.rounds += 1
+                self.last_ok_at = runtime.get("generated_at")
+                wait_s = self.interval or float(runtime.get("poll_interval_s") or wait_s)
+            except Exception as exc:  # noqa: BLE001  這一輪失敗就不寫心跳，下一輪再試；執行緒不能死
+                self.errors += 1
+                self.last_error = collector.sanitize(f"{type(exc).__name__}: {exc}", 200)
+                sys.stderr.write(f"[cockpit-poller] 這一輪巡檢失敗：{traceback.format_exc()}\n")
+            self._halt.wait(max(0.2, wait_s - (time.monotonic() - started)))
+
+
 class CockpitApp:
     """可注入 state_dir、home_dir、t3_runner、reconcile_runner 與 cache 的控制面板應用狀態。"""
 
@@ -237,6 +278,7 @@ class CockpitApp:
         cache_ttl: float = 15.0,
         allowed_hosts: set[str] | None = None,
         token: str | None = None,
+        probe_system: probes.System | None = None,
     ):
         self.state_dir = state_dir if state_dir is not None else collector.default_state_dir()
         self.data_dir = data_dir if data_dir is not None else (collector.ROOT / "data")
@@ -254,6 +296,15 @@ class CockpitApp:
         self._lock = threading.Lock()
         self._mutate_lock = threading.Lock()
         self._cache: dict[str, tuple[float, Any]] = {}
+        # 運行態三軸：背景巡檢（start_runtime_poller，只有 serve 會開）或第一次有人來問時掃
+        self.probe_system = probe_system or probes.System()
+        self.wake = probes.WakeDetector()
+        self.poller: RuntimePoller | None = None
+        self._scan_lock = threading.Lock()
+        self._runtime: dict[str, Any] | None = None
+        self._runtime_at = 0.0
+        self._runtime_signature: tuple | None = None
+        self._snapshot_error: str | None = None
         self.reconciler = reconciler.ReconcileManager(
             state_dir=self.state_dir,
             on_done=lambda: self.invalidate("overview", "bootstrap"),
@@ -306,6 +357,171 @@ class CockpitApp:
             environ=iso_env,
         )
 
+    # ---------- 運行態三軸 ----------
+
+    @staticmethod
+    def _signature(runtime: dict[str, Any]) -> tuple:
+        """各服務三軸狀態的指紋：有變才讓總覽的快取失效（球權分流要跟著變），只是時間往前走不算變。"""
+        return tuple(sorted(
+            (pid, svc["id"], svc["level"], svc["alive"]["state"], svc["sync"]["state"], svc["fresh"]["state"], bool(svc.get("acknowledged")))
+            for pid, proj in (runtime.get("projects") or {}).items() for svc in proj.get("services") or []
+        ))
+
+    def refresh_runtime(self, *, force: bool = False, tick: bool = False) -> dict[str, Any]:
+        """掃一輪所有專案的探針，更新記憶體裡的運行態並寫進 snapshot.json。
+
+        tick 只有背景巡檢那條線傳 True（推進休眠喚醒偵測）；force 是使用者按「立即重掃」，連排程查詢的快取也不用。
+        """
+        with self._scan_lock:
+            cfg = collector.load_config(self.state_dir)
+            interval = probes.poll_interval(cfg)
+            wake_left = self.wake.tick(interval) if tick else self.wake.remaining()
+            runtime = probes.scan_all(
+                self.state_dir,
+                cfg=cfg,
+                home=self.home_dir,
+                system=self.probe_system,
+                wake_grace_remaining_s=wake_left,
+                default_repo_root=self.default_repo_root,
+                force=force,
+            )
+            runtime["poll_interval_s"] = interval
+            runtime["last_wake_at"] = self.wake.last_wake_at
+            signature = self._signature(runtime)
+            with self._lock:
+                if signature != self._runtime_signature:
+                    self._cache.pop("overview", None)
+                self._runtime = runtime
+                self._runtime_at = time.monotonic()
+                self._runtime_signature = signature
+            try:
+                collector.write_snapshot(self.state_dir, runtime=runtime)
+                self._snapshot_error = None
+            except OSError as exc:
+                self._snapshot_error = collector.sanitize(exc, 200)
+            return runtime
+
+    def current_runtime(self) -> dict[str, Any]:
+        """最新的運行態。有背景巡檢時直接用它掃好的（不替它遮掩卡住）；沒有（測試、還沒掃完第一輪）就當場掃。"""
+        with self._lock:
+            runtime, made = self._runtime, self._runtime_at
+        polling = self.poller is not None and self.poller.is_alive()
+        if runtime is None or (not polling and (time.monotonic() - made) >= self.cache_ttl):
+            runtime = self.refresh_runtime()
+        return runtime
+
+    def poll_once(self) -> dict[str, Any]:
+        """背景巡檢的一輪：掃描、寫快照，都成功才更新自己的心跳。"""
+        runtime = self.refresh_runtime(tick=True)
+        if self._snapshot_error:
+            raise OSError(f"snapshot.json 寫不進去：{self._snapshot_error}")
+        self._write_poller_heartbeat(runtime)
+        return runtime
+
+    def poller_heartbeat_path(self) -> Path:
+        return collector.cockpit_dir(self.state_dir) / "poller-heartbeat.json"
+
+    def _write_poller_heartbeat(self, runtime: dict[str, Any]) -> None:
+        interval = float(runtime.get("poll_interval_s") or probes.DEFAULT_POLL_S)
+        extra: dict[str, Any] = {
+            "host": socket.gethostname(),
+            "build": self.version,
+            "progress": {"items_out": int(runtime["summary"]["services"]), "errors_last_run": int(self.poller.errors if self.poller else 0)},
+        }
+        _state, started, _note = probes.stale_check.process_info(os.getpid())
+        if started is not None:
+            extra.update(pid=os.getpid(), pid_start_ts=started.isoformat(timespec="seconds"))
+        probes.stale_check.write_self_heartbeat(
+            self.poller_heartbeat_path(), datetime.now(UTC), interval, max(60.0, interval), [], name="cockpit-poller", extra=extra,
+        )
+
+    def start_runtime_poller(self, *, interval: float | None = None) -> RuntimePoller:
+        if self.poller is None or not self.poller.is_alive():
+            self.poller = RuntimePoller(self, interval=interval)
+            self.poller.start()
+        return self.poller
+
+    def stop_runtime_poller(self) -> None:
+        if self.poller is not None:
+            self.poller.stop()
+
+    def poller_status(self) -> dict[str, Any]:
+        """監控者自己的狀態：背景巡檢有沒有在跑、它的心跳由 stale_check 判定是不是新鮮。"""
+        out: dict[str, Any] = {
+            "running": bool(self.poller is not None and self.poller.is_alive()),
+            "rounds": self.poller.rounds if self.poller else 0,
+            "errors": self.poller.errors if self.poller else 0,
+            "last_error": self.poller.last_error if self.poller else None,
+            "snapshot_error": self._snapshot_error,
+            "heartbeat": None,
+        }
+        path = self.poller_heartbeat_path()
+        if path.is_file():
+            res = probes.stale_check.check_file(path, datetime.now(UTC), {})
+            top = next((msg for lvl, msg in res["reasons"] if lvl == res["verdict"]), "") or next((m for _l, m in res["reasons"]), "")
+            out["heartbeat"] = {
+                "verdict": res["verdict"],
+                "last_success_ts": (res.get("facts") or {}).get("last_success_ts"),
+                "reason": collector.sanitize(top, 200),
+            }
+        return out
+
+    def watchdog_status(self) -> dict[str, Any]:
+        """看門狗（工作排程器每 10 分鐘跑一次 watchdog-tick）留下的紀錄；沒裝或還沒跑過就是空的。"""
+        base = collector.cockpit_dir(self.state_dir)
+        out: dict[str, Any] = {"installed": False, "task_name": None, "last_tick_at": None, "last_action": None,
+                               "restarts_last_hour": 0, "breaker_open": False}
+        for name, keys in (("watchdog-task.json", ("task_name", "installed_at")),
+                           ("watchdog-state.json", ("last_tick_at", "last_action", "last_reason", "breaker_open", "last_restart_at"))):
+            try:
+                doc = json.loads(collector.read_utf8(base / name)) if (base / name).is_file() else None
+            except (OSError, ValueError):
+                doc = None
+            if not isinstance(doc, dict):
+                continue
+            if name == "watchdog-task.json":
+                out["installed"] = True
+            for key in keys:
+                if key in doc:
+                    out[key] = doc[key]
+            if name == "watchdog-state.json":
+                cutoff = datetime.now(UTC) - timedelta(hours=1)
+                stamps = [collector.parse_timestamp(str(t)) for t in doc.get("restarts") or [] if isinstance(t, str)]
+                out["restarts_last_hour"] = sum(1 for t in stamps if t is not None and t >= cutoff)
+        return out
+
+    def runtime_payload(self) -> dict[str, Any]:
+        # server_time：前端拿它當時間基準判斷快照有沒有過期，手機時鐘不準也不會誤報
+        return {
+            **self.current_runtime(),
+            "poller": self.poller_status(),
+            "watchdog": self.watchdog_status(),
+            "server_time": datetime.now(UTC).isoformat(timespec="seconds"),
+        }
+
+    def _project_entry(self, project_id: str) -> tuple[str, Path | None]:
+        pid = collector.validate_project_id(project_id)
+        cfg = collector.load_config(self.state_dir)
+        for entry in collector.discover_projects(self.state_dir, cfg, default_repo_root=self.default_repo_root):
+            if str(entry["id"]).lower() == pid.lower():
+                root = Path(str(entry["path"])) if entry.get("path") else None
+                return str(entry["id"]), root if root is not None and root.is_dir() else None
+        raise FileNotFoundError(f"找不到專案：{pid}")
+
+    def describe_probes(self, project_id: str) -> dict[str, Any]:
+        pid, root = self._project_entry(project_id)
+        return probes.describe_layers(self.state_dir, pid, root)
+
+    def update_probes(self, project_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        """改某個專案的個人疊層探針設定（只寫 ~/.omnikit/cockpit/config.json），改完馬上重掃一輪。"""
+        pid, root = self._project_entry(project_id)
+        with self._mutate_lock:
+            res = probes.apply_probe_op(self.state_dir, pid, body, project_root=root, home=self.home_dir)
+        runtime = self.refresh_runtime(force=True)
+        self.invalidate("overview")
+        by_id = {str(k).lower(): v for k, v in runtime["projects"].items()}
+        return {**res, "layers": probes.describe_layers(self.state_dir, pid, root), "runtime": by_id.get(pid.lower())}
+
     def get_overview(self, *, force_sync: bool = False) -> dict[str, Any]:
         now_m = time.monotonic()
         data = None
@@ -315,14 +531,16 @@ class CockpitApp:
                 if cached and (now_m - cached[0]) < self.cache_ttl:
                     data = cached[1]
         if data is None:
+            runtime = self.current_runtime()
             data = collector.collect_overview(
                 self.state_dir,
                 sync=force_sync,
                 default_repo_root=self.default_repo_root,
                 t3_runner=self.t3_runner,
+                runtime=runtime,
             )
             try:
-                collector.write_snapshot(self.state_dir, data)
+                collector.write_snapshot(self.state_dir, data, runtime=runtime)
             except OSError:
                 pass
             with self._lock:
@@ -909,6 +1127,10 @@ def _make_handler(app: CockpitApp):
                     self._send_json(HTTPStatus.OK, app.get_overview(force_sync=sync))
                     return
 
+                if path == "/api/runtime":
+                    self._send_json(HTTPStatus.OK, app.runtime_payload())
+                    return
+
                 if path == "/api/reconcile/status":
                     self._send_json(HTTPStatus.OK, app.reconciler.snapshot())
                     return
@@ -953,6 +1175,9 @@ def _make_handler(app: CockpitApp):
                             limit = int(qs.get("limit", ["12"])[0])
                             self._send_json(HTTPStatus.OK, status_mod.project_history(pid, state=app.state_dir, limit=limit))
                             return
+                        if parts[3] == "probes":
+                            self._send_json(HTTPStatus.OK, app.describe_probes(pid))
+                            return
 
                 if not path.startswith("/api/"):
                     self._serve_static(path.lstrip("/"))
@@ -961,6 +1186,8 @@ def _make_handler(app: CockpitApp):
                 self._send_json(HTTPStatus.NOT_FOUND, {"error": "找不到 API 端點"})
             except (ValueError, TypeError) as exc:
                 self._send_json(HTTPStatus.BAD_REQUEST, {"error": collector.sanitize(exc)})
+            except FileNotFoundError as exc:
+                self._send_json(HTTPStatus.NOT_FOUND, {"error": collector.sanitize(exc)})
             except Exception as exc:  # noqa: BLE001
                 sys.stderr.write(f"[cockpit-error] GET {self.path}: {traceback.format_exc()}\n")
                 self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": collector.sanitize(exc)})
@@ -1042,6 +1269,11 @@ def _make_handler(app: CockpitApp):
                     app.invalidate("bootstrap", "tools")
                     cat = kit_mod.build_workbench_catalog(app.state_dir, app.data_dir)
                     self._send_json(HTTPStatus.OK, {**res, "budget": cat["budget"], "workbench": cat})
+                    return
+
+                if path == "/api/runtime/refresh":
+                    app.refresh_runtime(force=True)
+                    self._send_json(HTTPStatus.OK, app.runtime_payload())
                     return
 
                 if path == "/api/doctor/fix":
@@ -1141,6 +1373,9 @@ def _make_handler(app: CockpitApp):
                     if parts[3] == "reconcile":
                         res = app.enqueue_reconcile(pid)
                         self._send_json(HTTPStatus.ACCEPTED, res)
+                        return
+                    if parts[3] == "probes":
+                        self._send_json(HTTPStatus.OK, app.update_probes(pid, body))
                         return
                     if parts[3] == "critiques":
                         res = collector.add_critique(
